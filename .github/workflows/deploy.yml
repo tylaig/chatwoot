@@ -58,9 +58,22 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: "${{ secrets.VPS_HOST != '' }}"
     steps:
+      - name: Check VPS Configuration
+        id: check_vps
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          if [ -z "$VPS_HOST" ]; then
+            echo "has_vps=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ VPS_HOST não configurado nos Secrets do repositório. Deploy remoto ignorado."
+          else
+            echo "has_vps=true" >> "$GITHUB_OUTPUT"
+            echo "✅ VPS_HOST configurado. Prosseguindo com o deploy remoto..."
+          fi
+
       - name: Execute remote deploy
+        if: steps.check_vps.outputs.has_vps == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
