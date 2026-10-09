@@ -464,6 +464,13 @@ Rails.application.routes.draw do
               post :test_payload
             end
           end
+          resources :whatsapp_templates do
+            member do
+              post :approve
+              post :submit_review
+              post :reject
+            end
+          end
         end
       end
       # end of account scoped api routes
