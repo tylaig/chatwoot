@@ -711,6 +711,12 @@ const menuItems = computed(() => {
       ],
     },
     {
+      name: 'Webhooks',
+      label: 'Webhooks',
+      icon: 'i-lucide-webhook',
+      to: accountScopedRoute('webhook_dispatch_index'),
+    },
+    {
       name: 'Campaigns',
       label: t('SIDEBAR.CAMPAIGNS'),
       icon: 'i-lucide-megaphone',
