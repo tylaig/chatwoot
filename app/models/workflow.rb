@@ -20,6 +20,16 @@ class Workflow < ApplicationRecord
   scope :paused, -> { where(status: 'paused') }
   scope :archived, -> { where(status: 'archived') }
 
+  def execution_stats
+    {
+      total: executions.count,
+      completed: executions.completed.count,
+      failed: executions.failed.count,
+      running: executions.running.count,
+      waiting: executions.waiting.count
+    }
+  end
+
   def current_draft_version
     versions.find_or_create_by!(status: 'draft') do |v|
       v.version_number = (versions.maximum(:version_number) || 0) + 1

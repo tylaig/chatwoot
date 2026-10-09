@@ -2,6 +2,7 @@
 
 class Api::V1::Accounts::WorkflowsController < Api::V1::Accounts::BaseController
   before_action :fetch_workflow, only: [:show, :update, :destroy, :publish, :pause, :activate, :duplicate, :executions]
+  before_action :check_authorization
 
   def index
     @workflows = Current.account.workflows.order(updated_at: :desc)
@@ -75,6 +76,11 @@ class Api::V1::Accounts::WorkflowsController < Api::V1::Accounts::BaseController
   end
 
   def publish
+    validator = Workflows::WorkflowValidatorService.new(@workflow, @workflow.current_draft_version)
+    unless validator.validate!
+      return render json: { error: validator.errors }, status: :unprocessable_entity
+    end
+
     draft = @workflow.publish!(params[:summary])
     render json: { success: true, active_version_id: draft.id, status: @workflow.status }
   end

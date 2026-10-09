@@ -1,7 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue';
+import {
+  WORKFLOW_NODES_REGISTRY,
+  NODE_CATEGORIES,
+} from '../nodeRegistry';
 
-const props = defineProps({
+defineProps({
   show: {
     type: Boolean,
     default: false,
@@ -13,159 +17,121 @@ const emit = defineEmits(['close', 'select']);
 const searchQuery = ref('');
 const selectedCategory = ref('all');
 
-const categories = [
-  { id: 'all', name: 'Todos os Blocos' },
-  { id: 'triggers', name: 'Triggers' },
-  { id: 'whatsapp', name: 'WhatsApp' },
-  { id: 'logic', name: 'Lógica' },
-  { id: 'time', name: 'Tempo' },
-  { id: 'chatwoot', name: 'CRM / Chatwoot' },
-  { id: 'integration', name: 'Integrações' },
-];
-
-const availableNodes = [
-  {
-    type: 'send_whatsapp_message',
-    category: 'whatsapp',
-    title: 'Enviar Mensagem WhatsApp',
-    description: 'Envia mensagem de texto ou template com verificação de janela de 24h',
-    icon: '💬',
-    badge: 'WhatsApp',
-  },
-  {
-    type: 'condition',
-    category: 'logic',
-    title: 'Condição (IF / ELSE)',
-    description: 'Bifurca o fluxo avaliando variáveis do contato, webhook ou contexto',
-    icon: '🔀',
-    badge: 'Lógica',
-  },
-  {
-    type: 'router',
-    category: 'logic',
-    title: 'Router / Switch',
-    description: 'Roteia para múltiplos caminhos baseado no valor de uma variável',
-    icon: '🧭',
-    badge: 'Lógica',
-  },
-  {
-    type: 'delay',
-    category: 'time',
-    title: 'Esperar (Delay)',
-    description: 'Pausa a execução por minutos, horas ou dias sem consumir threads',
-    icon: '⏱️',
-    badge: 'Tempo',
-  },
-  {
-    type: 'wait_for_reply',
-    category: 'time',
-    title: 'Aguardar Resposta',
-    description: 'Aguarda resposta do cliente no WhatsApp com timeout configurável',
-    icon: '⏳',
-    badge: 'Tempo',
-  },
-  {
-    type: 'add_tag',
-    category: 'chatwoot',
-    title: 'Adicionar Tag',
-    description: 'Insere uma etiqueta na conversa no Chatwoot',
-    icon: '🏷️',
-    badge: 'CRM',
-  },
-  {
-    type: 'remove_tag',
-    category: 'chatwoot',
-    title: 'Remover Tag',
-    description: 'Remove uma etiqueta existente da conversa',
-    icon: '🔖',
-    badge: 'CRM',
-  },
-  {
-    type: 'resolve_conversation',
-    category: 'chatwoot',
-    title: 'Resolver Conversa',
-    description: 'Marca a conversa atual como resolvida',
-    icon: '✅',
-    badge: 'CRM',
-  },
-  {
-    type: 'add_private_note',
-    category: 'chatwoot',
-    title: 'Nota Privada',
-    description: 'Adiciona uma nota interna na conversa visível apenas para agentes',
-    icon: '📝',
-    badge: 'CRM',
-  },
-  {
-    type: 'http_request',
-    category: 'integration',
-    title: 'HTTP Request',
-    description: 'Chama uma API externa via GET, POST, PUT com suporte a variáveis',
-    icon: '🌐',
-    badge: 'Integração',
-  },
-];
+const allNodesList = computed(() => Object.values(WORKFLOW_NODES_REGISTRY));
 
 const filteredNodes = computed(() => {
-  return availableNodes.filter((node) => {
-    const matchCategory = selectedCategory.value === 'all' || node.category === selectedCategory.value;
-    const matchQuery = !searchQuery.value ||
-      node.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      node.description.toLowerCase().includes(searchQuery.value.toLowerCase());
-    return matchCategory && matchQuery;
+  return allNodesList.value.filter(n => {
+    const matchesCat =
+      selectedCategory.value === 'all' || n.category === selectedCategory.value;
+    const matchesSearch =
+      !searchQuery.value ||
+      n.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      n.subtitle.toLowerCase().includes(searchQuery.value.toLowerCase());
+    return matchesCat && matchesSearch;
   });
 });
+
+const handleSelect = nodeMeta => {
+  emit('select', nodeMeta);
+};
 </script>
 
 <template>
-  <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" @click.self="emit('close')">
-    <div class="w-full max-w-xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[85vh]">
-      <!-- Header -->
-      <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Adicionar Bloco de Automação</h3>
-        <button type="button" class="text-slate-400 hover:text-slate-600 text-lg leading-none" @click="emit('close')">
-          ✕
-        </button>
-      </div>
+  <div
+    v-if="show"
+    class="absolute left-6 top-6 z-30 w-80 rounded-2xl bg-n-solid-1 border border-n-weak shadow-2xl overflow-hidden flex flex-col select-none text-n-slate-12"
+    style="max-height: calc(100% - 48px);"
+  >
+    <!-- HEADER DA PALETA -->
+    <div
+      class="p-4 border-b border-n-weak flex items-center justify-between"
+    >
+      <h3 class="text-xs font-bold text-n-slate-12">Adicionar Ação</h3>
+      <button
+        type="button"
+        class="text-n-slate-9 hover:text-n-slate-12 text-xs p-1"
+        @click="emit('close')"
+      >
+        ✕
+      </button>
+    </div>
 
-      <!-- Search & Categories Bar -->
-      <div class="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-2">
+    <!-- BUSCA DE BLOCOS -->
+    <div class="p-3 border-b border-n-weak">
+      <div class="relative">
+        <span class="absolute left-3 top-2.5 text-xs text-n-slate-9">🔍</span>
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Pesquisar ação, mensagem, delay..."
-          class="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
-          autofocus
+          placeholder="Pesquisar blocos..."
+          class="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 placeholder-n-slate-9 focus:outline-none focus:border-blue-500"
         />
+      </div>
+    </div>
 
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
-          <button
-            v-for="cat in categories"
-            :key="cat.id"
-            type="button"
-            class="px-2.5 py-1 text-[11px] font-medium rounded-lg whitespace-nowrap transition-colors"
-            :class="selectedCategory === cat.id ? 'bg-primary-500 text-white shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'"
-            @click="selectedCategory = cat.id"
-          >
-            {{ cat.name }}
-          </button>
-        </div>
+    <!-- LAYOUT DE CATEGORIAS + LISTA DE NODES -->
+    <div class="flex flex-1 min-h-0 overflow-hidden">
+      <!-- SIDEBAR DE CATEGORIAS -->
+      <div
+        class="w-24 border-r border-n-weak p-1.5 overflow-y-auto space-y-0.5 shrink-0"
+      >
+        <button
+          v-for="cat in NODE_CATEGORIES"
+          :key="cat.id"
+          type="button"
+          class="w-full text-left px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors truncate"
+          :class="
+            selectedCategory === cat.id
+              ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400 font-bold'
+              : 'text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-1'
+          "
+          @click="selectedCategory = cat.id"
+        >
+          {{ cat.name }}
+        </button>
       </div>
 
-      <!-- Node Grid -->
-      <div class="p-4 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3 flex-1">
+      <!-- LISTAGEM DE NODES -->
+      <div class="flex-1 p-2 overflow-y-auto space-y-1.5">
         <div
-          v-for="n in filteredNodes"
-          :key="n.type"
-          class="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary-500 hover:shadow-md cursor-pointer transition-all flex flex-col justify-between"
-          @click="emit('select', n)"
+          v-for="node in filteredNodes"
+          :key="node.type"
+          draggable="true"
+          class="p-2.5 rounded-xl bg-n-solid-2 border border-n-weak hover:border-n-strong hover:bg-n-alpha-2 transition-all cursor-pointer flex items-start gap-2.5 group"
+          @click="handleSelect(node)"
+          @dragstart="$event.dataTransfer.setData('application/vueflow', node.type)"
         >
-          <div class="flex items-start gap-2.5">
-            <span class="text-xl p-2 rounded-xl bg-slate-100 dark:bg-slate-800">{{ n.icon }}</span>
-            <div class="flex-1">
-              <h4 class="text-xs font-bold text-slate-900 dark:text-white">{{ n.title }}</h4>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">{{ n.description }}</p>
-            </div>
+          <!-- Ícone -->
+          <div
+            v-if="node.icon === 'whatsapp'"
+            class="w-6 h-6 rounded-full bg-[#25D366] flex items-center justify-center shrink-0 shadow-sm mt-0.5"
+          >
+            <svg class="w-3.5 h-3.5 text-white fill-current" viewBox="0 0 24 24">
+              <path
+                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"
+              />
+            </svg>
+          </div>
+          <div
+            v-else
+            class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-semibold shrink-0 mt-0.5"
+            :style="{
+              backgroundColor: `${node.iconColor || '#3B82F6'}1A`,
+              color: node.iconColor || '#3B82F6',
+            }"
+          >
+            {{ node.icon }}
+          </div>
+
+          <div class="min-w-0 flex-1">
+            <h4
+              class="text-xs font-bold text-n-slate-12 group-hover:text-blue-500 transition-colors truncate"
+            >
+              {{ node.title }}
+            </h4>
+            <p class="text-[10px] text-n-slate-11 line-clamp-2 leading-tight">
+              {{ node.subtitle }}
+            </p>
           </div>
         </div>
       </div>

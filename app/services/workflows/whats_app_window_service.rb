@@ -39,10 +39,27 @@ module Workflows
       window_status[:open]
     end
 
+    # Alinhamento direto com o padrão oficial do Chatwoot (Conversations::MessageWindowService)
+    def can_reply?
+      if @conversation&.inbox&.channel_type.in?(%w[Channel::Whatsapp Channel::TwilioSms])
+        Conversations::MessageWindowService.new(@conversation).can_reply?
+      else
+        open?
+      end
+    end
+
     private
 
     def last_customer_message
-      @conversation.messages.where(account_id: @conversation.account_id).incoming.last
+      return nil if @conversation.blank?
+
+      # Find the most recent valid incoming message sent by the customer on this conversation
+      @conversation.messages
+                   .where(account_id: @conversation.account_id)
+                   .incoming
+                   .where(private: false)
+                   .reorder(created_at: :desc)
+                   .first
     end
   end
 end

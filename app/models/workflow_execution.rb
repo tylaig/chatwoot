@@ -10,8 +10,9 @@ class WorkflowExecution < ApplicationRecord
 
   has_many :node_executions, class_name: 'WorkflowNodeExecution', dependent: :destroy
   has_many :wait_states, class_name: 'WorkflowWaitState', dependent: :destroy
+  has_one :wait_state, -> { order(created_at: :desc) }, class_name: 'WorkflowWaitState'
 
-  STATUSES = %w[running waiting completed failed cancelled].freeze
+  STATUSES = %w[running waiting completed failed cancelled paused].freeze
 
   validates :status, inclusion: { in: STATUSES }
 

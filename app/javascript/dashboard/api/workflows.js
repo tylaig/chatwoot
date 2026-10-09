@@ -1,8 +1,10 @@
-import axios from 'axios';
+/* global axios */
 
 class WorkflowsAPI {
+  // eslint-disable-next-line class-methods-use-this
   get baseUrl() {
-    const isInsideAccountScopedURLs = window.location.pathname.includes('/app/accounts');
+    const isInsideAccountScopedURLs =
+      window.location.pathname.includes('/app/accounts');
     let accountId = '';
     if (isInsideAccountScopedURLs) {
       accountId = window.location.pathname.split('/')[3];
@@ -12,8 +14,10 @@ class WorkflowsAPI {
     return `/api/v1/accounts/${accountId}/workflows`;
   }
 
+  // eslint-disable-next-line class-methods-use-this
   get executionsBaseUrl() {
-    const isInsideAccountScopedURLs = window.location.pathname.includes('/app/accounts');
+    const isInsideAccountScopedURLs =
+      window.location.pathname.includes('/app/accounts');
     let accountId = '';
     if (isInsideAccountScopedURLs) {
       accountId = window.location.pathname.split('/')[3];

@@ -714,27 +714,21 @@ const menuItems = computed(() => {
       name: 'Workflows',
       label: 'Workflows',
       icon: 'i-lucide-git-branch',
-      activeOn: [
-        'workflows_index',
-        'workflow_builder',
-        'workflow_executions',
-      ],
+      activeOn: ['workflows_index', 'workflow_builder', 'workflow_executions'],
       to: accountScopedRoute('workflows_index'),
     },
     {
       name: 'Templates',
       label: 'Templates WhatsApp',
       icon: 'i-lucide-layout-template',
-      activeOn: [
-        'whatsapp_templates_index',
-        'whatsapp_templates_new',
-      ],
+      activeOn: ['whatsapp_templates_index', 'whatsapp_templates_new'],
       to: accountScopedRoute('whatsapp_templates_index'),
     },
     {
       name: 'Webhooks',
       label: 'Webhooks',
       icon: 'i-lucide-webhook',
+      activeOn: ['webhook_dispatch_index'],
       to: accountScopedRoute('webhook_dispatch_index'),
     },
     {
@@ -920,12 +914,7 @@ const menuItems = computed(() => {
           icon: 'i-lucide-message-square-quote',
           to: accountScopedRoute('canned_list'),
         },
-        {
-          name: 'Settings Webhook Dispatch',
-          label: 'Gatilhos de Disparo',
-          icon: 'i-lucide-zap',
-          to: accountScopedRoute('webhook_dispatch_index'),
-        },
+
         {
           name: 'Settings Integrations',
           label: t('SIDEBAR.INTEGRATIONS'),

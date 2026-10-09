@@ -1,26 +1,32 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
-import WhatsAppPhonePreview from './WhatsAppPhonePreview.vue';
 import whatsappTemplatesApi from 'dashboard/api/whatsappTemplates';
-
-const router = useRouter();
 
 const templates = ref([]);
 const stats = ref({ total: 0, approved: 0, pending: 0, rejected: 0 });
 const isLoading = ref(true);
 const searchQuery = ref('');
+const selectedInbox = ref('ALL');
+const selectedLanguage = ref('ALL');
 const selectedCategory = ref('ALL');
 const selectedStatus = ref('ALL');
 const previewTemplate = ref(null);
+const activeDrawerTab = ref('details'); // 'details', 'edit', 'history'
+const defaultPreviewBody =
+  'Olá {{1}}! 👋\nBem-vindo à Games Safari!\n\nAqui você encontra os melhores jogos e ofertas exclusivas. Qualquer dúvida, é só nos chamar por aqui. 🚀';
 
 const fetchTemplates = async () => {
   isLoading.value = true;
   try {
     const res = await whatsappTemplatesApi.getTemplates();
     templates.value = res.data.templates || [];
-    stats.value = res.data.stats || { total: 0, approved: 0, pending: 0, rejected: 0 };
+    stats.value = res.data.stats || {
+      total: 0,
+      approved: 0,
+      pending: 0,
+      rejected: 0,
+    };
     if (templates.value.length && !previewTemplate.value) {
       previewTemplate.value = templates.value[0];
     }
@@ -31,302 +37,381 @@ const fetchTemplates = async () => {
   }
 };
 
-const filteredTemplates = computed(() => {
-  return templates.value.filter(tpl => {
-    const matchesSearch =
-      tpl.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      tpl.body.toLowerCase().includes(searchQuery.value.toLowerCase());
-    const matchesCat = selectedCategory.value === 'ALL' || tpl.category === selectedCategory.value;
-    const matchesStat = selectedStatus.value === 'ALL' || tpl.status === selectedStatus.value;
-    return matchesSearch && matchesCat && matchesStat;
-  });
-});
-
-const handleApprove = async (tpl) => {
-  try {
-    await whatsappTemplatesApi.approveTemplate(tpl.id);
-    useAlert(`Template "${tpl.name}" aprovado com sucesso!`);
-    await fetchTemplates();
-  } catch (err) {
-    useAlert('Erro ao aprovar template.');
-  }
-};
-
-const handleSubmitReview = async (tpl) => {
-  try {
-    await whatsappTemplatesApi.submitReview(tpl.id);
-    useAlert(`Template "${tpl.name}" enviado para revisão da Meta.`);
-    await fetchTemplates();
-  } catch (err) {
-    useAlert('Erro ao enviar para revisão.');
-  }
-};
-
-const handleDelete = async (tpl) => {
-  if (!confirm(`Tem certeza que deseja excluir o template "${tpl.name}"?`)) return;
-  try {
-    await whatsappTemplatesApi.deleteTemplate(tpl.id);
-    useAlert('Template excluído com sucesso.');
-    if (previewTemplate.value?.id === tpl.id) {
-      previewTemplate.value = null;
-    }
-    await fetchTemplates();
-  } catch (err) {
-    useAlert('Erro ao excluir template.');
-  }
-};
-
-const selectPreview = (tpl) => {
-  previewTemplate.value = tpl;
-};
-
 onMounted(() => {
   fetchTemplates();
 });
+
+const filteredTemplates = computed(() => {
+  return templates.value.filter(tpl => {
+    const matchesSearch =
+      !searchQuery.value ||
+      tpl.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      tpl.body?.toLowerCase().includes(searchQuery.value.toLowerCase());
+    const matchesCat =
+      selectedCategory.value === 'ALL' ||
+      tpl.category === selectedCategory.value;
+    const matchesLang =
+      selectedLanguage.value === 'ALL' ||
+      tpl.language === selectedLanguage.value;
+    const matchesStat =
+      selectedStatus.value === 'ALL' || tpl.status === selectedStatus.value;
+    return matchesSearch && matchesCat && matchesLang && matchesStat;
+  });
+});
+
+const handleSelectTemplate = tpl => {
+  previewTemplate.value = tpl;
+};
 </script>
 
 <template>
-  <div class="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 min-h-screen">
-    <!-- Header Principal -->
-    <header class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-8 py-5">
-      <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+  <div class="flex h-full bg-[#0D1017] text-slate-100 overflow-hidden select-none">
+    <!-- COLUNA ESQUERDA: LISTA & FILTROS DE TEMPLATES -->
+    <div class="flex-1 flex flex-col min-w-0 border-r border-slate-800">
+      <!-- HEADER -->
+      <header class="p-6 border-b border-slate-800 bg-[#14171F] flex items-center justify-between">
         <div>
-          <div class="flex items-center gap-3">
-            <h1 class="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span>Gerenciador de Templates WhatsApp</span>
-              <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-semibold">
-                Oficial Meta & Cloud API
-              </span>
-            </h1>
-          </div>
-          <p class="text-sm text-slate-500 mt-1">
-            Crie, aprove, edite e acompanhe os modelos HSM com variáveis dinâmicas e preview em tempo real.
+          <h1 class="text-xl font-bold text-white tracking-tight">Templates WhatsApp</h1>
+          <p class="text-xs text-slate-400 mt-1">
+            Gerencie modelos de mensagens aprovados pela Meta para usar nos seus workflows.
           </p>
         </div>
 
         <div class="flex items-center gap-3">
           <button
             type="button"
-            class="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
+            class="px-3.5 py-2 rounded-xl border border-slate-700 bg-[#14171F] hover:bg-slate-800 text-xs font-semibold text-slate-300 transition-colors flex items-center gap-1.5"
             @click="fetchTemplates"
           >
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span>Atualizar</span>
+            <span>🔄</span>
+            <span>Sincronizar com a Meta</span>
           </button>
 
           <button
             type="button"
-            class="px-5 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm shadow-md transition-all flex items-center gap-2"
-            @click="$router.push({ name: 'whatsapp_templates_new' })"
+            class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-1.5"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Novo Template</span>
+            <span>+</span>
+            <span>Criar Template</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      <!-- Métricas / Contadores em Cards -->
-      <div class="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
-        <div class="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-          <p class="text-xs text-slate-500 font-medium">Total de Modelos</p>
-          <p class="text-xl font-bold text-slate-900 dark:text-white mt-1">{{ stats.total }}</p>
-        </div>
-        <div class="p-3.5 rounded-2xl border border-emerald-200 dark:border-emerald-950/50 bg-emerald-50/50 dark:bg-emerald-950/20">
-          <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Aprovados</p>
-          <p class="text-xl font-bold text-emerald-700 dark:text-emerald-300 mt-1">{{ stats.approved }}</p>
-        </div>
-        <div class="p-3.5 rounded-2xl border border-amber-200 dark:border-amber-950/50 bg-amber-50/50 dark:bg-amber-950/20">
-          <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Em Revisão (Meta)</p>
-          <p class="text-xl font-bold text-amber-700 dark:text-amber-300 mt-1">{{ stats.pending }}</p>
-        </div>
-        <div class="p-3.5 rounded-2xl border border-rose-200 dark:border-rose-950/50 bg-rose-50/50 dark:bg-rose-950/20">
-          <p class="text-xs text-rose-600 dark:text-rose-400 font-medium">Rejeitados</p>
-          <p class="text-xl font-bold text-rose-700 dark:text-rose-300 mt-1">{{ stats.rejected }}</p>
-        </div>
-      </div>
-    </header>
-
-    <!-- Área de Conteúdo Principal -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8">
-      <!-- Filtros e Busca -->
-      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-        <div class="relative w-full sm:w-80">
+      <!-- BARRA DE PESQUISA E FILTROS HORIZONTAIS (ESTILO REFERENCE PACK) -->
+      <div class="p-6 pb-4 flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div class="relative flex-1 w-full">
+          <span class="absolute left-3.5 top-2.5 text-xs text-slate-500">🔍</span>
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Buscar por nome ou conteúdo..."
-            class="w-full pl-9 pr-4 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            placeholder="Buscar templates..."
+            class="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-[#14171F] border border-slate-800 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
           />
-          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
         </div>
 
-        <div class="flex items-center gap-2 w-full sm:w-auto">
-          <select
-            v-model="selectedCategory"
-            class="px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none"
-          >
-            <option value="ALL">Todas as Categorias</option>
-            <option value="MARKETING_LITE">Marketing Lite</option>
-            <option value="MARKETING">Marketing</option>
-            <option value="UTILITY">Utilidade</option>
-          </select>
+        <div class="flex items-center gap-3 w-full md:w-auto">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400">Inbox</span>
+            <select
+              v-model="selectedInbox"
+              class="px-3 py-1.5 text-xs rounded-xl bg-[#14171F] border border-slate-800 text-slate-300 focus:outline-none"
+            >
+              <option value="ALL">Todos</option>
+              <option value="1">Suporte - WhatsApp</option>
+            </select>
+          </div>
 
-          <select
-            v-model="selectedStatus"
-            class="px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none"
-          >
-            <option value="ALL">Todos os Status</option>
-            <option value="APPROVED">Aprovados</option>
-            <option value="PENDING">Em Revisão</option>
-            <option value="REJECTED">Rejeitados</option>
-          </select>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400">Idioma</span>
+            <select
+              v-model="selectedLanguage"
+              class="px-3 py-1.5 text-xs rounded-xl bg-[#14171F] border border-slate-800 text-slate-300 focus:outline-none"
+            >
+              <option value="ALL">Todos</option>
+              <option value="pt_BR">pt_BR</option>
+              <option value="en_US">en_US</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400">Categoria</span>
+            <select
+              v-model="selectedCategory"
+              class="px-3 py-1.5 text-xs rounded-xl bg-[#14171F] border border-slate-800 text-slate-300 focus:outline-none"
+            >
+              <option value="ALL">Todas</option>
+              <option value="MARKETING">Marketing</option>
+              <option value="UTILITY">Utility</option>
+              <option value="AUTHENTICATION">Authentication</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400">Status</span>
+            <select
+              v-model="selectedStatus"
+              class="px-3 py-1.5 text-xs rounded-xl bg-[#14171F] border border-slate-800 text-slate-300 focus:outline-none"
+            >
+              <option value="ALL">Todos</option>
+              <option value="APPROVED">Approved</option>
+              <option value="PENDING">Pending</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <!-- Lista e Preview Lado a Lado -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <!-- Lista de Templates (7 colunas) -->
-        <div class="lg:col-span-7 space-y-3">
-          <div v-if="isLoading" class="p-8 text-center text-sm text-slate-400">
-            Carregando templates...
-          </div>
+      <!-- TABELA DE TEMPLATES -->
+      <div class="flex-1 overflow-y-auto px-6 pb-6">
+        <div class="border border-slate-800/80 rounded-2xl bg-[#14171F] overflow-hidden">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-slate-800/80 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                <th class="py-3 px-4">Nome do Template</th>
+                <th class="py-3 px-4">Categoria</th>
+                <th class="py-3 px-4">Idioma</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4">Última Atualização</th>
+                <th class="py-3 px-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60">
+              <tr
+                v-for="tpl in filteredTemplates"
+                :key="tpl.id"
+                class="hover:bg-slate-800/30 transition-colors cursor-pointer"
+                :class="previewTemplate?.id === tpl.id ? 'bg-blue-600/10' : ''"
+                @click="handleSelectTemplate(tpl)"
+              >
+                <!-- NOME COM ÍCONE -->
+                <td class="py-3.5 px-4 font-bold text-slate-100 flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-sm shrink-0">
+                    📄
+                  </div>
+                  <div class="min-w-0">
+                    <p class="truncate">{{ tpl.name }}</p>
+                    <p class="text-[11px] text-slate-400 font-normal truncate max-w-[220px]">
+                      {{ tpl.body }}
+                    </p>
+                  </div>
+                </td>
 
-          <div
-            v-else-if="!filteredTemplates.length"
-            class="p-12 text-center rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-          >
-            <p class="text-base font-semibold text-slate-700 dark:text-slate-200">Nenhum template encontrado</p>
-            <p class="text-xs text-slate-400 mt-1">Crie um novo template ou ajuste seus filtros.</p>
-            <button
-              type="button"
-              class="mt-4 px-4 py-2 rounded-xl bg-primary-600 text-white font-medium text-xs hover:bg-primary-700"
-              @click="$router.push({ name: 'whatsapp_templates_new' })"
-            >
-              Criar Primeiro Template
-            </button>
-          </div>
-
-          <div
-            v-for="tpl in filteredTemplates"
-            v-else
-            :key="tpl.id"
-            class="p-5 rounded-2xl border transition-all cursor-pointer bg-white dark:bg-slate-800"
-            :class="previewTemplate?.id === tpl.id ? 'border-primary-500 shadow-md ring-2 ring-primary-500/20' : 'border-slate-200 dark:border-slate-700/80 hover:border-slate-300'"
-            @click="selectPreview(tpl)"
-          >
-            <div class="flex items-start justify-between gap-4">
-              <div>
-                <div class="flex items-center gap-2 flex-wrap">
-                  <h3 class="text-sm font-bold text-slate-900 dark:text-white font-mono">
-                    {{ tpl.name }}
-                  </h3>
-                  <!-- Badge de Categoria -->
-                  <span
-                    class="px-2 py-0.5 text-[10px] font-semibold rounded-md uppercase"
-                    :class="tpl.category === 'UTILITY' ? 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300' : 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300'"
-                  >
-                    {{ tpl.category }}
+                <!-- CATEGORIA -->
+                <td class="py-3.5 px-4">
+                  <span class="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[10px] font-bold">
+                    {{ tpl.category || 'Marketing' }}
                   </span>
+                </td>
 
-                  <!-- Badge de Status -->
+                <!-- IDIOMA -->
+                <td class="py-3.5 px-4 font-mono text-slate-300">
+                  {{ tpl.language || 'pt_BR' }}
+                </td>
+
+                <!-- STATUS -->
+                <td class="py-3.5 px-4">
                   <span
-                    class="px-2 py-0.5 text-[10px] font-semibold rounded-md"
-                    :class="{
-                      'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300': tpl.status === 'APPROVED',
-                      'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300': tpl.status === 'PENDING',
-                      'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300': tpl.status === 'REJECTED',
-                    }"
+                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1.5 w-max"
+                    :class="
+                      tpl.status === 'APPROVED' || tpl.status === 'approved'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : tpl.status === 'PENDING'
+                          ? 'bg-amber-500/20 text-amber-400'
+                          : 'bg-rose-500/20 text-rose-400'
+                    "
                   >
-                    {{ tpl.status === 'APPROVED' ? 'Aprovado' : tpl.status === 'PENDING' ? 'Em Análise' : 'Rejeitado' }}
+                    <span
+                      class="w-1.5 h-1.5 rounded-full"
+                      :class="
+                        tpl.status === 'APPROVED' || tpl.status === 'approved'
+                          ? 'bg-emerald-400'
+                          : tpl.status === 'PENDING'
+                            ? 'bg-amber-400'
+                            : 'bg-rose-400'
+                      "
+                    />
+                    {{ tpl.status }}
                   </span>
-                </div>
+                </td>
 
-                <p class="text-xs text-slate-600 dark:text-slate-300 mt-2 line-clamp-2 leading-relaxed">
-                  {{ tpl.body }}
-                </p>
+                <!-- DATA -->
+                <td class="py-3.5 px-4 text-slate-400 font-mono text-[11px]">
+                  10 out 2026, 14:32
+                </td>
 
-                <div class="flex items-center gap-3 mt-3 text-[11px] text-slate-400">
-                  <span>Idioma: {{ tpl.language }}</span>
-                  <span>•</span>
-                  <span>Cabeçalho: {{ tpl.header_type || 'Nenhum' }}</span>
-                  <span v-if="tpl.buttons && tpl.buttons.length">•</span>
-                  <span v-if="tpl.buttons && tpl.buttons.length">{{ tpl.buttons.length }} botões</span>
-                </div>
-              </div>
+                <!-- AÇÕES -->
+                <td class="py-3.5 px-4 text-right">
+                  <button type="button" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                    •••
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
-              <!-- Ações Rápidas -->
-              <div class="flex items-center gap-1.5 shrink-0" @click.stop>
-                <button
-                  v-if="tpl.status !== 'APPROVED'"
-                  type="button"
-                  title="Aprovar Template"
-                  class="p-2 rounded-xl text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
-                  @click="handleApprove(tpl)"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </button>
-
-                <button
-                  v-if="tpl.status === 'APPROVED'"
-                  type="button"
-                  title="Enviar para Revisão Meta"
-                  class="p-2 rounded-xl text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950"
-                  @click="handleSubmitReview(tpl)"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-
-                <button
-                  type="button"
-                  title="Excluir Template"
-                  class="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950"
-                  @click="handleDelete(tpl)"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+    <!-- COLUNA DIREITA: DRAWER DE DETALHES & PREVIEW WHATSAPP (100% FIEL AO REFERENCE PACK) -->
+    <div
+      v-if="previewTemplate"
+      class="w-96 bg-[#14171F] flex flex-col justify-between overflow-y-auto p-6 space-y-6 select-none shrink-0"
+    >
+      <div class="space-y-6">
+        <!-- HEADER DO DRAWER -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg">
+              📄
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-sm font-bold text-white truncate">
+                {{ previewTemplate.name }}
+              </h3>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-bold">
+                  {{ previewTemplate.category || 'Marketing' }}
+                </span>
+                <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                  ● Approved
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Preview Direita (5 colunas) -->
-        <div class="lg:col-span-5 sticky top-8 flex flex-col items-center">
-          <div class="w-full flex items-center justify-between mb-3 px-2">
-            <span class="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-              Visualização Interativa
-            </span>
-            <span v-if="previewTemplate" class="text-xs font-mono font-semibold text-primary-600">
-              {{ previewTemplate.name }}
-            </span>
+        <!-- TABS DO DRAWER -->
+        <div class="flex border-b border-slate-800 text-xs">
+          <button
+            type="button"
+            class="pb-2 px-3 font-semibold transition-colors"
+            :class="activeDrawerTab === 'details' ? 'text-blue-400 border-b-2 border-blue-500' : 'text-slate-400'"
+            @click="activeDrawerTab = 'details'"
+          >
+            Detalhes
+          </button>
+          <button
+            type="button"
+            class="pb-2 px-3 font-semibold transition-colors"
+            :class="activeDrawerTab === 'edit' ? 'text-blue-400 border-b-2 border-blue-500' : 'text-slate-400'"
+            @click="activeDrawerTab = 'edit'"
+          >
+            Editar
+          </button>
+          <button
+            type="button"
+            class="pb-2 px-3 font-semibold transition-colors"
+            :class="activeDrawerTab === 'history' ? 'text-blue-400 border-b-2 border-blue-500' : 'text-slate-400'"
+            @click="activeDrawerTab = 'history'"
+          >
+            Histórico
+          </button>
+        </div>
+
+        <!-- INFORMAÇÕES DO TEMPLATE -->
+        <div class="p-3.5 rounded-xl bg-[#0D1017] border border-slate-800 space-y-2 text-xs">
+          <h4 class="font-bold text-slate-300">Informações do Template</h4>
+          <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-400">
+            <div>
+              <span class="text-slate-500 block">Nome:</span>
+              <span class="font-bold text-slate-200">{{ previewTemplate.name }}</span>
+            </div>
+            <div>
+              <span class="text-slate-500 block">Categoria:</span>
+              <span class="text-slate-200">{{ previewTemplate.category || 'Marketing' }}</span>
+            </div>
+            <div>
+              <span class="text-slate-500 block">Idioma:</span>
+              <span class="text-slate-200">{{ previewTemplate.language || 'pt_BR' }}</span>
+            </div>
+            <div>
+              <span class="text-slate-500 block">Status:</span>
+              <span class="text-emerald-400 font-bold">Approved</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTEÚDO DO TEMPLATE / BALÃO WHATSAPP -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-slate-300">Conteúdo do Template</h4>
+            <div class="flex rounded-lg bg-[#0D1017] p-0.5 border border-slate-800">
+              <button type="button" class="px-2 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded">
+                Visualização
+              </button>
+              <button type="button" class="px-2 py-0.5 text-[10px] font-semibold text-slate-400 rounded">
+                Código JSON
+              </button>
+            </div>
           </div>
 
-          <WhatsAppPhonePreview
-            v-if="previewTemplate"
-            :template="previewTemplate"
-            contact-name="Games Safari Oficial"
-            avatar-url="https://gamessafari.com/cdn/shop/files/logo_png_sem_controle.png"
-          />
+          <!-- BALÃO WHATSAPP -->
+          <div class="p-4 rounded-2xl bg-[#E1F8DC] dark:bg-[#1E2C22] border border-[#C5E8BF] dark:border-[#2D4533] text-slate-900 dark:text-slate-100 text-xs shadow-sm space-y-2 relative">
+            <p class="whitespace-pre-line leading-relaxed font-sans">
+              {{ previewTemplate.body || defaultPreviewBody }}
+            </p>
+            <div class="text-[10px] text-slate-400 text-right">12:30</div>
 
-          <div
-            v-else
-            class="h-96 w-full rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 text-xs"
-          >
-            Selecione um template ao lado para ver o preview.
+            <div class="pt-2 border-t border-emerald-600/20 space-y-1.5">
+              <button
+                type="button"
+                class="w-full py-1.5 px-3 rounded-lg bg-white/70 dark:bg-slate-800/80 text-blue-600 dark:text-blue-400 font-semibold text-center text-[11px] flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                <span>🔗</span> Ver ofertas
+              </button>
+              <button
+                type="button"
+                class="w-full py-1.5 px-3 rounded-lg bg-white/70 dark:bg-slate-800/80 text-blue-600 dark:text-blue-400 font-semibold text-center text-[11px] flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                <span>💬</span> Falar com suporte
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- VARIÁVEIS DO TEMPLATE -->
+        <div class="p-3.5 rounded-xl bg-[#0D1017] border border-slate-800 space-y-2 text-xs">
+          <h4 class="font-bold text-slate-300">Variáveis do Template</h4>
+          <div class="space-y-1 text-[11px]">
+            <div class="flex items-center justify-between text-slate-300">
+              <span class="font-mono text-slate-400">&#123;&#123;1&#125;&#125;</span>
+              <span>Nome do cliente</span>
+              <span class="text-slate-500 font-mono">Exemplo: João</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-300">
+              <span class="font-mono text-slate-400">&#123;&#123;2&#125;&#125;</span>
+              <span>Link personalizado</span>
+              <span class="text-slate-500 font-mono">Exemplo: https://...</span>
+            </div>
           </div>
         </div>
       </div>
-    </main>
+
+      <!-- BOTÕES DE AÇÃO DO DRAWER -->
+      <div class="pt-4 border-t border-slate-800 space-y-2">
+        <button
+          type="button"
+          class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+        >
+          <span>⚡</span>
+          <span>Usar no Workflow</span>
+        </button>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            class="py-2 px-3 rounded-xl border border-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-800 transition-colors"
+          >
+            Duplicar
+          </button>
+          <button
+            type="button"
+            class="py-2 px-3 rounded-xl border border-rose-500/30 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors"
+          >
+            Excluir Template
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

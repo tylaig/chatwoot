@@ -4,8 +4,14 @@ module Workflows
   module NodeExecutors
     class WaitForReplyExecutor < BaseExecutor
       def execute
-        timeout_hours = (config[:timeout_hours] || config[:timeout] || 24).to_i
-        timeout_time = Time.current + timeout_hours.hours
+        timeout_hours = (config[:timeout_hours] || config['timeout_hours'] || config[:timeout] || config['timeout'] || 24).to_i
+        timeout_minutes = (config[:timeout_minutes] || config['timeout_minutes']).to_i
+        
+        timeout_time = if timeout_minutes.positive?
+                         Time.current + timeout_minutes.minutes
+                       else
+                         Time.current + timeout_hours.hours
+                       end
 
         wait_state = execution.wait_states.create!(
           node_id: node['id'],
@@ -13,12 +19,13 @@ module Workflows
           timeout_at: timeout_time,
           status: 'pending',
           metadata: {
-            timeout_hours: timeout_hours
+            timeout_hours: timeout_hours,
+            timeout_minutes: timeout_minutes
           }
         )
 
-        # Enqueue timeout check job
-        WorkflowExecutionJob.perform_at(timeout_time, execution.id, node['id'], 'timeout')
+        # Enqueue timeout check job via ActiveJob
+        WorkflowExecutionJob.set(wait_until: timeout_time).perform_later(execution.id, node['id'], 'timeout')
 
         {
           status: 'waiting',

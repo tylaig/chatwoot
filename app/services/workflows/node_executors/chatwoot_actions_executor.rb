@@ -4,7 +4,7 @@ module Workflows
   module NodeExecutors
     class ChatwootActionsExecutor < BaseExecutor
       def execute
-        action_type = config[:action_type] || config[:action]
+        action_type = config[:action_type] || config[:action] || node['type']
         conversation = execution.conversation
         contact = execution.contact
         account = execution.account
@@ -32,6 +32,8 @@ module Workflows
             updates = {}
             updates[:name] = resolve_vars(config[:name]) if config[:name].present?
             updates[:email] = resolve_vars(config[:email]) if config[:email].present?
+            updates[:phone_number] = resolve_vars(config[:phone_number]) if config[:phone_number].present?
+
             if config[:custom_attributes].is_a?(Hash)
               existing_attrs = contact.custom_attributes || {}
               config[:custom_attributes].each do |k, v|
@@ -39,8 +41,55 @@ module Workflows
               end
               updates[:custom_attributes] = existing_attrs
             end
+
             contact.update!(updates) if updates.present?
             result_data[:updated_contact_id] = contact.id
+          end
+
+        when 'update_custom_attribute'
+          target = config[:target] || 'contact' # 'contact' or 'conversation'
+          attr_key = config[:attribute_key]
+          attr_val = resolve_vars(config[:attribute_value].to_s)
+
+          if target == 'conversation' && conversation.present? && attr_key.present?
+            existing_attrs = conversation.custom_attributes || {}
+            existing_attrs[attr_key] = attr_val
+            conversation.update!(custom_attributes: existing_attrs)
+            result_data[:updated_conversation_attribute] = { attr_key => attr_val }
+          elsif contact.present? && attr_key.present?
+            existing_attrs = contact.custom_attributes || {}
+            existing_attrs[attr_key] = attr_val
+            contact.update!(custom_attributes: existing_attrs)
+            result_data[:updated_contact_attribute] = { attr_key => attr_val }
+          end
+
+        when 'update_conversation'
+          if conversation.present?
+            updates = {}
+            updates[:status] = config[:status] if config[:status].present? && %w[open resolved pending snoozed].include?(config[:status].to_s)
+            updates[:priority] = config[:priority] if config[:priority].present? && %w[low medium high urgent].include?(config[:priority].to_s)
+            conversation.update!(updates) if updates.present?
+            result_data[:updated_conversation] = updates
+          end
+
+        when 'assign_agent'
+          if conversation.present?
+            agent_id = config[:agent_id] || config[:assignee_id]
+            agent = account.users.find_by(id: agent_id)
+            if agent.present?
+              conversation.update!(assignee_id: agent.id)
+              result_data[:assigned_agent_id] = agent.id
+            end
+          end
+
+        when 'assign_team'
+          if conversation.present?
+            team_id = config[:team_id]
+            team = account.teams.find_by(id: team_id)
+            if team.present?
+              conversation.update!(team_id: team.id)
+              result_data[:assigned_team_id] = team.id
+            end
           end
 
         when 'resolve_conversation'
@@ -75,18 +124,14 @@ module Workflows
           current_vars[var_name] = var_val
           execution.update!(variables: current_vars)
           result_data[:variable_set] = { var_name => var_val }
-        else
-          # Fallback to check if node['type'] matches direct action
-          if node['type'] == 'add_tag'
-            tag_name = resolve_vars(config[:tag_name] || config[:label] || '')
-            if conversation.present? && tag_name.present?
-              conversation.add_labels([tag_name])
-              result_data[:added_tag] = tag_name
-            end
-          elsif node['type'] == 'resolve_conversation'
-            conversation&.resolved!
-            result_data[:conversation_status] = 'resolved'
-          end
+
+        when 'end_workflow'
+          result_data[:workflow_ended] = true
+          return {
+            status: 'success',
+            output: result_data,
+            next_nodes: [] # Stops any further branches
+          }
         end
 
         {

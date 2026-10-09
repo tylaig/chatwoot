@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
 import WhatsAppPhonePreview from './WhatsAppPhonePreview.vue';
@@ -27,22 +27,44 @@ const variableSearch = ref('');
 const textareaRef = ref(null);
 
 const systemVariables = [
-  { key: 'nome_completo', label: 'nome-completo', desc: 'Nome completo do contato' },
+  {
+    key: 'nome_completo',
+    label: 'nome-completo',
+    desc: 'Nome completo do contato',
+  },
   { key: 'primeiro_nome', label: 'primeiro-nome', desc: 'Primeiro nome' },
   { key: 'sobrenome', label: 'sobrenome', desc: 'Sobrenome' },
   { key: 'telefone', label: 'telefone', desc: 'Número de telefone' },
   { key: 'ddd', label: 'ddd', desc: 'DDD / código de área' },
-  { key: 'nome_indicador', label: 'nome-indicador', desc: 'Nome do indicador / vendedor' },
-  { key: 'link_pedido', label: 'link-pedido', desc: 'URL de rastreamento / pedido' },
+  {
+    key: 'nome_indicador',
+    label: 'nome-indicador',
+    desc: 'Nome do indicador / vendedor',
+  },
+  {
+    key: 'link_pedido',
+    label: 'link-pedido',
+    desc: 'URL de rastreamento / pedido',
+  },
   { key: 'valor_total', label: 'valor-total', desc: 'Valor total do pedido' },
-  { key: 'codigo_rastreio', label: 'codigo-rastreio', desc: 'Código de rastreamento' },
-  { key: 'nome_produto', label: 'nome-produto', desc: 'Nome do jogo / produto' },
+  {
+    key: 'codigo_rastreio',
+    label: 'codigo-rastreio',
+    desc: 'Código de rastreamento',
+  },
+  {
+    key: 'nome_produto',
+    label: 'nome-produto',
+    desc: 'Nome do jogo / produto',
+  },
 ];
 
 const filteredVariables = computed(() => {
   const q = variableSearch.value.toLowerCase().trim();
   if (!q) return systemVariables;
-  return systemVariables.filter(v => v.label.toLowerCase().includes(q) || v.desc.toLowerCase().includes(q));
+  return systemVariables.filter(
+    v => v.label.toLowerCase().includes(q) || v.desc.toLowerCase().includes(q)
+  );
 });
 
 const categories = [
@@ -51,21 +73,24 @@ const categories = [
     title: 'Marketing Lite',
     badge: 'Recomendado',
     icon: '🚀',
-    description: 'Envie mensagens de marketing com maior alcance e limites flexíveis. Até 10% mais barato e entrega até 9% mais mensagens.',
+    description:
+      'Envie mensagens de marketing com maior alcance e limites flexíveis. Até 10% mais barato e entrega até 9% mais mensagens.',
   },
   {
     id: 'MARKETING',
     title: 'Marketing',
     badge: null,
     icon: '📢',
-    description: 'Promova sua marca por meio de ofertas e campanhas. Ideal para reengajamento, upselling e aumento de conversões.',
+    description:
+      'Promova sua marca por meio de ofertas e campanhas. Ideal para reengajamento, upselling e aumento de conversões.',
   },
   {
     id: 'UTILITY',
     title: 'Utilidade',
     badge: null,
     icon: '🔔',
-    description: 'Mantenha os clientes informados com atualizações essenciais. Use para lembretes, confirmações e outras mensagens não promocionais.',
+    description:
+      'Mantenha os clientes informados com atualizações essenciais. Use para lembretes, confirmações e outras mensagens não promocionais.',
   },
 ];
 
@@ -90,11 +115,12 @@ const isStep1Valid = computed(() => !!form.value.category);
 const isStep2Valid = computed(() => {
   const nameClean = form.value.name.trim();
   const hasValidName = /^[a-z0-9_]+$/.test(nameClean);
-  const hasBody = form.value.body.trim().length > 0 && form.value.body.length <= 1024;
+  const hasBody =
+    form.value.body.trim().length > 0 && form.value.body.length <= 1024;
   return hasValidName && hasBody;
 });
 
-const selectCategory = (id) => {
+const selectCategory = id => {
   form.value.category = id;
 };
 
@@ -115,14 +141,14 @@ const sanitizeName = () => {
     .replace(/[^a-z0-9_]/g, '');
 };
 
-const setHeaderType = (type) => {
+const setHeaderType = type => {
   form.value.header_type = type;
   if (type === 'NONE') {
     form.value.header_content = '';
   }
 };
 
-const applyFormat = (wrapper) => {
+const applyFormat = wrapper => {
   const textarea = textareaRef.value;
   if (!textarea) return;
 
@@ -131,7 +157,10 @@ const applyFormat = (wrapper) => {
   const selectedText = form.value.body.substring(start, end);
 
   const replacement = `${wrapper}${selectedText || 'texto'}${wrapper}`;
-  form.value.body = form.value.body.substring(0, start) + replacement + form.value.body.substring(end);
+  form.value.body =
+    form.value.body.substring(0, start) +
+    replacement +
+    form.value.body.substring(end);
 
   setTimeout(() => {
     textarea.focus();
@@ -139,7 +168,7 @@ const applyFormat = (wrapper) => {
   }, 50);
 };
 
-const insertVariable = (varKey) => {
+const insertVariable = varKey => {
   const textarea = textareaRef.value;
   const placeholder = `{{${varKey}}}`;
 
@@ -151,12 +180,18 @@ const insertVariable = (varKey) => {
 
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
-  form.value.body = form.value.body.substring(0, start) + placeholder + form.value.body.substring(end);
+  form.value.body =
+    form.value.body.substring(0, start) +
+    placeholder +
+    form.value.body.substring(end);
   isVariableMenuOpen.value = false;
 
   setTimeout(() => {
     textarea.focus();
-    textarea.setSelectionRange(start + placeholder.length, start + placeholder.length);
+    textarea.setSelectionRange(
+      start + placeholder.length,
+      start + placeholder.length
+    );
   }, 50);
 };
 
@@ -172,13 +207,15 @@ const addButton = () => {
   });
 };
 
-const removeButton = (index) => {
+const removeButton = index => {
   form.value.buttons.splice(index, 1);
 };
 
 const submitTemplate = async (status = 'PENDING') => {
   if (!isStep2Valid.value) {
-    useAlert('Preencha os campos obrigatórios corretamente (nome sem caracteres especiais e corpo da mensagem).');
+    useAlert(
+      'Preencha os campos obrigatórios corretamente (nome sem caracteres especiais e corpo da mensagem).'
+    );
     return;
   }
 
@@ -189,7 +226,11 @@ const submitTemplate = async (status = 'PENDING') => {
       status: status,
     };
     await whatsappTemplatesApi.createTemplate(payload);
-    useAlert(status === 'APPROVED' ? 'Template aprovado e salvo com sucesso!' : 'Template enviado para revisão da Meta!');
+    useAlert(
+      status === 'APPROVED'
+        ? 'Template aprovado e salvo com sucesso!'
+        : 'Template enviado para revisão da Meta!'
+    );
     router.push({ name: 'whatsapp_templates_index' });
   } catch (err) {
     const errorMsg = err.response?.data?.error || 'Erro ao processar template.';
@@ -203,18 +244,30 @@ const submitTemplate = async (status = 'PENDING') => {
 <template>
   <div class="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 min-h-screen">
     <!-- Top Step Bar Header -->
-    <div class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-8 py-4">
+    <div
+      class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-8 py-4"
+    >
       <div class="max-w-6xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-6">
           <!-- Step 1 Indicator -->
           <div
             class="flex items-center gap-2 cursor-pointer select-none"
-            :class="currentStep === 1 ? 'text-primary-600 font-bold' : 'text-slate-500'"
+            :class="
+              currentStep === 1
+                ? 'text-primary-600 font-bold'
+                : 'text-slate-500'
+            "
             @click="currentStep = 1"
           >
             <div
               class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
-              :class="currentStep > 1 ? 'bg-emerald-500 text-white' : currentStep === 1 ? 'bg-primary-600 text-white' : 'bg-slate-200 text-slate-700'"
+              :class="
+                currentStep > 1
+                  ? 'bg-emerald-500 text-white'
+                  : currentStep === 1
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-slate-200 text-slate-700'
+              "
             >
               <span v-if="currentStep > 1">✓</span>
               <span v-else>1</span>
@@ -227,11 +280,19 @@ const submitTemplate = async (status = 'PENDING') => {
           <!-- Step 2 Indicator -->
           <div
             class="flex items-center gap-2 select-none"
-            :class="currentStep === 2 ? 'text-primary-600 font-bold' : 'text-slate-400'"
+            :class="
+              currentStep === 2
+                ? 'text-primary-600 font-bold'
+                : 'text-slate-400'
+            "
           >
             <div
               class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
-              :class="currentStep === 2 ? 'bg-primary-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'"
+              :class="
+                currentStep === 2
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
+              "
             >
               2
             </div>
@@ -254,10 +315,17 @@ const submitTemplate = async (status = 'PENDING') => {
       <!-- ETAPA 1: SELECIONAR CATEGORIA -->
       <div v-if="currentStep === 1" class="space-y-6">
         <div>
-          <h2 class="text-xl font-bold text-slate-900 dark:text-white">Categoria</h2>
+          <h2 class="text-xl font-bold text-slate-900 dark:text-white">
+            Categoria
+          </h2>
           <p class="text-sm text-slate-500 mt-1">
             Escolha o tipo de modelo que melhor se adapta à sua mensagem.
-            <a href="https://business.facebook.com/latest/whatsapp_manager/message_templates" target="_blank" class="text-primary-600 hover:underline">
+            <a
+              href="https://business.facebook.com/latest/whatsapp_manager/message_templates"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-primary-600 hover:underline"
+            >
               Saiba mais
             </a>
           </p>
@@ -268,16 +336,24 @@ const submitTemplate = async (status = 'PENDING') => {
             v-for="cat in categories"
             :key="cat.id"
             class="relative flex items-start gap-4 p-5 rounded-2xl border-2 transition-all cursor-pointer bg-white dark:bg-slate-800"
-            :class="form.category === cat.id ? 'border-primary-500 shadow-md ring-2 ring-primary-500/20' : 'border-slate-200 dark:border-slate-700/80 hover:border-slate-300'"
+            :class="
+              form.category === cat.id
+                ? 'border-primary-500 shadow-md ring-2 ring-primary-500/20'
+                : 'border-slate-200 dark:border-slate-700/80 hover:border-slate-300'
+            "
             @click="selectCategory(cat.id)"
           >
-            <div class="text-2xl p-2 rounded-xl bg-slate-100 dark:bg-slate-700/50 shrink-0">
+            <div
+              class="text-2xl p-2 rounded-xl bg-slate-100 dark:bg-slate-700/50 shrink-0"
+            >
               {{ cat.icon }}
             </div>
 
             <div class="flex-1 pr-6">
               <div class="flex items-center gap-2">
-                <span class="font-bold text-slate-900 dark:text-white">{{ cat.title }}</span>
+                <span class="font-bold text-slate-900 dark:text-white">{{
+                  cat.title
+                }}</span>
                 <span
                   v-if="cat.badge"
                   class="px-2 py-0.5 text-[11px] font-semibold rounded-md bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
@@ -285,7 +361,9 @@ const submitTemplate = async (status = 'PENDING') => {
                   {{ cat.badge }}
                 </span>
               </div>
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+              <p
+                class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed"
+              >
                 {{ cat.description }}
               </p>
             </div>
@@ -294,16 +372,25 @@ const submitTemplate = async (status = 'PENDING') => {
             <div class="absolute top-5 right-5">
               <div
                 class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors"
-                :class="form.category === cat.id ? 'border-primary-600 bg-primary-600' : 'border-slate-300 dark:border-slate-600'"
+                :class="
+                  form.category === cat.id
+                    ? 'border-primary-600 bg-primary-600'
+                    : 'border-slate-300 dark:border-slate-600'
+                "
               >
-                <div v-if="form.category === cat.id" class="w-2 h-2 rounded-full bg-white" />
+                <div
+                  v-if="form.category === cat.id"
+                  class="w-2 h-2 rounded-full bg-white"
+                />
               </div>
             </div>
           </div>
         </div>
 
         <!-- Bottom Action Bar Step 1 -->
-        <div class="flex items-center justify-between pt-8 border-t border-slate-200 dark:border-slate-800">
+        <div
+          class="flex items-center justify-between pt-8 border-t border-slate-200 dark:border-slate-800"
+        >
           <button
             type="button"
             class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -319,8 +406,18 @@ const submitTemplate = async (status = 'PENDING') => {
             @click="goToStep2"
           >
             <span>Próximo</span>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
         </div>
@@ -331,19 +428,31 @@ const submitTemplate = async (status = 'PENDING') => {
         <!-- Coluna Esquerda: Formulário de Configuração (7 colunas) -->
         <div class="lg:col-span-7 space-y-6">
           <!-- Card de Cabeçalho e Identificação -->
-          <div class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 shadow-sm space-y-4">
+          <div
+            class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 shadow-sm space-y-4"
+          >
             <div>
               <h3 class="text-base font-bold text-slate-900 dark:text-white">
-                Modelo {{ form.category === 'UTILITY' ? 'Utilitário' : form.category === 'MARKETING_LITE' ? 'Marketing Lite' : 'Marketing' }}
+                Modelo
+                {{
+                  form.category === 'UTILITY'
+                    ? 'Utilitário'
+                    : form.category === 'MARKETING_LITE'
+                      ? 'Marketing Lite'
+                      : 'Marketing'
+                }}
               </h3>
               <p class="text-xs text-slate-500 mt-0.5">
-                Novos modelos devem ser aprovados pela Meta. Normalmente leva até 24 horas.
+                Novos modelos devem ser aprovados pela Meta. Normalmente leva
+                até 24 horas.
               </p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label
+                  class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1"
+                >
                   Nome do Modelo *
                 </label>
                 <input
@@ -359,14 +468,20 @@ const submitTemplate = async (status = 'PENDING') => {
               </div>
 
               <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label
+                  class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1"
+                >
                   Idioma *
                 </label>
                 <select
                   v-model="form.language"
                   class="w-full px-3.5 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:outline-none"
                 >
-                  <option v-for="lang in languages" :key="lang.value" :value="lang.value">
+                  <option
+                    v-for="lang in languages"
+                    :key="lang.value"
+                    :value="lang.value"
+                  >
                     {{ lang.label }}
                   </option>
                 </select>
@@ -375,12 +490,22 @@ const submitTemplate = async (status = 'PENDING') => {
           </div>
 
           <!-- Card de Conteúdo: Cabeçalho, Corpo, Rodapé -->
-          <div class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 shadow-sm space-y-5">
+          <div
+            class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 shadow-sm space-y-5"
+          >
             <div>
-              <h3 class="text-base font-bold text-slate-900 dark:text-white">Conteúdo</h3>
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                Conteúdo
+              </h3>
               <p class="text-xs text-slate-500 mt-0.5">
-                Para engajar os clientes de forma eficaz e reduzir o risco de bloqueio, siga a
-                <a href="https://business.facebook.com/policies/whatsapp_business_messaging" target="_blank" class="text-primary-600 hover:underline">
+                Para engajar os clientes de forma eficaz e reduzir o risco de
+                bloqueio, siga a
+                <a
+                  href="https://business.facebook.com/policies/whatsapp_business_messaging"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary-600 hover:underline"
+                >
                   Política de Mensagens do WhatsApp Business
                 </a>
               </p>
@@ -388,7 +513,9 @@ const submitTemplate = async (status = 'PENDING') => {
 
             <!-- Seção de Cabeçalho Opcional -->
             <div>
-              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+              <label
+                class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2"
+              >
                 Cabeçalho (Opcional)
               </label>
               <div class="grid grid-cols-5 gap-2">
@@ -397,7 +524,11 @@ const submitTemplate = async (status = 'PENDING') => {
                   :key="hdr.id"
                   type="button"
                   class="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-medium border transition-colors"
-                  :class="form.header_type === hdr.id ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300 font-bold' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300'"
+                  :class="
+                    form.header_type === hdr.id
+                      ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300 font-bold'
+                      : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300'
+                  "
                   @click="setHeaderType(hdr.id)"
                 >
                   <span class="truncate">{{ hdr.label }}</span>
@@ -427,15 +558,26 @@ const submitTemplate = async (status = 'PENDING') => {
             <!-- Seção de Corpo da Mensagem (com Toolbar rica) -->
             <div>
               <div class="flex items-center justify-between mb-1.5">
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <label
+                  class="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+                >
                   Corpo da Mensagem *
                 </label>
-                <span class="text-xs" :class="bodyLength > 1024 ? 'text-rose-500 font-bold' : 'text-slate-400'">
+                <span
+                  class="text-xs"
+                  :class="
+                    bodyLength > 1024
+                      ? 'text-rose-500 font-bold'
+                      : 'text-slate-400'
+                  "
+                >
                   {{ bodyLength }}/1024
                 </span>
               </div>
 
-              <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 overflow-hidden focus-within:ring-2 focus-within:ring-primary-500">
+              <div
+                class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 overflow-hidden focus-within:ring-2 focus-within:ring-primary-500"
+              >
                 <textarea
                   ref="textareaRef"
                   v-model="form.body"
@@ -446,7 +588,9 @@ const submitTemplate = async (status = 'PENDING') => {
                 />
 
                 <!-- Toolbar Inferior do Editor -->
-                <div class="relative flex items-center justify-between px-3 py-2 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+                <div
+                  class="relative flex items-center justify-between px-3 py-2 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
+                >
                   <div class="flex items-center gap-1">
                     <button
                       type="button"
@@ -490,8 +634,14 @@ const submitTemplate = async (status = 'PENDING') => {
                         v-if="isVariableMenuOpen"
                         class="absolute bottom-10 left-0 w-64 rounded-2xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-50 animate-in fade-in slide-in-from-bottom-2"
                       >
-                        <div class="p-1 border-b border-slate-100 dark:border-slate-700/80 mb-2">
-                          <p class="text-xs font-bold text-slate-700 dark:text-slate-200">Campos do Sistema</p>
+                        <div
+                          class="p-1 border-b border-slate-100 dark:border-slate-700/80 mb-2"
+                        >
+                          <p
+                            class="text-xs font-bold text-slate-700 dark:text-slate-200"
+                          >
+                            Campos do Sistema
+                          </p>
                           <input
                             v-model="variableSearch"
                             type="text"
@@ -508,10 +658,14 @@ const submitTemplate = async (status = 'PENDING') => {
                             class="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                             @click="insertVariable(v.key)"
                           >
-                            <span class="text-xs font-mono font-medium text-slate-800 dark:text-slate-200">
+                            <span
+                              class="text-xs font-mono font-medium text-slate-800 dark:text-slate-200"
+                            >
                               {{ v.label }}
                             </span>
-                            <span class="text-[10px] text-slate-400">Inserir</span>
+                            <span class="text-[10px] text-slate-400"
+                              >Inserir</span
+                            >
                           </button>
                         </div>
                       </div>
@@ -524,10 +678,14 @@ const submitTemplate = async (status = 'PENDING') => {
             <!-- Seção de Rodapé Opcional -->
             <div>
               <div class="flex items-center justify-between mb-1.5">
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <label
+                  class="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+                >
                   Rodapé (Opcional)
                 </label>
-                <span class="text-xs text-slate-400">{{ footerLength }}/60</span>
+                <span class="text-xs text-slate-400"
+                  >{{ footerLength }}/60</span
+                >
               </div>
               <input
                 v-model="form.footer"
@@ -542,11 +700,14 @@ const submitTemplate = async (status = 'PENDING') => {
             <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
               <div class="flex items-center justify-between mb-2">
                 <div>
-                  <h4 class="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <h4
+                    class="text-xs font-semibold text-slate-700 dark:text-slate-300"
+                  >
                     Botões de Ação (Opcional)
                   </h4>
                   <p class="text-[11px] text-slate-400">
-                    Você pode adicionar até 3 botões (Links externos ou Respostas Rápidas).
+                    Você pode adicionar até 3 botões (Links externos ou
+                    Respostas Rápidas).
                   </p>
                 </div>
                 <button
@@ -603,15 +764,27 @@ const submitTemplate = async (status = 'PENDING') => {
           </div>
 
           <!-- Bottom Action Bar Step 2 -->
-          <div class="flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-800">
+          <div
+            class="flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-800"
+          >
             <div class="flex items-center gap-3">
               <button
                 type="button"
                 class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5"
                 @click="goToStep1"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
                 <span>Anterior</span>
               </button>
@@ -647,10 +820,14 @@ const submitTemplate = async (status = 'PENDING') => {
         <!-- Coluna Direita: Preview em Tempo Real no Smartphone (5 colunas) -->
         <div class="lg:col-span-5 sticky top-8 flex flex-col items-center">
           <div class="w-full flex items-center justify-between mb-3 px-2">
-            <span class="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+            <span
+              class="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider"
+            >
               Preview em Tempo Real
             </span>
-            <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-medium">
+            <span
+              class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-medium"
+            >
               Simulador WhatsApp
             </span>
           </div>

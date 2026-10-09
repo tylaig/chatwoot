@@ -1,35 +1,105 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { VueFlow, useVueFlow } from '@vue-flow/core';
+import { Background } from '@vue-flow/background';
+import { Controls } from '@vue-flow/controls';
+import '@vue-flow/core/dist/style.css';
+import '@vue-flow/core/dist/theme-default.css';
+
 import WorkflowsAPI from 'dashboard/api/workflows';
 import whatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import WorkflowNodeCard from './components/WorkflowNodeCard.vue';
 import WorkflowNodeConfigPanel from './components/WorkflowNodeConfigPanel.vue';
 import WorkflowNodeSelectorModal from './components/WorkflowNodeSelectorModal.vue';
+import WorkflowTemplatePickerModal from './components/WorkflowTemplatePickerModal.vue';
+import { WORKFLOW_NODES_REGISTRY } from './nodeRegistry';
 
 const route = useRoute();
 const router = useRouter();
 
 const workflowId = computed(() => route.params.workflowId);
 const workflow = ref(null);
-const draftVersion = ref({ nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } });
-const selectedNode = ref(null);
-const showAddModal = ref(false);
-const connectingFromNode = ref(null);
 const availableTemplates = ref([]);
 
 const isSaving = ref(false);
 const saveStatus = ref('Salvo');
 const isPublishing = ref(false);
+const showAddModal = ref(false);
+const showTemplatePicker = ref(false);
+const connectingContext = ref(null); // { nodeId, handleId }
 
+// Vue Flow Nodes e Edges reativos
+const elements = ref([]);
+const selectedNodeId = ref(null);
+
+const {
+  onConnect,
+  onNodeClick,
+  onPaneClick,
+  onNodesChange,
+  onEdgesChange,
+  addNodes,
+  addEdges,
+  setViewport,
+  getViewport,
+  zoomIn,
+  zoomOut,
+  fitView,
+} = useVueFlow();
+
+const selectedNode = computed(() => {
+  if (!selectedNodeId.value) return null;
+  return elements.value.find(el => el.id === selectedNodeId.value) || null;
+});
+
+// Buscar Workflow
 const fetchWorkflow = async () => {
   try {
     const res = await WorkflowsAPI.getWorkflow(workflowId.value);
     workflow.value = res.data;
-    draftVersion.value = res.data.draft_version || { nodes: [], edges: [] };
-    if (draftVersion.value.nodes.length > 0) {
-      selectedNode.value = draftVersion.value.nodes[0];
+    const draft = res.data.draft_version || { nodes: [], edges: [] };
+
+    // Se não houver nós (fluxo novo), cria o nó inicial de Webhook Trigger exatamente como na referência
+    let rawNodes = draft.nodes || [];
+    let rawEdges = draft.edges || [];
+
+    if (rawNodes.length === 0) {
+      rawNodes = [
+        {
+          id: 'node_trigger_1',
+          type: 'custom',
+          position: { x: 80, y: 320 },
+          data: {
+            type: 'webhook_trigger',
+            config: {
+              custom_title: 'Webhook Trigger',
+              endpoint: '/public/api/v1/webhook_dispatches/default',
+            },
+          },
+        },
+      ];
+    } else {
+      // Normaliza para o renderer 'custom' do VueFlow
+      rawNodes = rawNodes.map(n => ({
+        ...n,
+        type: 'custom',
+        data: {
+          type: n.data?.type || n.type,
+          config: n.data?.config || n.config || {},
+        },
+      }));
     }
+
+    elements.value = [...rawNodes, ...rawEdges];
+
+    if (rawNodes.length > 0) {
+      selectedNodeId.value = rawNodes[0].id;
+    }
+
+    nextTick(() => {
+      fitView({ padding: 0.2 });
+    });
   } catch (err) {
     console.error('Erro ao carregar workflow:', err);
   }
@@ -37,7 +107,7 @@ const fetchWorkflow = async () => {
 
 const fetchTemplates = async () => {
   try {
-    const res = await whatsappTemplatesAPI.getTemplates({ status: 'approved' });
+    const res = await whatsappTemplatesAPI.getTemplates();
     availableTemplates.value = res.data.templates || [];
   } catch (err) {
     console.error('Erro ao carregar templates:', err);
@@ -49,66 +119,6 @@ onMounted(() => {
   fetchTemplates();
 });
 
-// Seleção de nó
-const handleSelectNode = (node) => {
-  selectedNode.value = node;
-};
-
-// Abertura de modal para adicionar nó conectado
-const handleAddNext = (parentNode) => {
-  connectingFromNode.value = parentNode;
-  showAddModal.value = true;
-};
-
-// Inserção do nó selecionado no grafo
-const handleInsertNode = (nodeMeta) => {
-  showAddModal.value = false;
-
-  const parent = connectingFromNode.value;
-  const newY = parent ? parent.position.y + 140 : 100;
-  const newX = parent ? parent.position.x : 250;
-
-  const newNode = {
-    id: `node_${Date.now()}`,
-    type: nodeMeta.type,
-    position: { x: newX, y: newY },
-    config: {
-      custom_title: nodeMeta.title,
-      delivery_mode: 'auto',
-    },
-  };
-
-  draftVersion.value.nodes.push(newNode);
-
-  if (parent) {
-    draftVersion.value.edges.push({
-      id: `edge_${parent.id}_${newNode.id}`,
-      source: parent.id,
-      target: newNode.id,
-    });
-  }
-
-  selectedNode.value = newNode;
-  triggerAutoSave();
-};
-
-// Atualização de configuração do nó
-const handleUpdateNodeConfig = (newConfig) => {
-  if (!selectedNode.value) return;
-  selectedNode.value.config = newConfig;
-  triggerAutoSave();
-};
-
-// Exclusão de nó
-const handleDeleteNode = (nodeId) => {
-  draftVersion.value.nodes = draftVersion.value.nodes.filter((n) => n.id !== nodeId);
-  draftVersion.value.edges = draftVersion.value.edges.filter(
-    (e) => e.source !== nodeId && e.target !== nodeId
-  );
-  selectedNode.value = null;
-  triggerAutoSave();
-};
-
 // Autosave com debounce
 let saveTimeout = null;
 const triggerAutoSave = () => {
@@ -117,21 +127,178 @@ const triggerAutoSave = () => {
   saveTimeout = setTimeout(async () => {
     try {
       isSaving.value = true;
-      await WorkflowsAPI.updateWorkflow(workflowId.value, {}, draftVersion.value);
-      saveStatus.value = 'Salvo';
+      const nodes = elements.value
+        .filter(el => !el.source)
+        .map(n => ({
+          id: n.id,
+          type: n.data?.type || n.type,
+          position: n.position,
+          data: n.data,
+          config: n.data?.config || {},
+        }));
+      const edges = elements.value.filter(el => el.source);
+
+      await WorkflowsAPI.updateWorkflow(
+        workflowId.value,
+        { name: workflow.value?.name || 'Workflow' },
+        {
+          nodes,
+          edges,
+          viewport: getViewport(),
+        }
+      );
+      saveStatus.value = 'Salvo há poucos instantes';
     } catch (err) {
       saveStatus.value = 'Erro ao salvar';
     } finally {
       isSaving.value = false;
     }
-  }, 800);
+  }, 700);
+};
+
+// Conectar Edges
+onConnect(params => {
+  const edgeColor =
+    params.sourceHandle === 'true' || params.sourceHandle === 'REPLIED'
+      ? '#10B981'
+      : params.sourceHandle === 'false' || params.sourceHandle === 'TIMEOUT'
+        ? '#F43F5E'
+        : params.sourceHandle === 'Instagram'
+          ? '#3B82F6'
+          : params.sourceHandle === 'Google'
+            ? '#10B981'
+            : params.sourceHandle === 'Referral'
+              ? '#F59E0B'
+              : '#64748B';
+
+  const newEdge = {
+    ...params,
+    id: `edge_${params.source}_${params.target}_${Date.now()}`,
+    type: 'smoothstep',
+    animated: true,
+    style: { stroke: edgeColor, strokeWidth: 2 },
+  };
+  addEdges([newEdge]);
+  triggerAutoSave();
+});
+
+// Seleção de Nó
+onNodeClick(e => {
+  selectedNodeId.value = e.node.id;
+});
+
+onPaneClick(() => {
+  selectedNodeId.value = null;
+});
+
+// Atualizar Configuração vinda do Painel Lateral
+const handleUpdateNodeConfig = newConfig => {
+  const target = elements.value.find(el => el.id === selectedNodeId.value);
+  if (target) {
+    target.data = {
+      ...target.data,
+      config: newConfig,
+    };
+    triggerAutoSave();
+  }
+};
+
+// Excluir Nó
+const handleDeleteNode = nodeId => {
+  elements.value = elements.value.filter(
+    el => el.id !== nodeId && el.source !== nodeId && el.target !== nodeId
+  );
+  if (selectedNodeId.value === nodeId) {
+    selectedNodeId.value = null;
+  }
+  triggerAutoSave();
+};
+
+// Adicionar nó via botão (+) flutuante do card
+const handleAddNext = ctx => {
+  connectingContext.value = ctx;
+  showAddModal.value = true;
+};
+
+// Inserir nó selecionado da paleta
+const handleInsertNode = nodeMeta => {
+  showAddModal.value = false;
+  const parentId = connectingContext.value?.nodeId;
+  const parentNode = parentId
+    ? elements.value.find(n => n.id === parentId)
+    : null;
+
+  const newX = parentNode ? parentNode.position.x + 360 : 350;
+  const newY = parentNode ? parentNode.position.y : 300;
+
+  const newNodeId = `node_${Date.now()}`;
+  const newNode = {
+    id: newNodeId,
+    type: 'custom',
+    position: { x: newX, y: newY },
+    data: {
+      type: nodeMeta.type,
+      config: JSON.parse(JSON.stringify(nodeMeta.defaultConfig || {})),
+    },
+  };
+
+  addNodes([newNode]);
+
+  // Se veio de conexão (+) cria a aresta automaticamente com o estilo do reference pack
+  if (parentNode) {
+    const handleId = connectingContext.value?.handleId || 'output';
+    const edgeColor =
+      handleId === 'true'
+        ? '#10B981'
+        : handleId === 'false'
+          ? '#F43F5E'
+          : '#64748B';
+
+    addEdges([
+      {
+        id: `edge_${parentId}_${newNodeId}`,
+        source: parentId,
+        sourceHandle: handleId,
+        target: newNodeId,
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: edgeColor, strokeWidth: 2 },
+      },
+    ]);
+  }
+
+  selectedNodeId.value = newNodeId;
+  connectingContext.value = null;
+  triggerAutoSave();
+};
+
+// Modal de Templates WhatsApp
+const handleOpenTemplatePicker = () => {
+  showTemplatePicker.value = true;
+};
+
+const handleSelectTemplate = tpl => {
+  showTemplatePicker.value = false;
+  if (!selectedNode.value) return;
+
+  const updatedConfig = {
+    ...selectedNode.value.data.config,
+    template_name: tpl.name,
+    template_language: tpl.language || 'pt_BR',
+    template_category: tpl.category || 'MARKETING',
+    status: tpl.status || 'APPROVED',
+  };
+  handleUpdateNodeConfig(updatedConfig);
 };
 
 // Publicar Workflow
 const handlePublish = async () => {
   try {
     isPublishing.value = true;
-    await WorkflowsAPI.publishWorkflow(workflowId.value, 'Versão publicada');
+    await WorkflowsAPI.publishWorkflow(
+      workflowId.value,
+      'Versão publicada via Visual Builder'
+    );
     await fetchWorkflow();
   } catch (err) {
     console.error('Erro ao publicar:', err);
@@ -142,108 +309,202 @@ const handlePublish = async () => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-hidden">
-    <!-- BUILDER HEADER -->
-    <header class="h-14 px-5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between z-20">
-      <div class="flex items-center gap-3">
+  <div class="flex flex-col flex-1 w-full h-full bg-n-background text-n-slate-12 overflow-hidden select-none">
+    <!-- TOP HEADER (ESTILO SEMÂNTICO CHATWOOT DESIGN TOKENS) -->
+    <header class="h-14 px-6 border-b border-n-weak bg-n-solid-1 flex items-center justify-between z-20 shrink-0">
+      <div class="flex items-center gap-4">
         <button
           type="button"
-          class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+          class="p-1.5 rounded-lg text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 transition-colors"
           @click="router.push({ name: 'workflows_index' })"
         >
-          ←
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
         </button>
+
         <div>
-          <h1 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            {{ workflow?.name || 'Carregando Workflow...' }}
+          <div class="flex items-center gap-2.5">
+            <h1 class="text-sm font-bold text-n-slate-12 tracking-tight">
+              {{ workflow?.name || 'Webhook Inbound Flow' }}
+            </h1>
             <span
-              class="text-[10px] px-2 py-0.5 rounded-full uppercase font-bold"
-              :class="workflow?.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'"
+              class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
+              :class="
+                workflow?.status === 'active'
+                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                  : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+              "
             >
-              {{ workflow?.status || 'draft' }}
+              {{ workflow?.status || 'ACTIVE' }}
             </span>
-          </h1>
-          <p class="text-[11px] text-slate-400 font-mono">{{ saveStatus }}</p>
+          </div>
+          <p class="text-[11px] text-n-slate-11 font-sans mt-0.5">
+            {{ saveStatus }}
+          </p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2.5">
+      <div class="flex items-center gap-3">
         <button
           type="button"
-          class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50"
-          @click="router.push({ name: 'workflow_executions', params: { workflowId: workflowId } })"
+          class="px-3.5 py-1.5 rounded-xl border border-n-weak bg-n-solid-2 hover:bg-n-alpha-2 text-xs font-semibold text-n-slate-12 transition-colors flex items-center gap-1.5"
+          @click="
+            router.push({
+              name: 'workflow_executions',
+              params: { workflowId: workflowId },
+            })
+          "
         >
-          Ver Execuções
+          <span>📊</span>
+          <span>Ver Execuções</span>
         </button>
 
         <button
           type="button"
-          class="px-4 py-1.5 rounded-xl bg-primary-500 hover:bg-primary-600 text-white text-xs font-bold shadow-md shadow-primary-500/20 transition-all flex items-center gap-1.5 disabled:opacity-50"
+          class="px-3.5 py-1.5 rounded-xl border border-n-weak bg-n-solid-2 hover:bg-n-alpha-2 text-xs font-semibold text-n-slate-12 transition-colors flex items-center gap-1.5"
+        >
+          <span>▷</span>
+          <span>Testar</span>
+        </button>
+
+        <button
+          type="button"
+          class="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-1.5 disabled:opacity-50"
           :disabled="isPublishing"
           @click="handlePublish"
         >
           <span>🚀</span>
           <span>{{ isPublishing ? 'Publicando...' : 'Publicar Alterações' }}</span>
         </button>
+
+        <button
+          type="button"
+          class="text-n-slate-9 hover:text-n-slate-12 p-1 rounded-lg"
+        >
+          •••
+        </button>
       </div>
     </header>
 
-    <!-- WORKSPACE CANVAS + SIDE PANEL -->
+    <!-- ÁREA CENTRAL COM CANVAS INFINITO E PAINEL LATERAL -->
     <div class="flex flex-1 overflow-hidden relative">
-      <!-- CANVAS CENTRAL -->
-      <main class="flex-1 overflow-auto bg-dot-pattern p-10 relative flex flex-col items-center select-none">
-        <!-- RENDER DOS NODES CONECTADOS -->
-        <div class="flex flex-col items-center space-y-10 my-auto py-10">
-          <template v-for="(node, index) in draftVersion.nodes" :key="node.id">
-            <WorkflowNodeCard
-              :node="node"
-              :is-selected="selectedNode?.id === node.id"
-              @select="handleSelectNode"
-              @add-next="handleAddNext"
-              @delete="handleDeleteNode"
-            />
+      <!-- VUE FLOW CANVAS -->
+      <div class="flex-1 h-full relative bg-n-background">
+        <VueFlow
+          v-model="elements"
+          :default-viewport="{ zoom: 1 }"
+          :min-zoom="0.2"
+          :max-zoom="2"
+          fit-view-on-init
+          class="h-full w-full"
+        >
+          <Background pattern-color="#94A3B8" :gap="20" :size="1.5" />
 
-            <!-- Conector Visual Vertical -->
-            <div
-              v-if="index < draftVersion.nodes.length - 1"
-              class="w-0.5 h-8 bg-slate-300 dark:bg-slate-700 -my-2"
+          <!-- CONTROLES CUSTOMIZADOS FLUTUANTES NO CANTO INFERIOR ESQUERDO -->
+          <div class="absolute left-6 bottom-6 z-10 flex items-center gap-1 p-1 bg-n-solid-1/90 border border-n-weak rounded-xl shadow-xl backdrop-blur-md">
+            <button
+              type="button"
+              class="w-7 h-7 flex items-center justify-center text-xs text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 rounded-lg transition-colors"
+              title="Alternar Painel"
+              @click="showAddModal = !showAddModal"
+            >
+              📖
+            </button>
+            <div class="w-px h-4 bg-n-weak my-auto" />
+            <button
+              type="button"
+              class="w-7 h-7 flex items-center justify-center text-xs text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 rounded-lg transition-colors"
+              title="Diminuir Zoom"
+              @click="zoomOut"
+            >
+              -
+            </button>
+            <span class="text-[11px] font-mono px-2 text-n-slate-12">100%</span>
+            <button
+              type="button"
+              class="w-7 h-7 flex items-center justify-center text-xs text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 rounded-lg transition-colors"
+              title="Aumentar Zoom"
+              @click="zoomIn"
+            >
+              +
+            </button>
+            <div class="w-px h-4 bg-n-weak my-auto" />
+            <button
+              type="button"
+              class="w-7 h-7 flex items-center justify-center text-xs text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 rounded-lg transition-colors"
+              title="Enquadrar Visão"
+              @click="fitView({ padding: 0.2 })"
+            >
+              ⛶
+            </button>
+          </div>
+
+          <!-- MINIMAPA TRANSLÚCIDO NO CANTO INFERIOR DIREITO -->
+          <div class="absolute right-6 bottom-6 z-10 w-36 h-24 rounded-xl bg-n-solid-1/80 border border-n-weak shadow-xl pointer-events-none overflow-hidden p-2 flex items-center justify-center backdrop-blur-sm">
+            <div class="relative w-full h-full flex items-center justify-center">
+              <div class="w-5 h-3 bg-blue-500/40 border border-blue-400 rounded-sm" />
+              <div class="w-4 h-0.5 bg-n-slate-9 mx-0.5" />
+              <div class="flex flex-col gap-1.5">
+                <div class="w-5 h-2.5 bg-emerald-500/40 border border-emerald-400 rounded-sm" />
+                <div class="w-5 h-2.5 bg-rose-500/40 border border-rose-400 rounded-sm" />
+              </div>
+            </div>
+          </div>
+
+          <!-- RENDERER CUSTOMIZADO PARA TODOS OS NODES -->
+          <template #node-custom="{ id, data, selected }">
+            <WorkflowNodeCard
+              :id="id"
+              :data="data"
+              :selected="selected"
+              @add-next="handleAddNext"
             />
           </template>
+        </VueFlow>
 
-          <!-- Botão para Adicionar Primeiro ou Próximo Bloco -->
-          <button
-            type="button"
-            class="px-4 py-2 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-500 hover:border-primary-500 hover:text-primary-600 transition-colors flex items-center gap-1.5"
-            @click="handleAddNext(draftVersion.nodes[draftVersion.nodes.length - 1])"
-          >
-            <span>+</span>
-            <span>Adicionar Próxima Ação</span>
-          </button>
-        </div>
-      </main>
+        <!-- PALETA LATERAL ADICIONAR AÇÃO FLUTUANTE (ESTILO REFERENCE PACK) -->
+        <WorkflowNodeSelectorModal
+          :show="showAddModal"
+          @close="showAddModal = false"
+          @select="handleInsertNode"
+        />
+      </div>
 
-      <!-- PAINEL LATERAL DIREITO (CONFIGURAÇÃO) -->
+      <!-- PAINEL LATERAL DIREITO DE CONFIGURAÇÃO (100% FIEL AO DESIGN SYSTEM) -->
       <WorkflowNodeConfigPanel
-        :node="selectedNode"
+        :node="selectedNode ? { id: selectedNode.id, type: selectedNode.data?.type, config: selectedNode.data?.config } : null"
         :available-templates="availableTemplates"
         @update-config="handleUpdateNodeConfig"
         @delete-node="handleDeleteNode"
-        @close="selectedNode = null"
+        @close="selectedNodeId = null"
+        @open-template-picker="handleOpenTemplatePicker"
       />
     </div>
 
-    <!-- MODAL SELETOR DE BLOCOS -->
-    <WorkflowNodeSelectorModal
-      :show="showAddModal"
-      @close="showAddModal = false"
-      @select="handleInsertNode"
+    <!-- MODAL SELETOR DE TEMPLATES WHATSAPP COM PREVIEW E FILTROS -->
+    <WorkflowTemplatePickerModal
+      :show="showTemplatePicker"
+      :templates="availableTemplates"
+      :selected-template-name="selectedNode?.data?.config?.template_name"
+      @close="showTemplatePicker = false"
+      @select="handleSelectTemplate"
     />
   </div>
 </template>
 
-<style scoped>
-.bg-dot-pattern {
-  background-image: radial-gradient(rgba(148, 163, 184, 0.25) 1px, transparent 1px);
-  background-size: 20px 20px;
+<style>
+/* Customizações para Vue Flow Dark Mode fiel ao Chatwoot */
+.vue-flow__edge-path {
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+@keyframes dashdraw {
+  from {
+    stroke-dashoffset: 10;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 </style>

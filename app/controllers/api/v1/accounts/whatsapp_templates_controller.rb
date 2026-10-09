@@ -2,6 +2,7 @@
 
 class Api::V1::Accounts::WhatsappTemplatesController < Api::V1::Accounts::BaseController
   before_action :fetch_template, only: [:show, :update, :destroy, :approve, :submit_review, :reject]
+  before_action :check_authorization
 
   def index
     @templates = Current.account.whatsapp_templates.order(created_at: :desc)

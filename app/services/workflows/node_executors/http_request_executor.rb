@@ -2,11 +2,14 @@
 
 require 'net/http'
 require 'uri'
+require 'ipaddr'
+require 'resolv'
 
 module Workflows
   module NodeExecutors
     class HttpRequestExecutor < BaseExecutor
       BLOCKED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '169.254.169.254'].freeze
+      SENSITIVE_HEADERS = %w[authorization proxy-authorization x-api-key api-key token secret].freeze
 
       def execute
         raw_url = resolve_vars(config[:url].to_s)
@@ -15,7 +18,8 @@ module Workflows
         timeout_seconds = (config[:timeout] || 10).to_i
 
         uri = URI.parse(raw_url)
-        if BLOCKED_HOSTS.include?(uri.host.to_s.downcase) || uri.host.to_s.start_with?('10.', '192.168.', '172.')
+
+        if private_or_blocked_host?(uri.host)
           return { status: 'failed', error: 'Endereço de rede privada ou local bloqueado por segurança SSRF.' }
         end
 
@@ -66,7 +70,8 @@ module Workflows
           status: is_success ? 'success' : 'failed',
           output: {
             status_code: response.code.to_i,
-            response_body: parsed_body
+            response_body: parsed_body,
+            safe_headers: redact_headers(headers)
           },
           next_nodes: target_nodes,
           error: is_success ? nil : "HTTP status #{response.code}"
@@ -77,6 +82,39 @@ module Workflows
           error: "Falha na requisição HTTP: #{e.message}",
           next_nodes: next_nodes('error')
         }
+      end
+
+      private
+
+      def private_or_blocked_host?(host)
+        return true if host.blank?
+        lower_host = host.downcase
+        return true if BLOCKED_HOSTS.include?(lower_host)
+        return true if lower_host.end_with?('.internal', '.local', 'localhost')
+
+        # Check IP ranges
+        ips = Resolv.getaddresses(host) rescue []
+        return true if ips.empty? && host.match?(/^\d+\.\d+\.\d+\.\d+$/)
+
+        ips.any? do |ip_str|
+          ip = IPAddr.new(ip_str)
+          ip.loopback? ||
+            ip.private? ||
+            ip.link_local? ||
+            IPAddr.new('169.254.0.0/16').include?(ip) ||
+            IPAddr.new('100.64.0.0/10').include?(ip) ||
+            IPAddr.new('0.0.0.0/8').include?(ip)
+        rescue StandardError
+          true
+        end
+      rescue StandardError
+        true
+      end
+
+      def redact_headers(headers)
+        headers.each_with_object({}) do |(k, v), acc|
+          acc[k] = SENSITIVE_HEADERS.include?(k.downcase) ? '[REDACTED]' : v
+        end
       end
     end
   end

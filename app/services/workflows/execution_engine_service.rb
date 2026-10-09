@@ -11,30 +11,41 @@ module Workflows
     end
 
     def start!
+      return if @execution.status.in?(%w[cancelled paused completed failed])
+
       trigger_node = @version.trigger_node
       return complete_execution! if trigger_node.blank?
 
       execute_node(trigger_node)
     end
 
-    def resume!(from_node_id, event_type = nil)
-      wait_state = @execution.wait_states.pending.find_by(node_id: from_node_id)
-      
-      if event_type == 'timeout'
-        wait_state&.timeout!
-        # Follow timeout handle if present
-        edges = @version.outgoing_edges(from_node_id, 'timeout')
-        next_nodes = edges.map { |e| @version.find_node(e['target']) }.compact
-        next_nodes = @version.outgoing_edges(from_node_id).map { |e| @version.find_node(e['target']) }.compact if next_nodes.empty?
-      else
-        wait_state&.resume!
-        # Follow regular or yes/replied handle
-        edges = @version.outgoing_edges(from_node_id, 'replied')
-        next_nodes = edges.map { |e| @version.find_node(e['target']) }.compact
-        next_nodes = @version.outgoing_edges(from_node_id).map { |e| @version.find_node(e['target']) }.compact if next_nodes.empty?
-      end
+    def resume!(node_target, event_type = nil)
+      from_node_id = node_target.is_a?(Hash) ? (node_target[:node_id] || node_target['node_id']) : node_target
+      next_nodes = []
 
-      @execution.mark_resumed!
+      @execution.with_lock do
+        return if @execution.status.in?(%w[cancelled paused completed failed])
+
+        wait_state = @execution.wait_states.pending.lock.find_by(node_id: from_node_id)
+        # Prevent race condition: if wait_state is not pending or already resolved, return
+        return if wait_state.blank?
+
+        if event_type == 'timeout'
+          wait_state.timeout!
+          edges = @version.outgoing_edges(from_node_id, 'timeout')
+          next_nodes = edges.map { |e| @version.find_node(e['target']) }.compact
+          next_nodes = @version.outgoing_edges(from_node_id).map { |e| @version.find_node(e['target']) }.compact if next_nodes.empty?
+        else
+          wait_state.resume!
+          # Follow reply, replied, or default handle
+          edges = @version.outgoing_edges(from_node_id, 'reply')
+          edges = @version.outgoing_edges(from_node_id, 'replied') if edges.empty?
+          next_nodes = edges.map { |e| @version.find_node(e['target']) }.compact
+          next_nodes = @version.outgoing_edges(from_node_id).map { |e| @version.find_node(e['target']) }.compact if next_nodes.empty?
+        end
+
+        @execution.mark_resumed!
+      end
 
       if next_nodes.present?
         next_nodes.each { |node| execute_node(node) }
@@ -46,6 +57,8 @@ module Workflows
     private
 
     def execute_node(node)
+      return if @execution.status.in?(%w[cancelled paused])
+
       @step_count += 1
       if @step_count > MAX_STEPS
         @execution.mark_failed!("Limite máximo de #{MAX_STEPS} passos excedido.")
@@ -57,7 +70,7 @@ module Workflows
       node_exec = @execution.node_executions.create!(
         node_id: node['id'],
         node_type: node['type'],
-        input_data: node['config'] || {},
+        input_data: sanitize_input_data(node['config'] || {}),
         started_at: Time.current,
         status: 'running'
       )
@@ -86,6 +99,7 @@ module Workflows
         node_exec.mark_failed!(err_msg, result[:output] || {})
         @execution.mark_failed!(err_msg)
       end
+
     rescue StandardError => e
       Rails.logger.error "[ExecutionEngineService] Error at node #{node['id']}: #{e.message}\n#{e.backtrace.first(5).join("\n")}"
       node_exec&.mark_failed!(e.message)
@@ -93,7 +107,19 @@ module Workflows
     end
 
     def complete_execution!
-      @execution.mark_completed! unless @execution.status == 'failed'
+      @execution.mark_completed! unless @execution.status.in?(%w[failed cancelled])
+    end
+
+    def sanitize_input_data(data)
+      return data unless data.is_a?(Hash)
+
+      data.each_with_object({}) do |(k, v), acc|
+        if k.to_s.downcase.in?(%w[token secret password api_key])
+          acc[k] = '[REDACTED]'
+        else
+          acc[k] = v
+        end
+      end
     end
   end
 end

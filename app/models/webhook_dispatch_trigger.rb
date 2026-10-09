@@ -9,8 +9,21 @@ class WebhookDispatchTrigger < ApplicationRecord
   validates :token, presence: true, uniqueness: true
 
   before_validation :generate_token, on: :create
+  before_validation :set_defaults, on: :create
 
   scope :active, -> { where(active: true) }
+
+  private
+
+  def set_defaults
+    self.dispatch_mode ||= (workflow_id.present? ? 'workflow' : 'template')
+    self.template_name ||= (workflow_id.present? ? 'workflow_dispatch' : 'default_template')
+    self.template_language ||= 'pt_BR'
+    self.field_mapping ||= {}
+    self.sample_payload ||= {}
+  end
+
+  public
 
   def execute_payload(payload)
     parsed_phone = extract_by_path(payload, field_mapping['phone_path'])
@@ -25,6 +38,27 @@ class WebhookDispatchTrigger < ApplicationRecord
 
     # If trigger is associated with a Workflow and active, start the workflow execution
     if workflow.present? && workflow.status == 'active' && workflow.active_version.present?
+      # Idempotency determination: use event_id, id, or hash of payload
+      event_id = extract_by_path(payload, 'event_id') || extract_by_path(payload, 'id')
+      idemp_key = if event_id.present?
+                    "whk_exec_#{id}_#{event_id}"
+                  else
+                    "whk_exec_#{id}_#{Time.current.to_i}_#{SecureRandom.hex(4)}"
+                  end
+
+      # Check existing execution with this idempotency key
+      existing = account.workflow_executions.find_by(workflow: workflow, idempotency_key: idemp_key)
+      if existing.present?
+        return {
+          success: true,
+          workflow_id: workflow.id,
+          workflow_execution_id: existing.id,
+          conversation_id: conversation.display_id,
+          contact_id: contact.id,
+          note: 'idempotent_duplicate_prevented'
+        }
+      end
+
       execution = account.workflow_executions.create!(
         workflow: workflow,
         workflow_version: workflow.active_version,
@@ -32,7 +66,7 @@ class WebhookDispatchTrigger < ApplicationRecord
         conversation: conversation,
         inbox: inbox,
         trigger_type: 'webhook',
-        idempotency_key: "whk_exec_#{id}_#{Time.current.to_i}_#{SecureRandom.hex(4)}",
+        idempotency_key: idemp_key,
         status: 'running',
         started_at: Time.current,
         context: {

@@ -17,8 +17,9 @@ module Workflows
                      results.all?
                    end
 
-        handle = is_match ? 'yes' : 'no'
+        handle = is_match ? 'true' : 'false'
         target_nodes = next_nodes(handle)
+        target_nodes = next_nodes(is_match ? 'yes' : 'no') if target_nodes.empty?
 
         # Fallback if no specific handle edge
         target_nodes = next_nodes if target_nodes.empty?

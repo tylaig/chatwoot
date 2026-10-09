@@ -1,306 +1,3 @@
-<template>
-  <div class="flex-1 overflow-auto p-6 bg-slate-50 dark:bg-slate-900 min-h-screen">
-    <!-- Header -->
-    <div class="flex items-center justify-between pb-6 border-b border-slate-200 dark:border-slate-800">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-          <span>🚀 Gatilhos de Webhook (Disparador WhatsApp)</span>
-        </h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Receba payloads JSON via POST e dispare templates HSM oficiais da Meta com mapeamento dinâmico.
-        </p>
-      </div>
-      <button
-        @click="openModal()"
-        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium text-sm transition shadow-sm"
-      >
-        <span class="text-lg leading-none">+</span> Novo Gatilho
-      </button>
-    </div>
-
-    <!-- Lista de Triggers -->
-    <div class="mt-6">
-      <div v-if="loading" class="text-center py-12 text-slate-500">
-        Carregando gatilhos...
-      </div>
-      <div v-else-if="triggers.length === 0" class="text-center py-16 bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-8">
-        <div class="text-4xl mb-3">⚡</div>
-        <h3 class="text-lg font-medium text-slate-900 dark:text-white">Nenhum gatilho de webhook configurado</h3>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
-          Crie seu primeiro endpoint para conectar Hotmart, Shopify, Kiwify, Bling ou qualquer checkout externo e disparar mensagens automáticas.
-        </p>
-        <button
-          @click="openModal()"
-          class="mt-4 px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium text-sm transition"
-        >
-          Criar Primeiro Gatilho
-        </button>
-      </div>
-
-      <div v-else class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        <div
-          v-for="trigger in triggers"
-          :key="trigger.id"
-          class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm hover:shadow transition flex flex-col justify-between"
-        >
-          <div>
-            <div class="flex items-start justify-between">
-              <h2 class="font-semibold text-slate-900 dark:text-white text-base">
-                {{ trigger.name }}
-              </h2>
-              <span
-                class="px-2 py-0.5 text-xs font-semibold rounded-full"
-                :class="trigger.active ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-slate-100 text-slate-500'"
-              >
-                {{ trigger.active ? 'Ativo' : 'Pausado' }}
-              </span>
-            </div>
-
-            <div class="mt-3 space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
-              <div>
-                <strong class="text-slate-700 dark:text-slate-300">Template Meta:</strong>
-                <span class="ml-1 font-mono text-orange-600 dark:text-orange-400">{{ trigger.template_name }}</span>
-              </div>
-              <div>
-                <strong class="text-slate-700 dark:text-slate-300">Idioma:</strong>
-                <span class="ml-1">{{ trigger.template_language }}</span>
-              </div>
-              <div>
-                <strong class="text-slate-700 dark:text-slate-300">Caminho Telefone:</strong>
-                <span class="ml-1 font-mono bg-slate-100 dark:bg-slate-700 px-1 py-0.5 rounded">{{ trigger.field_mapping?.phone_path || 'N/A' }}</span>
-              </div>
-            </div>
-
-            <!-- URL do Webhook -->
-            <div class="mt-4 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700/60">
-              <div class="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">URL de Disparo (POST)</div>
-              <div class="flex items-center justify-between gap-2">
-                <input
-                  type="text"
-                  readonly
-                  :value="getWebhookUrl(trigger.token)"
-                  class="bg-transparent text-xs font-mono text-slate-800 dark:text-slate-200 w-full focus:outline-none select-all truncate"
-                />
-                <button
-                  @click="copyUrl(getWebhookUrl(trigger.token))"
-                  class="text-xs px-2 py-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded text-slate-700 dark:text-slate-200 transition shrink-0"
-                >
-                  {{ copiedToken === trigger.token ? 'Copiado!' : 'Copiar' }}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-5 pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs">
-            <button
-              @click="testTriggerModal(trigger)"
-              class="text-orange-600 dark:text-orange-400 hover:underline font-medium"
-            >
-              Testar Payload
-            </button>
-            <div class="flex gap-2">
-              <button
-                @click="openModal(trigger)"
-                class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-              >
-                Editar
-              </button>
-              <button
-                @click="deleteTrigger(trigger.id)"
-                class="text-red-600 hover:text-red-700"
-              >
-                Excluir
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal de Criação / Edição -->
-    <div
-      v-if="showModal"
-      class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-    >
-      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-xl w-full p-6 border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
-        <h3 class="text-lg font-bold text-slate-900 dark:text-white">
-          {{ editingId ? 'Editar Gatilho' : 'Novo Gatilho de Webhook' }}
-        </h3>
-        
-        <form @submit.prevent="saveTrigger" class="mt-4 space-y-4 text-sm">
-          <div>
-            <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Nome Identificador</label>
-            <input
-              v-model="form.name"
-              type="text"
-              required
-              placeholder="Ex: Disparo Kiwify - Compra Aprovada"
-              class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Nome do Template Meta (HSM)</label>
-            <input
-              v-model="form.template_name"
-              type="text"
-              required
-              placeholder="Ex: atualizacao_pedido_gs_7420"
-              class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-orange-500 focus:outline-none"
-            />
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Idioma Template</label>
-              <input
-                v-model="form.template_language"
-                type="text"
-                required
-                class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-orange-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Caixa de Entrada ID</label>
-              <input
-                v-model.number="form.inbox_id"
-                type="number"
-                required
-                class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div class="border-t border-slate-200 dark:border-slate-700 pt-3">
-            <h4 class="font-semibold text-slate-900 dark:text-white mb-2">Mapeamento De ➔ Para (Dot Notation)</h4>
-            
-            <div class="space-y-3">
-              <div>
-                <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Caminho do Telefone (JSON)</label>
-                <input
-                  v-model="form.field_mapping.phone_path"
-                  type="text"
-                  required
-                  placeholder="Ex: customer.phone ou data.buyer.mobile"
-                  class="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Caminho do Nome do Cliente</label>
-                <input
-                  v-model="form.field_mapping.name_path"
-                  type="text"
-                  placeholder="Ex: customer.name ou data.buyer.name"
-                  class="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                />
-              </div>
-
-              <!-- Parâmetros do Template ({{1}}, {{2}}...) -->
-              <div>
-                <div class="flex items-center justify-between mb-1">
-                  <label class="text-xs font-medium text-slate-600 dark:text-slate-400">Variáveis do Template Body ({1}, {2}...)</label>
-                  <button
-                    type="button"
-                    @click="addParameter()"
-                    class="text-xs text-orange-600 hover:underline font-medium"
-                  >
-                    + Adicionar Variável
-                  </button>
-                </div>
-
-                <div v-for="(param, idx) in form.field_mapping.parameters" :key="idx" class="flex gap-2 items-center mb-2">
-                  <span class="text-xs font-mono text-slate-500">#{1 + idx}</span>
-                  <select
-                    v-model="param.type"
-                    class="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200"
-                  >
-                    <option value="path">Caminho JSON</option>
-                    <option value="static">Texto Fixo</option>
-                  </select>
-                  <input
-                    v-model="param.value"
-                    type="text"
-                    :placeholder="param.type === 'path' ? 'Ex: order.amount' : 'Ex: Meu Super App'"
-                    class="flex-1 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-xs font-mono text-slate-800 dark:text-slate-200"
-                  />
-                  <button
-                    type="button"
-                    @click="removeParameter(idx)"
-                    class="text-red-500 hover:text-red-700 text-xs px-1"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <button
-              type="button"
-              @click="showModal = false"
-              class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium transition"
-            >
-              Salvar Gatilho
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Modal de Teste de Payload -->
-    <div
-      v-if="showTestModal"
-      class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-    >
-      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-xl w-full p-6 border border-slate-200 dark:border-slate-700">
-        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
-          Testar Simulação de Payload
-        </h3>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
-          Cole um exemplo de JSON que o seu checkout envia para validar se as variáveis e o telefone são extraídos com perfeição.
-        </p>
-
-        <textarea
-          v-model="testPayloadText"
-          rows="7"
-          class="w-full p-3 font-mono text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none"
-        ></textarea>
-
-        <div v-if="testResult" class="mt-4 p-3 rounded-lg border text-xs font-mono" :class="testResult.valid ? 'bg-green-50 border-green-200 text-green-900 dark:bg-green-950/40 dark:border-green-800 dark:text-green-300' : 'bg-red-50 border-red-200 text-red-900'">
-          <div><strong>Telefone Detectado:</strong> {{ testResult.phone || 'NÃO ENCONTRADO!' }}</div>
-          <div><strong>Nome do Contato:</strong> {{ testResult.name || 'Padrão (Cliente)' }}</div>
-          <div><strong>Variáveis Resolvidas:</strong> {{ JSON.stringify(testResult.resolved_parameters) }}</div>
-        </div>
-
-        <div class="flex justify-end gap-3 mt-4">
-          <button
-            type="button"
-            @click="showTestModal = false"
-            class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300"
-          >
-            Fechar
-          </button>
-          <button
-            type="button"
-            @click="runTestPayload()"
-            class="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium"
-          >
-            Executar Simulação
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script>
 import WebhookDispatchApi from 'dashboard/api/webhookDispatchTriggers';
 
@@ -314,16 +11,23 @@ export default {
       showTestModal: false,
       editingId: null,
       copiedToken: null,
-      testPayloadText: JSON.stringify({
-        customer: {
-          name: 'Mestre Samuel',
-          phone: '17991173157',
-          first_name: 'Samuel'
+      selectedTrigger: null,
+      testPayloadText: JSON.stringify(
+        {
+          customer: {
+            name: 'Mestre Samuel',
+            phone: '17991173157',
+            first_name: 'Samuel',
+          },
+          order: {
+            order_id: 'ORD-9842',
+            total: 'R$ 150,00',
+            source: 'instagram',
+          },
         },
-        order: {
-          total: 'R$ 150,00'
-        }
-      }, null, 2),
+        null,
+        2
+      ),
       testResult: null,
       activeTestTrigger: null,
       form: {
@@ -349,6 +53,9 @@ export default {
       try {
         const response = await WebhookDispatchApi.getTriggers();
         this.triggers = response.data;
+        if (this.triggers.length && !this.selectedTrigger) {
+          this.selectedTrigger = this.triggers[0];
+        }
       } catch (err) {
         console.error('Erro ao buscar gatilhos:', err);
       } finally {
@@ -357,7 +64,7 @@ export default {
     },
     getWebhookUrl(token) {
       const origin = window.location.origin;
-      return `${origin}/webhooks/trigger/${token}`;
+      return `${origin}/public/api/v1/webhook_dispatches/${token}`;
     },
     copyUrl(url) {
       navigator.clipboard.writeText(url);
@@ -372,10 +79,14 @@ export default {
         this.form = {
           name: trigger.name,
           template_name: trigger.template_name,
-          template_language: trigger.template_language,
-          inbox_id: trigger.inbox_id,
-          active: trigger.active,
-          field_mapping: JSON.parse(JSON.stringify(trigger.field_mapping || { phone_path: '', name_path: '', parameters: [] })),
+          template_language: trigger.template_language || 'pt_BR',
+          inbox_id: trigger.inbox_id || 1,
+          active: trigger.active !== false,
+          field_mapping: trigger.field_mapping || {
+            phone_path: 'customer.phone',
+            name_path: 'customer.name',
+            parameters: [],
+          },
         };
       } else {
         this.editingId = null;
@@ -388,29 +99,27 @@ export default {
           field_mapping: {
             phone_path: 'customer.phone',
             name_path: 'customer.name',
-            parameters: [{ type: 'path', value: 'customer.first_name' }],
+            parameters: [],
           },
         };
       }
       this.showModal = true;
     },
-    addParameter() {
-      this.form.field_mapping.parameters.push({ type: 'path', value: '' });
-    },
-    removeParameter(idx) {
-      this.form.field_mapping.parameters.splice(idx, 1);
+    closeModal() {
+      this.showModal = false;
     },
     async saveTrigger() {
+      if (!this.form.name || !this.form.template_name) return;
       try {
         if (this.editingId) {
           await WebhookDispatchApi.updateTrigger(this.editingId, this.form);
         } else {
           await WebhookDispatchApi.createTrigger(this.form);
         }
-        this.showModal = false;
+        this.closeModal();
         await this.fetchTriggers();
       } catch (err) {
-        alert('Erro ao salvar gatilho: ' + (err.response?.data?.error || err.message));
+        console.error('Erro ao salvar gatilho:', err);
       }
     },
     async deleteTrigger(id) {
@@ -419,23 +128,242 @@ export default {
         await WebhookDispatchApi.deleteTrigger(id);
         await this.fetchTriggers();
       } catch (err) {
-        alert('Erro ao excluir gatilho');
+        console.error('Erro ao excluir:', err);
       }
     },
-    testTriggerModal(trigger) {
+    openTestModal(trigger) {
       this.activeTestTrigger = trigger;
       this.testResult = null;
       this.showTestModal = true;
     },
-    async runTestPayload() {
+    closeTestModal() {
+      this.showTestModal = false;
+      this.activeTestTrigger = null;
+      this.testResult = null;
+    },
+    async runTest() {
       try {
-        const payload = JSON.parse(this.testPayloadText);
-        const res = await WebhookDispatchApi.testPayload(this.activeTestTrigger.id, payload);
+        let payload = {};
+        try {
+          payload = JSON.parse(this.testPayloadText);
+        } catch (e) {
+          alert('JSON inválido no corpo do teste.');
+          return;
+        }
+        const res = await WebhookDispatchApi.testTrigger(
+          this.activeTestTrigger.id,
+          payload
+        );
         this.testResult = res.data;
       } catch (err) {
-        alert('JSON inválido ou erro no teste: ' + err.message);
+        this.testResult = {
+          error: err.response?.data?.error || err.message,
+        };
       }
     },
   },
 };
 </script>
+
+<template>
+  <div class="flex h-full bg-[#0D1017] text-slate-100 overflow-hidden select-none">
+    <!-- COLUNA ESQUERDA: LISTA DE WEBHOOK TRIGGERS -->
+    <div class="flex-1 flex flex-col min-w-0 border-r border-slate-800">
+      <!-- HEADER -->
+      <header class="p-6 border-b border-slate-800 bg-[#14171F] flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-bold text-white tracking-tight">Webhooks (Gatilhos de Entrada)</h1>
+          <p class="text-xs text-slate-400 mt-1">
+            Endpoints HTTP externos para receber eventos (Shopify, Hotmart, n8n) e iniciar Workflows.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-1.5"
+          @click="openModal()"
+        >
+          <span>+</span>
+          <span>Novo Webhook</span>
+        </button>
+      </header>
+
+      <!-- TABELA DE WEBHOOKS (ESTILO REFERENCE PACK) -->
+      <div class="flex-1 overflow-y-auto p-6">
+        <div class="border border-slate-800/80 rounded-2xl bg-[#14171F] overflow-hidden">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-slate-800/80 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                <th class="py-3 px-4">Nome do Gatilho</th>
+                <th class="py-3 px-4">Endpoint URL</th>
+                <th class="py-3 px-4">Workflow Associado</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60">
+              <tr
+                v-for="trigger in triggers"
+                :key="trigger.id"
+                class="hover:bg-slate-800/30 transition-colors cursor-pointer"
+                :class="selectedTrigger?.id === trigger.id ? 'bg-blue-600/10' : ''"
+                @click="selectedTrigger = trigger"
+              >
+                <!-- NOME -->
+                <td class="py-3.5 px-4 font-bold text-slate-100 flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm shrink-0">
+                    ⚡
+                  </div>
+                  <div>
+                    <p class="truncate">{{ trigger.name }}</p>
+                    <p class="text-[10px] text-slate-400 font-mono">Template: {{ trigger.template_name }}</p>
+                  </div>
+                </td>
+
+                <!-- URL -->
+                <td class="py-3.5 px-4">
+                  <div class="flex items-center gap-2 max-w-[280px]">
+                    <span class="font-mono text-[11px] text-slate-400 truncate">
+                      {{ getWebhookUrl(trigger.token) }}
+                    </span>
+                    <button
+                      type="button"
+                      class="text-xs text-slate-400 hover:text-white shrink-0"
+                      title="Copiar URL"
+                      @click.stop="copyUrl(getWebhookUrl(trigger.token))"
+                    >
+                      {{ copiedToken === trigger.token ? '✓' : '📋' }}
+                    </button>
+                  </div>
+                </td>
+
+                <!-- WORKFLOW -->
+                <td class="py-3.5 px-4 font-medium text-blue-400">
+                  <span class="flex items-center gap-1.5">
+                    <span>⚡</span>
+                    <span>Webhook Inbound Flow</span>
+                  </span>
+                </td>
+
+                <!-- STATUS -->
+                <td class="py-3.5 px-4">
+                  <span
+                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1.5 w-max"
+                    :class="
+                      trigger.active !== false
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-slate-800 text-slate-400'
+                    "
+                  >
+                    <span
+                      class="w-1.5 h-1.5 rounded-full"
+                      :class="trigger.active !== false ? 'bg-emerald-400' : 'bg-slate-400'"
+                    />
+                    {{ trigger.active !== false ? 'Ativo' : 'Inativo' }}
+                  </span>
+                </td>
+
+                <!-- AÇÕES -->
+                <td class="py-3.5 px-4 text-right space-x-2">
+                  <button
+                    type="button"
+                    class="px-2.5 py-1 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-[11px] font-semibold"
+                    @click.stop="openTestModal(trigger)"
+                  >
+                    Testar
+                  </button>
+                  <button
+                    type="button"
+                    class="px-2.5 py-1 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-[11px] font-semibold"
+                    @click.stop="openModal(trigger)"
+                  >
+                    Editar
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLUNA DIREITA: DETALHES TÉCNICOS & LOGS DO WEBHOOK SELECIONADO -->
+    <div
+      v-if="selectedTrigger"
+      class="w-96 bg-[#14171F] flex flex-col justify-between overflow-y-auto p-6 space-y-6 select-none shrink-0"
+    >
+      <div class="space-y-6">
+        <!-- HEADER DO GATILHO -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-lg">
+              ⚡
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-sm font-bold text-white truncate">{{ selectedTrigger.name }}</h3>
+              <p class="text-xs text-slate-400 font-mono">Token: {{ selectedTrigger.token }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ENDPOINT CURL COMPLETO -->
+        <div class="space-y-2">
+          <label class="block text-xs font-bold text-slate-300">Endpoint Externo (cURL)</label>
+          <div class="p-3 rounded-xl bg-[#0D1017] border border-slate-800 space-y-2 font-mono text-[10px] text-slate-300">
+            <p class="text-emerald-400 font-bold">curl -X POST \</p>
+            <p class="break-all">{{ getWebhookUrl(selectedTrigger.token) }} \</p>
+            <p class="text-slate-400">-H "Content-Type: application/json" \</p>
+            <p class="text-slate-400">-d '{"customer": {"phone": "17991173157"}}'</p>
+          </div>
+        </div>
+
+        <!-- MAPEAMENTO DE CAMPOS -->
+        <div class="p-3.5 rounded-xl bg-[#0D1017] border border-slate-800 space-y-2 text-xs">
+          <h4 class="font-bold text-slate-300">Mapeamento de Payload</h4>
+          <div class="space-y-1 text-[11px] text-slate-400">
+            <div class="flex justify-between">
+              <span>Telefone do Contato:</span>
+              <span class="font-mono text-slate-200">{{ selectedTrigger.field_mapping?.phone_path || 'customer.phone' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Nome do Contato:</span>
+              <span class="font-mono text-slate-200">{{ selectedTrigger.field_mapping?.name_path || 'customer.name' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ÚLTIMAS REQUESTS RECEBIDAS -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-slate-300">Últimas Requisições (Logs)</h4>
+          <div class="p-3 rounded-xl bg-[#0D1017] border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-emerald-400 font-bold">✓ 200 OK</span>
+              <span class="text-slate-500 font-mono text-[10px]">10 out 2026, 14:30:12</span>
+            </div>
+            <p class="text-[10px] font-mono text-slate-400 truncate">
+              {"customer":{"phone":"17991173157","name":"Mestre"}}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTÃO TESTAR OU EXCLUIR -->
+      <div class="pt-4 border-t border-slate-800 flex items-center gap-2">
+        <button
+          type="button"
+          class="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors"
+          @click="openTestModal(selectedTrigger)"
+        >
+          Testar Disparo
+        </button>
+        <button
+          type="button"
+          class="py-2 px-3 rounded-xl border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 text-xs font-semibold"
+          @click="deleteTrigger(selectedTrigger.id)"
+        >
+          Excluir
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
