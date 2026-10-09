@@ -1,9 +1,9 @@
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { VueFlow, useVueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
-import { Controls } from '@vue-flow/controls';
+import { useAlert } from 'dashboard/composables';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 
@@ -13,7 +13,6 @@ import WorkflowNodeCard from './components/WorkflowNodeCard.vue';
 import WorkflowNodeConfigPanel from './components/WorkflowNodeConfigPanel.vue';
 import WorkflowNodeSelectorModal from './components/WorkflowNodeSelectorModal.vue';
 import WorkflowTemplatePickerModal from './components/WorkflowTemplatePickerModal.vue';
-import { WORKFLOW_NODES_REGISTRY } from './nodeRegistry';
 
 const route = useRoute();
 const router = useRouter();
@@ -34,24 +33,47 @@ const elements = ref([]);
 const selectedNodeId = ref(null);
 
 const {
+  viewport,
   onConnect,
   onNodeClick,
   onPaneClick,
-  onNodesChange,
-  onEdgesChange,
   addNodes,
   addEdges,
-  setViewport,
   getViewport,
   zoomIn,
   zoomOut,
   fitView,
 } = useVueFlow();
 
+const zoomPercent = computed(() => {
+  const z = viewport.value?.zoom || 1;
+  return `${Math.round(z * 100)}%`;
+});
+
 const selectedNode = computed(() => {
   if (!selectedNodeId.value) return null;
   return elements.value.find(el => el.id === selectedNodeId.value) || null;
 });
+
+// Helper de cor semântica para arestas
+const getEdgeColor = handleId => {
+  if (handleId === 'true' || handleId === 'REPLIED' || handleId === 'SUCCESS') {
+    return '#10B981';
+  }
+  if (handleId === 'false' || handleId === 'TIMEOUT' || handleId === 'ERROR') {
+    return '#F43F5E';
+  }
+  if (handleId === 'Instagram') {
+    return '#3B82F6';
+  }
+  if (handleId === 'Google') {
+    return '#10B981';
+  }
+  if (handleId === 'Referral') {
+    return '#F59E0B';
+  }
+  return '#64748B';
+};
 
 // Buscar Workflow
 const fetchWorkflow = async () => {
@@ -62,7 +84,7 @@ const fetchWorkflow = async () => {
 
     // Se não houver nós (fluxo novo), cria o nó inicial de Webhook Trigger exatamente como na referência
     let rawNodes = draft.nodes || [];
-    let rawEdges = draft.edges || [];
+    const rawEdges = draft.edges || [];
 
     if (rawNodes.length === 0) {
       rawNodes = [
@@ -101,7 +123,7 @@ const fetchWorkflow = async () => {
       fitView({ padding: 0.2 });
     });
   } catch (err) {
-    console.error('Erro ao carregar workflow:', err);
+    useAlert('Erro ao carregar workflow.');
   }
 };
 
@@ -110,7 +132,7 @@ const fetchTemplates = async () => {
     const res = await whatsappTemplatesAPI.getTemplates();
     availableTemplates.value = res.data.templates || [];
   } catch (err) {
-    console.error('Erro ao carregar templates:', err);
+    useAlert('Erro ao carregar templates.');
   }
 };
 
@@ -158,18 +180,7 @@ const triggerAutoSave = () => {
 
 // Conectar Edges
 onConnect(params => {
-  const edgeColor =
-    params.sourceHandle === 'true' || params.sourceHandle === 'REPLIED'
-      ? '#10B981'
-      : params.sourceHandle === 'false' || params.sourceHandle === 'TIMEOUT'
-        ? '#F43F5E'
-        : params.sourceHandle === 'Instagram'
-          ? '#3B82F6'
-          : params.sourceHandle === 'Google'
-            ? '#10B981'
-            : params.sourceHandle === 'Referral'
-              ? '#F59E0B'
-              : '#64748B';
+  const edgeColor = getEdgeColor(params.sourceHandle);
 
   const newEdge = {
     ...params,
@@ -247,12 +258,7 @@ const handleInsertNode = nodeMeta => {
   // Se veio de conexão (+) cria a aresta automaticamente com o estilo do reference pack
   if (parentNode) {
     const handleId = connectingContext.value?.handleId || 'output';
-    const edgeColor =
-      handleId === 'true'
-        ? '#10B981'
-        : handleId === 'false'
-          ? '#F43F5E'
-          : '#64748B';
+    const edgeColor = getEdgeColor(handleId);
 
     addEdges([
       {
@@ -301,7 +307,7 @@ const handlePublish = async () => {
     );
     await fetchWorkflow();
   } catch (err) {
-    console.error('Erro ao publicar:', err);
+    useAlert('Erro ao publicar workflow.');
   } finally {
     isPublishing.value = false;
   }
@@ -309,17 +315,32 @@ const handlePublish = async () => {
 </script>
 
 <template>
-  <div class="flex flex-col flex-1 w-full h-full bg-n-background text-n-slate-12 overflow-hidden select-none">
+  <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
+  <div
+    class="flex flex-col flex-1 w-full h-full bg-n-background text-n-slate-12 overflow-hidden select-none"
+  >
     <!-- TOP HEADER (ESTILO SEMÂNTICO CHATWOOT DESIGN TOKENS) -->
-    <header class="h-14 px-6 border-b border-n-weak bg-n-solid-1 flex items-center justify-between z-20 shrink-0">
+    <header
+      class="h-14 px-6 border-b border-n-weak bg-n-solid-1 flex items-center justify-between z-20 shrink-0"
+    >
       <div class="flex items-center gap-4">
         <button
           type="button"
           class="p-1.5 rounded-lg text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 transition-colors"
           @click="router.push({ name: 'workflows_index' })"
         >
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
           </svg>
         </button>
 
@@ -375,7 +396,9 @@ const handlePublish = async () => {
           @click="handlePublish"
         >
           <span>🚀</span>
-          <span>{{ isPublishing ? 'Publicando...' : 'Publicar Alterações' }}</span>
+          <span>{{
+            isPublishing ? 'Publicando...' : 'Publicar Alterações'
+          }}</span>
         </button>
 
         <button
@@ -402,7 +425,9 @@ const handlePublish = async () => {
           <Background pattern-color="#94A3B8" :gap="20" :size="1.5" />
 
           <!-- CONTROLES CUSTOMIZADOS FLUTUANTES NO CANTO INFERIOR ESQUERDO -->
-          <div class="absolute left-6 bottom-6 z-10 flex items-center gap-1 p-1 bg-n-solid-1/90 border border-n-weak rounded-xl shadow-xl backdrop-blur-md">
+          <div
+            class="absolute left-6 bottom-6 z-10 flex items-center gap-1 p-1 bg-n-solid-1/90 border border-n-weak rounded-xl shadow-xl backdrop-blur-md"
+          >
             <button
               type="button"
               class="w-7 h-7 flex items-center justify-center text-xs text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 rounded-lg transition-colors"
@@ -420,7 +445,9 @@ const handlePublish = async () => {
             >
               -
             </button>
-            <span class="text-[11px] font-mono px-2 text-n-slate-12">100%</span>
+            <span class="text-[11px] font-mono px-2 text-n-slate-12">{{
+              zoomPercent
+            }}</span>
             <button
               type="button"
               class="w-7 h-7 flex items-center justify-center text-xs text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 rounded-lg transition-colors"
@@ -441,13 +468,23 @@ const handlePublish = async () => {
           </div>
 
           <!-- MINIMAPA TRANSLÚCIDO NO CANTO INFERIOR DIREITO -->
-          <div class="absolute right-6 bottom-6 z-10 w-36 h-24 rounded-xl bg-n-solid-1/80 border border-n-weak shadow-xl pointer-events-none overflow-hidden p-2 flex items-center justify-center backdrop-blur-sm">
-            <div class="relative w-full h-full flex items-center justify-center">
-              <div class="w-5 h-3 bg-blue-500/40 border border-blue-400 rounded-sm" />
+          <div
+            class="absolute right-6 bottom-6 z-10 w-36 h-24 rounded-xl bg-n-solid-1/80 border border-n-weak shadow-xl pointer-events-none overflow-hidden p-2 flex items-center justify-center backdrop-blur-sm"
+          >
+            <div
+              class="relative w-full h-full flex items-center justify-center"
+            >
+              <div
+                class="w-5 h-3 bg-blue-500/40 border border-blue-400 rounded-sm"
+              />
               <div class="w-4 h-0.5 bg-n-slate-9 mx-0.5" />
               <div class="flex flex-col gap-1.5">
-                <div class="w-5 h-2.5 bg-emerald-500/40 border border-emerald-400 rounded-sm" />
-                <div class="w-5 h-2.5 bg-rose-500/40 border border-rose-400 rounded-sm" />
+                <div
+                  class="w-5 h-2.5 bg-emerald-500/40 border border-emerald-400 rounded-sm"
+                />
+                <div
+                  class="w-5 h-2.5 bg-rose-500/40 border border-rose-400 rounded-sm"
+                />
               </div>
             </div>
           </div>
@@ -473,7 +510,15 @@ const handlePublish = async () => {
 
       <!-- PAINEL LATERAL DIREITO DE CONFIGURAÇÃO (100% FIEL AO DESIGN SYSTEM) -->
       <WorkflowNodeConfigPanel
-        :node="selectedNode ? { id: selectedNode.id, type: selectedNode.data?.type, config: selectedNode.data?.config } : null"
+        :node="
+          selectedNode
+            ? {
+                id: selectedNode.id,
+                type: selectedNode.data?.type,
+                config: selectedNode.data?.config,
+              }
+            : null
+        "
         :available-templates="availableTemplates"
         @update-config="handleUpdateNodeConfig"
         @delete-node="handleDeleteNode"

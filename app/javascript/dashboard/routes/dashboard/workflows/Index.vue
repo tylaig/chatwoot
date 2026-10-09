@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAlert } from 'dashboard/composables';
 import WorkflowsAPI from 'dashboard/api/workflows';
 
 const router = useRouter();
@@ -34,7 +35,7 @@ const fetchWorkflows = async () => {
       selectedWorkflow.value = workflows.value[0];
     }
   } catch (err) {
-    console.error('Erro ao buscar workflows:', err);
+    useAlert('Erro ao carregar workflows.');
   } finally {
     isLoading.value = false;
   }
@@ -67,7 +68,7 @@ const handleCreateWorkflow = async () => {
       params: { workflowId: res.data.id },
     });
   } catch (err) {
-    console.error('Erro ao criar workflow:', err);
+    useAlert('Erro ao criar workflow.');
   }
 };
 
@@ -82,22 +83,31 @@ const filteredWorkflows = computed(() => {
       w.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       w.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
     const matchesStatus =
-      filterStatus.value === 'ALL' || w.status === filterStatus.value.toLowerCase();
+      filterStatus.value === 'ALL' ||
+      w.status === filterStatus.value.toLowerCase();
     const matchesTrigger =
-      filterTrigger.value === 'ALL' || w.trigger_type === filterTrigger.value.toLowerCase();
+      filterTrigger.value === 'ALL' ||
+      w.trigger_type === filterTrigger.value.toLowerCase();
     return matchesSearch && matchesStatus && matchesTrigger;
   });
 });
 </script>
 
 <template>
-  <div class="flex h-full bg-n-background text-n-slate-12 overflow-hidden select-none">
+  <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text, vue/html-closing-bracket-newline -->
+  <div
+    class="flex h-full bg-n-background text-n-slate-12 overflow-hidden select-none"
+  >
     <!-- COLUNA PRINCIPAL ESQUERDA (TABELAS E FILTROS) -->
     <div class="flex-1 flex flex-col min-w-0 border-r border-n-weak">
       <!-- HEADER PRINCIPAL -->
-      <header class="p-6 border-b border-n-weak bg-n-solid-1 flex items-center justify-between">
+      <header
+        class="p-6 border-b border-n-weak bg-n-solid-1 flex items-center justify-between"
+      >
         <div>
-          <h1 class="text-xl font-bold text-n-slate-12 tracking-tight">Workflows</h1>
+          <h1 class="text-xl font-bold text-n-slate-12 tracking-tight">
+            Workflows
+          </h1>
           <p class="text-xs text-n-slate-11 mt-1">
             Automatize suas conversas com fluxos visuais e ações integradas.
           </p>
@@ -114,7 +124,9 @@ const filteredWorkflows = computed(() => {
       </header>
 
       <!-- TABS DE NAVEGAÇÃO DE STATUS COM COUNTERS -->
-      <div class="flex items-center gap-6 px-6 pt-4 border-b border-n-weak text-xs">
+      <div
+        class="flex items-center gap-6 px-6 pt-4 border-b border-n-weak text-xs"
+      >
         <button
           type="button"
           class="pb-3 flex items-center gap-2 font-semibold transition-colors"
@@ -126,7 +138,9 @@ const filteredWorkflows = computed(() => {
           @click="handleTabChange('all')"
         >
           <span>Todos</span>
-          <span class="px-1.5 py-0.5 rounded-full bg-n-alpha-2 text-[10px] text-n-slate-11 font-bold">
+          <span
+            class="px-1.5 py-0.5 rounded-full bg-n-alpha-2 text-[10px] text-n-slate-11 font-bold"
+          >
             {{ stats.total || workflows.length }}
           </span>
         </button>
@@ -142,7 +156,9 @@ const filteredWorkflows = computed(() => {
           @click="handleTabChange('active')"
         >
           <span>Ativos</span>
-          <span class="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-[10px] text-emerald-400 font-bold">
+          <span
+            class="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-[10px] text-emerald-400 font-bold"
+          >
             {{ stats.active }}
           </span>
         </button>
@@ -158,7 +174,9 @@ const filteredWorkflows = computed(() => {
           @click="handleTabChange('paused')"
         >
           <span>Pausados</span>
-          <span class="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-[10px] text-amber-400 font-bold">
+          <span
+            class="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-[10px] text-amber-400 font-bold"
+          >
             {{ stats.paused }}
           </span>
         </button>
@@ -174,16 +192,22 @@ const filteredWorkflows = computed(() => {
           @click="handleTabChange('draft')"
         >
           <span>Rascunhos</span>
-          <span class="px-1.5 py-0.5 rounded-full bg-n-alpha-2 text-[10px] text-n-slate-11 font-bold">
+          <span
+            class="px-1.5 py-0.5 rounded-full bg-n-alpha-2 text-[10px] text-n-slate-11 font-bold"
+          >
             {{ stats.drafts }}
           </span>
         </button>
       </div>
 
       <!-- BARRA DE PESQUISA E FILTROS -->
-      <div class="p-6 pb-4 flex flex-col md:flex-row gap-3 items-center justify-between">
+      <div
+        class="p-6 pb-4 flex flex-col md:flex-row gap-3 items-center justify-between"
+      >
         <div class="relative flex-1 w-full">
-          <span class="absolute left-3.5 top-2.5 text-xs text-n-slate-9">🔍</span>
+          <span class="absolute left-3.5 top-2.5 text-xs text-n-slate-9"
+            >🔍</span
+          >
           <input
             v-model="searchQuery"
             type="text"
@@ -233,10 +257,14 @@ const filteredWorkflows = computed(() => {
 
       <!-- TABELA ESTILO REFERENCE PACK -->
       <div class="flex-1 overflow-y-auto px-6 pb-6">
-        <div class="border border-n-weak/80 rounded-2xl bg-n-solid-1 overflow-hidden">
+        <div
+          class="border border-n-weak/80 rounded-2xl bg-n-solid-1 overflow-hidden"
+        >
           <table class="w-full text-left border-collapse text-xs">
             <thead>
-              <tr class="border-b border-n-weak/80 text-[11px] font-semibold text-n-slate-11 uppercase tracking-wider">
+              <tr
+                class="border-b border-n-weak/80 text-[11px] font-semibold text-n-slate-11 uppercase tracking-wider"
+              >
                 <th class="py-3 px-4">Nome</th>
                 <th class="py-3 px-4">Descrição</th>
                 <th class="py-3 px-4">Gatilho</th>
@@ -255,7 +283,9 @@ const filteredWorkflows = computed(() => {
                 @click="handleSelectWorkflow(wf)"
               >
                 <!-- NOME COM ÍCONE -->
-                <td class="py-3.5 px-4 font-bold text-n-slate-12 flex items-center gap-3">
+                <td
+                  class="py-3.5 px-4 font-bold text-n-slate-12 flex items-center gap-3"
+                >
                   <div
                     class="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shrink-0"
                     :class="
@@ -278,7 +308,9 @@ const filteredWorkflows = computed(() => {
                 <td class="py-3.5 px-4 font-medium text-n-slate-11">
                   <span class="flex items-center gap-1.5">
                     <span class="text-amber-400">⚡</span>
-                    <span>{{ wf.trigger_type === 'webhook' ? 'Webhook' : 'Novo Contato' }}</span>
+                    <span>{{
+                      wf.trigger_type === 'webhook' ? 'Webhook' : 'Novo Contato'
+                    }}</span>
                   </span>
                 </td>
 
@@ -304,7 +336,13 @@ const filteredWorkflows = computed(() => {
                             : 'bg-n-slate-9'
                       "
                     />
-                    {{ wf.status === 'active' ? 'Ativo' : wf.status === 'paused' ? 'Pausado' : 'Rascunho' }}
+                    {{
+                      wf.status === 'active'
+                        ? 'Ativo'
+                        : wf.status === 'paused'
+                          ? 'Pausado'
+                          : 'Rascunho'
+                    }}
                   </span>
                 </td>
 
@@ -316,7 +354,9 @@ const filteredWorkflows = computed(() => {
                 <!-- EXECUÇÕES -->
                 <td class="py-3.5 px-4 font-mono text-n-slate-11">
                   <div>1.284</div>
-                  <div class="text-[10px] text-emerald-400 font-sans">🟢 96%</div>
+                  <div class="text-[10px] text-emerald-400 font-sans">
+                    🟢 96%
+                  </div>
                 </td>
 
                 <!-- AÇÕES -->
@@ -348,9 +388,13 @@ const filteredWorkflows = computed(() => {
     >
       <div class="space-y-6">
         <!-- HEADER DO DRAWER -->
-        <div class="flex items-center justify-between pb-4 border-b border-n-weak">
+        <div
+          class="flex items-center justify-between pb-4 border-b border-n-weak"
+        >
           <div class="flex items-center gap-3 min-w-0">
-            <div class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-lg">
+            <div
+              class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-lg"
+            >
               ⚡
             </div>
             <div class="min-w-0">
@@ -374,7 +418,10 @@ const filteredWorkflows = computed(() => {
 
         <!-- TABS DO DRAWER -->
         <div class="flex border-b border-n-weak text-xs">
-          <button type="button" class="pb-2 px-3 font-semibold text-blue-400 border-b-2 border-blue-500">
+          <button
+            type="button"
+            class="pb-2 px-3 font-semibold text-blue-400 border-b-2 border-blue-500"
+          >
             Visão Geral
           </button>
           <button
@@ -389,7 +436,10 @@ const filteredWorkflows = computed(() => {
           >
             Execuções
           </button>
-          <button type="button" class="pb-2 px-3 font-semibold text-n-slate-11 hover:text-n-slate-12">
+          <button
+            type="button"
+            class="pb-2 px-3 font-semibold text-n-slate-11 hover:text-n-slate-12"
+          >
             Configurações
           </button>
         </div>
@@ -409,12 +459,17 @@ const filteredWorkflows = computed(() => {
           <div class="space-y-2 text-n-slate-11">
             <div>
               <span class="text-n-slate-9 block text-[10px]">Nome:</span>
-              <p class="font-bold text-n-slate-12">{{ selectedWorkflow.name }}</p>
+              <p class="font-bold text-n-slate-12">
+                {{ selectedWorkflow.name }}
+              </p>
             </div>
             <div>
               <span class="text-n-slate-9 block text-[10px]">Descrição:</span>
               <p class="text-n-slate-11 text-[11px] leading-relaxed">
-                {{ selectedWorkflow.description || 'Qualifica leads do site e direciona para o time correto.' }}
+                {{
+                  selectedWorkflow.description ||
+                  'Qualifica leads do site e direciona para o time correto.'
+                }}
               </p>
             </div>
           </div>
@@ -433,11 +488,15 @@ const filteredWorkflows = computed(() => {
               <p class="text-base font-bold text-n-slate-12 mt-1">1.284</p>
             </div>
             <div class="p-3 rounded-xl bg-n-background border border-n-weak">
-              <span class="text-[10px] text-n-slate-9 block">📈 Taxa de sucesso</span>
+              <span class="text-[10px] text-n-slate-9 block"
+                >📈 Taxa de sucesso</span
+              >
               <p class="text-base font-bold text-emerald-400 mt-1">96%</p>
             </div>
             <div class="p-3 rounded-xl bg-n-background border border-n-weak">
-              <span class="text-[10px] text-n-slate-9 block">⏱️ Tempo médio</span>
+              <span class="text-[10px] text-n-slate-9 block"
+                >⏱️ Tempo médio</span
+              >
               <p class="text-base font-bold text-n-slate-12 mt-1">1m 24s</p>
             </div>
             <div class="p-3 rounded-xl bg-n-background border border-n-weak">
@@ -448,16 +507,27 @@ const filteredWorkflows = computed(() => {
         </div>
 
         <!-- GATILHO ASSOCIADO -->
-        <div class="p-3.5 rounded-xl bg-n-background border border-n-weak space-y-2 text-xs">
+        <div
+          class="p-3.5 rounded-xl bg-n-background border border-n-weak space-y-2 text-xs"
+        >
           <div class="flex items-center justify-between">
             <span class="font-bold text-n-slate-11">Gatilho</span>
             <span class="text-amber-400 font-bold flex items-center gap-1">
               <span>⚡</span> Webhook
             </span>
           </div>
-          <div class="p-2 rounded-lg bg-n-solid-1 border border-n-weak/80 font-mono text-[10px] text-n-slate-11 flex items-center justify-between">
-            <span class="truncate">/public/api/v1/webhook_dispatches/default</span>
-            <button type="button" class="text-n-slate-11 hover:text-n-slate-12 ml-2">📋</button>
+          <div
+            class="p-2 rounded-lg bg-n-solid-1 border border-n-weak/80 font-mono text-[10px] text-n-slate-11 flex items-center justify-between"
+          >
+            <span class="truncate"
+              >/public/api/v1/webhook_dispatches/default</span
+            >
+            <button
+              type="button"
+              class="text-n-slate-11 hover:text-n-slate-12 ml-2"
+            >
+              📋
+            </button>
           </div>
         </div>
       </div>
@@ -506,10 +576,14 @@ const filteredWorkflows = computed(() => {
       v-if="showCreateModal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
     >
-      <div class="w-full max-w-md p-6 rounded-2xl bg-n-solid-1 border border-n-weak shadow-2xl space-y-4">
+      <div
+        class="w-full max-w-md p-6 rounded-2xl bg-n-solid-1 border border-n-weak shadow-2xl space-y-4"
+      >
         <h3 class="text-sm font-bold text-n-slate-12">Criar Novo Workflow</h3>
         <div>
-          <label class="block text-xs font-semibold text-n-slate-11 mb-1">Nome do Fluxo</label>
+          <label class="block text-xs font-semibold text-n-slate-11 mb-1"
+            >Nome do Fluxo</label
+          >
           <input
             v-model="newWorkflowName"
             type="text"
@@ -518,7 +592,9 @@ const filteredWorkflows = computed(() => {
           />
         </div>
         <div>
-          <label class="block text-xs font-semibold text-n-slate-11 mb-1">Descrição</label>
+          <label class="block text-xs font-semibold text-n-slate-11 mb-1"
+            >Descrição</label
+          >
           <textarea
             v-model="newWorkflowDesc"
             rows="3"

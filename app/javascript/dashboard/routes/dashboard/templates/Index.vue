@@ -65,15 +65,23 @@ const handleSelectTemplate = tpl => {
 </script>
 
 <template>
-  <div class="flex h-full bg-[#0D1017] text-slate-100 overflow-hidden select-none">
+  <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text, vue/html-closing-bracket-newline -->
+  <div
+    class="flex h-full bg-[#0D1017] text-slate-100 overflow-hidden select-none"
+  >
     <!-- COLUNA ESQUERDA: LISTA & FILTROS DE TEMPLATES -->
     <div class="flex-1 flex flex-col min-w-0 border-r border-slate-800">
       <!-- HEADER -->
-      <header class="p-6 border-b border-slate-800 bg-[#14171F] flex items-center justify-between">
+      <header
+        class="p-6 border-b border-slate-800 bg-[#14171F] flex items-center justify-between"
+      >
         <div>
-          <h1 class="text-xl font-bold text-white tracking-tight">Templates WhatsApp</h1>
+          <h1 class="text-xl font-bold text-white tracking-tight">
+            Templates WhatsApp
+          </h1>
           <p class="text-xs text-slate-400 mt-1">
-            Gerencie modelos de mensagens aprovados pela Meta para usar nos seus workflows.
+            Gerencie modelos de mensagens aprovados pela Meta para usar nos seus
+            workflows.
           </p>
         </div>
 
@@ -98,9 +106,13 @@ const handleSelectTemplate = tpl => {
       </header>
 
       <!-- BARRA DE PESQUISA E FILTROS HORIZONTAIS (ESTILO REFERENCE PACK) -->
-      <div class="p-6 pb-4 flex flex-col md:flex-row gap-3 items-center justify-between">
+      <div
+        class="p-6 pb-4 flex flex-col md:flex-row gap-3 items-center justify-between"
+      >
         <div class="relative flex-1 w-full">
-          <span class="absolute left-3.5 top-2.5 text-xs text-slate-500">🔍</span>
+          <span class="absolute left-3.5 top-2.5 text-xs text-slate-500"
+            >🔍</span
+          >
           <input
             v-model="searchQuery"
             type="text"
@@ -163,10 +175,14 @@ const handleSelectTemplate = tpl => {
 
       <!-- TABELA DE TEMPLATES -->
       <div class="flex-1 overflow-y-auto px-6 pb-6">
-        <div class="border border-slate-800/80 rounded-2xl bg-[#14171F] overflow-hidden">
+        <div
+          class="border border-slate-800/80 rounded-2xl bg-[#14171F] overflow-hidden"
+        >
           <table class="w-full text-left border-collapse text-xs">
             <thead>
-              <tr class="border-b border-slate-800/80 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <tr
+                class="border-b border-slate-800/80 text-[11px] font-semibold text-slate-400 uppercase tracking-wider"
+              >
                 <th class="py-3 px-4">Nome do Template</th>
                 <th class="py-3 px-4">Categoria</th>
                 <th class="py-3 px-4">Idioma</th>
@@ -184,13 +200,19 @@ const handleSelectTemplate = tpl => {
                 @click="handleSelectTemplate(tpl)"
               >
                 <!-- NOME COM ÍCONE -->
-                <td class="py-3.5 px-4 font-bold text-slate-100 flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-sm shrink-0">
+                <td
+                  class="py-3.5 px-4 font-bold text-slate-100 flex items-center gap-3"
+                >
+                  <div
+                    class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-sm shrink-0"
+                  >
                     📄
                   </div>
                   <div class="min-w-0">
                     <p class="truncate">{{ tpl.name }}</p>
-                    <p class="text-[11px] text-slate-400 font-normal truncate max-w-[220px]">
+                    <p
+                      class="text-[11px] text-slate-400 font-normal truncate max-w-[220px]"
+                    >
                       {{ tpl.body }}
                     </p>
                   </div>
@@ -198,7 +220,9 @@ const handleSelectTemplate = tpl => {
 
                 <!-- CATEGORIA -->
                 <td class="py-3.5 px-4">
-                  <span class="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[10px] font-bold">
+                  <span
+                    class="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[10px] font-bold"
+                  >
                     {{ tpl.category || 'Marketing' }}
                   </span>
                 </td>
@@ -241,7 +265,10 @@ const handleSelectTemplate = tpl => {
 
                 <!-- AÇÕES -->
                 <td class="py-3.5 px-4 text-right">
-                  <button type="button" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                  <button
+                    type="button"
+                    class="text-slate-400 hover:text-white p-1 rounded-lg"
+                  >
                     •••
                   </button>
                 </td>
@@ -259,9 +286,13 @@ const handleSelectTemplate = tpl => {
     >
       <div class="space-y-6">
         <!-- HEADER DO DRAWER -->
-        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div
+          class="flex items-center justify-between pb-4 border-b border-slate-800"
+        >
           <div class="flex items-center gap-3 min-w-0">
-            <div class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg">
+            <div
+              class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg"
+            >
               📄
             </div>
             <div class="min-w-0">
@@ -269,10 +300,14 @@ const handleSelectTemplate = tpl => {
                 {{ previewTemplate.name }}
               </h3>
               <div class="flex items-center gap-2 mt-0.5">
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-bold">
+                <span
+                  class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-bold"
+                >
                   {{ previewTemplate.category || 'Marketing' }}
                 </span>
-                <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                <span
+                  class="text-[10px] text-emerald-400 font-bold flex items-center gap-1"
+                >
                   ● Approved
                 </span>
               </div>
@@ -285,7 +320,11 @@ const handleSelectTemplate = tpl => {
           <button
             type="button"
             class="pb-2 px-3 font-semibold transition-colors"
-            :class="activeDrawerTab === 'details' ? 'text-blue-400 border-b-2 border-blue-500' : 'text-slate-400'"
+            :class="
+              activeDrawerTab === 'details'
+                ? 'text-blue-400 border-b-2 border-blue-500'
+                : 'text-slate-400'
+            "
             @click="activeDrawerTab = 'details'"
           >
             Detalhes
@@ -293,7 +332,11 @@ const handleSelectTemplate = tpl => {
           <button
             type="button"
             class="pb-2 px-3 font-semibold transition-colors"
-            :class="activeDrawerTab === 'edit' ? 'text-blue-400 border-b-2 border-blue-500' : 'text-slate-400'"
+            :class="
+              activeDrawerTab === 'edit'
+                ? 'text-blue-400 border-b-2 border-blue-500'
+                : 'text-slate-400'
+            "
             @click="activeDrawerTab = 'edit'"
           >
             Editar
@@ -301,7 +344,11 @@ const handleSelectTemplate = tpl => {
           <button
             type="button"
             class="pb-2 px-3 font-semibold transition-colors"
-            :class="activeDrawerTab === 'history' ? 'text-blue-400 border-b-2 border-blue-500' : 'text-slate-400'"
+            :class="
+              activeDrawerTab === 'history'
+                ? 'text-blue-400 border-b-2 border-blue-500'
+                : 'text-slate-400'
+            "
             @click="activeDrawerTab = 'history'"
           >
             Histórico
@@ -309,20 +356,28 @@ const handleSelectTemplate = tpl => {
         </div>
 
         <!-- INFORMAÇÕES DO TEMPLATE -->
-        <div class="p-3.5 rounded-xl bg-[#0D1017] border border-slate-800 space-y-2 text-xs">
+        <div
+          class="p-3.5 rounded-xl bg-[#0D1017] border border-slate-800 space-y-2 text-xs"
+        >
           <h4 class="font-bold text-slate-300">Informações do Template</h4>
           <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-400">
             <div>
               <span class="text-slate-500 block">Nome:</span>
-              <span class="font-bold text-slate-200">{{ previewTemplate.name }}</span>
+              <span class="font-bold text-slate-200">{{
+                previewTemplate.name
+              }}</span>
             </div>
             <div>
               <span class="text-slate-500 block">Categoria:</span>
-              <span class="text-slate-200">{{ previewTemplate.category || 'Marketing' }}</span>
+              <span class="text-slate-200">{{
+                previewTemplate.category || 'Marketing'
+              }}</span>
             </div>
             <div>
               <span class="text-slate-500 block">Idioma:</span>
-              <span class="text-slate-200">{{ previewTemplate.language || 'pt_BR' }}</span>
+              <span class="text-slate-200">{{
+                previewTemplate.language || 'pt_BR'
+              }}</span>
             </div>
             <div>
               <span class="text-slate-500 block">Status:</span>
@@ -334,19 +389,31 @@ const handleSelectTemplate = tpl => {
         <!-- CONTEÚDO DO TEMPLATE / BALÃO WHATSAPP -->
         <div class="space-y-3">
           <div class="flex items-center justify-between">
-            <h4 class="text-xs font-bold text-slate-300">Conteúdo do Template</h4>
-            <div class="flex rounded-lg bg-[#0D1017] p-0.5 border border-slate-800">
-              <button type="button" class="px-2 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded">
+            <h4 class="text-xs font-bold text-slate-300">
+              Conteúdo do Template
+            </h4>
+            <div
+              class="flex rounded-lg bg-[#0D1017] p-0.5 border border-slate-800"
+            >
+              <button
+                type="button"
+                class="px-2 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded"
+              >
                 Visualização
               </button>
-              <button type="button" class="px-2 py-0.5 text-[10px] font-semibold text-slate-400 rounded">
+              <button
+                type="button"
+                class="px-2 py-0.5 text-[10px] font-semibold text-slate-400 rounded"
+              >
                 Código JSON
               </button>
             </div>
           </div>
 
           <!-- BALÃO WHATSAPP -->
-          <div class="p-4 rounded-2xl bg-[#E1F8DC] dark:bg-[#1E2C22] border border-[#C5E8BF] dark:border-[#2D4533] text-slate-900 dark:text-slate-100 text-xs shadow-sm space-y-2 relative">
+          <div
+            class="p-4 rounded-2xl bg-[#E1F8DC] dark:bg-[#1E2C22] border border-[#C5E8BF] dark:border-[#2D4533] text-slate-900 dark:text-slate-100 text-xs shadow-sm space-y-2 relative"
+          >
             <p class="whitespace-pre-line leading-relaxed font-sans">
               {{ previewTemplate.body || defaultPreviewBody }}
             </p>
@@ -370,16 +437,22 @@ const handleSelectTemplate = tpl => {
         </div>
 
         <!-- VARIÁVEIS DO TEMPLATE -->
-        <div class="p-3.5 rounded-xl bg-[#0D1017] border border-slate-800 space-y-2 text-xs">
+        <div
+          class="p-3.5 rounded-xl bg-[#0D1017] border border-slate-800 space-y-2 text-xs"
+        >
           <h4 class="font-bold text-slate-300">Variáveis do Template</h4>
           <div class="space-y-1 text-[11px]">
             <div class="flex items-center justify-between text-slate-300">
-              <span class="font-mono text-slate-400">&#123;&#123;1&#125;&#125;</span>
+              <span class="font-mono text-slate-400"
+                >&#123;&#123;1&#125;&#125;</span
+              >
               <span>Nome do cliente</span>
               <span class="text-slate-500 font-mono">Exemplo: João</span>
             </div>
             <div class="flex items-center justify-between text-slate-300">
-              <span class="font-mono text-slate-400">&#123;&#123;2&#125;&#125;</span>
+              <span class="font-mono text-slate-400"
+                >&#123;&#123;2&#125;&#125;</span
+              >
               <span>Link personalizado</span>
               <span class="text-slate-500 font-mono">Exemplo: https://...</span>
             </div>

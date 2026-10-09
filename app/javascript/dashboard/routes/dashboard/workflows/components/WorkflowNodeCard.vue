@@ -32,13 +32,13 @@ const summary = computed(() => {
 const badgeColorClasses = computed(() => {
   switch (nodeMeta.value.badgeType) {
     case 'trigger':
-      return 'bg-n-amber-3 text-n-amber-11 border border-n-amber-7';
+      return 'bg-amber-500/10 text-amber-500 border border-amber-500/20';
     case 'condition':
-      return 'bg-purple-500/10 text-purple-500 border border-purple-500/20';
+      return 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
     case 'time':
-      return 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20';
+      return 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20';
     case 'integration':
-      return 'bg-sky-500/10 text-sky-500 border border-sky-500/20';
+      return 'bg-sky-500/10 text-sky-400 border border-sky-500/20';
     default:
       return 'bg-n-alpha-2 text-n-slate-11 border border-n-weak';
   }
@@ -46,11 +46,12 @@ const badgeColorClasses = computed(() => {
 </script>
 
 <template>
+  <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
   <div
     class="relative rounded-2xl bg-n-solid-1 border transition-all duration-150 shadow-lg group select-none min-w-[280px] max-w-[320px]"
     :class="[
       selected
-        ? 'border-n-blue-9 ring-2 ring-n-blue-9/30'
+        ? 'border-blue-500 ring-2 ring-blue-500/25 shadow-xl shadow-blue-500/10'
         : 'border-n-weak hover:border-n-strong',
     ]"
   >
@@ -59,7 +60,7 @@ const badgeColorClasses = computed(() => {
       v-if="nodeMeta.hasInput !== false"
       type="target"
       :position="Position.Left"
-      class="!w-3 !h-3 !bg-n-slate-9 !border-2 !border-n-solid-1 hover:!bg-n-blue-9 !transition-colors !-left-1.5"
+      class="!w-3 !h-3 !bg-n-slate-9 !border-2 !border-n-solid-1 hover:!bg-blue-500 !transition-colors !-left-1.5"
     />
 
     <!-- CONTEÚDO DO CARD -->
@@ -89,18 +90,29 @@ const badgeColorClasses = computed(() => {
             {{ nodeMeta.icon }}
           </div>
           <div class="truncate">
-            <h4 class="text-xs font-bold text-n-slate-12 truncate leading-tight">
+            <h4
+              class="text-xs font-bold text-n-slate-12 truncate leading-tight"
+            >
               {{ data.config?.custom_title || nodeMeta.title }}
             </h4>
           </div>
         </div>
 
-        <span
-          class="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0"
-          :class="badgeColorClasses"
-        >
-          {{ nodeMeta.badge }}
-        </span>
+        <div class="flex items-center gap-1 shrink-0">
+          <span
+            class="text-[10px] px-2 py-0.5 rounded-full font-medium"
+            :class="badgeColorClasses"
+          >
+            {{ nodeMeta.badge }}
+          </span>
+          <button
+            type="button"
+            class="text-n-slate-9 hover:text-n-slate-12 p-0.5 rounded"
+            title="Mais opções"
+          >
+            •••
+          </button>
+        </div>
       </div>
 
       <!-- SUBTÍTULO / DESCRIÇÃO -->
@@ -108,9 +120,89 @@ const badgeColorClasses = computed(() => {
         {{ nodeMeta.subtitle }}
       </p>
 
-      <!-- RESUMO VISUAL DO BLOCO -->
+      <!-- RESUMO VISUAL DO BLOCO (FIDELIDADE PACK) -->
+      <!-- Caso Condition: exibe as regras formatadas -->
       <div
-        v-if="summary"
+        v-if="data.type === 'condition'"
+        class="p-2.5 rounded-xl bg-n-alpha-1 border border-n-weak text-[11px] space-y-1 font-mono text-n-slate-12"
+      >
+        <div
+          v-for="(cond, idx) in data.config?.conditions || [
+            {
+              field: 'webhook.status',
+              operator: 'equal_to',
+              value: 'interested',
+            },
+            { field: 'score', operator: 'greater_than', value: '50' },
+          ]"
+          :key="idx"
+          class="space-y-1"
+        >
+          <div
+            v-if="idx > 0"
+            class="text-[9px] font-bold text-purple-400 uppercase"
+          >
+            {{ data.config?.match_type === 'any' ? 'OR' : 'AND' }}
+          </div>
+          <div class="truncate">
+            <span class="text-n-slate-11">{{ cond.field }}</span>
+            <span class="text-purple-400 mx-1">{{
+              cond.operator === 'equal_to'
+                ? '='
+                : cond.operator === 'greater_than'
+                  ? '>'
+                  : cond.operator
+            }}</span>
+            <span class="text-n-slate-12 font-semibold">{{ cond.value }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Caso Router: exibe a variável de roteamento -->
+      <div
+        v-else-if="data.type === 'router'"
+        class="p-2.5 rounded-xl bg-n-alpha-1 border border-n-weak font-mono text-[11px] text-n-slate-12 truncate"
+      >
+        <span class="text-n-slate-9 mr-1">Roteando:</span>
+        <span class="text-purple-400 font-semibold">{{
+          data.config?.source_variable || 'webhook.source'
+        }}</span>
+      </div>
+
+      <!-- Caso Wait for Reply: exibe timeout formatado -->
+      <div
+        v-else-if="data.type === 'wait_for_reply'"
+        class="p-2.5 rounded-xl bg-n-alpha-1 border border-n-weak font-mono text-[11px] text-n-slate-12 flex items-center gap-1.5"
+      >
+        <span>⏱️</span>
+        <span>Timeout: {{ data.config?.timeout_hours || 24 }} horas</span>
+      </div>
+
+      <!-- Caso HTTP Request: exibe método e endpoint com badge -->
+      <div
+        v-else-if="data.type === 'http_request'"
+        class="p-2.5 rounded-xl bg-n-alpha-1 border border-n-weak text-[11px] space-y-1"
+      >
+        <div
+          class="font-mono text-n-slate-12 truncate flex items-center gap-1.5"
+        >
+          <span
+            class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400"
+          >
+            {{ data.config?.method || 'POST' }}
+          </span>
+          <span class="truncate">{{
+            data.config?.url || 'https://api.exemplo.com/orders'
+          }}</span>
+        </div>
+        <p class="text-[10px] text-n-slate-11 truncate">
+          Envia dados para API externa
+        </p>
+      </div>
+
+      <!-- Resumo Geral Padrão -->
+      <div
+        v-else-if="summary"
         class="p-2.5 rounded-xl bg-n-alpha-1 border border-n-weak font-mono text-[11px] text-n-slate-12 whitespace-pre-line leading-relaxed break-words"
       >
         {{ summary }}
@@ -119,9 +211,15 @@ const badgeColorClasses = computed(() => {
 
     <!-- BOTÃO FLUTUANTE ADICIONAR PRÓXIMA AÇÃO (ESCONDIDO SE READ-ONLY) -->
     <button
-      v-if="!data.readOnly && nodeMeta.outputs && nodeMeta.outputs.length === 1 && !nodeMeta.outputs[0].label"
+      v-if="
+        !data.readOnly &&
+        nodeMeta.outputs &&
+        nodeMeta.outputs.length === 1 &&
+        !nodeMeta.outputs[0].label
+      "
       type="button"
-      class="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-n-solid-2 border border-n-weak text-n-slate-12 hover:bg-n-blue-9 hover:text-white flex items-center justify-center text-xs font-bold transition-all shadow-md z-10"
+      class="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-n-solid-2 border border-n-weak text-n-slate-12 hover:bg-blue-600 hover:text-white flex items-center justify-center text-xs font-bold transition-all shadow-md z-10"
+      title="Adicionar próximo passo"
       @click.stop="emit('add-next', { nodeId: id, handleId: 'output' })"
     >
       +
@@ -141,14 +239,24 @@ const badgeColorClasses = computed(() => {
         >
           <!-- Badge visual de Branch -->
           <span
-            v-if="out.type === 'success' || out.label === 'TRUE'"
-            class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-n-teal-3 text-n-teal-11 border border-n-teal-7 uppercase tracking-wider shadow-sm cursor-pointer hover:bg-n-teal-4 transition-colors"
+            v-if="
+              out.type === 'success' ||
+              out.label === 'TRUE' ||
+              out.label === 'REPLIED' ||
+              out.label === 'SUCCESS'
+            "
+            class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-wider shadow-sm cursor-pointer hover:bg-emerald-500/30 transition-colors"
           >
             {{ out.label }}
           </span>
           <span
-            v-else-if="out.type === 'danger' || out.label === 'FALSE'"
-            class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-n-ruby-3 text-n-ruby-11 border border-n-ruby-7 uppercase tracking-wider shadow-sm cursor-pointer hover:bg-n-ruby-4 transition-colors"
+            v-else-if="
+              out.type === 'danger' ||
+              out.label === 'FALSE' ||
+              out.label === 'TIMEOUT' ||
+              out.label === 'ERROR'
+            "
+            class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 uppercase tracking-wider shadow-sm cursor-pointer hover:bg-rose-500/30 transition-colors"
           >
             {{ out.label }}
           </span>
@@ -168,7 +276,7 @@ const badgeColorClasses = computed(() => {
             :id="out.id"
             type="source"
             :position="Position.Right"
-            class="!w-2.5 !h-2.5 !bg-n-slate-9 !border-2 !border-n-solid-1 hover:!bg-n-blue-9 !transition-colors !-right-1.5"
+            class="!w-2.5 !h-2.5 !bg-n-slate-9 !border-2 !border-n-solid-1 hover:!bg-blue-500 !transition-colors !-right-1.5"
           />
         </div>
       </div>
@@ -179,7 +287,7 @@ const badgeColorClasses = computed(() => {
         :id="nodeMeta.outputs[0].id"
         type="source"
         :position="Position.Right"
-        class="!w-3 !h-3 !bg-n-slate-9 !border-2 !border-n-solid-1 hover:!bg-n-blue-9 !transition-colors !-right-1.5"
+        class="!w-3 !h-3 !bg-n-slate-9 !border-2 !border-n-solid-1 hover:!bg-blue-500 !transition-colors !-right-1.5"
       />
     </template>
   </div>

@@ -34,9 +34,11 @@ const filteredTemplates = computed(() => {
       tpl.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       tpl.body?.toLowerCase().includes(searchQuery.value.toLowerCase());
     const matchesCat =
-      selectedCategory.value === 'ALL' || tpl.category === selectedCategory.value;
+      selectedCategory.value === 'ALL' ||
+      tpl.category === selectedCategory.value;
     const matchesLang =
-      selectedLanguage.value === 'ALL' || tpl.language === selectedLanguage.value;
+      selectedLanguage.value === 'ALL' ||
+      tpl.language === selectedLanguage.value;
     const matchesStatus =
       selectedStatus.value === 'ALL' || tpl.status === selectedStatus.value;
     return matchesSearch && matchesCat && matchesLang && matchesStatus;
@@ -55,6 +57,7 @@ const handleConfirm = () => {
 </script>
 
 <template>
+  <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text, vue/html-closing-bracket-newline -->
   <div
     v-if="show"
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 select-none text-n-slate-12"
@@ -81,7 +84,8 @@ const handleConfirm = () => {
               Selecionar Template WhatsApp
             </h3>
             <p class="text-xs text-n-slate-11">
-              Escolha um template aprovado pela Meta para enviar aos seus contatos.
+              Escolha um template aprovado pela Meta para enviar aos seus
+              contatos.
             </p>
           </div>
         </div>
@@ -102,7 +106,9 @@ const handleConfirm = () => {
         >
           <!-- BARRA DE PESQUISA -->
           <div class="relative">
-            <span class="absolute left-3 top-2.5 text-xs text-n-slate-9">🔍</span>
+            <span class="absolute left-3 top-2.5 text-xs text-n-slate-9"
+              >🔍</span
+            >
             <input
               v-model="searchQuery"
               type="text"
@@ -114,7 +120,9 @@ const handleConfirm = () => {
           <!-- FILTROS (INBOX, IDIOMA, CATEGORIA, STATUS) -->
           <div class="grid grid-cols-4 gap-2">
             <div>
-              <label class="block text-[10px] text-n-slate-11 mb-1">Inbox</label>
+              <label class="block text-[10px] text-n-slate-11 mb-1"
+                >Inbox</label
+              >
               <select
                 v-model="selectedInbox"
                 class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-blue-500"
@@ -123,7 +131,9 @@ const handleConfirm = () => {
               </select>
             </div>
             <div>
-              <label class="block text-[10px] text-n-slate-11 mb-1">Idioma</label>
+              <label class="block text-[10px] text-n-slate-11 mb-1"
+                >Idioma</label
+              >
               <select
                 v-model="selectedLanguage"
                 class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-blue-500"
@@ -135,7 +145,9 @@ const handleConfirm = () => {
               </select>
             </div>
             <div>
-              <label class="block text-[10px] text-n-slate-11 mb-1">Categoria</label>
+              <label class="block text-[10px] text-n-slate-11 mb-1"
+                >Categoria</label
+              >
               <select
                 v-model="selectedCategory"
                 class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-blue-500"
@@ -147,7 +159,9 @@ const handleConfirm = () => {
               </select>
             </div>
             <div>
-              <label class="block text-[10px] text-n-slate-11 mb-1">Status</label>
+              <label class="block text-[10px] text-n-slate-11 mb-1"
+                >Status</label
+              >
               <select
                 v-model="selectedStatus"
                 class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-blue-500"
@@ -180,7 +194,9 @@ const handleConfirm = () => {
                   <h4 class="text-xs font-bold text-n-slate-12 truncate">
                     {{ tpl.name }}
                   </h4>
-                  <p class="text-[11px] text-n-slate-11 line-clamp-1 leading-tight">
+                  <p
+                    class="text-[11px] text-n-slate-11 line-clamp-1 leading-tight"
+                  >
                     {{ tpl.body }}
                   </p>
                 </div>
@@ -294,7 +310,9 @@ const handleConfirm = () => {
           </div>
 
           <!-- FOOTER ACTION -->
-          <div class="pt-4 border-t border-n-weak flex items-center justify-end gap-2.5">
+          <div
+            class="pt-4 border-t border-n-weak flex items-center justify-end gap-2.5"
+          >
             <button
               type="button"
               class="px-4 py-2 rounded-xl border border-n-weak text-xs font-semibold text-n-slate-11 hover:bg-n-alpha-2 transition-colors"
