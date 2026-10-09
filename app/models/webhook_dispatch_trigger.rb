@@ -32,8 +32,9 @@ class WebhookDispatchTrigger < ApplicationRecord
   def extract_by_path(data, path)
     return nil if data.blank? || path.blank?
 
+    hash_data = data.respond_to?(:to_unsafe_h) ? data.to_unsafe_h : data
     keys = path.to_s.split('.')
-    current = data.with_indifferent_access
+    current = hash_data.respond_to?(:with_indifferent_access) ? hash_data.with_indifferent_access : hash_data
 
     keys.each do |key|
       return nil unless current.is_a?(Hash) || current.is_a?(Array)
@@ -57,22 +58,24 @@ class WebhookDispatchTrigger < ApplicationRecord
 
   def build_template_parameters(payload)
     mapping_params = field_mapping['parameters'] || []
-    processed_params = []
+    body_params = {}
 
-    mapping_params.each do |param|
+    mapping_params.each_with_index do |param, index|
       value = if param['type'] == 'static'
                 param['value']
               else
                 extract_by_path(payload, param['value'])
               end
-      processed_params << (value || '')
+      body_params[(index + 1).to_s] = (value || '')
     end
 
     {
       name: template_name,
       category: 'UTILITY',
       language: template_language.presence || 'pt_BR',
-      processed_params: processed_params
+      processed_params: {
+        body: body_params
+      }
     }
   end
 end

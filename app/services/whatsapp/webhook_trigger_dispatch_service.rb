@@ -29,8 +29,12 @@ class Whatsapp::WebhookTriggerDispatchService
       }
     )
 
-    # Send through official WhatsApp Channel
-    Whatsapp::SendOnWhatsappService.new(message: message).perform
+    # Send through appropriate channel
+    if inbox.channel.is_a?(Channel::Whatsapp)
+      Whatsapp::SendOnWhatsappService.new(message: message).perform
+    elsif inbox.channel.respond_to?(:send_message)
+      inbox.channel.send_message(message)
+    end
 
     {
       success: true,
