@@ -711,6 +711,17 @@ const menuItems = computed(() => {
       ],
     },
     {
+      name: 'Workflows',
+      label: 'Workflows',
+      icon: 'i-lucide-git-branch',
+      activeOn: [
+        'workflows_index',
+        'workflow_builder',
+        'workflow_executions',
+      ],
+      to: accountScopedRoute('workflows_index'),
+    },
+    {
       name: 'Templates',
       label: 'Templates WhatsApp',
       icon: 'i-lucide-layout-template',

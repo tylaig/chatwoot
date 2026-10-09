@@ -331,6 +331,20 @@ class Message < ApplicationRecord
     send_reply
     execute_message_template_hooks
     update_contact_activity
+    resume_waiting_workflows_on_incoming_message
+  end
+
+  def resume_waiting_workflows_on_incoming_message
+    return unless incoming? && conversation.present?
+
+    WorkflowExecution.where(conversation_id: conversation.id, status: 'waiting').find_each do |execution|
+      pending_wait = execution.wait_states.pending.find_by(wait_type: 'wait_for_reply')
+      next if pending_wait.blank?
+
+      WorkflowExecutionJob.perform_later(execution.id, pending_wait.node_id, 'reply_received')
+    end
+  rescue StandardError => e
+    Rails.logger.error "[WorkflowExecution] Erro ao retomar workflow por resposta: #{e.message}"
   end
 
   def update_contact_activity

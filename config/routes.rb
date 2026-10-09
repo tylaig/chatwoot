@@ -471,6 +471,20 @@ Rails.application.routes.draw do
               post :reject
             end
           end
+          resources :workflows do
+            member do
+              post :publish
+              post :pause
+              post :activate
+              post :duplicate
+              get :executions
+            end
+          end
+          resources :workflow_executions, only: [:index, :show] do
+            member do
+              post :cancel
+            end
+          end
         end
       end
       # end of account scoped api routes
