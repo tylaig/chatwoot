@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>SuperChat - Gatilhos de Webhook</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    code, pre, .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-6">
+  <div id="app" class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between pb-6 border-b border-slate-800">
+      <div>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#FF6B00] to-[#7928CA] flex items-center justify-center text-xl shadow-lg shadow-orange-500/20">
+            ⚡
+          </div>
+          <div>
+            <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              Gatilhos de Webhook & Disparador WhatsApp
+            </h1>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Receba payloads JSON via POST e dispare templates HSM oficiais da Meta com mapeamento dinâmico.
+            </p>
+          </div>
+        </div>
+      </div>
+      <button
+        @click="openModal()"
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#FF6B00] to-[#FF8533] hover:brightness-110 text-white font-semibold text-xs transition shadow-md shadow-orange-500/20"
+      >
+        <span>+</span> Novo Gatilho
+      </button>
+    </div>
+
+    <!-- Lista de Triggers -->
+    <div class="mt-6">
+      <div v-if="loading" class="text-center py-12 text-slate-400 text-sm">
+        Carregando gatilhos...
+      </div>
+      <div v-else-if="triggers.length === 0" class="text-center py-16 bg-slate-800/40 rounded-2xl border border-dashed border-slate-700/80 p-8">
+        <div class="text-4xl mb-3">⚡</div>
+        <h3 class="text-base font-semibold text-white">Nenhum gatilho de webhook configurado</h3>
+        <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+          Crie seu primeiro endpoint para conectar Hotmart, Shopify, Kiwify, Bling ou qualquer checkout externo e disparar mensagens automáticas.
+        </p>
+        <button
+          @click="openModal()"
+          class="mt-4 px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium text-xs transition"
+        >
+          Criar Primeiro Gatilho
+        </button>
+      </div>
+
+      <div v-else class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <div
+          v-for="trigger in triggers"
+          :key="trigger.id"
+          class="bg-slate-800/60 rounded-xl border border-slate-700/70 p-5 shadow-sm hover:border-slate-600 transition flex flex-col justify-between"
+        >
+          <div>
+            <div class="flex items-start justify-between">
+              <h2 class="font-semibold text-white text-sm">
+                {{ trigger.name }}
+              </h2>
+              <span
+                class="px-2 py-0.5 text-[10px] font-semibold rounded-full"
+                :class="trigger.active ? 'bg-emerald-950/80 border border-emerald-800/60 text-emerald-300' : 'bg-slate-800 text-slate-400'"
+              >
+                {{ trigger.active ? 'Ativo' : 'Pausado' }}
+              </span>
+            </div>
+
+            <div class="mt-3 space-y-1.5 text-xs text-slate-300">
+              <div class="flex items-center justify-between">
+                <span class="text-slate-400">Template Meta:</span>
+                <span class="font-mono text-orange-400 font-medium">{{ trigger.template_name }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-400">Idioma:</span>
+                <span class="font-mono">{{ trigger.template_language }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-400">Campo Telefone:</span>
+                <span class="font-mono bg-slate-900/80 px-1.5 py-0.5 rounded text-slate-300 text-[11px]">{{ trigger.field_mapping?.phone_path || 'N/A' }}</span>
+              </div>
+            </div>
+
+            <!-- URL do Webhook -->
+            <div class="mt-4 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800">
+              <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">URL de Disparo (POST)</div>
+              <div class="flex items-center justify-between gap-2">
+                <input
+                  type="text"
+                  readonly
+                  :value="getWebhookUrl(trigger.token)"
+                  class="bg-transparent text-xs font-mono text-orange-300/90 w-full focus:outline-none select-all truncate"
+                />
+                <button
+                  @click="copyUrl(getWebhookUrl(trigger.token))"
+                  class="text-[11px] font-medium px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 transition shrink-0"
+                >
+                  {{ copiedToken === trigger.token ? 'Copiado!' : 'Copiar' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-5 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs">
+            <button
+              @click="testTriggerModal(trigger)"
+              class="text-orange-400 hover:underline font-medium"
+            >
+              Testar Payload
+            </button>
+            <div class="flex gap-3">
+              <button
+                @click="openModal(trigger)"
+                class="text-slate-400 hover:text-white"
+              >
+                Editar
+              </button>
+              <button
+                @click="deleteTrigger(trigger.id)"
+                class="text-rose-400 hover:text-rose-300"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Criação / Edição -->
+    <div
+      v-if="showModal"
+      class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
+      <div class="bg-slate-900 rounded-2xl shadow-2xl max-w-xl w-full p-6 border border-slate-700 max-h-[90vh] overflow-y-auto">
+        <h3 class="text-base font-bold text-white">
+          {{ editingId ? 'Editar Gatilho' : 'Novo Gatilho de Webhook' }}
+        </h3>
+        
+        <form @submit.prevent="saveTrigger" class="mt-4 space-y-4 text-xs">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Nome Identificador</label>
+            <input
+              v-model="form.name"
+              type="text"
+              required
+              placeholder="Ex: Disparo Kiwify - Compra Aprovada"
+              class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-950 text-white focus:ring-1 focus:ring-orange-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Nome do Template Meta (HSM)</label>
+            <input
+              v-model="form.template_name"
+              type="text"
+              required
+              placeholder="Ex: atualizacao_pedido_gs_7420"
+              class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-950 text-white font-mono focus:ring-1 focus:ring-orange-500 focus:outline-none"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-medium text-slate-300 mb-1">Idioma Template</label>
+              <input
+                v-model="form.template_language"
+                type="text"
+                required
+                class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-950 text-white font-mono focus:ring-1 focus:ring-orange-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label class="block font-medium text-slate-300 mb-1">Caixa de Entrada ID</label>
+              <input
+                v-model.number="form.inbox_id"
+                type="number"
+                required
+                class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-950 text-white focus:ring-1 focus:ring-orange-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div class="border-t border-slate-800 pt-3">
+            <h4 class="font-semibold text-white mb-2">Mapeamento De ➔ Para (Dot Notation)</h4>
+            
+            <div class="space-y-3">
+              <div>
+                <label class="block font-medium text-slate-400 mb-1">Caminho do Telefone (JSON)</label>
+                <input
+                  v-model="form.field_mapping.phone_path"
+                  type="text"
+                  required
+                  placeholder="Ex: customer.phone ou data.buyer.mobile"
+                  class="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-950 text-white font-mono focus:ring-1 focus:ring-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label class="block font-medium text-slate-400 mb-1">Caminho do Nome do Cliente</label>
+                <input
+                  v-model="form.field_mapping.name_path"
+                  type="text"
+                  placeholder="Ex: customer.name ou data.buyer.name"
+                  class="w-full px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-950 text-white font-mono focus:ring-1 focus:ring-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <!-- Parâmetros do Template -->
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-medium text-slate-400">Variáveis do Template Body ({1}, {2}...)</label>
+                  <button
+                    type="button"
+                    @click="addParameter()"
+                    class="text-orange-400 hover:underline font-semibold"
+                  >
+                    + Adicionar Variável
+                  </button>
+                </div>
+
+                <div v-for="(param, idx) in form.field_mapping.parameters" :key="idx" class="flex gap-2 items-center mb-2">
+                  <span class="font-mono text-slate-500">#{1 + idx}</span>
+                  <select
+                    v-model="param.type"
+                    class="px-2 py-1 rounded border border-slate-700 bg-slate-950 text-slate-200"
+                  >
+                    <option value="path">Caminho JSON</option>
+                    <option value="static">Texto Fixo</option>
+                  </select>
+                  <input
+                    v-model="param.value"
+                    type="text"
+                    :placeholder="param.type === 'path' ? 'Ex: order.amount' : 'Ex: SuperChat'"
+                    class="flex-1 px-2 py-1 rounded border border-slate-700 bg-slate-950 font-mono text-slate-200"
+                  />
+                  <button
+                    type="button"
+                    @click="removeParameter(idx)"
+                    class="text-rose-400 hover:text-rose-300 px-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
+            <button
+              type="button"
+              @click="showModal = false"
+              class="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold transition"
+            >
+              Salvar Gatilho
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal de Teste de Payload -->
+    <div
+      v-if="showTestModal"
+      class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
+      <div class="bg-slate-900 rounded-2xl shadow-2xl max-w-xl w-full p-6 border border-slate-700">
+        <h3 class="text-base font-bold text-white mb-1">
+          Testar Simulação de Payload
+        </h3>
+        <p class="text-xs text-slate-400 mb-3">
+          Cole um exemplo de JSON que o seu checkout envia para validar o De ➔ Para.
+        </p>
+
+        <textarea
+          v-model="testPayloadText"
+          rows="6"
+          class="w-full p-3 font-mono text-xs rounded-lg border border-slate-700 bg-slate-950 text-white focus:outline-none"
+        ></textarea>
+
+        <div v-if="testResult" class="mt-3 p-3 rounded-lg border text-xs font-mono" :class="testResult.valid ? 'bg-emerald-950/50 border-emerald-800 text-emerald-300' : 'bg-rose-950/50 border-rose-800 text-rose-300'">
+          <div><strong>Telefone Detectado:</strong> {{ testResult.phone || 'NÃO ENCONTRADO!' }}</div>
+          <div><strong>Nome do Contato:</strong> {{ testResult.name || 'Padrão (Cliente)' }}</div>
+          <div><strong>Variáveis Resolvidas:</strong> {{ JSON.stringify(testResult.resolved_parameters) }}</div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-4">
+          <button
+            type="button"
+            @click="showTestModal = false"
+            class="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 text-xs"
+          >
+            Fechar
+          </button>
+          <button
+            type="button"
+            @click="runTestPayload()"
+            class="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs"
+          >
+            Executar Simulação
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          triggers: [],
+          loading: true,
+          showModal: false,
+          showTestModal: false,
+          editingId: null,
+          copiedToken: null,
+          tokenUser: 'eGa78xwJjPttSPXxoYrn7T6j',
+          testPayloadText: JSON.stringify({
+            customer: {
+              name: 'Mestre Samuel',
+              phone: '17991173157',
+              first_name: 'Samuel'
+            },
+            order: {
+              total: 'R$ 150,00'
+            }
+          }, null, 2),
+          testResult: null,
+          activeTestTrigger: null,
+          form: {
+            name: '',
+            template_name: '',
+            template_language: 'pt_BR',
+            inbox_id: 1,
+            active: true,
+            field_mapping: {
+              phone_path: 'customer.phone',
+              name_path: 'customer.name',
+              parameters: [],
+            },
+          },
+        };
+      },
+      mounted() {
+        this.fetchTriggers();
+      },
+      methods: {
+        async fetchTriggers() {
+          this.loading = true;
+          try {
+            const res = await axios.get('/api/v1/accounts/1/webhook_dispatch_triggers', {
+              headers: { 'api_access_token': this.tokenUser }
+            });
+            this.triggers = res.data;
+          } catch (err) {
+            console.error(err);
+          } finally {
+            this.loading = false;
+          }
+        },
+        getWebhookUrl(token) {
+          return `${window.location.origin}/webhooks/trigger/${token}`;
+        },
+        copyUrl(url) {
+          navigator.clipboard.writeText(url);
+          this.copiedToken = url.split('/').pop();
+          setTimeout(() => { this.copiedToken = null; }, 2000);
+        },
+        openModal(trigger = null) {
+          if (trigger) {
+            this.editingId = trigger.id;
+            this.form = {
+              name: trigger.name,
+              template_name: trigger.template_name,
+              template_language: trigger.template_language,
+              inbox_id: trigger.inbox_id,
+              active: trigger.active,
+              field_mapping: JSON.parse(JSON.stringify(trigger.field_mapping || { phone_path: '', name_path: '', parameters: [] })),
+            };
+          } else {
+            this.editingId = null;
+            this.form = {
+              name: '',
+              template_name: '',
+              template_language: 'pt_BR',
+              inbox_id: 1,
+              active: true,
+              field_mapping: {
+                phone_path: 'customer.phone',
+                name_path: 'customer.name',
+                parameters: [{ type: 'path', value: 'customer.first_name' }],
+              },
+            };
+          }
+          this.showModal = true;
+        },
+        addParameter() {
+          this.form.field_mapping.parameters.push({ type: 'path', value: '' });
+        },
+        removeParameter(idx) {
+          this.form.field_mapping.parameters.splice(idx, 1);
+        },
+        async saveTrigger() {
+          try {
+            if (this.editingId) {
+              await axios.put(`/api/v1/accounts/1/webhook_dispatch_triggers/${this.editingId}`, {
+                webhook_dispatch_trigger: this.form
+              }, { headers: { 'api_access_token': this.tokenUser } });
+            } else {
+              await axios.post('/api/v1/accounts/1/webhook_dispatch_triggers', {
+                webhook_dispatch_trigger: this.form
+              }, { headers: { 'api_access_token': this.tokenUser } });
+            }
+            this.showModal = false;
+            await this.fetchTriggers();
+          } catch (err) {
+            alert('Erro ao salvar: ' + (err.response?.data?.error || err.message));
+          }
+        },
+        async deleteTrigger(id) {
+          if (!confirm('Deseja excluir este gatilho?')) return;
+          try {
+            await axios.delete(`/api/v1/accounts/1/webhook_dispatch_triggers/${id}`, {
+              headers: { 'api_access_token': this.tokenUser }
+            });
+            await this.fetchTriggers();
+          } catch (err) {
+            alert('Erro ao excluir');
+          }
+        },
+        testTriggerModal(trigger) {
+          this.activeTestTrigger = trigger;
+          this.testResult = null;
+          this.showTestModal = true;
+        },
+        async runTestPayload() {
+          try {
+            const payload = JSON.parse(this.testPayloadText);
+            const res = await axios.post(`/api/v1/accounts/1/webhook_dispatch_triggers/${this.activeTestTrigger.id}/test_payload`, {
+              payload: payload
+            }, { headers: { 'api_access_token': this.tokenUser } });
+            this.testResult = res.data;
+          } catch (err) {
+            alert('JSON inválido ou erro: ' + err.message);
+          }
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
