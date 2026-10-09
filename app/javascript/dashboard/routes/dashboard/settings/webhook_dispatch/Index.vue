@@ -302,7 +302,7 @@
 </template>
 
 <script>
-import WebhookDispatchApi from '../../../api/webhookDispatchTriggers';
+import WebhookDispatchApi from 'dashboard/api/webhookDispatchTriggers';
 
 export default {
   name: 'WebhookDispatchTriggersIndex',
