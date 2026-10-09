@@ -894,6 +894,12 @@ const menuItems = computed(() => {
           to: accountScopedRoute('canned_list'),
         },
         {
+          name: 'Settings Webhook Dispatch',
+          label: 'Gatilhos de Disparo',
+          icon: 'i-lucide-zap',
+          to: accountScopedRoute('webhook_dispatch_index'),
+        },
+        {
           name: 'Settings Integrations',
           label: t('SIDEBAR.INTEGRATIONS'),
           icon: 'i-lucide-blocks',
