@@ -35,8 +35,6 @@ const emit = defineEmits([
 ]);
 
 const focused = ref('phone');
-const contactFocus = ref(-1);
-const conversationFocus = ref(-1);
 const pathSetter = ref(null);
 provide('registerWebhookPathTarget', setter => {
   pathSetter.value = setter;
@@ -53,14 +51,12 @@ const pickPath = path => {
   if (pathSetter.value) pathSetter.value(path);
 };
 
-const onContactFocus = index => {
+const onContactFocus = () => {
   focused.value = 'contact';
-  contactFocus.value = index;
 };
 
-const onConversationFocus = index => {
+const onConversationFocus = () => {
   focused.value = 'conversation';
-  conversationFocus.value = index;
 };
 
 const sample = path => sampleFor(props.fields, path);
@@ -88,12 +84,7 @@ const sample = path => sampleFor(props.fields, path);
       use uma requisição recente.
     </p>
 
-    <div
-      v-for="field in IDENTITY_FIELDS"
-      :key="field.key"
-      class="rounded-lg"
-      :class="focused === field.focus ? 'ring-2 ring-n-brand' : ''"
-    >
+    <div v-for="field in IDENTITY_FIELDS" :key="field.key">
       <label class="mb-1 block text-xs font-medium text-n-slate-12">
         {{ field.label }}
       </label>
@@ -122,7 +113,6 @@ const sample = path => sampleFor(props.fields, path);
       :rows="mapping.custom_attributes || []"
       :attributes="contactAttributes"
       :fields="fields"
-      :focused-index="focused === 'contact' ? contactFocus : -1"
       @focus="onContactFocus"
       @change="emit('updateContactRows', $event)"
     />
@@ -133,7 +123,6 @@ const sample = path => sampleFor(props.fields, path);
       :rows="mapping.conversation_attributes || []"
       :attributes="conversationAttributes"
       :fields="fields"
-      :focused-index="focused === 'conversation' ? conversationFocus : -1"
       @focus="onConversationFocus"
       @change="emit('updateConversationRows', $event)"
     />

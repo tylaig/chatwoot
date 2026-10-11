@@ -1,9 +1,10 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { OnClickOutside } from '@vueuse/components';
 import { useMapGetter } from 'dashboard/composables/store';
 import WorkflowsAPI from 'dashboard/api/workflows';
 import { getNodeDefinition, getCategoryStyle } from '../nodeRegistry';
-import { formatVariable } from '../variables';
+import { flattenPayload, formatVariable } from '../variables';
 import WorkflowVariableInput from './WorkflowVariableInput.vue';
 import WorkflowWebhookTriggerPanel from './WorkflowWebhookTriggerPanel.vue';
 import WorkflowNativeTriggerPanel from './WorkflowNativeTriggerPanel.vue';
@@ -104,6 +105,7 @@ const getAttributesByModel = useMapGetter('attributes/getAttributesByModel');
 
 const isTestingHttp = ref(false);
 const httpTestResult = ref(null);
+const mappingMenu = ref(-1);
 
 watch(
   () => props.node?.id,
@@ -209,14 +211,7 @@ const selectTeam = id => {
 const runHttpTest = async () => {
   isTestingHttp.value = true;
   httpTestResult.value = null;
-  const payload =
-    props.node.type === 'send_webhook'
-      ? {
-          method: config.value.method || 'POST',
-          url: config.value.url,
-          body: config.value.payload,
-        }
-      : config.value;
+  const payload = config.value;
   try {
     const res = await WorkflowsAPI.testHttpRequest(payload);
     httpTestResult.value = res.data;
@@ -233,6 +228,51 @@ const runHttpTest = async () => {
   } finally {
     isTestingHttp.value = false;
   }
+};
+
+const responsePaths = computed(() => {
+  const data = httpTestResult.value?.data;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return [];
+  return flattenPayload(data, 'body')
+    .filter(item => item.sample && !['{…}', '[…]'].includes(item.sample))
+    .map(item => ({
+      path: item.path.replace(/^body\./, ''),
+      sample: item.sample,
+    }));
+});
+
+const valueAtPath = (data, path) =>
+  String(path || '')
+    .split('.')
+    .filter(Boolean)
+    .reduce((current, key) => {
+      if (Array.isArray(current)) return current[Number(key)];
+      if (current && typeof current === 'object') return current[key];
+      return undefined;
+    }, data);
+
+const mappingSample = path => {
+  const value = valueAtPath(httpTestResult.value?.data, path);
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+};
+
+const mappingAttributes = destination =>
+  getAttributesByModel.value(
+    destination === 'conversation'
+      ? 'conversation_attribute'
+      : 'contact_attribute'
+  );
+
+const mappingAttributeName = row =>
+  mappingAttributes(row.destination).find(
+    item => item.attribute_key === row.attribute_key
+  )?.attribute_display_name || '';
+
+const chooseMappingAttribute = (index, key) => {
+  updateListItem('response_mappings', index, 'attribute_key', key);
+  mappingMenu.value = -1;
 };
 
 const responseVariable = computed(
@@ -1056,9 +1096,7 @@ const responseVariable = computed(
         </p>
       </div>
 
-      <template
-        v-else-if="['http_request', 'send_webhook'].includes(node.type)"
-      >
+      <template v-else-if="node.type === 'http_request'">
         <div class="grid grid-cols-[6rem_1fr] gap-2">
           <div>
             <label :class="LABEL_CLASS">Método</label>
@@ -1068,9 +1106,7 @@ const responseVariable = computed(
               @change="updateField('method', $event.target.value)"
             >
               <option
-                v-for="method in node.type === 'send_webhook'
-                  ? ['POST', 'PUT']
-                  : ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']"
+                v-for="method in ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']"
                 :key="method"
                 :value="method"
               >
@@ -1169,26 +1205,15 @@ const responseVariable = computed(
           </div>
         </template>
 
-        <div
-          v-if="
-            node.type === 'send_webhook' || (config.method || 'POST') !== 'GET'
-          "
-        >
+        <div v-if="(config.method || 'POST') !== 'GET'">
           <label :class="LABEL_CLASS">Corpo (JSON)</label>
           <WorkflowVariableInput
-            :model-value="
-              node.type === 'send_webhook' ? config.payload : config.body
-            "
+            :model-value="config.body"
             multiline
             mono
             :rows="5"
             placeholder='{ "nome": "{{ $contact.name }}" }'
-            @update:model-value="
-              updateField(
-                node.type === 'send_webhook' ? 'payload' : 'body',
-                $event
-              )
-            "
+            @update:model-value="updateField('body', $event)"
           />
         </div>
 
@@ -1258,6 +1283,167 @@ const responseVariable = computed(
               }}</span>
             </p>
           </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-medium text-n-slate-12">
+                Mapear campos da resposta
+              </label>
+              <button
+                type="button"
+                :class="LINK_BUTTON_CLASS"
+                @click="
+                  addListItem('response_mappings', {
+                    path: '',
+                    destination: 'variable',
+                    variable_name: '',
+                    attribute_key: '',
+                  })
+                "
+              >
+                <span class="i-lucide-plus size-3.5" />
+                Adicionar
+              </button>
+            </div>
+            <p :class="HINT_CLASS">
+              Cada campo do JSON pode ir para uma variável do fluxo ou para um
+              atributo do contato ou da conversa.
+            </p>
+            <div class="mt-2 space-y-2">
+              <div
+                v-for="(row, index) in config.response_mappings || []"
+                :key="index"
+                class="rounded-xl border border-n-weak p-2 space-y-2"
+              >
+                <div class="flex items-center gap-1.5">
+                  <input
+                    :value="row.path"
+                    placeholder="data.id"
+                    class="font-mono"
+                    :class="[INPUT_CLASS]"
+                    @input="
+                      updateListItem(
+                        'response_mappings',
+                        index,
+                        'path',
+                        $event.target.value
+                      )
+                    "
+                  />
+                  <button
+                    type="button"
+                    class="flex items-center justify-center size-9 shrink-0 rounded-lg text-n-slate-10 hover:text-n-ruby-11 hover:bg-n-ruby-9/10"
+                    title="Remover"
+                    @click="removeListItem('response_mappings', index)"
+                  >
+                    <span class="i-lucide-x size-3.5" />
+                  </button>
+                </div>
+                <div v-if="responsePaths.length" class="flex flex-wrap gap-1">
+                  <button
+                    v-for="field in responsePaths.slice(0, 8)"
+                    :key="field.path"
+                    type="button"
+                    class="max-w-full truncate rounded-md bg-n-alpha-2 px-1.5 py-0.5 font-mono text-[0.625rem] text-n-slate-11 hover:text-n-slate-12"
+                    @click="
+                      updateListItem(
+                        'response_mappings',
+                        index,
+                        'path',
+                        field.path
+                      )
+                    "
+                  >
+                    {{ field.path }}
+                  </button>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <select
+                    :value="row.destination || 'variable'"
+                    :class="SELECT_CLASS"
+                    @change="
+                      updateListItem(
+                        'response_mappings',
+                        index,
+                        'destination',
+                        $event.target.value
+                      )
+                    "
+                  >
+                    <option value="variable">Variável</option>
+                    <option value="contact">Atributo do contato</option>
+                    <option value="conversation">Atributo da conversa</option>
+                  </select>
+                  <input
+                    v-if="(row.destination || 'variable') === 'variable'"
+                    :value="row.variable_name"
+                    placeholder="pedido_id"
+                    class="font-mono"
+                    :class="[INPUT_CLASS]"
+                    @input="
+                      updateListItem(
+                        'response_mappings',
+                        index,
+                        'variable_name',
+                        $event.target.value.replace(/[^a-zA-Z0-9_]/g, '')
+                      )
+                    "
+                  />
+                  <OnClickOutside
+                    v-else
+                    class="relative min-w-0"
+                    @trigger="mappingMenu = -1"
+                  >
+                    <button
+                      type="button"
+                      class="reset-base relative flex h-9 m-0 w-full items-center rounded-lg bg-n-alpha-black2 px-3 pe-7 text-xs text-start outline outline-1 outline-n-weak"
+                      @click="mappingMenu = mappingMenu === index ? -1 : index"
+                    >
+                      <span
+                        class="truncate"
+                        :class="
+                          mappingAttributeName(row) ? '' : 'text-n-slate-10'
+                        "
+                      >
+                        {{ mappingAttributeName(row) || 'Atributo' }}
+                      </span>
+                      <span
+                        class="i-lucide-chevron-down pointer-events-none absolute end-2 top-1/2 size-3.5 -translate-y-1/2 text-n-slate-10"
+                      />
+                    </button>
+                    <div
+                      v-if="mappingMenu === index"
+                      class="absolute z-40 top-10 start-0 w-full max-h-40 overflow-auto rounded-lg border border-n-weak bg-n-solid-2 p-1 shadow-xl"
+                    >
+                      <p
+                        v-if="!mappingAttributes(row.destination).length"
+                        class="px-2 py-1.5 text-[0.6875rem] text-n-slate-10"
+                      >
+                        Nenhum atributo cadastrado.
+                      </p>
+                      <button
+                        v-for="attr in mappingAttributes(row.destination)"
+                        :key="attr.id"
+                        type="button"
+                        class="w-full rounded-md px-2 py-1.5 text-start text-xs text-n-slate-12 hover:bg-n-alpha-2"
+                        @mousedown.prevent="
+                          chooseMappingAttribute(index, attr.attribute_key)
+                        "
+                      >
+                        {{ attr.attribute_display_name }}
+                      </button>
+                    </div>
+                  </OnClickOutside>
+                </div>
+                <p
+                  v-if="mappingSample(row.path)"
+                  class="truncate font-mono text-[0.625rem] text-n-slate-10"
+                >
+                  exemplo: {{ mappingSample(row.path) }}
+                </p>
+              </div>
+            </div>
+          </div>
         </template>
 
         <div class="pt-1">
@@ -1307,7 +1493,10 @@ const responseVariable = computed(
               >{{ JSON.stringify(httpTestResult.data, null, 2) }}</pre
             >
           </div>
-          <p :class="HINT_CLASS">No teste, variáveis são enviadas vazias.</p>
+          <p :class="HINT_CLASS">
+            No teste, variáveis do fluxo vão vazias. O mapeamento grava quando o
+            fluxo roda.
+          </p>
         </div>
       </template>
 

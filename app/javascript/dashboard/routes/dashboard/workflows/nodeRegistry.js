@@ -18,6 +18,7 @@ export const CATEGORY_STYLES = {
     soft: 'bg-n-amber-3',
     text: 'text-n-amber-11',
     border: 'border-n-amber-8',
+    hoverBorder: 'hover:border-n-amber-9',
     badge: 'bg-n-amber-3 text-n-amber-11',
   },
   whatsapp: {
@@ -26,6 +27,7 @@ export const CATEGORY_STYLES = {
     soft: 'bg-green-500/15',
     text: 'text-green-500',
     border: 'border-green-500/60',
+    hoverBorder: 'hover:border-green-500',
     badge: 'bg-green-500/15 text-green-500',
   },
   messaging: {
@@ -34,6 +36,7 @@ export const CATEGORY_STYLES = {
     soft: 'bg-n-iris-3',
     text: 'text-n-iris-11',
     border: 'border-n-iris-8',
+    hoverBorder: 'hover:border-n-iris-9',
     badge: 'bg-n-iris-3 text-n-iris-11',
   },
   logic: {
@@ -42,6 +45,7 @@ export const CATEGORY_STYLES = {
     soft: 'bg-n-ruby-3',
     text: 'text-n-ruby-11',
     border: 'border-n-ruby-8',
+    hoverBorder: 'hover:border-n-ruby-9',
     badge: 'bg-n-ruby-3 text-n-ruby-11',
   },
   time: {
@@ -50,6 +54,7 @@ export const CATEGORY_STYLES = {
     soft: 'bg-n-teal-3',
     text: 'text-n-teal-11',
     border: 'border-n-teal-8',
+    hoverBorder: 'hover:border-n-teal-9',
     badge: 'bg-n-teal-3 text-n-teal-11',
   },
   data: {
@@ -58,6 +63,7 @@ export const CATEGORY_STYLES = {
     soft: 'bg-n-violet-3',
     text: 'text-n-violet-11',
     border: 'border-n-violet-8',
+    hoverBorder: 'hover:border-n-violet-9',
     badge: 'bg-n-violet-3 text-n-violet-11',
   },
   chatwoot: {
@@ -66,6 +72,7 @@ export const CATEGORY_STYLES = {
     soft: 'bg-n-blue-3',
     text: 'text-n-blue-11',
     border: 'border-n-blue-8',
+    hoverBorder: 'hover:border-n-blue-9',
     badge: 'bg-n-blue-3 text-n-blue-11',
   },
   integrations: {
@@ -74,6 +81,7 @@ export const CATEGORY_STYLES = {
     soft: 'bg-yellow-500/15',
     text: 'text-yellow-500',
     border: 'border-yellow-500/60',
+    hoverBorder: 'hover:border-yellow-500',
     badge: 'bg-yellow-500/15 text-yellow-500',
   },
   flow_control: {
@@ -82,6 +90,7 @@ export const CATEGORY_STYLES = {
     soft: 'bg-n-slate-3',
     text: 'text-n-slate-11',
     border: 'border-n-slate-8',
+    hoverBorder: 'hover:border-n-slate-9',
     badge: 'bg-n-slate-3 text-n-slate-11',
   },
 };
@@ -696,28 +705,7 @@ export const WORKFLOW_NODES_REGISTRY = {
       retry_count: 1,
       retry_interval: 2,
       save_response_as: 'http_response',
-    },
-    summarize: () => '',
-  },
-
-  send_webhook: {
-    type: 'send_webhook',
-    title: 'Enviar Webhook',
-    subtitle: 'Dispara um payload para uma URL externa',
-    category: 'integrations',
-    icon: 'i-lucide-send',
-    badge: 'Integração',
-    hasInput: true,
-    outputs: [
-      { id: 'SUCCESS', label: 'Sucesso', type: 'success' },
-      { id: 'ERROR', label: 'Erro', type: 'danger' },
-    ],
-    defaultConfig: {
-      custom_title: 'Enviar Webhook',
-      url: '',
-      method: 'POST',
-      payload:
-        '{\n  "event": "lead_converted",\n  "phone": "{{ $contact.phone_number }}"\n}',
+      response_mappings: [],
     },
     summarize: cfg => `${cfg.method || 'POST'} ${cfg.url || 'https://…'}`,
   },

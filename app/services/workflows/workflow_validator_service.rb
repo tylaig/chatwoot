@@ -114,6 +114,7 @@ module Workflows
         validate_router(node, cfg)
       when 'http_request', 'send_webhook'
         validate_url(node, cfg[:url].to_s)
+        validate_response_mappings(node, cfg)
       when 'delay'
         add_issue('A duração da espera deve ser um número positivo.', node) unless cfg[:duration].to_i.positive?
       when 'wait_for_reply'
@@ -271,13 +272,42 @@ module Workflows
     end
 
     def declared_variables
-      @declared_variables ||= nodes.filter_map do |node|
-        cfg = NodeExecutors::BaseExecutor.config_for(node)
-        case node_type(node)
-        when 'set_variable' then cfg[:variable_name].to_s.delete_prefix('vars.')
-        when 'http_request' then (cfg[:save_response_as].presence || 'http_response').to_s.sub(DECLARED_VAR_PREFIX, '')
+      @declared_variables ||= nodes.flat_map { |node| declared_names_for(node) }.to_set
+    end
+
+    def declared_names_for(node)
+      cfg = NodeExecutors::BaseExecutor.config_for(node)
+      case node_type(node)
+      when 'set_variable'
+        name = cfg[:variable_name].to_s.delete_prefix('vars.')
+        name.present? ? [name] : []
+      when 'http_request', 'send_webhook'
+        names = [(cfg[:save_response_as].presence || 'http_response').to_s.sub(DECLARED_VAR_PREFIX, '')]
+        Array(cfg[:response_mappings]).each do |raw|
+          row = raw.is_a?(Hash) ? raw.with_indifferent_access : {}
+          next if %w[contact conversation].include?(row[:destination].to_s)
+
+          mapped = row[:variable_name].to_s.delete_prefix('vars.')
+          names << mapped if mapped.match?(/\A[a-zA-Z_][a-zA-Z0-9_]*\z/)
         end
-      end.to_set
+        names
+      else
+        []
+      end
+    end
+
+    def validate_response_mappings(node, cfg)
+      Array(cfg[:response_mappings]).each do |raw|
+        row = raw.is_a?(Hash) ? raw.with_indifferent_access : {}
+        next if row[:path].blank? && row[:variable_name].blank? && row[:attribute_key].blank?
+
+        add_issue('Informe o caminho do campo na resposta.', node) if row[:path].blank?
+        if %w[contact conversation].include?(row[:destination].to_s)
+          add_issue('Selecione o atributo que recebe o campo da resposta.', node) if row[:attribute_key].blank?
+        elsif !row[:variable_name].to_s.match?(/\A[a-zA-Z_][a-zA-Z0-9_]*\z/)
+          add_issue('Informe um nome de variável válido para o campo da resposta.', node)
+        end
+      end
     end
 
     def collect_strings(value)

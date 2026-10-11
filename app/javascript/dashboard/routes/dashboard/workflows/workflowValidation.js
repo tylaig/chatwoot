@@ -149,11 +149,28 @@ const configIssues = (type, config) => {
     }
     case 'http_request':
     case 'send_webhook': {
+      const issues = [];
       const url = config.url || '';
-      if (!url) return ['A URL é obrigatória.'];
-      if (!/^(https?:\/\/|\{\{)/.test(url))
-        return ['A URL deve iniciar com http:// ou https://.'];
-      return [];
+      if (!url) issues.push('A URL é obrigatória.');
+      else if (!/^(https?:\/\/|\{\{)/.test(url))
+        issues.push('A URL deve iniciar com http:// ou https://.');
+      (config.response_mappings || []).forEach(row => {
+        const destination = row.destination || 'variable';
+        if (!row.path && !row.variable_name && !row.attribute_key) return;
+        if (!row.path) issues.push('Informe o caminho do campo na resposta.');
+        if (
+          destination === 'variable' &&
+          !VARIABLE_NAME_REGEX.test(row.variable_name || '')
+        ) {
+          issues.push(
+            'Informe um nome de variável válido para o campo da resposta.'
+          );
+        }
+        if (destination !== 'variable' && !row.attribute_key) {
+          issues.push('Selecione o atributo que recebe o campo da resposta.');
+        }
+      });
+      return [...new Set(issues)];
     }
     case 'delay':
       return Number(config.duration) > 0

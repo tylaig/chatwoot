@@ -78,12 +78,16 @@ export const declaredFlowVariables = nodes =>
     if (type === 'wait_for_reply' && config.save_reply_as) {
       return [String(config.save_reply_as).replace(/^vars\./, '')];
     }
-    if (type === 'http_request') {
+    if (type === 'http_request' || type === 'send_webhook') {
       const name = (config.save_response_as || 'http_response').replace(
         DECLARED_VAR_PREFIX,
         ''
       );
-      return [name];
+      const mapped = (config.response_mappings || [])
+        .filter(row => (row.destination || 'variable') === 'variable')
+        .map(row => String(row.variable_name || '').replace(/^vars\./, ''))
+        .filter(rowName => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(rowName));
+      return [name, ...mapped];
     }
     return [];
   });

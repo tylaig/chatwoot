@@ -187,15 +187,33 @@ const edgeColor = (sourceId, handleId) => {
   return output ? getOutputColor(output) : OUTPUT_COLORS.default;
 };
 
-const toFlowNode = raw => ({
-  id: raw.id,
-  type: 'custom',
-  position: { x: raw.position?.x || 0, y: raw.position?.y || 0 },
-  data: {
-    type: raw.data?.type || raw.type,
-    config: raw.data?.config || raw.config || {},
-  },
-});
+const toFlowNode = raw => {
+  const type = raw.data?.type || raw.type;
+  const config = { ...(raw.data?.config || raw.config || {}) };
+  const migrated = type === 'send_webhook';
+  if (migrated) {
+    config.body = config.body || config.payload || '';
+    config.method = config.method || 'POST';
+    config.headers = config.headers || [
+      { key: 'Content-Type', value: 'application/json' },
+    ];
+    config.save_response_as = config.save_response_as || 'http_response';
+    config.response_mappings = config.response_mappings || [];
+    if (!config.custom_title || config.custom_title === 'Enviar Webhook') {
+      config.custom_title = 'Requisição HTTP';
+    }
+  }
+
+  return {
+    id: raw.id,
+    type: 'custom',
+    position: { x: raw.position?.x || 0, y: raw.position?.y || 0 },
+    data: {
+      type: migrated ? 'http_request' : type,
+      config,
+    },
+  };
+};
 
 const toFlowEdge = raw => ({
   id: raw.id,
@@ -322,10 +340,16 @@ const fetchWorkflow = async () => {
     workflow.value = data;
     webhookTrigger.value = data.webhook_trigger;
     hasUnpublishedChanges.value = data.has_unpublished_changes;
+    const draftNodes = data.draft_version?.nodes || [];
     applyGraph({
-      nodes: data.draft_version?.nodes || [],
+      nodes: draftNodes,
       edges: data.draft_version?.edges || [],
     });
+    if (
+      draftNodes.some(node => (node.data?.type || node.type) === 'send_webhook')
+    ) {
+      scheduleSave();
+    }
     undoStack.value = [];
     redoStack.value = [];
     if (route.query.select === 'trigger') {

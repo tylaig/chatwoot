@@ -175,6 +175,70 @@ module Workflows
         ctx['http_response'] = payload
         variables = (execution.variables || {}).merge(key.sub(/\A(workflow|vars?)\./, '') => payload)
         execution.update!(context: ctx, variables: variables)
+        apply_response_mappings!(result[:body])
+      end
+
+      def apply_response_mappings!(body)
+        variables = (execution.variables || {}).dup
+        Array(config[:response_mappings]).each do |raw|
+          row = raw.is_a?(Hash) ? raw.with_indifferent_access : {}
+          next if row[:path].blank?
+
+          value = dig_path(body, row[:path])
+          case row[:destination].to_s
+          when 'contact'
+            write_mapped_attribute(execution.contact, 'contact_attribute', row[:attribute_key], value)
+          when 'conversation'
+            write_mapped_attribute(execution.conversation, 'conversation_attribute', row[:attribute_key], value)
+          else
+            name = row[:variable_name].to_s.strip.delete_prefix('vars.')
+            variables[name] = mapped_variable_value(value) if name.match?(/\A[a-zA-Z_][a-zA-Z0-9_]*\z/)
+          end
+        end
+        execution.update!(variables: variables)
+      end
+
+      def write_mapped_attribute(record, model, key, value)
+        return if record.blank? || key.blank?
+
+        definition = execution.account.custom_attribute_definitions.find_by(attribute_model: model, attribute_key: key)
+        return if definition.blank?
+
+        coerced = coerce_mapped_value(definition.attribute_display_type, value)
+        record.update!(custom_attributes: (record.custom_attributes || {}).merge(key => coerced))
+      end
+
+      def coerce_mapped_value(display_type, value)
+        case display_type
+        when 'number', 'currency', 'percent'
+          value.to_s.tr(',', '.').to_f
+        when 'checkbox'
+          ActiveModel::Type::Boolean.new.cast(value)
+        else
+          value.is_a?(Hash) || value.is_a?(Array) ? value.to_json : value.to_s
+        end
+      end
+
+      def mapped_variable_value(value)
+        return '' if value.nil?
+        return value if value.is_a?(Numeric) || value.in?([true, false]) || value.is_a?(String)
+
+        value.to_json
+      end
+
+      def dig_path(data, path)
+        path.to_s.split('.').reduce(data) do |current, key|
+          case current
+          when Hash
+            if current.key?(key)
+              current[key]
+            elsif current.key?(key.to_sym)
+              current[key.to_sym]
+            end
+          when Array
+            key.match?(/\A\d+\z/) ? current[key.to_i] : nil
+          end
+        end
       end
 
       def result_output(result, handle)

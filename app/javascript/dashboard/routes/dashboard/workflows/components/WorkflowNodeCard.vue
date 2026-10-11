@@ -109,7 +109,7 @@ const deleteNode = () => {
             ? 'border-green-500 ring-4 ring-green-500/20 shadow-xl'
             : issues.length
               ? 'border-n-ruby-8'
-              : 'border-n-weak',
+              : ['border-n-weak', style.hoverBorder],
     ]"
   >
     <div class="h-1.5 rounded-t-2xl" :class="style.accent" />
