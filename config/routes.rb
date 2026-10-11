@@ -465,6 +465,9 @@ Rails.application.routes.draw do
             end
           end
           resources :whatsapp_templates do
+            collection do
+              post :sync
+            end
             member do
               post :approve
               post :submit_review

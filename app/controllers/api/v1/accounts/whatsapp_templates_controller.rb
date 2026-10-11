@@ -4,6 +4,15 @@ class Api::V1::Accounts::WhatsappTemplatesController < Api::V1::Accounts::BaseCo
   before_action :fetch_template, only: [:show, :update, :destroy, :approve, :submit_review, :reject]
   before_action :check_authorization
 
+  def sync
+    result = Whatsapp::ImportTemplatesService.new(Current.account).perform
+    if result[:success]
+      render json: result.except(:success)
+    else
+      render json: { error: result[:error] }, status: :unprocessable_entity
+    end
+  end
+
   def index
     @templates = Current.account.whatsapp_templates.with_attached_header_media.order(created_at: :desc)
     

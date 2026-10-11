@@ -16,6 +16,7 @@ const templates = ref([]);
 const contentTab = ref('visual');
 const stats = ref({ total: 0, approved: 0, pending: 0, rejected: 0 });
 const isLoading = ref(true);
+const isSyncing = ref(false);
 const searchQuery = ref('');
 const selectedInbox = ref('ALL');
 const selectedLanguage = ref('ALL');
@@ -52,6 +53,26 @@ const fetchTemplates = async () => {
     useAlert('Erro ao carregar templates.');
   } finally {
     isLoading.value = false;
+  }
+};
+
+const syncTemplates = async () => {
+  if (isSyncing.value) return;
+
+  isSyncing.value = true;
+  try {
+    const res = await whatsappTemplatesApi.syncTemplates();
+    await fetchTemplates();
+    useAlert(res.data.message || 'Templates sincronizados.');
+  } catch (err) {
+    const error = err.response?.data?.error;
+    useAlert(
+      Array.isArray(error)
+        ? error.join(' ')
+        : error || 'Não foi possível sincronizar os templates.'
+    );
+  } finally {
+    isSyncing.value = false;
   }
 };
 
@@ -262,11 +283,15 @@ const removeTemplate = async tpl => {
         <div class="flex items-center gap-3">
           <button
             type="button"
-            class="h-10 px-3.5 rounded-xl border border-n-weak bg-n-solid-1 hover:bg-n-alpha-2 text-sm font-medium text-n-slate-12 transition-colors flex items-center gap-1.5"
-            @click="fetchTemplates"
+            class="h-10 px-3.5 rounded-xl border border-n-weak bg-n-solid-1 hover:bg-n-alpha-2 text-sm font-medium text-n-slate-12 transition-colors flex items-center gap-1.5 disabled:opacity-60"
+            :disabled="isSyncing"
+            @click="syncTemplates"
           >
-            <span class="i-lucide-refresh-cw size-4" />
-            <span>Sincronizar</span>
+            <span
+              class="i-lucide-refresh-cw size-4"
+              :class="{ 'animate-spin': isSyncing }"
+            />
+            <span>{{ isSyncing ? 'Sincronizando' : 'Sincronizar' }}</span>
           </button>
 
           <button
@@ -281,18 +306,16 @@ const removeTemplate = async tpl => {
       </header>
 
       <!-- BARRA DE PESQUISA E FILTROS HORIZONTAIS (ESTILO REFERENCE PACK) -->
-      <div
-        class="p-6 pb-4 flex flex-col md:flex-row gap-3 items-center justify-between"
-      >
+      <div class="px-6 py-4 flex flex-col gap-3 lg:flex-row lg:items-center">
         <div class="relative flex-1 w-full">
           <span
-            class="i-lucide-search size-3.5 absolute start-3.5 top-1/2 -translate-y-1/2 text-n-slate-10"
+            class="i-lucide-search size-4 absolute start-3 top-1/2 -translate-y-1/2 text-n-slate-10"
           />
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Buscar templates..."
-            class="reset-base w-full h-9 m-0 ps-9 pe-4 text-sm rounded-lg bg-n-alpha-black2 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12 placeholder:text-n-slate-10"
+            class="reset-base w-full h-9 m-0 ps-9 pe-3 text-sm rounded-lg bg-n-solid-1 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12 placeholder:text-n-slate-10"
           />
         </div>
 
@@ -351,13 +374,11 @@ const removeTemplate = async tpl => {
 
       <!-- TABELA DE TEMPLATES -->
       <div class="flex flex-1 flex-col min-h-0 overflow-auto px-6 pb-4">
-        <div
-          class="flex flex-col flex-1 min-h-0 border border-n-weak rounded-xl bg-n-solid-1"
-        >
+        <div class="rounded-2xl border border-n-weak bg-n-solid-1">
           <table class="w-full text-left border-collapse text-sm">
             <thead>
               <tr
-                class="border-b border-n-weak text-xs font-medium text-n-slate-11"
+                class="border-b border-n-weak text-[0.6875rem] font-semibold text-n-slate-11 uppercase tracking-wide"
               >
                 <th class="py-3 px-4">Nome do Template</th>
                 <th class="py-3 px-4">Categoria</th>
@@ -520,9 +541,9 @@ const removeTemplate = async tpl => {
 
     <div
       v-if="previewTemplate"
-      class="w-96 bg-n-solid-1 border-s border-n-weak flex flex-col justify-between overflow-y-auto p-6 space-y-6 shrink-0"
+      class="w-[24rem] shrink-0 bg-n-solid-1 border-s border-n-weak flex flex-col min-h-0 overflow-y-auto"
     >
-      <div class="space-y-6">
+      <div class="px-5 py-5 space-y-5">
         <div
           class="flex items-center justify-between pb-4 border-b border-n-weak"
         >
@@ -544,9 +565,25 @@ const removeTemplate = async tpl => {
                   {{ categoryLabel(previewTemplate.category) }}
                 </span>
                 <span
-                  class="text-[10px] text-green-600 dark:text-green-400 font-medium flex items-center gap-1"
+                  class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium"
+                  :class="
+                    previewTemplate.status === 'APPROVED'
+                      ? 'bg-green-500/15 text-green-700 dark:text-green-300'
+                      : previewTemplate.status === 'PENDING'
+                        ? 'bg-n-amber-9/15 text-n-amber-11'
+                        : 'bg-n-ruby-9/15 text-n-ruby-11'
+                  "
                 >
-                  <span class="size-1.5 rounded-full bg-green-500" />
+                  <span
+                    class="size-1.5 rounded-full"
+                    :class="
+                      previewTemplate.status === 'APPROVED'
+                        ? 'bg-green-500'
+                        : previewTemplate.status === 'PENDING'
+                          ? 'bg-n-amber-9'
+                          : 'bg-n-ruby-9'
+                    "
+                  />
                   {{ statusLabel(previewTemplate.status) }}
                 </span>
               </div>
@@ -607,7 +644,7 @@ const removeTemplate = async tpl => {
             </div>
             <div>
               <span class="text-n-slate-10 block">Status</span>
-              <span class="text-green-600 dark:text-green-400 font-medium">{{
+              <span class="font-medium text-n-slate-12">{{
                 statusLabel(previewTemplate.status)
               }}</span>
               <span class="block text-n-slate-10">{{
@@ -740,10 +777,10 @@ const removeTemplate = async tpl => {
         </div>
       </div>
 
-      <div class="pt-4 border-t border-n-weak space-y-2">
+      <div class="px-5 py-4 mt-auto border-t border-n-weak space-y-2">
         <button
           type="button"
-          class="w-full py-2 px-3 rounded-xl bg-n-brand hover:opacity-90 text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5"
+          class="w-full h-9 px-3 rounded-xl bg-n-brand hover:opacity-90 text-white text-sm font-semibold inline-flex items-center justify-center gap-1.5"
           @click="openEditor(previewTemplate)"
         >
           <span class="i-lucide-pencil size-3.5" />

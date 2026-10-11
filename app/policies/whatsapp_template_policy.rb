@@ -3,6 +3,10 @@ class WhatsappTemplatePolicy < ApplicationPolicy
     @account_user.administrator?
   end
 
+  def sync?
+    @account_user.administrator?
+  end
+
   def show?
     @account_user.administrator?
   end

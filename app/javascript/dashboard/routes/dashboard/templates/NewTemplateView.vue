@@ -46,6 +46,9 @@ const MEDIA_ACCEPT = {
   DOCUMENT: 'application/pdf',
 };
 const MEDIA_LIMIT_MB = { IMAGE: 5, VIDEO: 16, DOCUMENT: 100 };
+const FIELD_CLASS =
+  'reset-base w-full h-10 m-0 px-3 text-sm rounded-lg bg-n-solid-1 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12 placeholder:text-n-slate-10';
+const LABEL_CLASS = 'block text-xs font-medium text-n-slate-11 mb-1.5';
 
 const systemVariables = [
   {
@@ -404,62 +407,61 @@ onMounted(() => {
   >
     <!-- Top Step Bar Header -->
     <div class="shrink-0 border-b border-n-weak bg-n-solid-1 px-4 py-3 sm:px-8">
-      <div class="max-w-6xl mx-auto flex items-center justify-between">
-        <div class="flex items-center gap-6">
-          <!-- Step 1 Indicator -->
-          <div
-            class="flex items-center gap-2 cursor-pointer select-none"
+      <div class="mx-auto flex max-w-6xl items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <button
+            type="button"
+            class="flex items-center gap-2 select-none"
             :class="
-              currentStep === 1 ? 'text-n-brand font-bold' : 'text-slate-500'
+              currentStep === 1
+                ? 'text-n-slate-12'
+                : 'text-n-slate-11 hover:text-n-slate-12'
             "
             @click="currentStep = 1"
           >
-            <div
-              class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+            <span
+              class="flex size-6 items-center justify-center rounded-full text-xs font-semibold"
               :class="
                 currentStep > 1
-                  ? 'bg-green-500 text-white'
+                  ? 'bg-green-500/15 text-green-700 dark:text-green-300'
                   : currentStep === 1
                     ? 'bg-n-brand text-white'
-                    : 'bg-slate-200 text-slate-700'
+                    : 'bg-n-alpha-2 text-n-slate-11'
               "
             >
-              <span v-if="currentStep > 1" class="i-lucide-check size-4" />
+              <span v-if="currentStep > 1" class="i-lucide-check size-3.5" />
               <span v-else>1</span>
-            </div>
-            <span class="hidden text-sm sm:inline">Selecionar categoria</span>
-          </div>
+            </span>
+            <span class="hidden text-sm font-medium sm:inline">Categoria</span>
+          </button>
 
-          <div class="w-8 h-[2px] bg-slate-200 dark:bg-slate-700" />
+          <span class="h-px w-8 bg-n-weak" />
 
-          <!-- Step 2 Indicator -->
           <div
             class="flex items-center gap-2 select-none"
-            :class="
-              currentStep === 2 ? 'text-n-brand font-bold' : 'text-slate-400'
-            "
+            :class="currentStep === 2 ? 'text-n-slate-12' : 'text-n-slate-11'"
           >
-            <div
-              class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+            <span
+              class="flex size-6 items-center justify-center rounded-full text-xs font-semibold"
               :class="
                 currentStep === 2
                   ? 'bg-n-brand text-white'
-                  : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
+                  : 'bg-n-alpha-2 text-n-slate-11'
               "
             >
               2
-            </div>
-            <span class="hidden text-sm sm:inline">Configurar modelo</span>
+            </span>
+            <span class="hidden text-sm font-medium sm:inline">Conteúdo</span>
           </div>
         </div>
 
         <button
           type="button"
-          class="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          class="h-9 px-3 rounded-lg text-sm font-medium text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
           @click="$router.push({ name: 'whatsapp_templates_index' })"
         >
           <span class="sm:hidden">Voltar</span>
-          <span class="hidden sm:inline">Cancelar e Voltar</span>
+          <span class="hidden sm:inline">Cancelar</span>
         </button>
       </div>
     </div>
@@ -467,7 +469,7 @@ onMounted(() => {
     <div class="flex-1 min-h-0 overflow-y-auto">
       <div
         v-if="isLoadingTemplate"
-        class="flex-1 flex items-center justify-center text-sm text-slate-500"
+        class="flex h-full items-center justify-center text-sm text-n-slate-11"
       >
         Carregando template...
       </div>
@@ -477,10 +479,8 @@ onMounted(() => {
         <!-- ETAPA 1: SELECIONAR CATEGORIA -->
         <div v-if="currentStep === 1" class="space-y-6">
           <div>
-            <h2 class="text-xl font-bold text-slate-900 dark:text-white">
-              Categoria
-            </h2>
-            <p class="text-sm text-slate-500 mt-1">
+            <h2 class="text-xl font-semibold text-n-slate-12">Categoria</h2>
+            <p class="mt-1 text-sm text-n-slate-11">
               Escolha o tipo de modelo que melhor se adapta à sua mensagem.
               <a
                 href="https://business.facebook.com/latest/whatsapp_manager/message_templates"
@@ -497,11 +497,11 @@ onMounted(() => {
             <div
               v-for="cat in categories"
               :key="cat.id"
-              class="relative flex items-start gap-4 p-5 rounded-2xl border-2 transition-all cursor-pointer bg-white dark:bg-slate-800"
+              class="relative flex cursor-pointer items-start gap-4 rounded-2xl border bg-n-solid-1 p-5 transition-colors"
               :class="
                 form.category === cat.id
-                  ? 'border-n-brand shadow-md ring-2 ring-n-brand/20'
-                  : 'border-slate-200 dark:border-slate-700/80 hover:border-slate-300'
+                  ? 'border-n-brand'
+                  : 'border-n-weak hover:bg-n-alpha-1'
               "
               @click="selectCategory(cat.id)"
             >
@@ -513,19 +513,17 @@ onMounted(() => {
 
               <div class="flex-1 pr-6">
                 <div class="flex items-center gap-2">
-                  <span class="font-bold text-slate-900 dark:text-white">{{
+                  <span class="font-medium text-n-slate-12">{{
                     cat.title
                   }}</span>
                   <span
                     v-if="cat.badge"
-                    class="px-2 py-0.5 text-[11px] font-semibold rounded-md bg-n-blue-3 text-n-blue-11"
+                    class="rounded-md bg-n-brand/10 px-2 py-0.5 text-[0.6875rem] font-medium text-n-brand"
                   >
                     {{ cat.badge }}
                   </span>
                 </div>
-                <p
-                  class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed"
-                >
+                <p class="mt-1.5 text-xs leading-relaxed text-n-slate-11">
                   {{ cat.description }}
                 </p>
               </div>
@@ -533,11 +531,11 @@ onMounted(() => {
               <!-- Radio Button Circle -->
               <div class="absolute top-5 right-5">
                 <div
-                  class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors"
+                  class="flex size-5 items-center justify-center rounded-full border-2 transition-colors"
                   :class="
                     form.category === cat.id
                       ? 'border-n-brand bg-n-brand'
-                      : 'border-slate-300 dark:border-slate-600'
+                      : 'border-n-weak bg-n-solid-1'
                   "
                 >
                   <div
@@ -551,19 +549,19 @@ onMounted(() => {
 
           <!-- Bottom Action Bar Step 1 -->
           <div
-            class="flex items-center justify-between pt-8 border-t border-slate-200 dark:border-slate-800"
+            class="flex items-center justify-between border-t border-n-weak pt-6"
           >
             <button
               type="button"
-              class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+              class="h-10 rounded-xl border border-n-weak px-4 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2"
               @click="$router.push({ name: 'whatsapp_templates_index' })"
             >
-              Concluído
+              Cancelar
             </button>
 
             <button
               type="button"
-              class="px-6 py-2.5 rounded-xl bg-n-brand hover:opacity-90 text-white font-semibold text-sm shadow-md transition-all flex items-center gap-2"
+              class="flex h-10 items-center gap-2 rounded-xl bg-n-brand px-4 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
               :disabled="!isStep1Valid"
               @click="goToStep2"
             >
@@ -579,10 +577,10 @@ onMounted(() => {
           <div class="lg:col-span-7 order-2 lg:order-1 space-y-6">
             <!-- Card de Cabeçalho e Identificação -->
             <div
-              class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 shadow-sm space-y-4"
+              class="space-y-4 rounded-2xl border border-n-weak bg-n-solid-1 p-5"
             >
               <div>
-                <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                <h3 class="text-base font-semibold text-n-slate-12">
                   {{ isEditing ? 'Editar modelo' : 'Modelo' }}
                   {{
                     form.category === 'UTILITY'
@@ -592,7 +590,7 @@ onMounted(() => {
                         : 'Marketing'
                   }}
                 </h3>
-                <p class="text-xs text-slate-500 mt-0.5">
+                <p class="mt-1 text-xs text-n-slate-11">
                   O texto segue as regras da Meta: variáveis com exemplo, sem
                   variável no início ou no fim, e botões de até 25 caracteres.
                 </p>
@@ -608,33 +606,22 @@ onMounted(() => {
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label
-                    class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1"
-                  >
-                    Nome do Modelo *
-                  </label>
+                  <label :class="LABEL_CLASS">Nome do modelo</label>
                   <input
                     v-model="form.name"
                     type="text"
-                    placeholder="ex: atualizacao_pedido_games_safari"
-                    class="w-full px-3.5 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-n-brand focus:outline-none"
+                    placeholder="ex: atualizacao_pedido"
+                    :class="FIELD_CLASS"
                     @input="sanitizeName"
                   />
-                  <span class="block text-[11px] text-slate-400 mt-1">
+                  <span class="mt-1.5 block text-[0.6875rem] text-n-slate-10">
                     Somente letras minúsculas, números e underline (_)
                   </span>
                 </div>
 
                 <div>
-                  <label
-                    class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1"
-                  >
-                    Idioma *
-                  </label>
-                  <select
-                    v-model="form.language"
-                    class="w-full px-3.5 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-n-brand focus:outline-none"
-                  >
+                  <label :class="LABEL_CLASS">Idioma</label>
+                  <select v-model="form.language" :class="FIELD_CLASS">
                     <option
                       v-for="lang in languages"
                       :key="lang.value"
@@ -649,13 +636,13 @@ onMounted(() => {
 
             <!-- Card de Conteúdo: Cabeçalho, Corpo, Rodapé -->
             <div
-              class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 shadow-sm space-y-5"
+              class="space-y-5 rounded-2xl border border-n-weak bg-n-solid-1 p-5"
             >
               <div>
-                <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                <h3 class="text-base font-semibold text-n-slate-12">
                   Conteúdo
                 </h3>
-                <p class="text-xs text-slate-500 mt-0.5">
+                <p class="mt-1 text-xs text-n-slate-11">
                   Para engajar os clientes de forma eficaz e reduzir o risco de
                   bloqueio, siga a
                   <a
@@ -671,11 +658,7 @@ onMounted(() => {
 
               <!-- Seção de Cabeçalho Opcional -->
               <div>
-                <label
-                  class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2"
-                >
-                  Cabeçalho (Opcional)
-                </label>
+                <label :class="LABEL_CLASS">Cabeçalho</label>
                 <div
                   class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2"
                 >
@@ -683,11 +666,11 @@ onMounted(() => {
                     v-for="hdr in headerOptions"
                     :key="hdr.id"
                     type="button"
-                    class="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-medium border transition-colors"
+                    class="flex h-9 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-medium transition-colors"
                     :class="
                       form.header_type === hdr.id
-                        ? 'border-n-brand bg-n-brand/10 text-n-brand dark:bg-n-brand/15 dark:text-n-brand font-bold'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300'
+                        ? 'border-n-brand bg-n-brand/10 text-n-brand'
+                        : 'border-n-weak bg-n-solid-1 text-n-slate-12 hover:bg-n-alpha-1'
                     "
                     @click="setHeaderType(hdr.id)"
                   >
@@ -702,12 +685,12 @@ onMounted(() => {
                     type="text"
                     placeholder="Texto do título (máximo 60 caracteres)"
                     maxlength="60"
-                    class="reset-base w-full h-10 m-0 px-3 text-sm rounded-xl bg-n-alpha-black2 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12"
+                    :class="FIELD_CLASS"
                   />
                 </div>
                 <div
                   v-else-if="form.header_type !== 'NONE'"
-                  class="mt-3 space-y-3 rounded-xl border border-dashed border-n-strong p-3"
+                  class="mt-3 space-y-3 rounded-xl border border-dashed border-n-weak bg-n-alpha-1 p-3"
                 >
                   <div class="flex flex-col sm:flex-row sm:items-center gap-3">
                     <div
@@ -781,17 +764,15 @@ onMounted(() => {
               <!-- Seção de Corpo da Mensagem (com Toolbar rica) -->
               <div>
                 <div class="flex items-center justify-between mb-1.5">
-                  <label
-                    class="block text-xs font-semibold text-slate-700 dark:text-slate-300"
-                  >
-                    Corpo da Mensagem *
+                  <label class="text-xs font-medium text-n-slate-11">
+                    Corpo da mensagem
                   </label>
                   <span
                     class="text-xs"
                     :class="
                       bodyLength > 1024
-                        ? 'text-n-ruby-11 font-bold'
-                        : 'text-slate-400'
+                        ? 'font-medium text-n-ruby-11'
+                        : 'text-n-slate-10'
                     "
                   >
                     {{ bodyLength }}/1024
@@ -799,26 +780,25 @@ onMounted(() => {
                 </div>
 
                 <div
-                  class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus-within:ring-2 focus-within:ring-n-brand"
+                  class="overflow-hidden rounded-lg bg-n-solid-1 outline outline-1 outline-n-weak focus-within:outline-n-brand"
                 >
                   <textarea
                     ref="textareaRef"
                     v-model="form.body"
                     rows="6"
                     maxlength="1024"
-                    placeholder="Olá {{primeiro_nome}}, seu pedido na Games Safari foi recebido com sucesso!"
-                    class="w-full p-4 bg-transparent border-0 text-sm text-slate-900 dark:text-white focus:ring-0 focus:outline-none resize-none leading-relaxed"
+                    placeholder="Olá {{1}}, seu pedido foi recebido."
+                    class="reset-base m-0 w-full resize-none border-0 bg-transparent p-3 text-sm leading-relaxed text-n-slate-12 placeholder:text-n-slate-10 focus:outline-none"
                   />
 
-                  <!-- Toolbar Inferior do Editor -->
                   <div
-                    class="relative flex items-center justify-between px-3 py-2 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
+                    class="relative flex items-center justify-between border-t border-n-weak px-2 py-1.5"
                   >
                     <div class="flex items-center gap-1">
                       <button
                         type="button"
                         title="Negrito (*texto*)"
-                        class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                        class="flex size-8 items-center justify-center rounded-lg text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
                         @click="applyFormat('*')"
                       >
                         <span class="i-lucide-bold size-4" />
@@ -826,7 +806,7 @@ onMounted(() => {
                       <button
                         type="button"
                         title="Itálico (_texto_)"
-                        class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                        class="flex size-8 items-center justify-center rounded-lg text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
                         @click="applyFormat('_')"
                       >
                         <span class="i-lucide-italic size-4" />
@@ -834,7 +814,7 @@ onMounted(() => {
                       <button
                         type="button"
                         title="Tachado (~texto~)"
-                        class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                        class="flex size-8 items-center justify-center rounded-lg text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
                         @click="applyFormat('~')"
                       >
                         <span class="i-lucide-strikethrough size-4" />
@@ -912,12 +892,10 @@ onMounted(() => {
 
               <div v-if="variableRows.length" class="space-y-2">
                 <div>
-                  <h4
-                    class="text-xs font-semibold text-slate-700 dark:text-slate-300"
-                  >
+                  <h4 class="text-xs font-medium text-n-slate-12">
                     Exemplos das variáveis
                   </h4>
-                  <p class="text-[11px] text-slate-400">
+                  <p class="text-[0.6875rem] text-n-slate-10">
                     A Meta exige um exemplo para cada variável. O nome começa
                     com letra minúscula, ou use a sequência 1, 2, 3.
                   </p>
@@ -940,7 +918,7 @@ onMounted(() => {
                     :value="sampleValues[`${row.component}:${row.key}`] || ''"
                     type="text"
                     placeholder="Exemplo enviado à Meta"
-                    class="flex-1 px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white"
+                    :class="FIELD_CLASS"
                     @input="setSample(row, $event.target.value)"
                   />
                 </div>
@@ -962,12 +940,10 @@ onMounted(() => {
               <!-- Seção de Rodapé Opcional -->
               <div>
                 <div class="flex items-center justify-between mb-1.5">
-                  <label
-                    class="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+                  <label class="text-xs font-medium text-n-slate-11"
+                    >Rodapé</label
                   >
-                    Rodapé (Opcional)
-                  </label>
-                  <span class="text-xs text-slate-400"
+                  <span class="text-xs text-n-slate-10"
                     >{{ footerLength }}/60</span
                   >
                 </div>
@@ -976,27 +952,23 @@ onMounted(() => {
                   type="text"
                   maxlength="60"
                   placeholder="ex: Para não receber mais promoções, responda PARAR"
-                  class="w-full px-3.5 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-n-brand focus:outline-none"
+                  :class="FIELD_CLASS"
                 />
               </div>
 
               <!-- Seção de Botões de Ação -->
-              <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
-                <div class="flex items-center justify-between mb-2">
+              <div class="border-t border-n-weak pt-4">
+                <div class="mb-2 flex items-center justify-between gap-3">
                   <div>
-                    <h4
-                      class="text-xs font-semibold text-slate-700 dark:text-slate-300"
-                    >
-                      Botões de Ação (Opcional)
-                    </h4>
-                    <p class="text-[11px] text-slate-400">
+                    <h4 class="text-xs font-medium text-n-slate-12">Botões</h4>
+                    <p class="text-[0.6875rem] text-n-slate-10">
                       Até 10 botões. O texto tem no máximo 25 caracteres. URL
                       começa com https://.
                     </p>
                   </div>
                   <button
                     type="button"
-                    class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 inline-flex items-center gap-1.5"
+                    class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-n-weak px-2.5 text-xs font-medium text-n-slate-12 hover:bg-n-alpha-2 disabled:opacity-40"
                     :disabled="form.buttons.length >= 10"
                     @click="addButton"
                   >
@@ -1010,7 +982,7 @@ onMounted(() => {
                   <div
                     v-for="(btn, idx) in form.buttons"
                     :key="idx"
-                    class="p-3 rounded-xl border border-n-weak bg-n-alpha-black2 space-y-2"
+                    class="space-y-2 rounded-xl border border-n-weak bg-n-alpha-1 p-3"
                   >
                     <div class="flex items-center justify-between gap-2">
                       <div class="flex flex-wrap gap-1">
@@ -1107,14 +1079,14 @@ onMounted(() => {
         <div class="flex items-center gap-3">
           <button
             type="button"
-            class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5"
+            class="flex h-10 items-center gap-1.5 rounded-xl border border-n-weak px-4 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2"
             @click="goToStep1"
           >
             <span class="i-lucide-arrow-left size-4" />
             <span>Anterior</span>
           </button>
 
-          <span class="hidden text-xs text-slate-400 sm:block">
+          <span class="hidden text-xs text-n-slate-10 sm:block">
             Salvar libera o template no fluxo. Enviar manda para a revisão da
             Meta.
           </span>
@@ -1126,7 +1098,7 @@ onMounted(() => {
           >
             <button
               type="button"
-              class="px-4 py-2.5 rounded-xl border border-green-600 text-green-600 dark:text-green-400 font-semibold text-sm hover:bg-green-50 dark:hover:bg-green-950 transition-colors disabled:opacity-40"
+              class="h-10 rounded-xl border border-n-weak px-4 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2 disabled:opacity-40"
               :disabled="isSubmitting || !isStep2Valid"
               @click="submitTemplate('APPROVED')"
             >
@@ -1135,7 +1107,7 @@ onMounted(() => {
 
             <button
               type="button"
-              class="px-6 py-2.5 rounded-xl bg-n-brand hover:opacity-90 text-white font-semibold text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-40"
+              class="flex h-10 items-center justify-center gap-2 rounded-xl bg-n-brand px-4 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
               :disabled="isSubmitting || metaSubmitIssues.length > 0"
               @click="submitTemplate('PENDING')"
             >

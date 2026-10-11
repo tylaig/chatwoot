@@ -18,6 +18,10 @@ class WhatsappTemplatesAPI {
     return axios.get(this.baseUrl);
   }
 
+  syncTemplates() {
+    return axios.post(`${this.baseUrl}/sync`);
+  }
+
   uploadMedia(file) {
     const body = new FormData();
     body.append('attachment', file);
