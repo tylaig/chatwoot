@@ -32,16 +32,10 @@ module Workflows
 
         if event_type == 'timeout'
           wait_state.timeout!
-          edges = @version.outgoing_edges(from_node_id, 'timeout')
-          next_nodes = edges.map { |e| @version.find_node(e['target']) }.compact
-          next_nodes = @version.outgoing_edges(from_node_id).map { |e| @version.find_node(e['target']) }.compact if next_nodes.empty?
+          next_nodes = nodes_for_handles(from_node_id, %w[TIMEOUT timeout])
         else
           wait_state.resume!
-          # Follow reply, replied, or default handle
-          edges = @version.outgoing_edges(from_node_id, 'reply')
-          edges = @version.outgoing_edges(from_node_id, 'replied') if edges.empty?
-          next_nodes = edges.map { |e| @version.find_node(e['target']) }.compact
-          next_nodes = @version.outgoing_edges(from_node_id).map { |e| @version.find_node(e['target']) }.compact if next_nodes.empty?
+          next_nodes = nodes_for_handles(from_node_id, %w[REPLIED replied reply])
         end
 
         @execution.mark_resumed!
@@ -67,15 +61,18 @@ module Workflows
 
       @execution.update!(current_node_id: node['id'])
 
+      node_type = Workflows::NodeExecutors::BaseExecutor.node_type_for(node)
+      node_config = Workflows::NodeExecutors::BaseExecutor.config_for(node)
+
       node_exec = @execution.node_executions.create!(
         node_id: node['id'],
-        node_type: node['type'],
-        input_data: sanitize_input_data(node['config'] || {}),
+        node_type: node_type,
+        input_data: sanitize_input_data(node_config.to_h),
         started_at: Time.current,
         status: 'running'
       )
 
-      executor_class = Workflows::NodeRegistry.executor_for(node['type'])
+      executor_class = Workflows::NodeRegistry.executor_for(node_type)
       executor = executor_class.new(execution: @execution, node: node, version: @version)
 
       result = executor.execute
@@ -104,6 +101,15 @@ module Workflows
       Rails.logger.error "[ExecutionEngineService] Error at node #{node['id']}: #{e.message}\n#{e.backtrace.first(5).join("\n")}"
       node_exec&.mark_failed!(e.message)
       @execution.mark_failed!(e.message)
+    end
+
+    def nodes_for_handles(node_id, handles)
+      handles.each do |handle|
+        edges = @version.outgoing_edges(node_id, handle)
+        nodes = edges.map { |e| @version.find_node(e['target']) }.compact
+        return nodes if nodes.any?
+      end
+      []
     end
 
     def complete_execution!

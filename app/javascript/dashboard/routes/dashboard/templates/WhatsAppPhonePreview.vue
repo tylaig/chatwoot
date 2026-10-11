@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
   template: {
@@ -35,29 +35,75 @@ const props = defineProps({
   },
 });
 
-const formattedBody = computed(() => {
-  let text = props.template.body || 'Digite o corpo da mensagem...';
+const mediaBroken = ref(false);
+watch(
+  () => props.template.header_content,
+  () => {
+    mediaBroken.value = false;
+  }
+);
 
-  // Replace variable placeholders like {{1}} or {{primeiro_nome}}
+const samples = computed(() => ({
+  1: 'Samuel',
+  2: '7420',
+  3: 'Concluído',
+  nome_completo: 'Samuel Silva',
+  primeiro_nome: 'Samuel',
+  sobrenome: 'Silva',
+  telefone: '+55 17 99117-3157',
+  ddd: '17',
+  nome_indicador: 'Games Safari',
+  link_pedido: 'https://gamessafari.com',
+  valor_total: 'R$ 214,50',
+  codigo_rastreio: 'GS-8312-BR',
+  nome_produto: 'EA SPORTS FC 27',
+  chave_ativacao: 'XXXX-YYYY-ZZZZ-WWWW',
+  ...props.sampleVariables,
+}));
+
+const escapeHtml = value =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const headerContent = computed(() => props.template.header_content || '');
+
+const renderText = value => {
+  let text = escapeHtml(value || '');
   text = text.replace(/\{\{\s*([a-zA-Z0-9_-]+)\s*\}\}/g, (match, key) => {
-    const val =
-      props.sampleVariables[key] ||
-      props.sampleVariables[key.toLowerCase()] ||
-      `[${key}]`;
-    return `<span class="bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 font-semibold px-1 py-0.5 rounded text-xs inline-block">${val}</span>`;
+    const provided = props.sampleVariables || {};
+    let providedKey = null;
+    if (Object.prototype.hasOwnProperty.call(provided, key)) {
+      providedKey = key;
+    } else if (
+      Object.prototype.hasOwnProperty.call(provided, key.toLowerCase())
+    ) {
+      providedKey = key.toLowerCase();
+    }
+    const val = providedKey
+      ? provided[providedKey] || `{{${key}}}`
+      : samples.value[key] || samples.value[key.toLowerCase()] || `{{${key}}}`;
+    return `<span class="bg-n-amber-3 text-n-amber-12 font-semibold px-1 py-0.5 rounded text-xs inline-block">${escapeHtml(String(val))}</span>`;
   });
-
-  // Basic markdown: *bold*, _italic_, ~strike~
-  text = text
+  return text
     .replace(/\*([^*]+)\*/g, '<strong>$1</strong>')
     .replace(/_([^_]+)_/g, '<em>$1</em>')
     .replace(/~([^~]+)~/g, '<del>$1</del>');
+};
 
-  return text;
+const formattedBody = computed(() =>
+  renderText(props.template.body || 'Digite o corpo da mensagem...')
+);
+const formattedHeader = computed(() => renderText(headerContent.value));
+const fileName = computed(() => {
+  if (props.template.header_media_name) return props.template.header_media_name;
+  const raw = headerContent.value.split('/').pop()?.split('?')[0] || '';
+  try {
+    return decodeURIComponent(raw) || 'documento.pdf';
+  } catch {
+    return raw || 'documento.pdf';
+  }
 });
 
 const headerType = computed(() => props.template.header_type || 'NONE');
-const headerContent = computed(() => props.template.header_content || '');
 const footerText = computed(() => props.template.footer || '');
 const buttons = computed(() => {
   if (Array.isArray(props.template.buttons)) {
@@ -68,10 +114,11 @@ const buttons = computed(() => {
 </script>
 
 <template>
+  <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
   <div class="relative mx-auto w-full max-w-[340px] select-none">
     <!-- Phone Mockup Container -->
     <div
-      class="relative flex flex-col h-[640px] w-full rounded-[44px] bg-[#1a1c22] p-3 shadow-2xl border-4 border-slate-800 ring-1 ring-white/10"
+      class="relative flex flex-col h-[28rem] sm:h-[36rem] lg:h-[40rem] w-full rounded-[44px] bg-[#1a1c22] p-3 shadow-2xl border-4 border-slate-800 ring-1 ring-white/10"
     >
       <!-- Top Speaker / Dynamic Island Notch -->
       <div
@@ -94,8 +141,8 @@ const buttons = computed(() => {
           <span>0:24</span>
           <div class="flex items-center gap-1.5 text-xs">
             <span class="text-[10px]">5G</span>
-            <span>📶</span>
-            <span>🔋</span>
+            <span class="i-lucide-signal size-3" />
+            <span class="i-lucide-battery-full size-3" />
           </div>
         </div>
 
@@ -133,7 +180,7 @@ const buttons = computed(() => {
                 contactName
               }}</span>
               <svg
-                class="w-3.5 h-3.5 text-emerald-400 shrink-0"
+                class="w-3.5 h-3.5 text-green-400 shrink-0"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -184,14 +231,7 @@ const buttons = computed(() => {
 
         <!-- Chat Background Wallpaper & Messages Body -->
         <div
-          class="flex-1 overflow-y-auto p-3 flex flex-col justify-end gap-2"
-          style="
-            background-image: radial-gradient(
-              rgba(0, 0, 0, 0.06) 1px,
-              transparent 1px
-            );
-            background-size: 16px 16px;
-          "
+          class="flex-1 overflow-y-auto p-3 flex flex-col justify-end gap-2 bg-[radial-gradient(rgba(0,0,0,0.06)_1px,transparent_1px)] bg-[length:16px_16px]"
         >
           <!-- WhatsApp Message Bubble -->
           <div
@@ -201,19 +241,19 @@ const buttons = computed(() => {
             <div
               v-if="headerType === 'TEXT' && headerContent"
               class="mb-2 font-bold text-sm text-slate-900 dark:text-white border-b pb-1 border-slate-100 dark:border-slate-700"
-            >
-              {{ headerContent }}
-            </div>
+              v-html="formattedHeader"
+            />
 
             <div
               v-else-if="headerType === 'IMAGE'"
               class="mb-2 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 max-h-40 flex items-center justify-center"
             >
               <img
-                v-if="headerContent"
+                v-if="headerContent && !mediaBroken"
                 :src="headerContent"
-                alt="Header Media"
-                class="w-full h-36 object-contain p-1"
+                alt="Imagem do cabeçalho"
+                class="w-full h-36 object-cover"
+                @error="mediaBroken = true"
               />
               <div
                 v-else
@@ -238,20 +278,29 @@ const buttons = computed(() => {
 
             <div
               v-else-if="headerType === 'VIDEO'"
-              class="mb-2 rounded-lg bg-slate-800 text-white h-32 flex flex-col items-center justify-center gap-1"
+              class="mb-2 overflow-hidden rounded-lg bg-slate-800 text-white h-32 flex flex-col items-center justify-center gap-1"
             >
-              <svg
-                class="w-10 h-10 text-white/80"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-              <span class="text-xs text-white/70">Vídeo do Cabeçalho</span>
+              <video
+                v-if="headerContent && !mediaBroken"
+                :src="headerContent"
+                class="w-full h-32 object-cover"
+                controls
+                @error="mediaBroken = true"
+              />
+              <template v-else>
+                <svg
+                  class="w-10 h-10 text-white/80"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <span class="text-xs text-white/70">Vídeo do Cabeçalho</span>
+              </template>
             </div>
 
             <div
@@ -259,13 +308,13 @@ const buttons = computed(() => {
               class="mb-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center gap-2 border border-slate-200 dark:border-slate-700"
             >
               <div
-                class="w-8 h-8 rounded bg-rose-500 text-white flex items-center justify-center font-bold text-xs"
+                class="w-8 h-8 rounded bg-n-ruby-9 text-white flex items-center justify-center font-bold text-xs"
               >
                 PDF
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-xs font-semibold truncate">
-                  {{ headerContent || 'documento_oficial.pdf' }}
+                  {{ fileName }}
                 </p>
                 <p class="text-[10px] text-slate-400">Documento Anexo</p>
               </div>
@@ -290,7 +339,7 @@ const buttons = computed(() => {
               class="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-400"
             >
               <span>0:24</span>
-              <span class="text-sky-500 font-bold">✓✓</span>
+              <span class="i-lucide-check-check size-3.5 text-n-blue-11" />
             </div>
 
             <!-- Action Buttons attached to message -->
@@ -301,7 +350,7 @@ const buttons = computed(() => {
               <div
                 v-for="(btn, idx) in buttons"
                 :key="idx"
-                class="py-2 px-3 text-center text-xs font-medium text-[#00A884] dark:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center justify-center gap-1.5 cursor-pointer"
+                class="py-2 px-3 text-center text-xs font-medium text-[#00A884] dark:text-green-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <svg
                   v-if="btn.type === 'URL'"

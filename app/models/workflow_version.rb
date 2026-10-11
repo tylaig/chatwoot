@@ -16,8 +16,10 @@ class WorkflowVersion < ApplicationRecord
 
   def outgoing_edges(node_id, handle = nil)
     edges.select do |e|
-      match_source = e['source'] == node_id
-      handle.present? ? (match_source && (e['sourceHandle'] == handle || e['sourceHandle'].blank?)) : match_source
+      next false unless e['source'] == node_id
+      next true if handle.blank?
+
+      e['sourceHandle'].to_s.casecmp?(handle.to_s)
     end
   end
 

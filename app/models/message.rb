@@ -341,6 +341,12 @@ class Message < ApplicationRecord
       pending_wait = execution.wait_states.pending.find_by(wait_type: 'wait_for_reply')
       next if pending_wait.blank?
 
+      node = execution.workflow_version&.find_node(pending_wait.node_id)
+      cfg = Workflows::NodeExecutors::BaseExecutor.config_for(node)
+      next if cfg[:ignore_private_notes] != false && private?
+      next if cfg[:only_customer_messages] != false && !sender.is_a?(Contact)
+      next if cfg[:ignore_bot_messages] != false && bot_response?
+
       WorkflowExecutionJob.perform_later(execution.id, pending_wait.node_id, 'reply_received')
     end
   rescue StandardError => e

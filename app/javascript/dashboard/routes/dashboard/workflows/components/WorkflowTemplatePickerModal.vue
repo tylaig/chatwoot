@@ -1,5 +1,9 @@
 <script setup>
 import { ref, computed } from 'vue';
+import {
+  previewTemplateText,
+  templateButtons,
+} from 'dashboard/routes/dashboard/templates/templatePreview';
 
 const props = defineProps({
   show: {
@@ -94,7 +98,7 @@ const handleConfirm = () => {
           class="text-n-slate-9 hover:text-n-slate-12 text-sm p-1 rounded-lg"
           @click="emit('close')"
         >
-          ✕
+          <span class="i-lucide-x size-4" />
         </button>
       </div>
 
@@ -106,14 +110,14 @@ const handleConfirm = () => {
         >
           <!-- BARRA DE PESQUISA -->
           <div class="relative">
-            <span class="absolute left-3 top-2.5 text-xs text-n-slate-9"
-              >🔍</span
-            >
+            <span
+              class="i-lucide-search size-3.5 absolute start-3 top-1/2 -translate-y-1/2 text-n-slate-9"
+            />
             <input
               v-model="searchQuery"
               type="text"
               placeholder="Buscar templates..."
-              class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 placeholder-n-slate-9 focus:outline-none focus:border-blue-500"
+              class="reset-base w-full h-9 m-0 ps-8 pe-3 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 placeholder-n-slate-9 focus:outline-none focus:border-n-blue-9"
             />
           </div>
 
@@ -125,7 +129,7 @@ const handleConfirm = () => {
               >
               <select
                 v-model="selectedInbox"
-                class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-blue-500"
+                class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-n-blue-9"
               >
                 <option value="ALL">Suporte - WhatsApp</option>
               </select>
@@ -136,7 +140,7 @@ const handleConfirm = () => {
               >
               <select
                 v-model="selectedLanguage"
-                class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-blue-500"
+                class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-n-blue-9"
               >
                 <option value="ALL">Todos</option>
                 <option value="pt_BR">Português (Brasil)</option>
@@ -150,7 +154,7 @@ const handleConfirm = () => {
               >
               <select
                 v-model="selectedCategory"
-                class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-blue-500"
+                class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-n-blue-9"
               >
                 <option value="ALL">Todas</option>
                 <option value="MARKETING">Marketing</option>
@@ -164,7 +168,7 @@ const handleConfirm = () => {
               >
               <select
                 v-model="selectedStatus"
-                class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-blue-500"
+                class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-n-blue-9"
               >
                 <option value="ALL">Todos</option>
                 <option value="APPROVED">Approved</option>
@@ -183,13 +187,13 @@ const handleConfirm = () => {
               :class="
                 activeTemplate?.id === tpl.id ||
                 (!activeTemplate && selectedTemplateName === tpl.name)
-                  ? 'bg-blue-600/10 border-blue-500 shadow-sm'
+                  ? 'bg-n-blue-9/10 border-n-blue-9 shadow-sm'
                   : 'bg-n-solid-2 border-n-weak hover:border-n-strong'
               "
               @click="selectActive(tpl)"
             >
               <div class="flex items-start gap-2.5 min-w-0">
-                <span class="text-sm mt-0.5">📄</span>
+                <span class="i-lucide-file-text size-4 mt-0.5" />
                 <div class="min-w-0">
                   <h4 class="text-xs font-bold text-n-slate-12 truncate">
                     {{ tpl.name }}
@@ -217,13 +221,15 @@ const handleConfirm = () => {
                   class="text-[10px] px-2 py-0.5 rounded-full font-bold"
                   :class="
                     tpl.status === 'APPROVED' || tpl.status === 'approved'
-                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                      ? 'bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30'
+                      : 'bg-n-amber-9/20 text-n-amber-11'
                   "
                 >
                   {{ tpl.status }}
                 </span>
-                <span class="text-n-slate-9 text-xs ml-1">›</span>
+                <span
+                  class="i-lucide-chevron-right size-3.5 text-n-slate-9 ms-1"
+                />
               </div>
             </div>
 
@@ -252,24 +258,25 @@ const handleConfirm = () => {
               class="p-4 rounded-2xl bg-[#E1F8DC] dark:bg-[#1E2C22] border border-[#C5E8BF] dark:border-[#2D4533] text-slate-900 dark:text-slate-100 text-xs shadow-sm space-y-2 relative"
             >
               <p class="whitespace-pre-line leading-relaxed font-sans">
-                {{ activeTemplate?.body || defaultModalPreviewBody }}
+                {{
+                  previewTemplateText(
+                    activeTemplate?.body || defaultModalPreviewBody
+                  )
+                }}
               </p>
               <div class="text-[10px] text-n-slate-11 text-right">12:30</div>
 
-              <!-- BOTÕES DO TEMPLATE SE EXISTIREM -->
-              <div class="pt-2 border-t border-emerald-600/20 space-y-1.5">
-                <button
-                  type="button"
-                  class="w-full py-1.5 px-3 rounded-lg bg-white/70 dark:bg-n-solid-3/80 text-blue-600 dark:text-blue-400 font-semibold text-center text-[11px] flex items-center justify-center gap-1.5 shadow-sm"
+              <div
+                v-if="templateButtons(activeTemplate).length"
+                class="pt-2 border-t border-green-600/20 space-y-1.5"
+              >
+                <div
+                  v-for="label in templateButtons(activeTemplate)"
+                  :key="label"
+                  class="w-full py-1.5 px-3 rounded-lg bg-white/70 dark:bg-n-solid-3/80 text-n-blue-11 font-semibold text-center text-[11px]"
                 >
-                  <span>🔗</span> Ver ofertas
-                </button>
-                <button
-                  type="button"
-                  class="w-full py-1.5 px-3 rounded-lg bg-white/70 dark:bg-n-solid-3/80 text-blue-600 dark:text-blue-400 font-semibold text-center text-[11px] flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  <span>💬</span> Falar com suporte
-                </button>
+                  {{ label }}
+                </div>
               </div>
             </div>
 
@@ -301,7 +308,7 @@ const handleConfirm = () => {
                 </div>
                 <div>
                   <span class="text-n-slate-9">Status:</span>
-                  <p class="font-bold text-emerald-600 dark:text-emerald-400">
+                  <p class="font-bold text-green-600 dark:text-green-400">
                     {{ activeTemplate?.status || 'Approved' }}
                   </p>
                 </div>
@@ -322,7 +329,7 @@ const handleConfirm = () => {
             </button>
             <button
               type="button"
-              class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50"
+              class="px-5 py-2 rounded-xl bg-n-blue-9 hover:bg-n-blue-9 text-white text-xs font-bold shadow-lg shadow-n-blue-9/20 transition-all disabled:opacity-50"
               :disabled="!activeTemplate"
               @click="handleConfirm"
             >

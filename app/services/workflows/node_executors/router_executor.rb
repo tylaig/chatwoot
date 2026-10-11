@@ -4,23 +4,22 @@ module Workflows
   module NodeExecutors
     class RouterExecutor < BaseExecutor
       def execute
-        routes = config[:routes] || []
-        target_handle = 'default'
+        routes = Array(config[:routes])
+        source_path = config[:source_variable].presence
+        target_handle = nil
 
-        routes.each_with_index do |route, idx|
-          field_path = route['field']
+        routes.each do |route|
+          field_path = route['field'].presence || source_path
           actual_val = variable_resolver.extract_value(field_path).to_s.strip.downcase
           expected_val = resolve_vars(route['value'].to_s).strip.downcase
+          next unless route_matches?(actual_val, expected_val, route['operator'])
 
-          if actual_val == expected_val
-            target_handle = route['handle'] || "route_#{idx + 1}"
-            break
-          end
+          target_handle = route['name'].presence || route['handle']
+          break if target_handle.present?
         end
 
+        target_handle ||= config[:default_route_name].presence || 'Default'
         target_nodes = next_nodes(target_handle)
-        target_nodes = next_nodes('default') if target_nodes.empty?
-        target_nodes = next_nodes if target_nodes.empty?
 
         {
           status: 'success',
@@ -29,6 +28,19 @@ module Workflows
           },
           next_nodes: target_nodes
         }
+      end
+
+      private
+
+      def route_matches?(actual_val, expected_val, operator)
+        case operator.to_s
+        when 'not_equal_to', '!='
+          actual_val != expected_val
+        when 'contains'
+          actual_val.include?(expected_val)
+        else
+          actual_val == expected_val
+        end
       end
     end
   end

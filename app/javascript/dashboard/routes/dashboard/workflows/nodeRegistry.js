@@ -1,175 +1,311 @@
 export const NODE_CATEGORIES = [
-  { id: 'all', name: 'Todos' },
-  { id: 'triggers', name: 'Gatilhos' },
-  { id: 'whatsapp', name: 'WhatsApp' },
-  { id: 'messaging', name: 'Mensageria' },
-  { id: 'logic', name: 'Lógica' },
-  { id: 'time', name: 'Tempo' },
-  { id: 'data', name: 'Dados' },
-  { id: 'chatwoot', name: 'Chatwoot' },
-  { id: 'integrations', name: 'Integrações' },
-  { id: 'flow_control', name: 'Controle de Fluxo' },
+  { id: 'all', name: 'Todos', icon: 'i-lucide-layout-grid' },
+  { id: 'triggers', name: 'Gatilhos', icon: 'i-lucide-zap' },
+  { id: 'whatsapp', name: 'WhatsApp', icon: 'i-ri-whatsapp-line' },
+  { id: 'messaging', name: 'Mensagens', icon: 'i-lucide-message-square' },
+  { id: 'logic', name: 'Lógica', icon: 'i-lucide-git-branch' },
+  { id: 'time', name: 'Tempo', icon: 'i-lucide-clock' },
+  { id: 'data', name: 'Dados', icon: 'i-lucide-variable' },
+  { id: 'chatwoot', name: 'Chatwoot', icon: 'i-lucide-inbox' },
+  { id: 'integrations', name: 'Integrações', icon: 'i-lucide-plug' },
+  { id: 'flow_control', name: 'Controle', icon: 'i-lucide-flag' },
 ];
 
+export const CATEGORY_STYLES = {
+  triggers: {
+    hex: '#FFC53D',
+    accent: 'bg-n-amber-9',
+    soft: 'bg-n-amber-3',
+    text: 'text-n-amber-11',
+    border: 'border-n-amber-8',
+    badge: 'bg-n-amber-3 text-n-amber-11',
+  },
+  whatsapp: {
+    hex: '#30A46C',
+    accent: 'bg-green-500',
+    soft: 'bg-green-500/15',
+    text: 'text-green-500',
+    border: 'border-green-500/60',
+    badge: 'bg-green-500/15 text-green-500',
+  },
+  messaging: {
+    hex: '#5B5BD6',
+    accent: 'bg-n-iris-9',
+    soft: 'bg-n-iris-3',
+    text: 'text-n-iris-11',
+    border: 'border-n-iris-8',
+    badge: 'bg-n-iris-3 text-n-iris-11',
+  },
+  logic: {
+    hex: '#E54666',
+    accent: 'bg-n-ruby-9',
+    soft: 'bg-n-ruby-3',
+    text: 'text-n-ruby-11',
+    border: 'border-n-ruby-8',
+    badge: 'bg-n-ruby-3 text-n-ruby-11',
+  },
+  time: {
+    hex: '#12A594',
+    accent: 'bg-n-teal-9',
+    soft: 'bg-n-teal-3',
+    text: 'text-n-teal-11',
+    border: 'border-n-teal-8',
+    badge: 'bg-n-teal-3 text-n-teal-11',
+  },
+  data: {
+    hex: '#6E56CF',
+    accent: 'bg-n-violet-9',
+    soft: 'bg-n-violet-3',
+    text: 'text-n-violet-11',
+    border: 'border-n-violet-8',
+    badge: 'bg-n-violet-3 text-n-violet-11',
+  },
+  chatwoot: {
+    hex: '#F76B15',
+    accent: 'bg-n-blue-9',
+    soft: 'bg-n-blue-3',
+    text: 'text-n-blue-11',
+    border: 'border-n-blue-8',
+    badge: 'bg-n-blue-3 text-n-blue-11',
+  },
+  integrations: {
+    hex: '#F5D90A',
+    accent: 'bg-yellow-500',
+    soft: 'bg-yellow-500/15',
+    text: 'text-yellow-500',
+    border: 'border-yellow-500/60',
+    badge: 'bg-yellow-500/15 text-yellow-500',
+  },
+  flow_control: {
+    hex: '#8B8D98',
+    accent: 'bg-n-slate-9',
+    soft: 'bg-n-slate-3',
+    text: 'text-n-slate-11',
+    border: 'border-n-slate-8',
+    badge: 'bg-n-slate-3 text-n-slate-11',
+  },
+};
+
+export const OUTPUT_COLORS = {
+  success: '#10B981',
+  danger: '#F43F5E',
+  default: '#94A3B8',
+};
+
+const SINGLE_OUTPUT = [{ id: 'output', label: '', type: 'default' }];
+
+const truncate = (text, size) =>
+  text.length > size ? `${text.slice(0, size)}…` : text;
+
 export const WORKFLOW_NODES_REGISTRY = {
-  // 1. WEBHOOK TRIGGER
   webhook_trigger: {
     type: 'webhook_trigger',
-    title: 'Webhook Trigger',
-    subtitle: 'Disparado por webhook externo',
+    title: 'Webhook',
+    subtitle: 'Inicia quando uma requisição chega na URL do fluxo',
     category: 'triggers',
-    icon: '⚡',
-    iconColor: '#FFB800',
-    badge: 'Trigger',
-    badgeType: 'trigger',
+    icon: 'i-lucide-webhook',
+    badge: 'Gatilho',
     isTrigger: true,
     hasInput: false,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
-      custom_title: 'Webhook Trigger',
-      trigger_token: '',
-      endpoint: '/public/api/v1/webhook_dispatches/default',
+      custom_title: 'Webhook recebido',
     },
-    summarize: cfg => cfg.endpoint || 'webhook_trigger',
+    summarize: () => '',
   },
 
-  // 2. SEND MESSAGE
   send_message: {
     type: 'send_message',
     title: 'Enviar Mensagem',
-    subtitle: 'Envia mensagem no canal ativo',
+    subtitle: 'Texto, foto, vídeo, áudio ou arquivo na conversa',
     category: 'messaging',
-    icon: '💬',
-    iconColor: '#3B82F6',
-    badge: 'Ação',
-    badgeType: 'action',
+    icon: 'i-lucide-message-square-text',
+    badge: 'Mensagem',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
       custom_title: 'Enviar Mensagem',
-      content: '',
-      message_type: 'outgoing',
+      content: 'Olá {{ $contact.first_name }}! Como posso ajudar?',
       private: false,
+      attachments: [],
     },
-    summarize: cfg =>
-      cfg.content ? `"${cfg.content.slice(0, 32)}..."` : 'Sem mensagem',
+    summarize: cfg => {
+      const text = cfg.content ? truncate(cfg.content, 60) : '';
+      const count = Array.isArray(cfg.attachments) ? cfg.attachments.length : 0;
+      const files = count ? `${count} anexo${count > 1 ? 's' : ''}` : '';
+      if (text && files) return `${text} · ${files}`;
+      return text || files || 'Escreva a mensagem…';
+    },
   },
 
-  // 3. SEND WHATSAPP MESSAGE
   send_whatsapp_message: {
     type: 'send_whatsapp_message',
-    title: 'Enviar Mensagem WhatsApp',
-    subtitle: 'Envia mensagem de texto livre ou template',
+    title: 'Mensagem WhatsApp',
+    subtitle: 'Texto livre na janela de 24h ou template fora dela',
     category: 'whatsapp',
-    icon: 'whatsapp', // renderiza SVG oficial
-    badge: 'Ação',
-    badgeType: 'action',
+    icon: 'i-ri-whatsapp-line',
+    badge: 'WhatsApp',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
-      custom_title: 'Enviar Mensagem WhatsApp',
-      inbox_id: '',
-      delivery_mode: 'auto', // 'auto', 'inside_24h', 'outside_24h'
-      text: 'Olá {{contact.first_name}}! Como posso te ajudar hoje?',
+      custom_title: 'Mensagem WhatsApp',
+      delivery_mode: 'auto',
+      text: 'Olá {{ $contact.first_name }}! Como posso te ajudar hoje?',
       template_name: '',
       template_language: 'pt_BR',
+      template_params: {},
     },
     summarize: cfg => {
       if (cfg.delivery_mode === 'outside_24h') {
-        return `Template: ${cfg.template_name || 'Não selecionado'}`;
+        return `Template: ${cfg.template_name || 'não selecionado'}`;
       }
-      return cfg.text ? `"${cfg.text.slice(0, 36)}..."` : 'Mensagem automática';
+      return cfg.text ? truncate(cfg.text, 80) : 'Escreva a mensagem…';
     },
   },
 
-  // 4. SEND WHATSAPP TEMPLATE
   send_whatsapp_template: {
     type: 'send_whatsapp_template',
-    title: 'Enviar Template WhatsApp',
-    subtitle: 'Envia template aprovado da Meta',
+    title: 'Template WhatsApp',
+    subtitle: 'Envia um template aprovado pela Meta',
     category: 'whatsapp',
-    icon: 'whatsapp',
-    badge: 'Ação',
-    badgeType: 'action',
+    icon: 'i-lucide-layout-template',
+    badge: 'WhatsApp',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
-      custom_title: 'Enviar Template WhatsApp',
-      inbox_id: '',
+      custom_title: 'Template WhatsApp',
       template_name: '',
       template_category: 'MARKETING',
       template_language: 'pt_BR',
-      status: 'APPROVED',
-      variable_mapping: {
-        '{{1}}': 'contact.name',
-      },
+      template_params: {},
     },
     summarize: cfg =>
       cfg.template_name
-        ? `Template: ${cfg.template_name}\nIdioma: ${cfg.template_language || 'pt_BR'}`
-        : 'Selecionar template...',
+        ? `${cfg.template_name} · ${cfg.template_language || 'pt_BR'}`
+        : 'Selecione um template…',
   },
 
-  // 5. CONDITION (IF / ELSE)
+  send_whatsapp_buttons: {
+    type: 'send_whatsapp_buttons',
+    title: 'Botões de resposta',
+    subtitle: 'Até 3 botões pela API oficial, dentro da janela de 24h',
+    category: 'whatsapp',
+    icon: 'i-lucide-mouse-pointer-click',
+    badge: 'API oficial',
+    hasInput: true,
+    outputs: SINGLE_OUTPUT,
+    defaultConfig: {
+      custom_title: 'Botões de resposta',
+      body: 'Como posso te ajudar?',
+      header: '',
+      footer: '',
+      buttons: [
+        { id: 'sim', title: 'Sim' },
+        { id: 'nao', title: 'Não' },
+      ],
+    },
+    summarize: cfg =>
+      (cfg.buttons || [])
+        .map(button => button.title)
+        .filter(Boolean)
+        .join(' · ') || 'Adicione os botões…',
+  },
+
+  send_whatsapp_list: {
+    type: 'send_whatsapp_list',
+    title: 'Lista de opções',
+    subtitle: 'Menu com até 10 opções pela API oficial',
+    category: 'whatsapp',
+    icon: 'i-lucide-list',
+    badge: 'API oficial',
+    hasInput: true,
+    outputs: SINGLE_OUTPUT,
+    defaultConfig: {
+      custom_title: 'Lista de opções',
+      body: 'Escolha uma opção para continuar.',
+      button_label: 'Ver opções',
+      header: '',
+      footer: '',
+      rows: [
+        {
+          id: 'pedido',
+          title: 'Meu pedido',
+          description: 'Acompanhar uma compra',
+        },
+        { id: 'atendente', title: 'Falar com atendente', description: '' },
+      ],
+    },
+    summarize: cfg =>
+      `${(cfg.rows || []).filter(row => row.title).length} opções`,
+  },
+
+  send_whatsapp_media: {
+    type: 'send_whatsapp_media',
+    title: 'Mídia',
+    subtitle: 'Imagem, vídeo, áudio ou documento por link https',
+    category: 'whatsapp',
+    icon: 'i-lucide-image',
+    badge: 'API oficial',
+    hasInput: true,
+    outputs: SINGLE_OUTPUT,
+    defaultConfig: {
+      custom_title: 'Mídia',
+      media_type: 'image',
+      url: '',
+      caption: '',
+      filename: '',
+    },
+    summarize: cfg => {
+      const labels = {
+        image: 'Imagem',
+        video: 'Vídeo',
+        audio: 'Áudio',
+        document: 'Documento',
+      };
+      return cfg.url
+        ? `${labels[cfg.media_type] || 'Mídia'} · ${truncate(cfg.url, 48)}`
+        : 'Informe o link da mídia…';
+    },
+  },
+
   condition: {
     type: 'condition',
     title: 'Condição',
-    subtitle: 'Cria um desvio baseado em regras',
+    subtitle: 'Divide o fluxo em verdadeiro ou falso',
     category: 'logic',
-    icon: '🔀',
-    iconColor: '#A855F7',
-    badge: 'Condição',
-    badgeType: 'condition',
+    icon: 'i-lucide-git-branch',
+    badge: 'Lógica',
     hasInput: true,
     outputs: [
-      { id: 'true', label: 'TRUE', type: 'success' },
-      { id: 'false', label: 'FALSE', type: 'danger' },
+      { id: 'true', label: 'Verdadeiro', type: 'success' },
+      { id: 'false', label: 'Falso', type: 'danger' },
     ],
     defaultConfig: {
       custom_title: 'Condição',
-      match_type: 'all', // 'all' (AND) ou 'any' (OR)
+      match_type: 'all',
       conditions: [
         {
-          field: 'webhook.status',
+          field: '{{ $webhook.status }}',
           operator: 'equal_to',
           value: 'interested',
         },
       ],
     },
-    summarize: cfg => {
-      if (!cfg.conditions || !cfg.conditions.length)
-        return 'Configurar regras...';
-      const first = cfg.conditions[0];
-      const opText =
-        first.operator === 'equal_to' ? 'é igual a' : first.operator;
-      const andText =
-        cfg.conditions.length > 1
-          ? ` +${cfg.conditions.length - 1} regra(s)`
-          : '';
-      return `${first.field || 'campo'} ${opText} ${first.value || ''}${andText}`;
-    },
+    summarize: () => '',
   },
 
-  // 6. ROUTER
   router: {
     type: 'router',
     title: 'Roteador',
     subtitle: 'Direciona o fluxo por múltiplas rotas',
     category: 'logic',
-    icon: '🔀',
-    iconColor: '#A855F7',
-    badge: 'Roteador',
-    badgeType: 'condition',
+    icon: 'i-lucide-split',
+    badge: 'Lógica',
     hasInput: true,
-    outputs: [
-      { id: 'Instagram', label: 'Instagram', color: '#3B82F6' },
-      { id: 'Google', label: 'Google', color: '#10B981' },
-      { id: 'Referral', label: 'Referral', color: '#F59E0B' },
-      { id: 'Default', label: 'Default', color: '#64748B' },
-    ],
+    outputs: [{ id: 'Default', label: 'Default', color: '#94A3B8' }],
     defaultConfig: {
-      custom_title: 'Origem do Lead',
-      source_variable: 'webhook.source',
+      custom_title: 'Roteador',
+      source_variable: '{{ $webhook.source }}',
       routes: [
         {
           name: 'Instagram',
@@ -183,381 +319,334 @@ export const WORKFLOW_NODES_REGISTRY = {
           value: 'google',
           color: '#10B981',
         },
-        {
-          name: 'Referral',
-          operator: 'equal_to',
-          value: 'referral',
-          color: '#F59E0B',
-        },
       ],
       default_route_name: 'Default',
     },
-    summarize: cfg => cfg.source_variable || 'webhook.source',
+    summarize: () => '',
   },
 
-  // 7. DELAY
   delay: {
     type: 'delay',
-    title: 'Delay',
-    subtitle: 'Aguarda por um período de tempo',
+    title: 'Aguardar',
+    subtitle: 'Pausa o fluxo por um período',
     category: 'time',
-    icon: '⏱️',
-    iconColor: '#F59E0B',
+    icon: 'i-lucide-timer',
     badge: 'Tempo',
-    badgeType: 'time',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
-      custom_title: 'Delay',
+      custom_title: 'Aguardar',
       duration: 10,
-      unit: 'minutes', // seconds, minutes, hours, days
+      unit: 'minutes',
     },
-    summarize: cfg => `${cfg.duration || 10} ${cfg.unit || 'minutos'}`,
+    summarize: cfg => {
+      const units = {
+        seconds: 'segundo(s)',
+        minutes: 'minuto(s)',
+        hours: 'hora(s)',
+        days: 'dia(s)',
+      };
+      return `Esperar ${cfg.duration || 0} ${units[cfg.unit] || 'minuto(s)'}`;
+    },
   },
 
-  // 8. WAIT UNTIL
   wait_until: {
     type: 'wait_until',
     title: 'Aguardar Até',
-    subtitle: 'Pausa o fluxo até uma data ou horário',
+    subtitle: 'Pausa até um horário ou data',
     category: 'time',
-    icon: '📅',
-    iconColor: '#F59E0B',
+    icon: 'i-lucide-calendar-clock',
     badge: 'Tempo',
-    badgeType: 'time',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
       custom_title: 'Aguardar Até',
-      wait_mode: 'specific_time', // specific_time, business_hours, variable_date
+      wait_mode: 'specific_time',
       target_time: '09:00',
       timezone: 'America/Sao_Paulo',
     },
     summarize: cfg =>
-      cfg.target_time ? `Até ${cfg.target_time}` : 'Aguardar horário',
+      cfg.wait_mode === 'business_hours'
+        ? 'Próximo horário comercial'
+        : `Até ${cfg.target_time || '--:--'}`,
   },
 
-  // 9. WAIT FOR REPLY
   wait_for_reply: {
     type: 'wait_for_reply',
     title: 'Aguardar Resposta',
     subtitle: 'Espera o cliente responder',
     category: 'time',
-    icon: '⏳',
-    iconColor: '#6366F1',
+    icon: 'i-lucide-hourglass',
     badge: 'Tempo',
-    badgeType: 'time',
     hasInput: true,
     outputs: [
-      { id: 'REPLIED', label: 'REPLIED', type: 'success' },
-      { id: 'TIMEOUT', label: 'TIMEOUT', type: 'danger' },
+      { id: 'REPLIED', label: 'Respondeu', type: 'success' },
+      { id: 'TIMEOUT', label: 'Sem resposta', type: 'danger' },
     ],
     defaultConfig: {
-      custom_title: 'Aguardar Resposta do Cliente',
-      wait_for: 'customer_reply',
-      conversation: 'current',
+      custom_title: 'Aguardar Resposta',
       timeout_hours: 24,
-      timeout_unit: 'hours',
       ignore_bot_messages: true,
       ignore_private_notes: true,
       only_customer_messages: true,
     },
-    summarize: cfg => `Timeout: ${cfg.timeout_hours || 24} horas`,
+    summarize: cfg => `Tempo limite: ${cfg.timeout_hours || 24}h`,
   },
 
-  // 10. SET VARIABLE
   set_variable: {
     type: 'set_variable',
     title: 'Definir Variável',
-    subtitle: 'Atribui um valor a uma variável do fluxo',
+    subtitle: 'Guarda um valor para usar depois',
     category: 'data',
-    icon: '📝',
-    iconColor: '#EC4899',
+    icon: 'i-lucide-variable',
     badge: 'Dados',
-    badgeType: 'data',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
       custom_title: 'Definir Variável',
       variable_name: 'lead_score',
-      variable_type: 'number',
+      variable_type: 'string',
       variable_value: '10',
     },
     summarize: cfg =>
-      `${cfg.variable_name || 'var'} = ${cfg.variable_value || ''}`,
+      `$vars.${cfg.variable_name || 'nome'} = ${cfg.variable_value || '…'}`,
   },
 
-  // 11. ADD TAG
   add_tag: {
     type: 'add_tag',
-    title: 'Adicionar Tag',
-    subtitle: 'Adiciona uma tag ao contato',
+    title: 'Adicionar Etiqueta',
+    subtitle: 'Adiciona uma etiqueta à conversa',
     category: 'chatwoot',
-    icon: '🏷️',
-    iconColor: '#EF4444',
-    badge: 'Ação',
-    badgeType: 'action',
+    icon: 'i-lucide-tag',
+    badge: 'Chatwoot',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
-      custom_title: 'Adicionar Tag',
-      tag_name: 'cliente_vip',
-    },
-    summarize: cfg => `Tag: ${cfg.tag_name || 'sem tag'}`,
-  },
-
-  // 12. REMOVE TAG
-  remove_tag: {
-    type: 'remove_tag',
-    title: 'Remover Tag',
-    subtitle: 'Remove uma tag existente do contato',
-    category: 'chatwoot',
-    icon: '🏷️',
-    iconColor: '#EF4444',
-    badge: 'Ação',
-    badgeType: 'action',
-    hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
-    defaultConfig: {
-      custom_title: 'Remover Tag',
+      custom_title: 'Adicionar Etiqueta',
       tag_name: '',
     },
-    summarize: cfg => `Remover: ${cfg.tag_name || 'sem tag'}`,
+    summarize: cfg =>
+      cfg.tag_name ? `#${cfg.tag_name}` : 'Escolha a etiqueta…',
   },
 
-  // 13. UPDATE CONTACT
+  remove_tag: {
+    type: 'remove_tag',
+    title: 'Remover Etiqueta',
+    subtitle: 'Remove uma etiqueta da conversa',
+    category: 'chatwoot',
+    icon: 'i-lucide-tags',
+    badge: 'Chatwoot',
+    hasInput: true,
+    outputs: SINGLE_OUTPUT,
+    defaultConfig: {
+      custom_title: 'Remover Etiqueta',
+      tag_name: '',
+    },
+    summarize: cfg =>
+      cfg.tag_name ? `Remover #${cfg.tag_name}` : 'Escolha a etiqueta…',
+  },
+
   update_contact: {
     type: 'update_contact',
     title: 'Atualizar Contato',
     subtitle: 'Altera dados cadastrais do contato',
     category: 'chatwoot',
-    icon: '👤',
-    iconColor: '#3B82F6',
-    badge: 'CRM',
-    badgeType: 'action',
+    icon: 'i-lucide-user-pen',
+    badge: 'Chatwoot',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
       custom_title: 'Atualizar Contato',
       field_name: 'name',
-      field_value: '{{webhook.customer.name}}',
+      field_value: '{{ $webhook.customer.name }}',
     },
     summarize: cfg => `${cfg.field_name || 'campo'} ← ${cfg.field_value || ''}`,
   },
 
-  // 14. UPDATE CUSTOM ATTRIBUTE
   update_custom_attribute: {
     type: 'update_custom_attribute',
-    title: 'Atualizar Atributo Customizado',
-    subtitle: 'Define valor de campo customizado',
+    title: 'Atributo Personalizado',
+    subtitle: 'Define o valor de um atributo',
     category: 'chatwoot',
-    icon: '⚙️',
-    iconColor: '#64748B',
-    badge: 'CRM',
-    badgeType: 'action',
+    icon: 'i-lucide-sliders-horizontal',
+    badge: 'Chatwoot',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
-      custom_title: 'Atualizar Atributo',
-      attribute_key: 'cliente_ativo',
-      attribute_value: 'true',
+      custom_title: 'Atributo Personalizado',
+      target: 'contact',
+      attribute_key: '',
+      attribute_value: '',
     },
     summarize: cfg =>
-      `${cfg.attribute_key || 'atributo'} = ${cfg.attribute_value || ''}`,
+      cfg.attribute_key
+        ? `${cfg.attribute_key} = ${cfg.attribute_value || '…'}`
+        : 'Escolha o atributo…',
   },
 
-  // 15. UPDATE CONVERSATION
   update_conversation: {
     type: 'update_conversation',
     title: 'Atualizar Conversa',
     subtitle: 'Altera prioridade ou status da conversa',
     category: 'chatwoot',
-    icon: '💬',
-    iconColor: '#3B82F6',
+    icon: 'i-lucide-messages-square',
     badge: 'Chatwoot',
-    badgeType: 'action',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
       custom_title: 'Atualizar Conversa',
       priority: 'high',
       status: 'open',
     },
-    summarize: cfg => `Prioridade: ${cfg.priority || 'média'}`,
+    summarize: cfg =>
+      `Prioridade ${cfg.priority || '—'} · Status ${cfg.status || '—'}`,
   },
 
-  // 16. ASSIGN AGENT
   assign_agent: {
     type: 'assign_agent',
     title: 'Atribuir Agente',
-    subtitle: 'Define um atendente responsável',
+    subtitle: 'Define o agente responsável',
     category: 'chatwoot',
-    icon: '👤',
-    iconColor: '#10B981',
-    badge: 'Ação',
-    badgeType: 'action',
+    icon: 'i-lucide-user-check',
+    badge: 'Chatwoot',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
       custom_title: 'Atribuir Agente',
       agent_id: '',
-      agent_name: 'Samuel',
+      agent_name: '',
     },
-    summarize: cfg => `Agente: ${cfg.agent_name || 'Automático'}`,
+    summarize: cfg => cfg.agent_name || 'Escolha o agente…',
   },
 
-  // 17. ASSIGN TEAM
   assign_team: {
     type: 'assign_team',
-    title: 'Atribuir ao Time',
-    subtitle: 'Direciona conversa para equipe especializada',
+    title: 'Atribuir Time',
+    subtitle: 'Direciona a conversa para um time',
     category: 'chatwoot',
-    icon: '👥',
-    iconColor: '#8B5CF6',
-    badge: 'Ação',
-    badgeType: 'action',
+    icon: 'i-lucide-users',
+    badge: 'Chatwoot',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
-      custom_title: 'Atribuir ao Time',
+      custom_title: 'Atribuir Time',
       team_id: '',
-      team_name: 'Vendas',
+      team_name: '',
     },
-    summarize: cfg => `Time: ${cfg.team_name || 'Equipe'}`,
+    summarize: cfg => cfg.team_name || 'Escolha o time…',
   },
 
-  // 18. ADD PRIVATE NOTE
   add_private_note: {
     type: 'add_private_note',
-    title: 'Adicionar Nota Privada',
-    subtitle: 'Insere uma nota interna na conversa',
+    title: 'Nota Privada',
+    subtitle: 'Adiciona uma nota interna na conversa',
     category: 'chatwoot',
-    icon: '🔒',
-    iconColor: '#F59E0B',
-    badge: 'Interno',
-    badgeType: 'action',
+    icon: 'i-lucide-sticky-note',
+    badge: 'Chatwoot',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
-      custom_title: 'Adicionar Nota Privada',
+      custom_title: 'Nota Privada',
       note_text: 'Lead qualificado via fluxo automatizado.',
     },
     summarize: cfg =>
-      cfg.note_text ? `"${cfg.note_text.slice(0, 32)}..."` : 'Nota vazia',
+      cfg.note_text ? truncate(cfg.note_text, 80) : 'Escreva a nota…',
   },
 
-  // 19. RESOLVE CONVERSATION
   resolve_conversation: {
     type: 'resolve_conversation',
     title: 'Resolver Conversa',
-    subtitle: 'Finaliza e fecha o ticket de atendimento',
+    subtitle: 'Marca a conversa como resolvida',
     category: 'chatwoot',
-    icon: '✅',
-    iconColor: '#10B981',
-    badge: 'Ação',
-    badgeType: 'action',
+    icon: 'i-lucide-circle-check',
+    badge: 'Chatwoot',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
       custom_title: 'Resolver Conversa',
     },
-    summarize: () => 'Finalizar ticket',
+    summarize: () => '',
   },
 
-  // 20. REOPEN CONVERSATION
   reopen_conversation: {
     type: 'reopen_conversation',
     title: 'Reabrir Conversa',
-    subtitle: 'Reabre um atendimento finalizado',
+    subtitle: 'Reabre um atendimento resolvido',
     category: 'chatwoot',
-    icon: '🔄',
-    iconColor: '#3B82F6',
-    badge: 'Ação',
-    badgeType: 'action',
+    icon: 'i-lucide-rotate-ccw',
+    badge: 'Chatwoot',
     hasInput: true,
-    outputs: [{ id: 'output', label: '', type: 'default' }],
+    outputs: SINGLE_OUTPUT,
     defaultConfig: {
       custom_title: 'Reabrir Conversa',
     },
-    summarize: () => 'Reabrir ticket',
+    summarize: () => '',
   },
 
-  // 21. HTTP REQUEST
   http_request: {
     type: 'http_request',
     title: 'Requisição HTTP',
-    subtitle: 'Faz uma requisição externa',
+    subtitle: 'Chama uma API externa',
     category: 'integrations',
-    icon: '🌐',
-    iconColor: '#3B82F6',
+    icon: 'i-lucide-globe',
     badge: 'Integração',
-    badgeType: 'integration',
     hasInput: true,
     outputs: [
-      { id: 'SUCCESS', label: 'SUCCESS', type: 'success' },
-      { id: 'ERROR', label: 'ERROR', type: 'danger' },
+      { id: 'SUCCESS', label: 'Sucesso', type: 'success' },
+      { id: 'ERROR', label: 'Erro', type: 'danger' },
     ],
     defaultConfig: {
-      custom_title: 'HTTP Request - Criar Pedido',
+      custom_title: 'Requisição HTTP',
       method: 'POST',
       url: 'https://api.exemplo.com/orders',
-      params: [{ key: 'source', value: '{{webhook.source}}' }],
-      headers: [
-        { key: 'Authorization', value: 'Bearer **********' },
-        { key: 'Content-Type', value: 'application/json' },
-      ],
+      params: [],
+      headers: [{ key: 'Content-Type', value: 'application/json' }],
+      auth_type: 'none',
       body: JSON.stringify(
         {
-          customer_name: '{{contact.name}}',
-          order_id: '{{webhook.order_id}}',
-          source: '{{webhook.source}}',
+          customer_name: '{{ $contact.name }}',
+          phone: '{{ $contact.phone_number }}',
         },
         null,
         2
       ),
-      timeout: 30,
-      retry_count: 3,
-      retry_interval: 5,
-      save_response_as: 'workflow.http_response',
+      timeout: 15,
+      retry_count: 1,
+      retry_interval: 2,
+      save_response_as: 'http_response',
     },
-    summarize: cfg =>
-      `${cfg.method || 'POST'} ${cfg.url || 'https://api...'}\nEnvia dados para API externa`,
+    summarize: () => '',
   },
 
-  // 22. SEND WEBHOOK
   send_webhook: {
     type: 'send_webhook',
-    title: 'Enviar Webhook Outbound',
-    subtitle: 'Dispara payload para URL externa',
+    title: 'Enviar Webhook',
+    subtitle: 'Dispara um payload para uma URL externa',
     category: 'integrations',
-    icon: '📤',
-    iconColor: '#8B5CF6',
+    icon: 'i-lucide-send',
     badge: 'Integração',
-    badgeType: 'integration',
     hasInput: true,
     outputs: [
-      { id: 'SUCCESS', label: 'SUCCESS', type: 'success' },
-      { id: 'ERROR', label: 'ERROR', type: 'danger' },
+      { id: 'SUCCESS', label: 'Sucesso', type: 'success' },
+      { id: 'ERROR', label: 'Erro', type: 'danger' },
     ],
     defaultConfig: {
       custom_title: 'Enviar Webhook',
-      url: 'https://n8n.meusuper.app/webhook/chatwoot',
+      url: '',
       method: 'POST',
-      payload: '{\n  "event": "lead_converted"\n}',
+      payload:
+        '{\n  "event": "lead_converted",\n  "phone": "{{ $contact.phone_number }}"\n}',
     },
-    summarize: cfg => `POST ${cfg.url || 'https://...'}`,
+    summarize: cfg => `${cfg.method || 'POST'} ${cfg.url || 'https://…'}`,
   },
 
-  // 23. END WORKFLOW
   end_workflow: {
     type: 'end_workflow',
     title: 'Fim do Fluxo',
-    subtitle: 'Encerra a execução do workflow',
+    subtitle: 'Encerra a execução',
     category: 'flow_control',
-    icon: '🛑',
-    iconColor: '#EF4444',
-    badge: 'Fim',
-    badgeType: 'flow_control',
+    icon: 'i-lucide-octagon-x',
+    badge: 'Controle',
     hasInput: true,
     outputs: [],
     defaultConfig: {
@@ -571,3 +660,25 @@ export const WORKFLOW_NODES_REGISTRY = {
 export const getNodeDefinition = type => {
   return WORKFLOW_NODES_REGISTRY[type] || WORKFLOW_NODES_REGISTRY.send_message;
 };
+
+export const getCategoryStyle = type =>
+  CATEGORY_STYLES[getNodeDefinition(type).category] ||
+  CATEGORY_STYLES.messaging;
+
+export const getNodeOutputs = (type, config = {}) => {
+  const definition = getNodeDefinition(type);
+  if (type !== 'router') return definition.outputs || [];
+
+  const named = (config.routes || [])
+    .filter(route => route.name)
+    .map(route => ({
+      id: route.name,
+      label: route.name,
+      color: route.color || '#3B82F6',
+    }));
+  const fallback = config.default_route_name || 'Default';
+  return [...named, { id: fallback, label: fallback, color: '#94A3B8' }];
+};
+
+export const getOutputColor = output =>
+  output.color || OUTPUT_COLORS[output.type] || OUTPUT_COLORS.default;

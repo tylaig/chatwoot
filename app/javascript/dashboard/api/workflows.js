@@ -31,6 +31,17 @@ class WorkflowsAPI {
     return axios.get(this.baseUrl, { params });
   }
 
+  testHttpRequest(config) {
+    return axios.post(`${this.baseUrl}/test_http`, { config });
+  }
+
+  uploadMedia(file) {
+    const body = new FormData();
+    body.append('attachment', file);
+    const accountId = this.baseUrl.split('/')[4];
+    return axios.post(`/api/v1/accounts/${accountId}/upload`, body);
+  }
+
   getWorkflow(id) {
     return axios.get(`${this.baseUrl}/${id}`);
   }
@@ -44,6 +55,10 @@ class WorkflowsAPI {
       workflow: data,
       draft_version: draftVersion,
     });
+  }
+
+  renameWorkflow(id, name) {
+    return axios.put(`${this.baseUrl}/${id}`, { workflow: { name } });
   }
 
   deleteWorkflow(id) {
@@ -66,6 +81,18 @@ class WorkflowsAPI {
     return axios.post(`${this.baseUrl}/${id}/duplicate`);
   }
 
+  getWebhookTrigger(id) {
+    return axios.get(`${this.baseUrl}/${id}/webhook_trigger`);
+  }
+
+  upsertWebhookTrigger(id, attrs) {
+    return axios.post(`${this.baseUrl}/${id}/webhook_trigger`, attrs);
+  }
+
+  testWebhook(id) {
+    return axios.post(`${this.baseUrl}/${id}/test_webhook_trigger`);
+  }
+
   getWorkflowExecutions(id) {
     return axios.get(`${this.baseUrl}/${id}/executions`);
   }
@@ -80,6 +107,10 @@ class WorkflowsAPI {
 
   cancelExecution(id) {
     return axios.post(`${this.executionsBaseUrl}/${id}/cancel`);
+  }
+
+  retryExecution(id) {
+    return axios.post(`${this.executionsBaseUrl}/${id}/retry`);
   }
 }
 

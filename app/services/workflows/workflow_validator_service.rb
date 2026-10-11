@@ -2,108 +2,266 @@
 
 module Workflows
   class WorkflowValidatorService
-    attr_reader :workflow, :version, :errors
+    VARIABLE_ROOTS = %w[webhook payload trigger contact conversation inbox account vars var workflow custom_attributes].freeze
+    VARIABLE_TOKEN = /\{\{(.*?)\}\}/
+    VARIABLE_PATH = /\A\$?[a-zA-Z0-9_\-]+(\.[a-zA-Z0-9_\-]+)*\z/
+    DECLARED_VAR_PREFIX = /\A(workflow|vars?)\./
+
+    attr_reader :workflow, :version, :issues
 
     def initialize(workflow, version)
       @workflow = workflow
       @version = version
       @account = workflow.account
-      @errors = []
+      @issues = []
+    end
+
+    def errors
+      issues.pluck(:message)
     end
 
     def validate!
       validate_structure!
+      return false if issues.any?
+
       validate_trigger!
       validate_edges!
+      validate_connectivity!
       validate_nodes!
-      errors.empty?
+      @issues.uniq!
+      issues.empty?
     end
 
     private
 
+    def nodes
+      @nodes ||= Array(version.nodes)
+    end
+
+    def edges
+      @edges ||= Array(version.edges)
+    end
+
+    def add_issue(message, node = nil)
+      label = node ? node_label(node) : nil
+      @issues << { node_id: node&.dig('id'), message: label ? "#{label}: #{message}" : message }
+    end
+
+    def node_label(node)
+      title = NodeExecutors::BaseExecutor.config_for(node)[:custom_title].presence
+      title || NodeExecutors::BaseExecutor.node_type_for(node)
+    end
+
+    def node_type(node)
+      NodeExecutors::BaseExecutor.node_type_for(node)
+    end
+
+    def trigger?(node)
+      node_type(node).end_with?('_trigger')
+    end
+
     def validate_structure!
-      if version.nodes.blank? || !version.nodes.is_a?(Array) || version.nodes.empty?
-        @errors << 'O workflow deve possuir pelo menos um bloco configurado.'
-      end
+      add_issue('O workflow deve possuir pelo menos um bloco configurado.') if nodes.empty?
     end
 
     def validate_trigger!
-      return if version.nodes.blank?
-
-      trigger_nodes = version.nodes.select { |n| n['type'].to_s.end_with?('_trigger') || n['type'] == 'webhook_trigger' }
-      if trigger_nodes.empty?
-        @errors << 'O workflow deve possuir pelo menos um bloco de Gatilho (Trigger).'
-      end
+      triggers = nodes.select { |node| trigger?(node) }
+      add_issue('O workflow deve possuir um bloco de Gatilho.') if triggers.empty?
+      triggers.drop(1).each { |node| add_issue('Apenas um gatilho é permitido por workflow.', node) }
     end
 
     def validate_edges!
-      return if version.edges.blank? || version.nodes.blank?
+      node_ids = nodes.pluck('id').to_set
+      edges.each do |edge|
+        next if node_ids.include?(edge['source']) && node_ids.include?(edge['target'])
 
-      node_ids = version.nodes.map { |n| n['id'] }.to_set
+        add_issue("Conexão inválida entre '#{edge['source']}' e '#{edge['target']}': bloco inexistente.")
+      end
+    end
 
-      version.edges.each do |edge|
-        source_id = edge['source']
-        target_id = edge['target']
+    def validate_connectivity!
+      targets = edges.pluck('target').to_set
+      nodes.each do |node|
+        next if trigger?(node) || targets.include?(node['id'])
 
-        unless node_ids.include?(source_id)
-          @errors << "Conexão inválida: bloco de origem '#{source_id}' não existe no fluxo."
-        end
-
-        unless node_ids.include?(target_id)
-          @errors << "Conexão inválida: bloco de destino '#{target_id}' não existe no fluxo."
-        end
+        add_issue('Bloco não está conectado ao fluxo.', node)
       end
     end
 
     def validate_nodes!
-      return if version.nodes.blank?
+      nodes.each do |node|
+        cfg = NodeExecutors::BaseExecutor.config_for(node)
+        validate_node_config(node, cfg)
+        validate_variables(node, cfg)
+      end
+    end
 
-      version.nodes.each do |node|
-        cfg = (node['config'] || {}).with_indifferent_access
-        node_id = node['id']
-        node_type = node['type']
-
-        case node_type
-        when 'send_whatsapp_message', 'send_whatsapp_template'
-          delivery_mode = cfg[:delivery_mode] || 'auto'
-
-          if delivery_mode.in?(%w[outside_24h auto]) && cfg[:template_name].present?
-            tpl = @account.whatsapp_templates.find_by(name: cfg[:template_name])
-            if tpl.blank?
-              @errors << "Bloco #{node_id}: O template WhatsApp '#{cfg[:template_name]}' não foi encontrado na conta."
-            elsif tpl.status != 'APPROVED'
-              @errors << "Bloco #{node_id}: O template '#{cfg[:template_name]}' possui status '#{tpl.status}'. Apenas templates aprovados (APPROVED) podem ser publicados."
-            end
-          elsif delivery_mode == 'outside_24h' && cfg[:template_name].blank?
-            @errors << "Bloco #{node_id}: Template aprovado é obrigatório para envio fora da janela de 24h."
-          end
-
-        when 'condition'
-          conditions = cfg[:conditions]
-          if conditions.blank? || !conditions.is_a?(Array) || conditions.empty?
-            @errors << "Bloco #{node_id} (Condição): Pelo menos uma regra de comparação deve ser configurada."
-          else
-            conditions.each do |c|
-              if c['field'].blank?
-                @errors << "Bloco #{node_id} (Condição): O campo da condição não pode estar vazio."
-              end
-            end
-          end
-
-        when 'http_request', 'send_webhook'
-          url = cfg[:url].to_s
-          if url.blank?
-            @errors << "Bloco #{node_id} (HTTP Request): A URL de requisição é obrigatória."
-          elsif !url.start_with?('http://', 'https://', '{{')
-            @errors << "Bloco #{node_id} (HTTP Request): A URL deve iniciar com http:// ou https://."
-          end
-
-        when 'delay'
-          duration = cfg[:duration].to_i
-          if duration <= 0
-            @errors << "Bloco #{node_id} (Delay): A duração da espera deve ser um número positivo."
-          end
+    def validate_node_config(node, cfg)
+      case node_type(node)
+      when 'send_message'
+        has_file = Array(cfg[:attachments]).any? do |item|
+          data = item.is_a?(Hash) ? item.with_indifferent_access : {}
+          data[:blob_id].present?
         end
+        add_issue('Escreva a mensagem ou anexe um arquivo.', node) if cfg[:content].blank? && !has_file
+      when 'send_whatsapp_message', 'send_whatsapp_template'
+        validate_whatsapp(node, cfg)
+      when 'send_whatsapp_buttons', 'send_whatsapp_list', 'send_whatsapp_media'
+        validate_official_message(node, cfg)
+      when 'condition'
+        validate_condition(node, cfg)
+      when 'router'
+        validate_router(node, cfg)
+      when 'http_request', 'send_webhook'
+        validate_url(node, cfg[:url].to_s)
+      when 'delay'
+        add_issue('A duração da espera deve ser um número positivo.', node) unless cfg[:duration].to_i.positive?
+      when 'wait_for_reply'
+        add_issue('O tempo limite deve ser um número positivo.', node) unless cfg[:timeout_hours].to_i.positive?
+      when 'set_variable'
+        add_issue('Informe um nome de variável válido (letras, números e _).', node) unless cfg[:variable_name].to_s.match?(/\A[a-zA-Z_][a-zA-Z0-9_]*\z/)
+      when 'add_tag', 'remove_tag'
+        add_issue('Informe o nome da tag.', node) if cfg[:tag_name].blank?
+      when 'update_custom_attribute'
+        add_issue('Informe a chave do atributo customizado.', node) if cfg[:attribute_key].blank?
+      when 'assign_agent'
+        add_issue('Selecione um agente válido.', node) unless @account.users.exists?(id: cfg[:agent_id])
+      when 'assign_team'
+        add_issue('Selecione um time válido.', node) unless @account.teams.exists?(id: cfg[:team_id])
+      end
+    end
+
+    def validate_whatsapp(node, cfg)
+      delivery_mode = cfg[:delivery_mode] || 'auto'
+      template_name = cfg[:template_name]
+
+      if node_type(node) == 'send_whatsapp_template' || delivery_mode == 'outside_24h'
+        return add_issue('Selecione um template aprovado.', node) if template_name.blank?
+      end
+      add_issue('A mensagem de texto não pode ficar vazia.', node) if delivery_mode == 'inside_24h' && cfg[:text].blank?
+      return if template_name.blank?
+
+      template = @account.whatsapp_templates.find_by(name: template_name)
+      if template.blank?
+        add_issue("O template '#{template_name}' não foi encontrado na conta.", node)
+        return
+      elsif template.status != 'APPROVED'
+        add_issue("O template '#{template_name}' está com status #{template.status}; apenas templates aprovados podem ser publicados.", node)
+      end
+
+      params = cfg[:template_params].is_a?(Hash) ? cfg[:template_params] : {}
+      template.body.to_s.scan(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/).flatten.uniq.each do |key|
+        add_issue("Preencha a variável {{#{key}}} do template.", node) if params[key].blank?
+      end
+    end
+
+    def validate_official_message(node, cfg)
+      case node_type(node)
+      when 'send_whatsapp_buttons'
+        add_issue('O texto da mensagem não pode ficar vazio.', node) if cfg[:body].blank?
+        buttons = Array(cfg[:buttons])
+        add_issue('A API oficial aceita de 1 a 3 botões.', node) unless buttons.size.between?(1, 3)
+        buttons.each_with_index do |button, index|
+          title = button.to_h['title'].to_s
+          add_issue("O botão #{index + 1} precisa de um texto.", node) if title.blank?
+          add_issue("O botão #{index + 1} pode ter no máximo 20 caracteres.", node) if plain_over?(title, 20)
+        end
+      when 'send_whatsapp_list'
+        add_issue('O texto da mensagem não pode ficar vazio.', node) if cfg[:body].blank?
+        add_issue('Informe o texto do botão que abre a lista.', node) if cfg[:button_label].blank?
+        add_issue('O botão da lista pode ter no máximo 20 caracteres.', node) if plain_over?(cfg[:button_label].to_s, 20)
+        rows = Array(cfg[:rows])
+        add_issue('A lista precisa de 1 a 10 opções.', node) unless rows.size.between?(1, 10)
+        rows.each_with_index do |row, index|
+          title = row.to_h['title'].to_s
+          add_issue("A opção #{index + 1} precisa de um título.", node) if title.blank?
+          add_issue("A opção #{index + 1} pode ter no máximo 24 caracteres.", node) if plain_over?(title, 24)
+          add_issue("A descrição da opção #{index + 1} pode ter no máximo 72 caracteres.", node) if plain_over?(row.to_h['description'].to_s, 72)
+        end
+      else
+        add_issue('Escolha imagem, vídeo, áudio ou documento.', node) unless %w[image video audio document].include?(cfg[:media_type].to_s)
+        url = cfg[:url].to_s
+        if url.blank?
+          add_issue('Informe o link https da mídia.', node)
+        elsif !url.start_with?('https://', '{{')
+          add_issue('O link da mídia precisa ser https.', node)
+        end
+      end
+    end
+
+    def plain_over?(text, max)
+      text.present? && !text.include?('{{') && text.length > max
+    end
+
+    def validate_condition(node, cfg)
+      conditions = cfg[:conditions]
+      return add_issue('Configure pelo menos uma regra.', node) unless conditions.is_a?(Array) && conditions.any?
+
+      conditions.each_with_index do |condition, index|
+        field = condition['field'].to_s
+        if field.blank?
+          add_issue("Regra ##{index + 1} está sem campo.", node)
+        else
+          validate_path(node, field)
+        end
+      end
+    end
+
+    def validate_router(node, cfg)
+      routes = Array(cfg[:routes])
+      add_issue('Configure pelo menos uma rota.', node) if routes.empty?
+      names = routes.map { |route| route['name'].to_s.strip }
+      add_issue('Todas as rotas precisam de um nome.', node) if names.any?(&:blank?)
+      add_issue('Os nomes das rotas precisam ser únicos.', node) if names.uniq.size != names.size
+      cfg[:source_variable].present? ? validate_path(node, cfg[:source_variable]) : add_issue('Informe a variável de roteamento.', node)
+    end
+
+    def validate_url(node, url)
+      if url.blank?
+        add_issue('A URL é obrigatória.', node)
+      elsif !url.start_with?('http://', 'https://', '{{')
+        add_issue('A URL deve iniciar com http:// ou https://.', node)
+      end
+    end
+
+    def validate_variables(node, cfg)
+      collect_strings(cfg.except(:custom_title, :variable_mapping)).each do |text|
+        text.scan(VARIABLE_TOKEN).flatten.each do |inner|
+          token = inner.strip
+          next if token.match?(/\A\d+\z/)
+
+          validate_path(node, token, "{{#{inner}}}")
+        end
+      end
+    end
+
+    def validate_path(node, raw_path, display = raw_path)
+      path = VariableResolverService.normalize_path(raw_path)
+      return add_issue("Variável com sintaxe inválida: #{display}", node) unless path.match?(VARIABLE_PATH)
+
+      root, name = path.split('.')
+      return add_issue("Variável desconhecida: #{display}", node) unless VARIABLE_ROOTS.include?(root)
+      return unless %w[vars var].include?(root)
+
+      add_issue("Variável de fluxo não definida: #{display}", node) unless declared_variables.include?(name)
+    end
+
+    def declared_variables
+      @declared_variables ||= nodes.filter_map do |node|
+        cfg = NodeExecutors::BaseExecutor.config_for(node)
+        case node_type(node)
+        when 'set_variable' then cfg[:variable_name].to_s.delete_prefix('vars.')
+        when 'http_request' then (cfg[:save_response_as].presence || 'http_response').to_s.sub(DECLARED_VAR_PREFIX, '')
+        end
+      end.to_set
+    end
+
+    def collect_strings(value)
+      case value
+      when String then [value]
+      when Hash then value.values.flat_map { |item| collect_strings(item) }
+      when Array then value.flat_map { |item| collect_strings(item) }
+      else []
       end
     end
   end

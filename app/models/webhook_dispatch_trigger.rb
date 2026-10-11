@@ -33,6 +33,7 @@ class WebhookDispatchTrigger < ApplicationRecord
 
     normalized_phone = normalize_phone_number(parsed_phone)
     contact = find_or_create_contact(account, normalized_phone, parsed_name)
+    apply_contact_custom_attributes!(contact, payload)
     contact_inbox = find_or_create_contact_inbox(contact, inbox, normalized_phone)
     conversation = find_or_create_conversation(account, inbox, contact, contact_inbox)
 
@@ -103,6 +104,75 @@ class WebhookDispatchTrigger < ApplicationRecord
     ).perform
   end
 
+  def mapping_payload
+    payload_pinned && pinned_payload.present? ? pinned_payload : sample_payload
+  end
+
+  def run_test_execution(payload = mapping_payload)
+    return { error: 'Nenhum payload recebido para executar o teste.' } if payload.blank?
+    return { error: 'O fluxo não está ligado a este webhook.' } if workflow.blank?
+
+    parsed_phone = extract_by_path(payload, field_mapping['phone_path'])
+    parsed_name = extract_by_path(payload, field_mapping['name_path'])
+    return { error: 'Telefone não encontrado no mapeamento do payload' } if parsed_phone.blank?
+
+    version = workflow.versions.drafts.order(updated_at: :desc).first || workflow.active_version
+    return { error: 'O fluxo ainda não tem uma versão para executar.' } if version.blank?
+
+    normalized_phone = normalize_phone_number(parsed_phone)
+    contact = find_or_create_contact(account, normalized_phone, parsed_name)
+    apply_contact_custom_attributes!(contact, payload)
+    contact_inbox = find_or_create_contact_inbox(contact, inbox, normalized_phone)
+    conversation = find_or_create_conversation(account, inbox, contact, contact_inbox)
+
+    execution = account.workflow_executions.create!(
+      workflow: workflow,
+      workflow_version: version,
+      contact: contact,
+      conversation: conversation,
+      inbox: inbox,
+      trigger_type: 'webhook_test',
+      idempotency_key: "whk_test_#{id}_#{SecureRandom.hex(4)}",
+      status: 'running',
+      started_at: Time.current,
+      context: {
+        test: true,
+        webhook: { trigger_id: id, trigger_name: name, payload: payload },
+        payload: payload
+      }
+    )
+    WorkflowExecutionJob.perform_later(execution.id)
+
+    {
+      success: true,
+      workflow_execution_id: execution.id,
+      conversation_id: conversation.display_id,
+      contact_id: contact.id
+    }
+  end
+
+  def apply_contact_custom_attributes!(contact, payload)
+    rows = Array(field_mapping.to_h['custom_attributes'])
+    return if rows.blank?
+
+    definitions = account.custom_attribute_definitions.contact_attribute.index_by(&:attribute_key)
+    attrs = (contact.custom_attributes || {}).dup
+    changed = false
+    rows.each do |row|
+      key = row.to_h['attribute_key'].presence
+      path = row.to_h['source_path'].presence
+      definition = definitions[key]
+      next if key.blank? || path.blank? || definition.blank?
+
+      value = extract_by_path(payload, path)
+      next if value.nil?
+
+      attrs[key] = coerce_attribute_value(definition.attribute_display_type, value)
+      changed = true
+    end
+    contact.update!(custom_attributes: attrs) if changed
+  end
+
   def extract_by_path(data, path)
     return nil if data.blank? || path.blank?
 
@@ -128,6 +198,17 @@ class WebhookDispatchTrigger < ApplicationRecord
 
   def generate_token
     self.token ||= "whk_#{SecureRandom.hex(16)}"
+  end
+
+  def coerce_attribute_value(display_type, value)
+    case display_type
+    when 'number', 'currency', 'percent'
+      value.to_s.tr(',', '.').to_f
+    when 'checkbox'
+      ActiveModel::Type::Boolean.new.cast(value)
+    else
+      value.is_a?(Hash) || value.is_a?(Array) ? value.to_json : value.to_s
+    end
   end
 
   def normalize_phone_number(phone)

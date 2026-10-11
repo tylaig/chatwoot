@@ -5,10 +5,26 @@ module Workflows
     class BaseExecutor
       attr_reader :execution, :node, :config, :version
 
+      def self.config_for(node)
+        return {}.with_indifferent_access if node.blank?
+
+        nested = node.dig('data', 'config')
+        top = node['config']
+        raw = nested.presence || top || {}
+        raw = raw.to_h unless raw.is_a?(Hash)
+        raw.with_indifferent_access
+      end
+
+      def self.node_type_for(node)
+        type = node['type'].to_s
+        type = node.dig('data', 'type').to_s if type.blank? || type == 'custom'
+        type
+      end
+
       def initialize(execution:, node:, version:)
         @execution = execution
         @node = node
-        @config = (node['config'] || {}).with_indifferent_access
+        @config = self.class.config_for(node)
         @version = version
       end
 

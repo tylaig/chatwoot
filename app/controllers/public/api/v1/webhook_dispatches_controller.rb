@@ -5,6 +5,7 @@ class Public::Api::V1::WebhookDispatchesController < ApplicationController
   skip_before_action :set_current_user, raise: false
   skip_before_action :check_subscription, raise: false
   skip_before_action :verify_authenticity_token, raise: false
+  wrap_parameters false
 
   def trigger
     trigger = WebhookDispatchTrigger.active.find_by(token: params[:token])
@@ -22,6 +23,16 @@ class Public::Api::V1::WebhookDispatchesController < ApplicationController
       rescue JSON::ParserError
         return render json: { error: 'Invalid JSON payload' }, status: :unprocessable_entity
       end
+    end
+
+    payload = payload.to_unsafe_h if payload.respond_to?(:to_unsafe_h)
+    return render json: { error: 'Payload must be a JSON object' }, status: :unprocessable_entity unless payload.is_a?(Hash)
+
+    trigger.update_columns(sample_payload: payload, sample_received_at: Time.current) # rubocop:disable Rails/SkipsModelValidations
+
+    workflow = trigger.workflow
+    if workflow.present? && !(workflow.status == 'active' && workflow.active_version.present?)
+      return render json: { status: 'captured', message: 'Payload capturado. Publique e ative o workflow para executá-lo.' }, status: :accepted
     end
 
     result = trigger.execute_payload(payload)

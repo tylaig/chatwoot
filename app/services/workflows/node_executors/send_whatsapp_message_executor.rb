@@ -25,6 +25,8 @@ module Workflows
           }
         end
 
+        return send_freeform_message if deliver_without_window?
+
         raw_mode = (config[:delivery_mode] || config['delivery_mode'] || config[:mode] || config['mode'] || 'auto').to_s.downcase
         window_service = Workflows::WhatsAppWindowService.new(conversation)
         is_window_open = window_service.open?
@@ -83,35 +85,37 @@ module Workflows
                     .first
       end
 
+      def deliver_without_window?
+        private_message? || !whatsapp_session_channel?
+      end
+
+      def private_message?
+        ActiveModel::Type::Boolean.new.cast(config[:private] || config['private'])
+      end
+
+      def whatsapp_session_channel?
+        execution.conversation&.inbox&.channel_type.in?(%w[Channel::Whatsapp Channel::TwilioSms])
+      end
+
       def send_freeform_message
         conversation = execution.conversation
         content_raw = config[:message_content] || config['message_content'] || config[:content] || config['content'] || config[:text] || config['text'] || ''
         content = resolve_vars(content_raw)
+        files = stored_attachments
+        if content.blank? && files.blank?
+          return { status: 'failed', error: 'Escreva a mensagem ou anexe um arquivo.' }
+        end
 
-        message = conversation.messages.create!(
-          account_id: execution.account_id,
-          inbox_id: conversation.inbox_id,
-          message_type: :outgoing,
-          status: :sent,
-          content: content,
-          additional_attributes: {
-            workflow_execution_id: execution.id,
-            workflow_node_id: node['id']
-          }
-        )
-
-        dispatch_to_channel(message)
-
+        messages = deliver_chatwoot_messages(conversation, content, files)
         {
           status: 'success',
-          output: {
-            message_id: message.id,
-            mode: 'free_form',
-            delivery_method: 'free_form',
-            content: content
-          },
+          output: delivery_output(messages, content),
           next_nodes: next_nodes
         }
+      rescue ActiveRecord::RecordNotFound
+        { status: 'failed', error: 'Um anexo não está mais no armazenamento do Chatwoot.' }
+      rescue StandardError => e
+        { status: 'failed', error: e.message }
       end
 
       def send_template(template_name, template_params_config)
@@ -163,6 +167,90 @@ module Workflows
             template_name: template_name
           },
           next_nodes: next_nodes
+        }
+      end
+
+      def message_attachments
+        Array(config[:attachments] || config['attachments'])
+      end
+
+      def stored_attachments
+        message_attachments.map do |raw|
+          item = raw.is_a?(Hash) ? raw.with_indifferent_access : {}
+          blob = ActiveStorage::Blob.find_signed(item[:blob_id].to_s)
+          raise ActiveRecord::RecordNotFound if blob.blank?
+
+          item.merge(content_type: blob.content_type, filename: blob.filename.to_s)
+        end
+      end
+
+      def deliver_chatwoot_messages(conversation, content, files)
+        if split_media_delivery? && files.present?
+          caption = content
+          files.map do |file|
+            message = create_chatwoot_message(conversation, caption, [file])
+            caption = ''
+            message
+          end
+        else
+          [create_chatwoot_message(conversation, content, files)]
+        end
+      end
+
+      def split_media_delivery?
+        return false if private_message?
+
+        channel_type = execution.conversation.inbox.channel_type
+        return true if %w[Channel::Whatsapp Channel::Instagram Channel::Tiktok].include?(channel_type)
+
+        channel_type == 'Channel::TwilioSms' && execution.conversation.inbox.channel.try(:medium) == 'whatsapp'
+      end
+
+      def create_chatwoot_message(conversation, content, files)
+        voice = files.one? && files.first[:content_type].to_s == 'audio/ogg'
+        message = Messages::MessageBuilder.new(
+          workflow_sender,
+          conversation,
+          {
+            content: content.presence,
+            private: private_message?,
+            message_type: 'outgoing',
+            attachments: files.map { |file| file[:blob_id] }.presence,
+            is_voice_message: voice
+          }
+        ).perform
+        message.update_columns(
+          additional_attributes: (message.additional_attributes || {}).merge(
+            'workflow_execution_id' => execution.id,
+            'workflow_node_id' => node['id'].to_s
+          )
+        )
+        message
+      end
+
+      def workflow_sender
+        execution.account.administrators.first || execution.account.users.first
+      end
+
+      def delivery_output(messages, content)
+        attachments = messages.flat_map do |message|
+          message.attachments.map do |attachment|
+            {
+              id: attachment.id,
+              message_id: message.id,
+              file_type: attachment.file_type,
+              filename: attachment.file.filename.to_s
+            }
+          end
+        end
+        {
+          message_id: messages.first.id,
+          message_ids: messages.map(&:id),
+          private: messages.first.private?,
+          mode: 'free_form',
+          delivery_method: 'chatwoot',
+          content: content,
+          attachments: attachments
         }
       end
 

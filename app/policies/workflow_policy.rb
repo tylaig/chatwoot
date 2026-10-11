@@ -38,4 +38,20 @@ class WorkflowPolicy < ApplicationPolicy
   def executions?
     @account_user.administrator?
   end
+
+  def test_http?
+    @account_user.administrator?
+  end
+
+  def webhook_trigger?
+    @account_user.administrator?
+  end
+
+  def upsert_webhook_trigger?
+    @account_user.administrator?
+  end
+
+  def test_webhook_trigger?
+    @account_user.administrator?
+  end
 end

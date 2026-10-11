@@ -10,90 +10,231 @@ module Workflows
     class HttpRequestExecutor < BaseExecutor
       BLOCKED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '169.254.169.254'].freeze
       SENSITIVE_HEADERS = %w[authorization proxy-authorization x-api-key api-key token secret].freeze
+      MAX_ATTEMPTS = 3
+      MAX_TIMEOUT = 20
+      MAX_RETRY_INTERVAL = 5
+
+      def self.probe(config_hash)
+        node = { 'config' => config_hash }
+        new(execution: nil, node: node, version: nil).probe
+      end
 
       def execute
-        raw_url = resolve_vars(config[:url].to_s)
-        method = (config[:method] || 'POST').upcase
-        headers = (config[:headers] || {}).transform_keys(&:to_s)
-        timeout_seconds = (config[:timeout] || 10).to_i
+        result = dispatch
+        return failure_result(result[:error]) if result[:error].present? && result[:status].nil?
 
-        uri = URI.parse(raw_url)
+        success = result[:status].to_i.between?(200, 299)
+        handle = success ? 'SUCCESS' : 'ERROR'
+        targets = version ? next_nodes(handle) : []
 
-        if private_or_blocked_host?(uri.host)
-          return { status: 'failed', error: 'Endereço de rede privada ou local bloqueado por segurança SSRF.' }
+        store_response(result)
+
+        if !success && targets.empty?
+          return {
+            status: 'failed',
+            error: result[:error].presence || "HTTP status #{result[:status]}",
+            output: result_output(result, handle),
+            next_nodes: []
+          }
         end
-
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = (uri.scheme == 'https')
-        http.open_timeout = timeout_seconds
-        http.read_timeout = timeout_seconds
-
-        req_class = case method
-                    when 'GET' then Net::HTTP::Get
-                    when 'POST' then Net::HTTP::Post
-                    when 'PUT' then Net::HTTP::Put
-                    when 'PATCH' then Net::HTTP::Patch
-                    when 'DELETE' then Net::HTTP::Delete
-                    else Net::HTTP::Post
-                    end
-
-        req = req_class.new(uri.request_uri)
-        headers.each { |k, v| req[k] = resolve_vars(v.to_s) }
-
-        if %w[POST PUT PATCH].include?(method) && config[:body].present?
-          req.body = resolve_vars(config[:body].is_a?(Hash) ? config[:body].to_json : config[:body].to_s)
-          req['Content-Type'] ||= 'application/json'
-        end
-
-        response = http.request(req)
-        parsed_body = begin
-          JSON.parse(response.body)
-        rescue StandardError
-          response.body.to_s[0..2000]
-        end
-
-        # Store in execution context
-        ctx = execution.context || {}
-        ctx['http_response'] = {
-          'status' => response.code.to_i,
-          'body' => parsed_body
-        }
-        execution.update!(context: ctx)
-
-        is_success = response.code.to_i.between?(200, 299)
-        handle = is_success ? 'success' : 'error'
-
-        target_nodes = next_nodes(handle)
-        target_nodes = next_nodes if target_nodes.empty?
 
         {
-          status: is_success ? 'success' : 'failed',
-          output: {
-            status_code: response.code.to_i,
-            response_body: parsed_body,
-            safe_headers: redact_headers(headers)
-          },
-          next_nodes: target_nodes,
-          error: is_success ? nil : "HTTP status #{response.code}"
+          status: 'success',
+          output: result_output(result, handle),
+          next_nodes: targets
         }
       rescue StandardError => e
+        failure_result("Falha na requisição HTTP: #{e.message}")
+      end
+
+      def probe
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        result = dispatch
+        duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
+        success = result[:status].to_i.between?(200, 299)
+
         {
-          status: 'failed',
-          error: "Falha na requisição HTTP: #{e.message}",
-          next_nodes: next_nodes('error')
+          ok: success,
+          status: result[:status],
+          statusText: success ? "#{result[:status]} OK" : (result[:error].presence || "HTTP #{result[:status]}"),
+          duration: "#{duration_ms} ms",
+          data: result[:body]
         }
+      rescue StandardError => e
+        { ok: false, statusText: e.message, duration: '—', data: { error: e.message } }
       end
 
       private
 
+      def dispatch
+        raw_url = resolve_vars(config[:url].to_s)
+        raise 'Informe a URL da requisição.' if raw_url.blank?
+
+        uri = URI.parse(raw_url)
+        raise 'Endereço de rede privada ou local bloqueado por segurança SSRF.' if private_or_blocked_host?(uri.host)
+
+        apply_query!(uri)
+        method = (config[:method] || 'POST').upcase
+        headers = request_headers
+        timeout_seconds = timeout_limit
+        attempts = attempt_limit
+
+        response = nil
+        attempts.times do |index|
+          response = perform_request(uri, method, headers, timeout_seconds)
+          break if response.code.to_i < 500
+          break if index == attempts - 1
+
+          sleep(retry_interval)
+        end
+
+        parsed_body = parse_body(response.body)
+        code = response.code.to_i
+        {
+          status: code,
+          body: parsed_body,
+          headers: headers,
+          error: code.between?(200, 299) ? nil : "HTTP status #{code}"
+        }
+      end
+
+      def perform_request(uri, method, headers, timeout_seconds)
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = uri.scheme == 'https'
+        http.open_timeout = timeout_seconds
+        http.read_timeout = timeout_seconds
+
+        req_class = {
+          'GET' => Net::HTTP::Get,
+          'POST' => Net::HTTP::Post,
+          'PUT' => Net::HTTP::Put,
+          'PATCH' => Net::HTTP::Patch,
+          'DELETE' => Net::HTTP::Delete
+        }.fetch(method, Net::HTTP::Post)
+
+        req = req_class.new(uri.request_uri)
+        headers.each { |key, value| req[key] = resolve_vars(value.to_s) }
+
+        body = config[:body].presence || config[:payload].presence
+        if %w[POST PUT PATCH].include?(method) && body.present?
+          req.body = resolve_vars(body.is_a?(Hash) ? body.to_json : body.to_s)
+          req['Content-Type'] ||= 'application/json'
+        end
+
+        http.request(req)
+      end
+
+      def request_headers
+        headers = normalize_pairs(config[:headers])
+        token = config[:auth_token].to_s
+        usable_token = token.present? && !token.match?(/\A\*+\z/)
+
+        case config[:auth_type].to_s
+        when 'bearer'
+          headers['Authorization'] ||= "Bearer #{token}" if usable_token
+        when 'api_key'
+          headers['X-API-Key'] ||= token if usable_token
+        when 'basic'
+          headers['Authorization'] ||= "Basic #{token}" if usable_token
+        end
+
+        headers
+      end
+
+      def apply_query!(uri)
+        pairs = normalize_pairs(config[:params])
+        return if pairs.blank?
+
+        query = URI.decode_www_form(uri.query || '')
+        pairs.each { |key, value| query << [key, resolve_vars(value.to_s)] }
+        uri.query = URI.encode_www_form(query)
+      end
+
+      def normalize_pairs(raw)
+        case raw
+        when Array
+          raw.each_with_object({}) do |item, acc|
+            pair = item.respond_to?(:with_indifferent_access) ? item.with_indifferent_access : {}
+            key = pair[:key].to_s
+            acc[key] = pair[:value] if key.present?
+          end
+        when Hash
+          raw.transform_keys(&:to_s)
+        else
+          {}
+        end
+      end
+
+      def store_response(result)
+        return if execution.blank?
+
+        payload = { 'status' => result[:status], 'body' => result[:body] }
+        ctx = (execution.context || {}).dup
+        key = config[:save_response_as].presence || 'http_response'
+        ctx[key] = payload
+        ctx['http_response'] = payload
+        variables = (execution.variables || {}).merge(key.sub(/\A(workflow|vars?)\./, '') => payload)
+        execution.update!(context: ctx, variables: variables)
+      end
+
+      def result_output(result, handle)
+        {
+          status_code: result[:status],
+          response_body: result[:body],
+          branch: handle,
+          safe_headers: redact_headers(result[:headers] || {}),
+          error: result[:error]
+        }
+      end
+
+      def failure_result(message)
+        targets = version ? next_nodes('ERROR') : []
+        if targets.any?
+          return {
+            status: 'success',
+            output: { error: message, branch: 'ERROR' },
+            next_nodes: targets
+          }
+        end
+
+        { status: 'failed', error: message, next_nodes: [] }
+      end
+
+      def timeout_limit
+        value = (config[:timeout] || 10).to_i
+        value = 10 if value <= 0
+        [value, MAX_TIMEOUT].min
+      end
+
+      def attempt_limit
+        value = (config[:retry_count] || 1).to_i
+        value = 1 if value <= 0
+        [value, MAX_ATTEMPTS].min
+      end
+
+      def retry_interval
+        value = (config[:retry_interval] || 0).to_i
+        [[value, 0].max, MAX_RETRY_INTERVAL].min
+      end
+
+      def parse_body(body)
+        JSON.parse(body.to_s)
+      rescue StandardError
+        body.to_s[0..2000]
+      end
+
       def private_or_blocked_host?(host)
         return true if host.blank?
+
         lower_host = host.downcase
         return true if BLOCKED_HOSTS.include?(lower_host)
         return true if lower_host.end_with?('.internal', '.local', 'localhost')
 
-        # Check IP ranges
-        ips = Resolv.getaddresses(host) rescue []
+        ips = begin
+          Resolv.getaddresses(host)
+        rescue StandardError
+          []
+        end
         return true if ips.empty? && host.match?(/^\d+\.\d+\.\d+\.\d+$/)
 
         ips.any? do |ip_str|
@@ -112,8 +253,8 @@ module Workflows
       end
 
       def redact_headers(headers)
-        headers.each_with_object({}) do |(k, v), acc|
-          acc[k] = SENSITIVE_HEADERS.include?(k.downcase) ? '[REDACTED]' : v
+        headers.each_with_object({}) do |(key, value), acc|
+          acc[key] = SENSITIVE_HEADERS.include?(key.downcase) ? '[REDACTED]' : value
         end
       end
     end

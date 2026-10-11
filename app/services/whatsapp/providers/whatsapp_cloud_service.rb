@@ -1,4 +1,17 @@
 class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseService
+  def deliver_session(phone_number, message, session_body)
+    response = HTTParty.post(
+      "#{phone_id_path('v22.0')}/messages",
+      headers: api_headers,
+      body: {
+        messaging_product: 'whatsapp',
+        **recipient_params(phone_number),
+        **session_body.deep_symbolize_keys
+      }.to_json
+    )
+    process_response(response, message)
+  end
+
   def send_message(phone_number, message)
     @message = message
 

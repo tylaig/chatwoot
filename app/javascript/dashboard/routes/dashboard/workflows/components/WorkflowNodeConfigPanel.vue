@@ -1,9 +1,32 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { getNodeDefinition } from '../nodeRegistry';
+import { ref, computed, watch } from 'vue';
+import { useMapGetter } from 'dashboard/composables/store';
+import WorkflowsAPI from 'dashboard/api/workflows';
+import { getNodeDefinition, getCategoryStyle } from '../nodeRegistry';
+import { formatVariable } from '../variables';
+import WorkflowVariableInput from './WorkflowVariableInput.vue';
+import WorkflowWebhookTriggerPanel from './WorkflowWebhookTriggerPanel.vue';
+import WorkflowOfficialMessagePanel from './WorkflowOfficialMessagePanel.vue';
+import WorkflowMessageComposer from './WorkflowMessageComposer.vue';
 
 const props = defineProps({
   node: {
+    type: Object,
+    default: null,
+  },
+  availableTemplates: {
+    type: Array,
+    default: () => [],
+  },
+  issues: {
+    type: Array,
+    default: () => [],
+  },
+  workflowId: {
+    type: [String, Number],
+    required: true,
+  },
+  webhookTrigger: {
     type: Object,
     default: null,
   },
@@ -14,1900 +37,1272 @@ const emit = defineEmits([
   'deleteNode',
   'close',
   'openTemplatePicker',
+  'updateWebhookTrigger',
 ]);
 
-const activeTab = ref('config'); // 'config' ou 'outputs'
+const INPUT_CLASS =
+  'reset-base w-full h-9 m-0 px-3 text-xs rounded-lg bg-n-alpha-black2 border-0 outline outline-1 outline-n-weak hover:outline-n-slate-6 focus:outline-n-brand text-n-slate-12 placeholder:text-n-slate-10';
+const SELECT_CLASS =
+  'w-full h-9 m-0 py-0 ps-3 text-xs rounded-lg bg-n-alpha-black2 border-0 outline outline-1 outline-n-weak hover:outline-n-slate-6 focus:outline-n-brand text-n-slate-12';
+const LABEL_CLASS = 'block mb-1.5 text-xs font-medium text-n-slate-12';
+const HINT_CLASS = 'mt-1 text-[0.6875rem] text-n-slate-10';
+const LINK_BUTTON_CLASS =
+  'inline-flex items-center gap-1 text-xs font-medium text-n-brand hover:underline';
+const ROUTE_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
+const OFFICIAL_MESSAGE_TYPES = [
+  'send_whatsapp_buttons',
+  'send_whatsapp_list',
+  'send_whatsapp_media',
+];
+
+const OPERATORS = [
+  { value: 'equal_to', label: 'é igual a' },
+  { value: 'not_equal_to', label: 'é diferente de' },
+  { value: 'contains', label: 'contém' },
+  { value: 'not_contains', label: 'não contém' },
+  { value: 'starts_with', label: 'começa com' },
+  { value: 'greater_than', label: 'é maior que' },
+  { value: 'less_than', label: 'é menor que' },
+  { value: 'is_empty', label: 'está vazio' },
+  { value: 'is_not_empty', label: 'não está vazio' },
+];
+const VALUELESS_OPERATORS = ['is_empty', 'is_not_empty'];
+
+const DELIVERY_MODES = [
+  {
+    value: 'auto',
+    icon: 'i-lucide-sparkles',
+    title: 'Automático',
+    hint: 'Texto com a janela aberta, template quando fechada.',
+  },
+  {
+    value: 'inside_24h',
+    icon: 'i-lucide-message-square-text',
+    title: 'Só texto livre',
+    hint: 'Exige a janela de 24h aberta.',
+  },
+  {
+    value: 'outside_24h',
+    icon: 'i-lucide-layout-template',
+    title: 'Só template',
+    hint: 'Template aprovado pela Meta.',
+  },
+];
+
+const inboxes = useMapGetter('inboxes/getInboxes');
+const agents = useMapGetter('agents/getAgents');
+const teams = useMapGetter('teams/getTeams');
+const labels = useMapGetter('labels/getLabels');
+const getAttributesByModel = useMapGetter('attributes/getAttributesByModel');
+
 const isTestingHttp = ref(false);
 const httpTestResult = ref(null);
-const isTestingWebhook = ref(false);
-const webhookTestResult = ref(null);
 
-const nodeMeta = computed(() => {
-  if (!props.node) return null;
-  return getNodeDefinition(props.node.type);
-});
+watch(
+  () => props.node?.id,
+  () => {
+    httpTestResult.value = null;
+  }
+);
+
+const nodeMeta = computed(() =>
+  props.node ? getNodeDefinition(props.node.type) : null
+);
+const style = computed(() => getCategoryStyle(props.node?.type));
+const config = computed(() => props.node?.config || {});
 
 const updateField = (field, value) => {
-  const updated = { ...props.node.config, [field]: value };
-  emit('updateConfig', updated);
+  emit('updateConfig', { ...config.value, [field]: value });
 };
 
-// Condition Helpers
-const addConditionRule = () => {
-  const current = [...(props.node.config?.conditions || [])];
-  current.push({
-    field: 'contact.custom_attributes.score',
-    operator: 'greater_than',
-    value: '50',
-  });
-  updateField('conditions', current);
+const updateFields = fields => {
+  emit('updateConfig', { ...config.value, ...fields });
 };
 
-const removeConditionRule = index => {
-  const current = [...(props.node.config?.conditions || [])];
-  current.splice(index, 1);
-  updateField('conditions', current);
+const updateListItem = (field, index, key, value) => {
+  const list = [...(config.value[field] || [])];
+  list[index] = { ...list[index], [key]: value };
+  updateField(field, list);
 };
 
-const updateConditionRule = (index, field, value) => {
-  const current = [...(props.node.config?.conditions || [])];
-  current[index] = { ...current[index], [field]: value };
-  updateField('conditions', current);
-};
-
-// Router Helpers
-const addRouterRoute = () => {
-  const routes = [...(props.node.config?.routes || [])];
-  const newIdx = routes.length + 1;
-  routes.push({
-    name: `Rota ${newIdx}`,
-    operator: 'equal_to',
-    value: `valor_${newIdx}`,
-    color: '#3B82F6',
-  });
-  updateField('routes', routes);
-};
-
-const removeRouterRoute = index => {
-  const routes = [...(props.node.config?.routes || [])];
-  routes.splice(index, 1);
-  updateField('routes', routes);
-};
-
-const updateRouterRoute = (index, field, value) => {
-  const routes = [...(props.node.config?.routes || [])];
-  routes[index] = { ...routes[index], [field]: value };
-  updateField('routes', routes);
-};
-
-// Key-Value Pair Helpers (para Headers, Params de HTTP e Webhook)
-const addKeyValue = (fieldName, defaultKey = '', defaultValue = '') => {
-  const list = [...(props.node.config?.[fieldName] || [])];
-  list.push({ key: defaultKey, value: defaultValue });
-  updateField(fieldName, list);
-};
-
-const removeKeyValue = (fieldName, index) => {
-  const list = [...(props.node.config?.[fieldName] || [])];
+const removeListItem = (field, index) => {
+  const list = [...(config.value[field] || [])];
   list.splice(index, 1);
-  updateField(fieldName, list);
+  updateField(field, list);
 };
 
-const updateKeyValue = (fieldName, index, keyOrValue, val) => {
-  const list = [...(props.node.config?.[fieldName] || [])];
-  list[index] = { ...list[index], [keyOrValue]: val };
-  updateField(fieldName, list);
+const addListItem = (field, item) => {
+  updateField(field, [...(config.value[field] || []), item]);
 };
 
-// HTTP Request Test
+const addRoute = () => {
+  const routes = config.value.routes || [];
+  addListItem('routes', {
+    name: `Rota ${routes.length + 1}`,
+    operator: 'equal_to',
+    value: '',
+    color: ROUTE_COLORS[routes.length % ROUTE_COLORS.length],
+  });
+};
+
+const selectedTemplate = computed(() =>
+  props.availableTemplates.find(tpl => tpl.name === config.value.template_name)
+);
+
+const templatePlaceholders = computed(() => {
+  const body = selectedTemplate.value?.body || '';
+  return [
+    ...new Set(
+      [...body.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)].map(m => m[1])
+    ),
+  ];
+});
+
+const templatePreview = computed(() => {
+  const body = selectedTemplate.value?.body || '';
+  const params = config.value.template_params || {};
+  return body.replace(
+    /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
+    (match, key) => params[key] || match
+  );
+});
+
+const placeholderLabel = key => `{{${key}}}`;
+
+const updateTemplateParam = (key, value) => {
+  updateField('template_params', {
+    ...(config.value.template_params || {}),
+    [key]: value,
+  });
+};
+
+const showTemplateSelector = computed(() => {
+  if (props.node?.type === 'send_whatsapp_template') return true;
+  return (config.value.delivery_mode || 'auto') !== 'inside_24h';
+});
+
+const attributeOptions = computed(() =>
+  getAttributesByModel.value(
+    config.value.target === 'conversation'
+      ? 'conversation_attribute'
+      : 'contact_attribute'
+  )
+);
+
+const selectAgent = id => {
+  const agent = agents.value.find(item => String(item.id) === id);
+  updateFields({ agent_id: agent?.id || '', agent_name: agent?.name || '' });
+};
+
+const selectTeam = id => {
+  const team = teams.value.find(item => String(item.id) === id);
+  updateFields({ team_id: team?.id || '', team_name: team?.name || '' });
+};
+
 const runHttpTest = async () => {
   isTestingHttp.value = true;
   httpTestResult.value = null;
-  setTimeout(() => {
+  const payload =
+    props.node.type === 'send_webhook'
+      ? {
+          method: config.value.method || 'POST',
+          url: config.value.url,
+          body: config.value.payload,
+        }
+      : config.value;
+  try {
+    const res = await WorkflowsAPI.testHttpRequest(payload);
+    httpTestResult.value = res.data;
+  } catch (err) {
+    const data = err.response?.data;
+    httpTestResult.value = data?.statusText
+      ? data
+      : {
+          ok: false,
+          statusText: data?.error || 'Falha ao testar a requisição',
+          duration: '—',
+          data: data || { error: err.message },
+        };
+  } finally {
     isTestingHttp.value = false;
-    httpTestResult.value = {
-      status: 200,
-      statusText: '200 OK',
-      duration: '245 ms',
-      data: {
-        success: true,
-        id: 'ORD-1234',
-        status: 'created',
-        timestamp: new Date().toISOString(),
-      },
-    };
-  }, 600);
+  }
 };
 
-// Webhook Outbound Test
-const runWebhookTest = async () => {
-  isTestingWebhook.value = true;
-  webhookTestResult.value = null;
-  setTimeout(() => {
-    isTestingWebhook.value = false;
-    webhookTestResult.value = {
-      status: 200,
-      statusText: '200 OK - Disparo efetuado',
-      duration: '182 ms',
-      response: {
-        received: true,
-        event_id: 'evt_991823',
-      },
-    };
-  }, 500);
-};
+const responseVariable = computed(
+  () =>
+    `vars.${(config.value.save_response_as || 'http_response').replace(/^(workflow|vars?)\./, '')}`
+);
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text, vue/html-closing-bracket-newline, vue/no-root-v-if -->
-  <div
+  <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text, vue/no-root-v-if -->
+  <aside
     v-if="node"
-    class="w-96 border-l border-n-weak bg-n-solid-1 flex flex-col h-full overflow-hidden select-none z-20 shadow-2xl transition-colors duration-150"
+    class="w-[24rem] shrink-0 border-s border-n-weak bg-n-solid-1 flex flex-col h-full overflow-hidden z-20 shadow-2xl"
   >
-    <!-- HEADER DO PAINEL -->
-    <div class="p-4 border-b border-n-weak flex items-center justify-between">
-      <div class="flex items-center gap-2.5 min-w-0">
+    <div
+      class="px-4 py-3 border-b border-n-weak flex items-center justify-between gap-3"
+    >
+      <div class="flex items-center gap-3 min-w-0">
         <div
-          v-if="nodeMeta.icon === 'whatsapp'"
-          class="w-7 h-7 rounded-full bg-[#25D366] flex items-center justify-center shrink-0 shadow-sm"
+          class="size-9 rounded-xl flex items-center justify-center shrink-0"
+          :class="[style.soft, style.text]"
         >
-          <svg class="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
-            <path
-              d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"
-            />
-          </svg>
+          <span class="size-5" :class="nodeMeta.icon" />
         </div>
-        <div
-          v-else
-          class="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-semibold shrink-0"
-          :style="{
-            backgroundColor: `${nodeMeta.iconColor || '#3B82F6'}1A`,
-            color: nodeMeta.iconColor || '#3B82F6',
-          }"
-        >
-          {{ nodeMeta.icon }}
-        </div>
-        <div class="truncate">
-          <h3 class="text-xs font-bold text-n-slate-12 truncate">
-            Configurar Bloco
+        <div class="min-w-0">
+          <h3 class="text-sm font-semibold text-n-slate-12 truncate">
+            {{ nodeMeta.title }}
           </h3>
-          <p class="text-[10px] font-mono text-n-slate-11 truncate">
-            {{ node.type }}
+          <p class="text-xs text-n-slate-11 truncate">
+            {{ nodeMeta.subtitle }}
           </p>
         </div>
       </div>
       <button
         type="button"
-        class="text-n-slate-9 hover:text-n-slate-12 text-xs p-1 rounded-lg"
+        class="flex items-center justify-center size-8 rounded-lg text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 shrink-0"
+        title="Fechar"
         @click="emit('close')"
       >
-        ✕
+        <span class="i-lucide-x size-4" />
       </button>
     </div>
 
-    <!-- TABS DE NAVEGAÇÃO DO PAINEL (CONDITION, ROUTER, HTTP, WAIT FOR REPLY) -->
-    <div
-      v-if="
-        ['condition', 'router', 'http_request', 'wait_for_reply'].includes(
-          node.type
-        )
-      "
-      class="flex border-b border-n-weak text-xs px-5 pt-2 bg-n-alpha-1"
-    >
-      <button
-        type="button"
-        class="pb-2.5 px-3 font-semibold transition-colors"
-        :class="
-          activeTab === 'config'
-            ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
-            : 'text-n-slate-11 hover:text-n-slate-12'
-        "
-        @click="activeTab = 'config'"
+    <div class="flex-1 overflow-y-auto p-4 space-y-5">
+      <div
+        v-if="issues.length"
+        class="p-3 rounded-xl bg-n-ruby-9/10 border border-n-ruby-8/40 space-y-1"
       >
-        Configuração
-      </button>
-      <button
-        type="button"
-        class="pb-2.5 px-3 font-semibold transition-colors"
-        :class="
-          activeTab === 'outputs'
-            ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
-            : 'text-n-slate-11 hover:text-n-slate-12'
-        "
-        @click="activeTab = 'outputs'"
-      >
-        Saídas (Handles)
-      </button>
-    </div>
+        <p
+          class="flex items-center gap-1.5 text-xs font-semibold text-n-ruby-11"
+        >
+          <span class="i-lucide-circle-alert size-3.5" />
+          Corrija antes de publicar
+        </p>
+        <p v-for="issue in issues" :key="issue" class="text-xs text-n-ruby-11">
+          {{ issue }}
+        </p>
+      </div>
 
-    <!-- CORPO COM ROLAGEM -->
-    <div class="flex-1 overflow-y-auto p-4 space-y-4">
-      <!-- CAMPO GERAL: TÍTULO DO BLOCO -->
       <div>
-        <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-          Título do Bloco
-        </label>
+        <label :class="LABEL_CLASS">Nome do bloco</label>
         <input
-          :value="node.config?.custom_title || nodeMeta.title"
+          :value="config.custom_title || ''"
+          :placeholder="nodeMeta.title"
           type="text"
-          class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 placeholder-slate-400 focus:outline-none focus:border-blue-500"
+          :class="INPUT_CLASS"
           @input="updateField('custom_title', $event.target.value)"
         />
       </div>
 
-      <!-- ============================================== -->
-      <!-- 1. WEBHOOK TRIGGER                             -->
-      <!-- ============================================== -->
-      <template v-if="node.type === 'webhook_trigger'">
-        <div>
-          <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-            Endpoint Inbound URL
-          </label>
-          <input
-            :value="
-              node.config?.endpoint ||
-              '/public/api/v1/webhook_dispatches/default'
-            "
-            type="text"
-            readonly
-            class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono text-[11px]"
-          />
-        </div>
-        <div>
-          <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-            Método HTTP
-          </label>
-          <input
-            value="POST"
-            disabled
-            class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-9 font-mono"
-          />
-        </div>
-        <div>
-          <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-            Token de Autenticação (Opcional)
-          </label>
-          <input
-            :value="node.config?.trigger_token || ''"
-            type="text"
-            placeholder="wh_sec_..."
-            class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono"
-            @input="updateField('trigger_token', $event.target.value)"
-          />
-        </div>
-      </template>
+      <WorkflowWebhookTriggerPanel
+        v-if="node.type === 'webhook_trigger'"
+        :workflow-id="workflowId"
+        :trigger="webhookTrigger"
+        :inboxes="inboxes"
+        @update:trigger="emit('updateWebhookTrigger', $event)"
+      />
 
-      <!-- ============================================== -->
-      <!-- 2. SEND MESSAGE                                -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'send_message'">
-        <div>
-          <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-            Conteúdo da Mensagem
-          </label>
-          <textarea
-            :value="node.config?.content || ''"
-            rows="4"
-            placeholder="Digite a mensagem para o cliente..."
-            class="w-full p-2.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 leading-relaxed font-sans"
-            @input="updateField('content', $event.target.value)"
-          />
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block text-[10px] text-n-slate-11 mb-1"
-              >Tipo de Mensagem</label
-            >
-            <select
-              :value="node.config?.message_type || 'outgoing'"
-              class="w-full px-2.5 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12"
-              @change="updateField('message_type', $event.target.value)"
-            >
-              <option value="outgoing">Saída (Outgoing)</option>
-              <option value="incoming">Entrada (Incoming)</option>
-            </select>
-          </div>
-          <div class="flex items-center pt-4">
-            <label
-              class="flex items-center gap-2 text-xs text-n-slate-12 cursor-pointer"
-            >
-              <input
-                type="checkbox"
-                :checked="node.config?.private === true"
-                class="rounded border-n-weak text-blue-600"
-                @change="updateField('private', $event.target.checked)"
-              />
-              Nota Privada
-            </label>
-          </div>
-        </div>
-      </template>
+      <WorkflowMessageComposer
+        v-else-if="node.type === 'send_message'"
+        :content="config.content || ''"
+        :private-note="Boolean(config.private)"
+        :attachments="config.attachments || []"
+        @update-content="updateField('content', $event)"
+        @update-private="updateField('private', $event)"
+        @update-attachments="updateField('attachments', $event)"
+      />
 
-      <!-- ============================================== -->
-      <!-- 3. SEND WHATSAPP MESSAGE (REQUISITO CRÍTICO)   -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'send_whatsapp_message'">
-        <div>
-          <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-            WhatsApp Inbox
-          </label>
-          <select
-            :value="node.config?.inbox_id || '1'"
-            class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-blue-500"
-            @change="updateField('inbox_id', $event.target.value)"
-          >
-            <option value="1">
-              🟢 WhatsApp Business - Suporte (+55 17 99117-3157)
-            </option>
-            <option value="2">🟢 WhatsApp Vendas (+55 17 99999-0000)</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-            Modo de Envio (Sending Mode)
-          </label>
+      <template
+        v-else-if="
+          ['send_whatsapp_message', 'send_whatsapp_template'].includes(
+            node.type
+          )
+        "
+      >
+        <div v-if="node.type === 'send_whatsapp_message'">
+          <label :class="LABEL_CLASS">Modo de envio</label>
           <div class="space-y-1.5">
-            <label
-              class="flex items-center gap-2.5 p-2 rounded-xl border cursor-pointer text-xs transition-colors"
+            <button
+              v-for="mode in DELIVERY_MODES"
+              :key="mode.value"
+              type="button"
+              class="w-full flex items-start gap-3 p-2.5 rounded-xl border text-start transition-colors"
               :class="
-                (node.config?.delivery_mode || 'auto') === 'auto'
-                  ? 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold'
-                  : 'border-n-weak text-n-slate-11 hover:bg-n-alpha-2'
+                (config.delivery_mode || 'auto') === mode.value
+                  ? 'border-n-brand bg-n-brand/5'
+                  : 'border-n-weak hover:bg-n-alpha-1'
               "
+              @click="updateField('delivery_mode', mode.value)"
             >
-              <input
-                type="radio"
-                name="whatsapp_delivery_mode"
-                value="auto"
-                :checked="(node.config?.delivery_mode || 'auto') === 'auto'"
-                @change="updateField('delivery_mode', 'auto')"
+              <span
+                class="size-4 mt-0.5 shrink-0"
+                :class="[
+                  mode.icon,
+                  (config.delivery_mode || 'auto') === mode.value
+                    ? 'text-n-brand'
+                    : 'text-n-slate-10',
+                ]"
               />
-              <div>
-                <span class="block">Automático (Detectar Janela 24h)</span>
-                <span class="text-[10px] text-n-slate-9 font-normal"
-                  >Texto se janela aberta; Template aprovado se fechada.</span
-                >
-              </div>
-            </label>
-
-            <label
-              class="flex items-center gap-2.5 p-2 rounded-xl border cursor-pointer text-xs transition-colors"
-              :class="
-                node.config?.delivery_mode === 'inside_24h'
-                  ? 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold'
-                  : 'border-n-weak text-n-slate-11 hover:bg-n-alpha-2'
-              "
-            >
-              <input
-                type="radio"
-                name="whatsapp_delivery_mode"
-                value="inside_24h"
-                :checked="node.config?.delivery_mode === 'inside_24h'"
-                @change="updateField('delivery_mode', 'inside_24h')"
-              />
-              <div>
-                <span class="block">Dentro da Janela 24h (Inside 24h)</span>
-                <span class="text-[10px] text-n-slate-9 font-normal"
-                  >Mensagem de texto livre. Permite fallback.</span
-                >
-              </div>
-            </label>
-
-            <label
-              class="flex items-center gap-2.5 p-2 rounded-xl border cursor-pointer text-xs transition-colors"
-              :class="
-                node.config?.delivery_mode === 'outside_24h'
-                  ? 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold'
-                  : 'border-n-weak text-n-slate-11 hover:bg-n-alpha-2'
-              "
-            >
-              <input
-                type="radio"
-                name="whatsapp_delivery_mode"
-                value="outside_24h"
-                :checked="node.config?.delivery_mode === 'outside_24h'"
-                @change="updateField('delivery_mode', 'outside_24h')"
-              />
-              <div>
-                <span class="block">Fora da Janela 24h (Outside 24h)</span>
-                <span class="text-[10px] text-n-slate-9 font-normal"
-                  >Template aprovado Meta obrigatório.</span
-                >
-              </div>
-            </label>
+              <span>
+                <span class="block text-xs font-semibold text-n-slate-12">{{
+                  mode.title
+                }}</span>
+                <span class="block text-[0.6875rem] text-n-slate-11">{{
+                  mode.hint
+                }}</span>
+              </span>
+            </button>
           </div>
         </div>
 
-        <!-- SE FOR AUTOMATIC OU INSIDE_24H: MOSTRA CAMPO DE TEXTO LIVRE -->
-        <div v-if="node.config?.delivery_mode !== 'outside_24h'">
-          <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-            Mensagem de Texto Livre (Janela Aberta)
-          </label>
-          <textarea
-            :value="
-              node.config?.text ||
-              'Olá {{contact.first_name}}! Como posso te ajudar hoje?'
-            "
-            rows="3"
-            class="w-full p-2.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 leading-relaxed font-sans"
-            placeholder="Olá {{contact.first_name}}!..."
-            @input="updateField('text', $event.target.value)"
-          />
-        </div>
-
-        <!-- SE FOR INSIDE_24H: FALLBACK SE A JANELA ESTIVER FECHADA -->
-        <div
-          v-if="node.config?.delivery_mode === 'inside_24h'"
-          class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-2"
-        >
-          <label class="block text-[11px] font-bold text-amber-500">
-            Fallback se Janela Fechada
-          </label>
-          <select
-            :value="node.config?.fallback_action || 'template'"
-            class="w-full px-2.5 py-1.5 text-xs rounded-lg bg-n-solid-1 border border-n-weak text-n-slate-12"
-            @change="updateField('fallback_action', $event.target.value)"
-          >
-            <option value="template">Enviar Template Aprovado</option>
-            <option value="window_closed">Marcar como Janela Fechada</option>
-            <option value="fail">Falhar Execução</option>
-          </select>
-        </div>
-
-        <!-- SE FOR AUTOMATIC OU OUTSIDE_24H (OU FALLBACK = TEMPLATE): SELETOR DE TEMPLATE -->
         <div
           v-if="
-            node.config?.delivery_mode === 'outside_24h' ||
-            node.config?.delivery_mode === 'auto' ||
-            !node.config?.delivery_mode ||
-            (node.config?.delivery_mode === 'inside_24h' &&
-              node.config?.fallback_action === 'template')
+            node.type === 'send_whatsapp_message' &&
+            config.delivery_mode !== 'outside_24h'
           "
-          class="p-3 rounded-xl bg-n-alpha-1 border border-n-weak space-y-2"
         >
+          <label :class="LABEL_CLASS">Mensagem de texto</label>
+          <WorkflowVariableInput
+            :model-value="config.text"
+            multiline
+            :rows="3"
+            placeholder="Olá {{ $contact.first_name }}!"
+            @update:model-value="updateField('text', $event)"
+          />
+        </div>
+
+        <div v-if="showTemplateSelector" class="space-y-3">
           <div class="flex items-center justify-between">
-            <label class="text-[11px] font-bold text-n-slate-12">
-              Template Aprovado Meta
-              {{
-                node.config?.delivery_mode === 'auto'
-                  ? '(Fallback Janela Fechada)'
-                  : ''
-              }}
-            </label>
-            <button
-              type="button"
-              class="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1"
-              @click="emit('openTemplatePicker')"
-            >
-              📄 Selecionar
-            </button>
-          </div>
-          <div
-            class="px-3 py-2 text-xs rounded-xl bg-n-solid-1 border border-n-weak text-n-slate-12 flex items-center justify-between font-mono"
-          >
-            <span>{{
-              node.config?.template_name || 'camp_eafc27_urgencia_02'
-            }}</span>
-            <span
-              class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 font-bold uppercase"
-              >APPROVED</span
-            >
-          </div>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 4. SEND WHATSAPP TEMPLATE                      -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'send_whatsapp_template'">
-        <div>
-          <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-            WhatsApp Inbox
-          </label>
-          <select
-            :value="node.config?.inbox_id || '1'"
-            class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-blue-500"
-            @change="updateField('inbox_id', $event.target.value)"
-          >
-            <option value="1">🟢 Suporte - WhatsApp</option>
-          </select>
-        </div>
-
-        <div>
-          <div class="flex items-center justify-between mb-1">
-            <label class="text-[11px] font-bold text-n-slate-12">
-              Template do WhatsApp
-            </label>
-            <button
-              type="button"
-              class="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1"
-              @click="emit('openTemplatePicker')"
-            >
-              <span>📄</span> Selecionar Template
-            </button>
-          </div>
-          <div
-            class="px-3 py-2 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 flex items-center justify-between"
-          >
-            <span class="truncate font-mono">{{
-              node.config?.template_name || 'camp_eafc27_urgencia_02'
-            }}</span>
-            <button
-              type="button"
-              class="text-n-slate-9 hover:text-n-slate-12 text-xs"
-              @click="updateField('template_name', '')"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block text-[10px] text-n-slate-11 mb-1">Idioma</label>
-            <select
-              :value="node.config?.template_language || 'pt_BR'"
-              class="w-full px-2.5 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12"
-              @change="updateField('template_language', $event.target.value)"
-            >
-              <option value="pt_BR">Português (Brasil) - pt_BR</option>
-              <option value="en_US">Inglês - en_US</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-[10px] text-n-slate-11 mb-1"
-              >Categoria</label
-            >
-            <select
-              :value="node.config?.template_category || 'MARKETING'"
-              class="w-full px-2.5 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12"
-              @change="updateField('template_category', $event.target.value)"
-            >
-              <option value="MARKETING">Marketing</option>
-              <option value="UTILITY">Utility</option>
-              <option value="AUTHENTICATION">Authentication</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- STATUS DO TEMPLATE CARD -->
-        <div
-          class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between"
-        >
-          <div class="flex items-center gap-2">
-            <div
-              class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center text-xs font-bold"
-            >
-              ✓
-            </div>
-            <div>
-              <p class="text-xs font-bold text-n-slate-12">
-                Status do Template
-              </p>
-              <p class="text-[10px] text-n-slate-11">
-                Template aprovado e pronto para uso.
-              </p>
-            </div>
-          </div>
-          <span
-            class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 font-bold"
-          >
-            Approved
-          </span>
-        </div>
-
-        <!-- MAPEAMENTO DE VARIÁVEIS -->
-        <div class="space-y-2">
-          <label class="block text-[11px] font-bold text-n-slate-12">
-            Mapeamento de Variáveis
-          </label>
-          <div
-            class="p-2.5 rounded-xl bg-n-alpha-1 border border-n-weak space-y-2"
-          >
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-mono text-n-slate-9 shrink-0"
-                >&#123;&#123;1&#125;&#125;</span
-              >
-              <select
-                class="flex-1 px-2.5 py-1.5 text-xs rounded-lg bg-n-solid-1 border border-n-weak text-n-slate-12"
-              >
-                <option value="contact.name">
-                  Nome do Contato (contact.name)
-                </option>
-                <option value="contact.first_name">
-                  Primeiro Nome (contact.first_name)
-                </option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- PREVIEW DA MENSAGEM -->
-        <div class="space-y-1.5">
-          <label class="block text-[11px] font-bold text-n-slate-12">
-            Preview da Mensagem
-          </label>
-          <div
-            class="p-4 rounded-2xl bg-[#E1F8DC] dark:bg-[#1E2C22] border border-[#C5E8BF] dark:border-[#2D4533] text-slate-900 dark:text-slate-100 text-xs shadow-sm space-y-2 relative"
-          >
-            <p class="whitespace-pre-line leading-relaxed font-sans">
-              Olá Samuel! 🔥 Últimas 24h para garantir seu EA SPORTS FC 27 com
-              desconto exclusivo de lançamento!
-            </p>
-            <div class="text-[10px] text-n-slate-9 text-right">14:30</div>
-          </div>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 5. CONDITION (IF / ELSE RULE BUILDER)          -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'condition'">
-        <div v-if="activeTab === 'config'" class="space-y-3">
-          <div class="flex items-center justify-between">
-            <label class="text-[11px] font-bold text-n-slate-12">
-              Regras de Condição
-            </label>
-            <div
-              class="flex rounded-lg bg-n-alpha-1 p-0.5 border border-n-weak"
-            >
-              <button
-                type="button"
-                class="px-2 py-0.5 text-[10px] font-semibold rounded"
-                :class="
-                  node.config?.match_type !== 'any'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-n-slate-9'
-                "
-                @click="updateField('match_type', 'all')"
-              >
-                AND (Todas)
-              </button>
-              <button
-                type="button"
-                class="px-2 py-0.5 text-[10px] font-semibold rounded"
-                :class="
-                  node.config?.match_type === 'any'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-n-slate-9'
-                "
-                @click="updateField('match_type', 'any')"
-              >
-                OR (Qualquer)
-              </button>
-            </div>
-          </div>
-
-          <div
-            v-for="(rule, idx) in node.config?.conditions || []"
-            :key="idx"
-            class="p-3 rounded-xl bg-n-alpha-1 border border-n-weak space-y-2 relative"
-          >
-            <div class="flex items-center justify-between">
-              <span class="text-[10px] font-mono text-n-slate-9"
-                >Regra #{{ idx + 1 }}</span
-              >
-              <button
-                v-if="(node.config?.conditions || []).length > 1"
-                type="button"
-                class="text-rose-500 hover:text-rose-400 text-xs"
-                @click="removeConditionRule(idx)"
-              >
-                🗑️
-              </button>
-            </div>
-
-            <div>
-              <label class="block text-[10px] text-n-slate-9 mb-0.5"
-                >Variável / Campo</label
-              >
-              <input
-                :value="rule.field"
-                type="text"
-                class="w-full px-2.5 py-1 text-xs rounded-lg bg-n-solid-1 border border-n-weak text-n-slate-12 font-mono"
-                @input="updateConditionRule(idx, 'field', $event.target.value)"
-              />
-            </div>
-
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="block text-[10px] text-n-slate-9 mb-0.5"
-                  >Operador</label
-                >
-                <select
-                  :value="rule.operator"
-                  class="w-full px-2 py-1 text-xs rounded-lg bg-n-solid-1 border border-n-weak text-n-slate-12"
-                  @change="
-                    updateConditionRule(idx, 'operator', $event.target.value)
-                  "
-                >
-                  <option value="equal_to">== (igual)</option>
-                  <option value="not_equal_to">!= (diferente)</option>
-                  <option value="contains">contém</option>
-                  <option value="greater_than">&gt; (maior)</option>
-                  <option value="less_than">&lt; (menor)</option>
-                  <option value="is_empty">está vazio</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-[10px] text-n-slate-9 mb-0.5"
-                  >Valor</label
-                >
-                <input
-                  :value="rule.value"
-                  type="text"
-                  class="w-full px-2.5 py-1 text-xs rounded-lg bg-n-solid-1 border border-n-weak text-n-slate-12"
-                  @input="
-                    updateConditionRule(idx, 'value', $event.target.value)
-                  "
-                />
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            class="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1"
-            @click="addConditionRule"
-          >
-            <span>+</span> Adicionar Regra
-          </button>
-        </div>
-
-        <div v-else class="space-y-3">
-          <div
-            class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between"
-          >
-            <span
-              class="text-xs font-bold text-emerald-500 flex items-center gap-2"
-            >
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500" /> TRUE
-            </span>
-            <span class="text-[11px] text-n-slate-9"
-              >Quando a condição for verdadeira</span
-            >
-          </div>
-          <div
-            class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-between"
-          >
-            <span
-              class="text-xs font-bold text-rose-500 flex items-center gap-2"
-            >
-              <span class="w-2.5 h-2.5 rounded-full bg-rose-500" /> FALSE
-            </span>
-            <span class="text-[11px] text-n-slate-9"
-              >Quando a condição for falsa</span
-            >
-          </div>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 6. ROUTER (MÚLTIPLAS ROTAS)                   -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'router'">
-        <div v-if="activeTab === 'config'" class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Variável para Roteamento
-            </label>
-            <input
-              :value="node.config?.source_variable || 'webhook.source'"
-              type="text"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono"
-              @input="updateField('source_variable', $event.target.value)"
-            />
-          </div>
-
-          <label class="block text-[11px] font-bold text-n-slate-12">
-            Rotas Configuradas
-          </label>
-          <div
-            v-for="(rt, idx) in node.config?.routes || []"
-            :key="idx"
-            class="p-2.5 rounded-xl bg-n-alpha-1 border border-n-weak space-y-2 relative"
-          >
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span
-                  class="w-2.5 h-2.5 rounded-full shrink-0"
-                  :style="{ backgroundColor: rt.color || '#3B82F6' }"
-                />
-                <input
-                  :value="rt.name"
-                  type="text"
-                  class="bg-transparent text-xs font-bold text-n-slate-12 focus:outline-none"
-                  @input="updateRouterRoute(idx, 'name', $event.target.value)"
-                />
-              </div>
-              <button
-                type="button"
-                class="text-rose-500 hover:text-rose-400 text-xs"
-                @click="removeRouterRoute(idx)"
-              >
-                🗑️
-              </button>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2">
-              <input
-                value="é igual a"
-                disabled
-                class="px-2 py-1 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-9"
-              />
-              <input
-                :value="rt.value"
-                type="text"
-                placeholder="ex: instagram"
-                class="px-2 py-1 text-xs rounded-lg bg-n-solid-1 border border-n-weak text-n-slate-12"
-                @input="updateRouterRoute(idx, 'value', $event.target.value)"
-              />
-            </div>
-          </div>
-
-          <button
-            type="button"
-            class="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1"
-            @click="addRouterRoute"
-          >
-            <span>+</span> Adicionar Rota
-          </button>
-        </div>
-
-        <div v-else class="space-y-3">
-          <div
-            v-for="(rt, idx) in node.config?.routes || [
-              { name: 'Instagram', color: '#3B82F6' },
-              { name: 'Google', color: '#10B981' },
-              { name: 'Referral', color: '#F59E0B' },
-            ]"
-            :key="idx"
-            class="p-3 rounded-xl border flex items-center justify-between"
-            :style="{
-              backgroundColor: `${rt.color || '#3B82F6'}10`,
-              borderColor: `${rt.color || '#3B82F6'}30`,
-            }"
-          >
-            <span
-              class="text-xs font-bold flex items-center gap-2"
-              :style="{ color: rt.color || '#3B82F6' }"
-            >
+            <label class="text-xs font-medium text-n-slate-12">
+              Template aprovado
               <span
-                class="w-2.5 h-2.5 rounded-full"
-                :style="{ backgroundColor: rt.color || '#3B82F6' }"
-              />
-              {{ rt.name }}
-            </span>
-            <span class="text-[11px] text-n-slate-9"
-              >Rota quando for {{ rt.value || rt.name.toLowerCase() }}</span
-            >
-          </div>
-
-          <div
-            class="p-3 rounded-xl bg-slate-500/10 border border-slate-500/20 flex items-center justify-between"
-          >
-            <span
-              class="text-xs font-bold text-slate-400 flex items-center gap-2"
-            >
-              <span class="w-2.5 h-2.5 rounded-full bg-slate-400" /> Default
-            </span>
-            <span class="text-[11px] text-n-slate-9"
-              >Quando nenhuma rota anterior bater</span
-            >
-          </div>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 7. DELAY                                       -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'delay'">
-        <div class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Duração da Pausa
-            </label>
-            <div class="grid grid-cols-2 gap-2">
-              <input
-                :value="node.config?.duration || 10"
-                type="number"
-                min="1"
-                class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12"
-                @input="
-                  updateField('duration', parseInt($event.target.value) || 1)
+                v-if="
+                  node.type === 'send_whatsapp_message' &&
+                  (config.delivery_mode || 'auto') === 'auto'
                 "
-              />
-              <select
-                :value="node.config?.unit || 'minutes'"
-                class="w-full px-2.5 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12"
-                @change="updateField('unit', $event.target.value)"
+                class="text-n-slate-10 font-normal"
               >
-                <option value="seconds">Segundos</option>
-                <option value="minutes">Minutos</option>
-                <option value="hours">Horas</option>
-                <option value="days">Dias</option>
-              </select>
+                (janela fechada)
+              </span>
+            </label>
+            <button
+              type="button"
+              :class="LINK_BUTTON_CLASS"
+              @click="emit('openTemplatePicker')"
+            >
+              <span class="i-lucide-layout-template size-3.5" />
+              {{ config.template_name ? 'Trocar' : 'Selecionar' }}
+            </button>
+          </div>
+          <div
+            v-if="config.template_name"
+            class="flex items-center gap-2 px-3 py-2 rounded-lg bg-n-alpha-1"
+          >
+            <span class="flex-1 font-mono text-xs text-n-slate-12 truncate">{{
+              config.template_name
+            }}</span>
+            <span
+              class="px-1.5 py-0.5 rounded-md text-[0.625rem] font-semibold"
+              :class="
+                selectedTemplate?.status === 'APPROVED'
+                  ? 'bg-green-500/15 text-green-700 dark:text-green-300'
+                  : 'bg-n-amber-9/15 text-n-amber-11'
+              "
+            >
+              {{ selectedTemplate?.status || 'Não encontrado' }}
+            </span>
+            <button
+              type="button"
+              class="flex items-center justify-center size-6 rounded-md text-n-slate-10 hover:text-n-slate-12 hover:bg-n-alpha-2"
+              title="Remover template"
+              @click="updateFields({ template_name: '', template_params: {} })"
+            >
+              <span class="i-lucide-x size-3.5" />
+            </button>
+          </div>
+          <button
+            v-else
+            type="button"
+            class="w-full h-9 rounded-lg border border-dashed border-n-strong text-xs text-n-slate-11 hover:text-n-slate-12 hover:border-n-brand"
+            @click="emit('openTemplatePicker')"
+          >
+            Nenhum template selecionado
+          </button>
+
+          <div v-if="templatePlaceholders.length" class="space-y-2">
+            <p class="text-xs font-medium text-n-slate-12">
+              Variáveis do template
+            </p>
+            <div
+              v-for="key in templatePlaceholders"
+              :key="key"
+              class="flex items-center gap-2"
+            >
+              <span class="w-12 shrink-0 font-mono text-xs text-n-slate-10">{{
+                placeholderLabel(key)
+              }}</span>
+              <div class="flex-1 min-w-0">
+                <WorkflowVariableInput
+                  :model-value="(config.template_params || {})[key]"
+                  placeholder="{{ $contact.first_name }}"
+                  @update:model-value="updateTemplateParam(key, $event)"
+                />
+              </div>
             </div>
           </div>
-          <p class="text-[11px] text-n-slate-9">
-            O fluxo é pausado pelo tempo configurado antes de prosseguir para a
-            próxima ação.
-          </p>
+
+          <div v-if="templatePreview" class="space-y-1.5">
+            <p class="text-xs font-medium text-n-slate-12">Pré-visualização</p>
+            <div
+              class="p-3 rounded-xl bg-[#E1F8DC] dark:bg-[#1E2C22] text-xs text-slate-900 dark:text-slate-100 whitespace-pre-line leading-relaxed"
+            >
+              {{ templatePreview }}
+            </div>
+          </div>
         </div>
       </template>
 
-      <!-- ============================================== -->
-      <!-- 8. WAIT UNTIL                                  -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'wait_until'">
-        <div class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Modo de Espera
-            </label>
-            <select
-              :value="node.config?.wait_mode || 'specific_time'"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12"
-              @change="updateField('wait_mode', $event.target.value)"
-            >
-              <option value="specific_time">Horário Fixo Específico</option>
-              <option value="business_hours">Próximo Horário Comercial</option>
-              <option value="variable_date">Data Vinda de Variável</option>
-            </select>
-          </div>
+      <WorkflowOfficialMessagePanel
+        v-else-if="OFFICIAL_MESSAGE_TYPES.includes(node.type)"
+        :type="node.type"
+        :config="config"
+        :inboxes="inboxes"
+        @update-field="updateField"
+      />
 
-          <div
-            v-if="
-              (node.config?.wait_mode || 'specific_time') === 'specific_time'
+      <template v-else-if="node.type === 'condition'">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-medium text-n-slate-12">Regras</label>
+          <div class="flex p-0.5 rounded-lg bg-n-alpha-1">
+            <button
+              v-for="option in [
+                { value: 'all', label: 'Todas (E)' },
+                { value: 'any', label: 'Qualquer (OU)' },
+              ]"
+              :key="option.value"
+              type="button"
+              class="px-2 py-1 text-[0.6875rem] font-medium rounded-md"
+              :class="
+                (config.match_type || 'all') === option.value
+                  ? 'bg-n-solid-1 text-n-slate-12 shadow-sm'
+                  : 'text-n-slate-11'
+              "
+              @click="updateField('match_type', option.value)"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
+
+        <div
+          v-for="(rule, idx) in config.conditions || []"
+          :key="idx"
+          class="p-3 rounded-xl bg-n-alpha-1 space-y-2"
+        >
+          <div class="flex items-center justify-between">
+            <span class="text-[0.6875rem] font-semibold text-n-slate-11"
+              >Regra {{ idx + 1 }}</span
+            >
+            <button
+              v-if="(config.conditions || []).length > 1"
+              type="button"
+              class="flex items-center justify-center size-6 rounded-md text-n-slate-10 hover:text-n-ruby-11 hover:bg-n-ruby-9/10"
+              title="Remover regra"
+              @click="removeListItem('conditions', idx)"
+            >
+              <span class="i-lucide-trash-2 size-3.5" />
+            </button>
+          </div>
+          <WorkflowVariableInput
+            :model-value="rule.field"
+            mode="path"
+            mono
+            placeholder="Escolha uma variável"
+            @update:model-value="
+              updateListItem('conditions', idx, 'field', $event)
+            "
+          />
+          <select
+            :value="rule.operator || 'equal_to'"
+            :class="SELECT_CLASS"
+            @change="
+              updateListItem('conditions', idx, 'operator', $event.target.value)
             "
           >
-            <label class="block text-[10px] text-n-slate-9 mb-1"
-              >Horário Alvo</label
-            >
-            <input
-              :value="node.config?.target_time || '09:00'"
-              type="time"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono"
-              @input="updateField('target_time', $event.target.value)"
-            />
-          </div>
-
-          <div v-else-if="node.config?.wait_mode === 'variable_date'">
-            <label class="block text-[10px] text-n-slate-9 mb-1"
-              >Campo da Variável</label
-            >
-            <input
-              :value="
-                node.config?.variable_date_field || 'webhook.scheduled_at'
-              "
-              type="text"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono"
-              @input="updateField('variable_date_field', $event.target.value)"
-            />
-          </div>
-
-          <div
-            v-else-if="node.config?.wait_mode === 'business_hours'"
-            class="grid grid-cols-2 gap-2"
-          >
-            <div>
-              <label class="block text-[10px] text-n-slate-9 mb-1"
-                >Início</label
-              >
-              <input
-                :value="node.config?.business_start || '08:00'"
-                type="time"
-                class="w-full px-2 py-1 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12"
-                @input="updateField('business_start', $event.target.value)"
-              />
-            </div>
-            <div>
-              <label class="block text-[10px] text-n-slate-9 mb-1">Fim</label>
-              <input
-                :value="node.config?.business_end || '18:00'"
-                type="time"
-                class="w-full px-2 py-1 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12"
-                @input="updateField('business_end', $event.target.value)"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-[10px] text-n-slate-9 mb-1"
-              >Fuso Horário (Timezone)</label
-            >
-            <input
-              :value="node.config?.timezone || 'America/Sao_Paulo'"
-              type="text"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono"
-              @input="updateField('timezone', $event.target.value)"
-            />
-          </div>
+            <option v-for="op in OPERATORS" :key="op.value" :value="op.value">
+              {{ op.label }}
+            </option>
+          </select>
+          <WorkflowVariableInput
+            v-if="!VALUELESS_OPERATORS.includes(rule.operator)"
+            :model-value="rule.value"
+            placeholder="Valor esperado"
+            @update:model-value="
+              updateListItem('conditions', idx, 'value', $event)
+            "
+          />
         </div>
+
+        <button
+          type="button"
+          :class="LINK_BUTTON_CLASS"
+          @click="
+            addListItem('conditions', {
+              field: '',
+              operator: 'equal_to',
+              value: '',
+            })
+          "
+        >
+          <span class="i-lucide-plus size-3.5" />
+          Adicionar regra
+        </button>
       </template>
 
-      <!-- ============================================== -->
-      <!-- 9. WAIT FOR REPLY                              -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'wait_for_reply'">
-        <div v-if="activeTab === 'config'" class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Tempo Limite (Timeout)
-            </label>
+      <template v-else-if="node.type === 'router'">
+        <div>
+          <label :class="LABEL_CLASS">Rotear pela variável</label>
+          <WorkflowVariableInput
+            :model-value="config.source_variable"
+            mode="path"
+            mono
+            placeholder="Escolha uma variável"
+            @update:model-value="updateField('source_variable', $event)"
+          />
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs font-medium text-n-slate-12">Rotas</label>
+          <div
+            v-for="(rt, idx) in config.routes || []"
+            :key="idx"
+            class="p-3 rounded-xl bg-n-alpha-1 space-y-2"
+          >
             <div class="flex items-center gap-2">
-              <input
-                :value="node.config?.timeout_hours || 24"
-                type="number"
-                min="1"
-                class="w-24 px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12"
-                @input="
-                  updateField(
-                    'timeout_hours',
-                    parseInt($event.target.value) || 24
-                  )
-                "
-              />
-              <span class="text-xs text-n-slate-9">Horas</span>
-            </div>
-          </div>
-
-          <div class="space-y-2 pt-2 border-t border-n-weak">
-            <label class="block text-[11px] font-bold text-n-slate-12">
-              Opções Avançadas
-            </label>
-            <label
-              class="flex items-center gap-2 text-xs text-n-slate-12 cursor-pointer"
-            >
-              <input
-                type="checkbox"
-                :checked="node.config?.ignore_bot_messages !== false"
-                class="rounded border-n-weak text-blue-600"
-                @change="
-                  updateField('ignore_bot_messages', $event.target.checked)
-                "
-              />
-              Ignorar mensagens de bots
-            </label>
-            <label
-              class="flex items-center gap-2 text-xs text-n-slate-12 cursor-pointer"
-            >
-              <input
-                type="checkbox"
-                :checked="node.config?.ignore_private_notes !== false"
-                class="rounded border-n-weak text-blue-600"
-                @change="
-                  updateField('ignore_private_notes', $event.target.checked)
-                "
-              />
-              Ignorar notas privadas internas
-            </label>
-          </div>
-        </div>
-
-        <div v-else class="space-y-3">
-          <div
-            class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between"
-          >
-            <span
-              class="text-xs font-bold text-emerald-500 flex items-center gap-2"
-            >
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500" /> REPLIED
-            </span>
-            <span class="text-[11px] text-n-slate-9"
-              >Quando o cliente responde dentro do prazo</span
-            >
-          </div>
-          <div
-            class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-between"
-          >
-            <span
-              class="text-xs font-bold text-rose-500 flex items-center gap-2"
-            >
-              <span class="w-2.5 h-2.5 rounded-full bg-rose-500" /> TIMEOUT
-            </span>
-            <span class="text-[11px] text-n-slate-9"
-              >Quando o tempo limite expira sem resposta</span
-            >
-          </div>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 10. SET VARIABLE                               -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'set_variable'">
-        <div class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Nome da Variável
-            </label>
-            <input
-              :value="node.config?.variable_name || 'lead_score'"
-              type="text"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono"
-              @input="updateField('variable_name', $event.target.value)"
-            />
-          </div>
-
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Tipo do Dado
-            </label>
-            <select
-              :value="node.config?.variable_type || 'string'"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12"
-              @change="updateField('variable_type', $event.target.value)"
-            >
-              <option value="string">String (Texto)</option>
-              <option value="number">Number (Número)</option>
-              <option value="boolean">Boolean (Verdadeiro / Falso)</option>
-              <option value="json">JSON / Objeto</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Valor
-            </label>
-            <input
-              :value="node.config?.variable_value || ''"
-              type="text"
-              placeholder="ex: {{contact.name}} ou 100"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12"
-              @input="updateField('variable_value', $event.target.value)"
-            />
-          </div>
-
-          <div
-            class="p-2 rounded-xl bg-n-alpha-1 border border-n-weak space-y-1"
-          >
-            <span class="text-[10px] text-n-slate-9 font-bold"
-              >Variáveis Disponíveis:</span
-            >
-            <div class="flex flex-wrap gap-1">
               <span
-                v-for="v in [
-                  '{{contact.id}}',
-                  '{{contact.name}}',
-                  '{{webhook.order_id}}',
-                  '{{conversation.id}}',
-                ]"
-                :key="v"
-                class="px-1.5 py-0.5 rounded bg-n-alpha-2 text-[10px] font-mono text-n-slate-12 cursor-pointer hover:bg-blue-500 hover:text-white"
-                @click="
-                  updateField(
-                    'variable_value',
-                    (node.config?.variable_value || '') + v
-                  )
+                class="size-2.5 rounded-full shrink-0"
+                :style="{ backgroundColor: rt.color }"
+              />
+              <input
+                :value="rt.name"
+                type="text"
+                placeholder="Nome da rota"
+                :class="INPUT_CLASS"
+                @input="
+                  updateListItem('routes', idx, 'name', $event.target.value)
                 "
-              >
-                {{ v }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 11. ADD TAG                                    -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'add_tag'">
-        <div class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Nome da Tag
-            </label>
-            <input
-              :value="node.config?.tag_name || 'cliente_vip'"
-              type="text"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono"
-              @input="updateField('tag_name', $event.target.value)"
-            />
-          </div>
-
-          <div>
-            <label class="block text-[10px] text-n-slate-9 mb-1"
-              >Tags Comuns</label
-            >
-            <div class="flex flex-wrap gap-1.5">
+              />
               <button
-                v-for="t in [
-                  'cliente_vip',
-                  'lead_quente',
-                  'fc27_compra',
-                  'suporte_urgente',
-                  'ativo',
-                ]"
-                :key="t"
                 type="button"
-                class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
-                @click="updateField('tag_name', t)"
+                class="flex items-center justify-center size-8 shrink-0 rounded-md text-n-slate-10 hover:text-n-ruby-11 hover:bg-n-ruby-9/10"
+                title="Remover rota"
+                @click="removeListItem('routes', idx)"
               >
-                {{ t }}
+                <span class="i-lucide-trash-2 size-3.5" />
               </button>
             </div>
-          </div>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 12. REMOVE TAG                                 -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'remove_tag'">
-        <div class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Tag a Remover
-            </label>
-            <input
-              :value="node.config?.tag_name || 'lead_frio'"
-              type="text"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono"
-              @input="updateField('tag_name', $event.target.value)"
-            />
-          </div>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 13. UPDATE CONTACT                             -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'update_contact'">
-        <div class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Campo do Contato
-            </label>
-            <select
-              :value="node.config?.field_name || 'name'"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12"
-              @change="updateField('field_name', $event.target.value)"
-            >
-              <option value="name">Nome (name)</option>
-              <option value="email">E-mail (email)</option>
-              <option value="phone_number">Telefone (phone_number)</option>
-              <option value="identifier">Identificador Externo</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Novo Valor
-            </label>
-            <input
-              :value="node.config?.field_value || '{{webhook.customer.name}}'"
-              type="text"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono"
-              @input="updateField('field_value', $event.target.value)"
-            />
-          </div>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 14. UPDATE CUSTOM ATTRIBUTE                    -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'update_custom_attribute'">
-        <div class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Chave do Atributo Customizado
-            </label>
-            <input
-              :value="node.config?.attribute_key || 'cliente_ativo'"
-              type="text"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono"
-              @input="updateField('attribute_key', $event.target.value)"
-            />
-          </div>
-
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Valor
-            </label>
-            <input
-              :value="node.config?.attribute_value || 'true'"
-              type="text"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12"
-              @input="updateField('attribute_value', $event.target.value)"
-            />
-          </div>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 15. UPDATE CONVERSATION                        -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'update_conversation'">
-        <div class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Prioridade da Conversa
-            </label>
-            <select
-              :value="node.config?.priority || 'high'"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12"
-              @change="updateField('priority', $event.target.value)"
-            >
-              <option value="urgent">🔴 Urgente</option>
-              <option value="high">🟠 Alta</option>
-              <option value="medium">🟡 Média</option>
-              <option value="low">🔵 Baixa</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Status da Conversa
-            </label>
-            <select
-              :value="node.config?.status || 'open'"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12"
-              @change="updateField('status', $event.target.value)"
-            >
-              <option value="open">Aberto</option>
-              <option value="resolved">Resolvido</option>
-              <option value="pending">Pendente</option>
-              <option value="snoozed">Adiado</option>
-            </select>
-          </div>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 16. ASSIGN AGENT                               -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'assign_agent'">
-        <div class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Atribuir ao Agente
-            </label>
-            <select
-              :value="node.config?.agent_name || 'Samuel'"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12"
-              @change="updateField('agent_name', $event.target.value)"
-            >
-              <option value="Samuel">Samuel (Mestre - Admin)</option>
-              <option value="Round-Robin">
-                Atribuição Automática (Round-Robin)
-              </option>
-              <option value="Bot Atendimento">Bot IA Atendimento</option>
-            </select>
-          </div>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 17. ASSIGN TEAM                                -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'assign_team'">
-        <div class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Atribuir à Equipe / Time
-            </label>
-            <select
-              :value="node.config?.team_name || 'Vendas'"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12"
-              @change="updateField('team_name', $event.target.value)"
-            >
-              <option value="Vendas">Equipe de Vendas</option>
-              <option value="Suporte Técnico">Suporte Técnico N2</option>
-              <option value="Financeiro">Financeiro / Cobrança</option>
-              <option value="Onboarding">Onboarding / Novos Clientes</option>
-            </select>
-          </div>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 18. ADD PRIVATE NOTE                           -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'add_private_note'">
-        <div class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Texto da Nota Privada
-            </label>
-            <textarea
-              :value="
-                node.config?.note_text ||
-                'Lead qualificado via fluxo automatizado.'
-              "
-              rows="4"
-              class="w-full p-2.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-sans"
-              @input="updateField('note_text', $event.target.value)"
-            />
-          </div>
-          <p class="text-[11px] text-n-slate-9">
-            Esta nota será adicionada apenas internamente à conversa (invisível
-            para o cliente).
-          </p>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 19. RESOLVE CONVERSATION                       -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'resolve_conversation'">
-        <div
-          class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-2"
-        >
-          <div class="flex items-center gap-2">
-            <span class="text-base">✅</span>
-            <span class="text-xs font-bold text-emerald-500"
-              >Ação de Resolução</span
-            >
-          </div>
-          <p class="text-xs text-n-slate-11">
-            Ao atingir este bloco, a conversa atual será imediatamente marcada
-            como <strong>Resolvida</strong>.
-          </p>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 20. REOPEN CONVERSATION                        -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'reopen_conversation'">
-        <div
-          class="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 space-y-2"
-        >
-          <div class="flex items-center gap-2">
-            <span class="text-base">🔄</span>
-            <span class="text-xs font-bold text-blue-500"
-              >Ação de Reabertura</span
-            >
-          </div>
-          <p class="text-xs text-n-slate-11">
-            Reabre a conversa para a caixa de entrada para atendimento imediato
-            de um agente.
-          </p>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 21. HTTP REQUEST (REQUISITO COMPLETO 15 PONTOS)-->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'http_request'">
-        <div v-if="activeTab === 'config'" class="space-y-3">
-          <!-- Method & URL -->
-          <div class="grid grid-cols-3 gap-2">
-            <div>
-              <label class="block text-[10px] text-n-slate-9 mb-1"
-                >Método</label
-              >
+            <div class="grid grid-cols-2 gap-2">
               <select
-                :value="node.config?.method || 'POST'"
-                class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 font-bold"
-                @change="updateField('method', $event.target.value)"
+                :value="rt.operator || 'equal_to'"
+                :class="SELECT_CLASS"
+                @change="
+                  updateListItem('routes', idx, 'operator', $event.target.value)
+                "
               >
-                <option value="GET">GET</option>
-                <option value="POST">POST</option>
-                <option value="PUT">PUT</option>
-                <option value="PATCH">PATCH</option>
-                <option value="DELETE">DELETE</option>
+                <option value="equal_to">é igual a</option>
+                <option value="not_equal_to">é diferente de</option>
+                <option value="contains">contém</option>
               </select>
-            </div>
-            <div class="col-span-2">
-              <label class="block text-[10px] text-n-slate-9 mb-1">URL</label>
-              <input
-                :value="node.config?.url || 'https://api.exemplo.com/orders'"
-                type="text"
-                class="w-full px-2.5 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono"
-                @input="updateField('url', $event.target.value)"
+              <WorkflowVariableInput
+                :model-value="rt.value"
+                placeholder="Valor"
+                @update:model-value="
+                  updateListItem('routes', idx, 'value', $event)
+                "
               />
             </div>
           </div>
+          <button type="button" :class="LINK_BUTTON_CLASS" @click="addRoute">
+            <span class="i-lucide-plus size-3.5" />
+            Adicionar rota
+          </button>
+        </div>
 
-          <!-- Query Params -->
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="text-[10px] font-bold text-n-slate-12"
-                >Query Params</label
-              >
-              <button
-                type="button"
-                class="text-[10px] text-blue-500 font-semibold"
-                @click="addKeyValue('params', 'param', 'value')"
-              >
-                + Adicionar Param
-              </button>
-            </div>
-            <div class="space-y-1">
-              <div
-                v-for="(p, i) in node.config?.params || []"
-                :key="i"
-                class="flex items-center gap-1.5"
-              >
-                <input
-                  :value="p.key"
-                  placeholder="Key"
-                  class="flex-1 px-2 py-1 text-xs rounded bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono text-[11px]"
-                  @input="
-                    updateKeyValue('params', i, 'key', $event.target.value)
-                  "
-                />
-                <input
-                  :value="p.value"
-                  placeholder="Value"
-                  class="flex-1 px-2 py-1 text-xs rounded bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono text-[11px]"
-                  @input="
-                    updateKeyValue('params', i, 'value', $event.target.value)
-                  "
-                />
-                <button
-                  type="button"
-                  class="text-rose-500 text-xs px-1"
-                  @click="removeKeyValue('params', i)"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-          </div>
+        <div>
+          <label :class="LABEL_CLASS">Rota padrão</label>
+          <input
+            :value="config.default_route_name || 'Default'"
+            type="text"
+            :class="INPUT_CLASS"
+            @input="updateField('default_route_name', $event.target.value)"
+          />
+          <p :class="HINT_CLASS">Seguida quando nenhuma rota corresponder.</p>
+        </div>
+      </template>
 
-          <!-- Headers -->
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="text-[10px] font-bold text-n-slate-12"
-                >Headers</label
-              >
-              <button
-                type="button"
-                class="text-[10px] text-blue-500 font-semibold"
-                @click="addKeyValue('headers', 'Header-Name', 'value')"
-              >
-                + Adicionar Header
-              </button>
-            </div>
-            <div class="space-y-1">
-              <div
-                v-for="(h, i) in node.config?.headers || []"
-                :key="i"
-                class="flex items-center gap-1.5"
-              >
-                <input
-                  :value="h.key"
-                  placeholder="Header"
-                  class="flex-1 px-2 py-1 text-xs rounded bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono text-[11px]"
-                  @input="
-                    updateKeyValue('headers', i, 'key', $event.target.value)
-                  "
-                />
-                <input
-                  :value="h.value"
-                  placeholder="Value"
-                  class="flex-1 px-2 py-1 text-xs rounded bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono text-[11px]"
-                  @input="
-                    updateKeyValue('headers', i, 'value', $event.target.value)
-                  "
-                />
-                <button
-                  type="button"
-                  class="text-rose-500 text-xs px-1"
-                  @click="removeKeyValue('headers', i)"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Authentication -->
-          <div>
-            <label class="block text-[10px] text-n-slate-9 mb-1"
-              >Autenticação</label
-            >
+      <template v-else-if="node.type === 'delay'">
+        <div>
+          <label :class="LABEL_CLASS">Aguardar por</label>
+          <div class="grid grid-cols-2 gap-2">
+            <input
+              :value="config.duration"
+              type="number"
+              min="1"
+              :class="INPUT_CLASS"
+              @input="
+                updateField('duration', parseInt($event.target.value, 10) || 0)
+              "
+            />
             <select
-              :value="node.config?.auth_type || 'bearer'"
-              class="w-full px-2.5 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12"
+              :value="config.unit || 'minutes'"
+              :class="SELECT_CLASS"
+              @change="updateField('unit', $event.target.value)"
+            >
+              <option value="seconds">Segundos</option>
+              <option value="minutes">Minutos</option>
+              <option value="hours">Horas</option>
+              <option value="days">Dias</option>
+            </select>
+          </div>
+        </div>
+      </template>
+
+      <template v-else-if="node.type === 'wait_until'">
+        <div>
+          <label :class="LABEL_CLASS">Modo</label>
+          <select
+            :value="config.wait_mode || 'specific_time'"
+            :class="SELECT_CLASS"
+            @change="updateField('wait_mode', $event.target.value)"
+          >
+            <option value="specific_time">Horário específico</option>
+            <option value="business_hours">Próximo horário comercial</option>
+          </select>
+        </div>
+        <div v-if="(config.wait_mode || 'specific_time') === 'specific_time'">
+          <label :class="LABEL_CLASS">Horário</label>
+          <input
+            :value="config.target_time || '09:00'"
+            type="time"
+            :class="INPUT_CLASS"
+            @input="updateField('target_time', $event.target.value)"
+          />
+        </div>
+        <div v-else class="grid grid-cols-2 gap-2">
+          <div>
+            <label :class="LABEL_CLASS">Início</label>
+            <input
+              :value="config.business_start || '08:00'"
+              type="time"
+              :class="INPUT_CLASS"
+              @input="updateField('business_start', $event.target.value)"
+            />
+          </div>
+          <div>
+            <label :class="LABEL_CLASS">Fim</label>
+            <input
+              :value="config.business_end || '18:00'"
+              type="time"
+              :class="INPUT_CLASS"
+              @input="updateField('business_end', $event.target.value)"
+            />
+          </div>
+        </div>
+        <div>
+          <label :class="LABEL_CLASS">Fuso horário</label>
+          <input
+            :value="config.timezone || 'America/Sao_Paulo'"
+            type="text"
+            :class="INPUT_CLASS"
+            @input="updateField('timezone', $event.target.value)"
+          />
+        </div>
+      </template>
+
+      <template v-else-if="node.type === 'wait_for_reply'">
+        <div>
+          <label :class="LABEL_CLASS">Tempo limite (horas)</label>
+          <input
+            :value="config.timeout_hours"
+            type="number"
+            min="1"
+            :class="INPUT_CLASS"
+            @input="
+              updateField(
+                'timeout_hours',
+                parseInt($event.target.value, 10) || 0
+              )
+            "
+          />
+          <p :class="HINT_CLASS">
+            Sem resposta nesse prazo, o fluxo segue pela saída "Sem resposta".
+          </p>
+        </div>
+        <div class="space-y-2">
+          <label
+            v-for="option in [
+              {
+                key: 'ignore_bot_messages',
+                label: 'Ignorar mensagens de bots',
+              },
+              { key: 'ignore_private_notes', label: 'Ignorar notas privadas' },
+              {
+                key: 'only_customer_messages',
+                label: 'Apenas mensagens do cliente',
+              },
+            ]"
+            :key="option.key"
+            class="flex items-center gap-2 text-xs text-n-slate-12 cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              :checked="config[option.key] !== false"
+              @change="updateField(option.key, $event.target.checked)"
+            />
+            {{ option.label }}
+          </label>
+        </div>
+      </template>
+
+      <template v-else-if="node.type === 'set_variable'">
+        <div>
+          <label :class="LABEL_CLASS">Nome da variável</label>
+          <input
+            :value="config.variable_name"
+            type="text"
+            placeholder="lead_score"
+            class="font-mono"
+            :class="[INPUT_CLASS]"
+            @input="
+              updateField(
+                'variable_name',
+                $event.target.value.replace(/[^a-zA-Z0-9_]/g, '_')
+              )
+            "
+          />
+          <p :class="HINT_CLASS">
+            Use depois como
+            <span class="font-mono text-n-iris-11">{{
+              formatVariable(`vars.${config.variable_name || 'nome'}`)
+            }}</span>
+          </p>
+        </div>
+        <div>
+          <label :class="LABEL_CLASS">Tipo</label>
+          <select
+            :value="config.variable_type || 'string'"
+            :class="SELECT_CLASS"
+            @change="updateField('variable_type', $event.target.value)"
+          >
+            <option value="string">Texto</option>
+            <option value="number">Número</option>
+            <option value="boolean">Verdadeiro/Falso</option>
+            <option value="json">JSON</option>
+          </select>
+        </div>
+        <div>
+          <label :class="LABEL_CLASS">Valor</label>
+          <WorkflowVariableInput
+            :model-value="config.variable_value"
+            placeholder="Texto fixo ou {{ $variavel }}"
+            @update:model-value="updateField('variable_value', $event)"
+          />
+        </div>
+      </template>
+
+      <template v-else-if="['add_tag', 'remove_tag'].includes(node.type)">
+        <div>
+          <label :class="LABEL_CLASS">Etiqueta</label>
+          <select
+            :value="config.tag_name || ''"
+            :class="SELECT_CLASS"
+            @change="updateField('tag_name', $event.target.value)"
+          >
+            <option value="" disabled>Selecione uma etiqueta</option>
+            <option
+              v-for="label in labels"
+              :key="label.id"
+              :value="label.title"
+            >
+              {{ label.title }}
+            </option>
+          </select>
+          <p v-if="!labels.length" :class="HINT_CLASS">
+            Nenhuma etiqueta cadastrada. Crie em Configurações → Etiquetas.
+          </p>
+        </div>
+      </template>
+
+      <template v-else-if="node.type === 'update_contact'">
+        <div>
+          <label :class="LABEL_CLASS">Campo do contato</label>
+          <select
+            :value="config.field_name || 'name'"
+            :class="SELECT_CLASS"
+            @change="updateField('field_name', $event.target.value)"
+          >
+            <option value="name">Nome</option>
+            <option value="email">E-mail</option>
+            <option value="phone_number">Telefone</option>
+            <option value="identifier">Identificador externo</option>
+          </select>
+        </div>
+        <div>
+          <label :class="LABEL_CLASS">Novo valor</label>
+          <WorkflowVariableInput
+            :model-value="config.field_value"
+            placeholder="{{ $webhook.customer.name }}"
+            @update:model-value="updateField('field_value', $event)"
+          />
+        </div>
+      </template>
+
+      <template v-else-if="node.type === 'update_custom_attribute'">
+        <div>
+          <label :class="LABEL_CLASS">Aplicar em</label>
+          <select
+            :value="config.target || 'contact'"
+            :class="SELECT_CLASS"
+            @change="
+              updateFields({ target: $event.target.value, attribute_key: '' })
+            "
+          >
+            <option value="contact">Contato</option>
+            <option value="conversation">Conversa</option>
+          </select>
+        </div>
+        <div>
+          <label :class="LABEL_CLASS">Atributo</label>
+          <select
+            :value="config.attribute_key || ''"
+            :class="SELECT_CLASS"
+            @change="updateField('attribute_key', $event.target.value)"
+          >
+            <option value="" disabled>Selecione um atributo</option>
+            <option
+              v-for="attr in attributeOptions"
+              :key="attr.id"
+              :value="attr.attribute_key"
+            >
+              {{ attr.attribute_display_name }}
+            </option>
+          </select>
+          <p v-if="!attributeOptions.length" :class="HINT_CLASS">
+            Nenhum atributo personalizado cadastrado.
+          </p>
+        </div>
+        <div>
+          <label :class="LABEL_CLASS">Valor</label>
+          <WorkflowVariableInput
+            :model-value="config.attribute_value"
+            placeholder="{{ $webhook.customer.email }}"
+            @update:model-value="updateField('attribute_value', $event)"
+          />
+          <p :class="HINT_CLASS">
+            Abra as variáveis e escolha um campo do webhook, ou escreva um valor
+            fixo.
+          </p>
+        </div>
+      </template>
+
+      <template v-else-if="node.type === 'update_conversation'">
+        <div>
+          <label :class="LABEL_CLASS">Prioridade</label>
+          <select
+            :value="config.priority || 'high'"
+            :class="SELECT_CLASS"
+            @change="updateField('priority', $event.target.value)"
+          >
+            <option value="urgent">Urgente</option>
+            <option value="high">Alta</option>
+            <option value="medium">Média</option>
+            <option value="low">Baixa</option>
+          </select>
+        </div>
+        <div>
+          <label :class="LABEL_CLASS">Status</label>
+          <select
+            :value="config.status || 'open'"
+            :class="SELECT_CLASS"
+            @change="updateField('status', $event.target.value)"
+          >
+            <option value="open">Aberta</option>
+            <option value="pending">Pendente</option>
+            <option value="snoozed">Adiada</option>
+            <option value="resolved">Resolvida</option>
+          </select>
+        </div>
+      </template>
+
+      <template v-else-if="node.type === 'assign_agent'">
+        <div>
+          <label :class="LABEL_CLASS">Agente</label>
+          <select
+            :value="String(config.agent_id || '')"
+            :class="SELECT_CLASS"
+            @change="selectAgent($event.target.value)"
+          >
+            <option value="" disabled>Selecione um agente</option>
+            <option
+              v-for="agent in agents"
+              :key="agent.id"
+              :value="String(agent.id)"
+            >
+              {{ agent.name }}
+            </option>
+          </select>
+        </div>
+      </template>
+
+      <template v-else-if="node.type === 'assign_team'">
+        <div>
+          <label :class="LABEL_CLASS">Time</label>
+          <select
+            :value="String(config.team_id || '')"
+            :class="SELECT_CLASS"
+            @change="selectTeam($event.target.value)"
+          >
+            <option value="" disabled>Selecione um time</option>
+            <option
+              v-for="team in teams"
+              :key="team.id"
+              :value="String(team.id)"
+            >
+              {{ team.name }}
+            </option>
+          </select>
+          <p v-if="!teams.length" :class="HINT_CLASS">
+            Nenhum time cadastrado.
+          </p>
+        </div>
+      </template>
+
+      <template v-else-if="node.type === 'add_private_note'">
+        <div>
+          <label :class="LABEL_CLASS">Nota</label>
+          <WorkflowVariableInput
+            :model-value="config.note_text"
+            multiline
+            :rows="4"
+            placeholder="Visível apenas para a equipe"
+            @update:model-value="updateField('note_text', $event)"
+          />
+          <p :class="HINT_CLASS">A nota fica visível apenas para a equipe.</p>
+        </div>
+      </template>
+
+      <div
+        v-else-if="
+          ['resolve_conversation', 'reopen_conversation'].includes(node.type)
+        "
+        class="flex gap-3 p-3 rounded-xl bg-n-alpha-1"
+      >
+        <span
+          class="size-4 mt-0.5 shrink-0"
+          :class="[nodeMeta.icon, style.text]"
+        />
+        <p class="text-xs text-n-slate-11">
+          {{
+            node.type === 'resolve_conversation'
+              ? 'Ao chegar neste bloco a conversa atual é marcada como resolvida.'
+              : 'Ao chegar neste bloco a conversa é reaberta para a equipe.'
+          }}
+        </p>
+      </div>
+
+      <template
+        v-else-if="['http_request', 'send_webhook'].includes(node.type)"
+      >
+        <div class="grid grid-cols-[6rem_1fr] gap-2">
+          <div>
+            <label :class="LABEL_CLASS">Método</label>
+            <select
+              :value="config.method || 'POST'"
+              :class="SELECT_CLASS"
+              @change="updateField('method', $event.target.value)"
+            >
+              <option
+                v-for="method in node.type === 'send_webhook'
+                  ? ['POST', 'PUT']
+                  : ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']"
+                :key="method"
+                :value="method"
+              >
+                {{ method }}
+              </option>
+            </select>
+          </div>
+          <div class="min-w-0">
+            <label :class="LABEL_CLASS">URL</label>
+            <WorkflowVariableInput
+              :model-value="config.url"
+              mono
+              placeholder="https://api.exemplo.com"
+              @update:model-value="updateField('url', $event)"
+            />
+          </div>
+        </div>
+
+        <template v-if="node.type === 'http_request'">
+          <div
+            v-for="listField in [
+              { key: 'params', title: 'Query params' },
+              { key: 'headers', title: 'Headers' },
+            ]"
+            :key="listField.key"
+          >
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-medium text-n-slate-12">{{
+                listField.title
+              }}</label>
+              <button
+                type="button"
+                :class="LINK_BUTTON_CLASS"
+                @click="addListItem(listField.key, { key: '', value: '' })"
+              >
+                <span class="i-lucide-plus size-3.5" />
+                Adicionar
+              </button>
+            </div>
+            <div class="space-y-1.5">
+              <div
+                v-for="(pair, i) in config[listField.key] || []"
+                :key="i"
+                class="grid grid-cols-[1fr_1.4fr_auto] gap-1.5 items-start"
+              >
+                <input
+                  :value="pair.key"
+                  placeholder="Chave"
+                  class="font-mono"
+                  :class="[INPUT_CLASS]"
+                  @input="
+                    updateListItem(listField.key, i, 'key', $event.target.value)
+                  "
+                />
+                <WorkflowVariableInput
+                  :model-value="pair.value"
+                  mono
+                  placeholder="Valor"
+                  @update:model-value="
+                    updateListItem(listField.key, i, 'value', $event)
+                  "
+                />
+                <button
+                  type="button"
+                  class="flex items-center justify-center size-9 rounded-md text-n-slate-10 hover:text-n-ruby-11 hover:bg-n-ruby-9/10"
+                  title="Remover"
+                  @click="removeListItem(listField.key, i)"
+                >
+                  <span class="i-lucide-x size-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label :class="LABEL_CLASS">Autenticação</label>
+            <select
+              :value="config.auth_type || 'none'"
+              :class="SELECT_CLASS"
               @change="updateField('auth_type', $event.target.value)"
             >
-              <option value="none">Nenhuma (None)</option>
-              <option value="bearer">Bearer Token</option>
-              <option value="basic">Basic Auth</option>
-              <option value="api_key">API Key Header</option>
+              <option value="none">Nenhuma</option>
+              <option value="bearer">Bearer token</option>
+              <option value="basic">Basic auth</option>
+              <option value="api_key">Header X-API-Key</option>
             </select>
-
-            <div v-if="node.config?.auth_type === 'bearer'" class="mt-1.5">
-              <input
-                :value="node.config?.auth_token || '**********'"
-                type="password"
-                placeholder="Bearer Token..."
-                class="w-full px-2.5 py-1 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono"
-                @input="updateField('auth_token', $event.target.value)"
-              />
-            </div>
-          </div>
-
-          <!-- Body JSON -->
-          <div>
-            <label class="block text-[10px] text-n-slate-9 mb-1"
-              >Corpo da Requisição (Body JSON)</label
-            >
-            <textarea
-              :value="node.config?.body || ''"
-              rows="4"
-              class="w-full p-2 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono text-[11px]"
-              @input="updateField('body', $event.target.value)"
+            <input
+              v-if="(config.auth_type || 'none') !== 'none'"
+              :value="config.auth_token || ''"
+              type="password"
+              placeholder="Token"
+              class="mt-2 font-mono"
+              :class="[INPUT_CLASS]"
+              @input="updateField('auth_token', $event.target.value)"
             />
           </div>
+        </template>
 
-          <!-- Timeout, Retries & Store Response -->
+        <div
+          v-if="
+            node.type === 'send_webhook' || (config.method || 'POST') !== 'GET'
+          "
+        >
+          <label :class="LABEL_CLASS">Corpo (JSON)</label>
+          <WorkflowVariableInput
+            :model-value="
+              node.type === 'send_webhook' ? config.payload : config.body
+            "
+            multiline
+            mono
+            :rows="5"
+            placeholder='{ "nome": "{{ $contact.name }}" }'
+            @update:model-value="
+              updateField(
+                node.type === 'send_webhook' ? 'payload' : 'body',
+                $event
+              )
+            "
+          />
+        </div>
+
+        <template v-if="node.type === 'http_request'">
           <div class="grid grid-cols-3 gap-2">
             <div>
-              <label class="block text-[10px] text-n-slate-9 mb-1"
-                >Timeout (s)</label
-              >
+              <label :class="LABEL_CLASS">Timeout (s)</label>
               <input
-                :value="node.config?.timeout || 30"
+                :value="config.timeout"
                 type="number"
-                class="w-full px-2 py-1 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12"
+                min="1"
+                :class="INPUT_CLASS"
                 @input="
-                  updateField('timeout', parseInt($event.target.value) || 30)
+                  updateField('timeout', parseInt($event.target.value, 10) || 0)
                 "
               />
             </div>
             <div>
-              <label class="block text-[10px] text-n-slate-9 mb-1"
-                >Tentativas</label
-              >
+              <label :class="LABEL_CLASS">Tentativas</label>
               <input
-                :value="node.config?.retry_count || 3"
+                :value="config.retry_count"
                 type="number"
-                class="w-full px-2 py-1 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12"
+                min="0"
+                :class="INPUT_CLASS"
                 @input="
-                  updateField('retry_count', parseInt($event.target.value) || 3)
+                  updateField(
+                    'retry_count',
+                    parseInt($event.target.value, 10) || 0
+                  )
                 "
               />
             </div>
             <div>
-              <label class="block text-[10px] text-n-slate-9 mb-1"
-                >Intervalo (s)</label
-              >
+              <label :class="LABEL_CLASS">Intervalo (s)</label>
               <input
-                :value="node.config?.retry_interval || 5"
+                :value="config.retry_interval"
                 type="number"
-                class="w-full px-2 py-1 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12"
+                min="0"
+                :class="INPUT_CLASS"
                 @input="
                   updateField(
                     'retry_interval',
-                    parseInt($event.target.value) || 5
+                    parseInt($event.target.value, 10) || 0
                   )
                 "
               />
             </div>
           </div>
-
           <div>
-            <label class="block text-[10px] text-n-slate-9 mb-1"
-              >Salvar Resposta Em (Store Response As)</label
-            >
+            <label :class="LABEL_CLASS">Salvar resposta como</label>
             <input
-              :value="node.config?.save_response_as || 'workflow.http_response'"
+              :value="config.save_response_as || 'http_response'"
               type="text"
-              class="w-full px-2.5 py-1 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono"
-              @input="updateField('save_response_as', $event.target.value)"
-            />
-          </div>
-
-          <!-- BOTÃO TESTAR REQUISIÇÃO -->
-          <div class="pt-2 border-t border-n-weak">
-            <button
-              type="button"
-              class="w-full py-2 px-3 rounded-xl bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-xs font-bold hover:bg-blue-600/30 transition-all flex items-center justify-center gap-2"
-              :disabled="isTestingHttp"
-              @click="runHttpTest"
-            >
-              <span>▷</span>
-              <span>{{
-                isTestingHttp ? 'Executando Teste...' : 'Testar Requisição'
-              }}</span>
-            </button>
-
-            <!-- RESPOSTA PREVIEW -->
-            <div
-              v-if="httpTestResult"
-              class="mt-2 p-3 rounded-xl bg-n-alpha-1 border border-n-weak space-y-1.5"
-            >
-              <div class="flex items-center justify-between text-[11px]">
-                <span class="text-emerald-500 font-bold"
-                  >✓ {{ httpTestResult.statusText }}</span
-                >
-                <span class="text-n-slate-9">{{
-                  httpTestResult.duration
-                }}</span>
-              </div>
-              <pre
-                class="text-[10px] font-mono text-n-slate-12 overflow-x-auto p-2 bg-n-solid-1 rounded-lg"
-                >{{ JSON.stringify(httpTestResult.data, null, 2) }}</pre
-              >
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB SAÍDAS HTTP -->
-        <div v-else class="space-y-3">
-          <div
-            class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between"
-          >
-            <span
-              class="text-xs font-bold text-emerald-500 flex items-center gap-2"
-            >
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500" /> SUCCESS
-              (2xx)
-            </span>
-            <span class="text-[11px] text-n-slate-9"
-              >Requisição retornou sucesso</span
-            >
-          </div>
-          <div
-            class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-between"
-          >
-            <span
-              class="text-xs font-bold text-rose-500 flex items-center gap-2"
-            >
-              <span class="w-2.5 h-2.5 rounded-full bg-rose-500" /> ERROR (4xx /
-              5xx)
-            </span>
-            <span class="text-[11px] text-n-slate-9">Falha ou timeout</span>
-          </div>
-        </div>
-      </template>
-
-      <!-- ============================================== -->
-      <!-- 22. SEND WEBHOOK (OUTBOUND ESPECÍFICO)         -->
-      <!-- ============================================== -->
-      <template v-else-if="node.type === 'send_webhook'">
-        <div class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              URL do Webhook Externo
-            </label>
-            <input
-              :value="
-                node.config?.url || 'https://n8n.meusuper.app/webhook/chatwoot'
+              class="font-mono"
+              :class="[INPUT_CLASS]"
+              @input="
+                updateField(
+                  'save_response_as',
+                  $event.target.value.replace(/[^a-zA-Z0-9_]/g, '_')
+                )
               "
-              type="text"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono"
-              @input="updateField('url', $event.target.value)"
             />
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-[10px] text-n-slate-9 mb-1"
-                >Método</label
-              >
-              <select
-                :value="node.config?.method || 'POST'"
-                class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 font-bold"
-                @change="updateField('method', $event.target.value)"
-              >
-                <option value="POST">POST</option>
-                <option value="PUT">PUT</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-[10px] text-n-slate-9 mb-1"
-                >Tentativas de Retry</label
-              >
-              <input
-                :value="node.config?.retry_count || 2"
-                type="number"
-                min="0"
-                max="5"
-                class="w-full px-2 py-1 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12"
-                @input="
-                  updateField('retry_count', parseInt($event.target.value) || 0)
-                "
-              />
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Payload JSON Outbound
-            </label>
-            <textarea
-              :value="node.config?.payload || '{}'"
-              rows="4"
-              class="w-full p-2.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 font-mono text-[11px]"
-              @input="updateField('payload', $event.target.value)"
-            />
-          </div>
-
-          <!-- BOTÃO TESTAR WEBHOOK -->
-          <div>
-            <button
-              type="button"
-              class="w-full py-2 px-3 rounded-xl bg-purple-600/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 text-xs font-bold hover:bg-purple-600/30 transition-all flex items-center justify-center gap-2"
-              :disabled="isTestingWebhook"
-              @click="runWebhookTest"
-            >
-              <span>🚀</span>
-              <span>{{
-                isTestingWebhook
-                  ? 'Disparando Webhook...'
-                  : 'Testar Disparo Webhook'
+            <p :class="HINT_CLASS">
+              Use depois como
+              <span class="font-mono text-n-iris-11">{{
+                formatVariable(`${responseVariable}.body`)
               }}</span>
-            </button>
-
-            <div
-              v-if="webhookTestResult"
-              class="mt-2 p-3 rounded-xl bg-n-alpha-1 border border-n-weak space-y-1"
-            >
-              <div class="flex items-center justify-between text-[11px]">
-                <span class="text-emerald-500 font-bold"
-                  >✓ {{ webhookTestResult.statusText }}</span
-                >
-                <span class="text-n-slate-9">{{
-                  webhookTestResult.duration
-                }}</span>
-              </div>
-              <pre
-                class="text-[10px] font-mono text-n-slate-12 overflow-x-auto p-2 bg-n-solid-1 rounded-lg"
-                >{{ JSON.stringify(webhookTestResult.response, null, 2) }}</pre
-              >
-            </div>
+            </p>
           </div>
+        </template>
+
+        <div class="pt-1">
+          <button
+            type="button"
+            class="w-full h-9 rounded-lg border border-n-weak text-xs font-medium text-n-slate-12 hover:bg-n-alpha-2 disabled:opacity-50 flex items-center justify-center gap-2"
+            :disabled="isTestingHttp || !config.url"
+            @click="runHttpTest"
+          >
+            <span
+              class="size-3.5"
+              :class="
+                isTestingHttp
+                  ? 'i-lucide-loader-circle animate-spin'
+                  : 'i-lucide-play'
+              "
+            />
+            {{ isTestingHttp ? 'Executando…' : 'Testar requisição' }}
+          </button>
+          <div
+            v-if="httpTestResult"
+            class="mt-2 p-3 rounded-xl bg-n-alpha-1 space-y-2"
+          >
+            <div class="flex items-center justify-between text-xs">
+              <span
+                class="flex items-center gap-1 font-semibold"
+                :class="
+                  httpTestResult.ok
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-n-ruby-11'
+                "
+              >
+                <span
+                  class="size-3.5"
+                  :class="
+                    httpTestResult.ok
+                      ? 'i-lucide-circle-check'
+                      : 'i-lucide-circle-alert'
+                  "
+                />
+                {{ httpTestResult.statusText }}
+              </span>
+              <span class="text-n-slate-10">{{ httpTestResult.duration }}</span>
+            </div>
+            <pre
+              class="max-h-48 overflow-auto p-2 rounded-lg bg-n-solid-1 text-[0.625rem] font-mono text-n-slate-12"
+              >{{ JSON.stringify(httpTestResult.data, null, 2) }}</pre
+            >
+          </div>
+          <p :class="HINT_CLASS">No teste, variáveis são enviadas vazias.</p>
         </div>
       </template>
 
-      <!-- ============================================== -->
-      <!-- 23. END WORKFLOW                               -->
-      <!-- ============================================== -->
       <template v-else-if="node.type === 'end_workflow'">
-        <div class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Status do Resultado Final
-            </label>
-            <select
-              :value="node.config?.result_status || 'completed'"
-              class="w-full px-3 py-1.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12"
-              @change="updateField('result_status', $event.target.value)"
-            >
-              <option value="completed">
-                Concluído com Sucesso (Completed)
-              </option>
-              <option value="converted">Lead Convertido (Converted)</option>
-              <option value="stopped">Interrompido por Regra (Stopped)</option>
-              <option value="custom">Personalizado (Custom)</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-[11px] font-bold text-n-slate-12 mb-1">
-              Motivo do Encerramento (Opcional)
-            </label>
-            <textarea
-              :value="node.config?.reason || ''"
-              rows="3"
-              placeholder="Descreva o motivo da finalização deste fluxo..."
-              class="w-full p-2.5 text-xs rounded-xl bg-n-alpha-1 border border-n-weak text-n-slate-12 text-xs"
-              @input="updateField('reason', $event.target.value)"
-            />
-          </div>
+        <div>
+          <label :class="LABEL_CLASS">Status final</label>
+          <select
+            :value="config.result_status || 'completed'"
+            :class="SELECT_CLASS"
+            @change="updateField('result_status', $event.target.value)"
+          >
+            <option value="completed">Concluído</option>
+            <option value="converted">Convertido</option>
+            <option value="stopped">Interrompido</option>
+          </select>
+        </div>
+        <div>
+          <label :class="LABEL_CLASS">Motivo (opcional)</label>
+          <WorkflowVariableInput
+            :model-value="config.reason"
+            multiline
+            :rows="2"
+            placeholder="Por que o fluxo terminou aqui"
+            @update:model-value="updateField('reason', $event)"
+          />
         </div>
       </template>
     </div>
 
-    <!-- FOOTER COM EXCLUIR BLOCO -->
-    <div class="p-4 border-t border-n-weak bg-n-solid-1">
+    <div v-if="!nodeMeta.isTrigger" class="p-4 border-t border-n-weak">
       <button
-        v-if="node.type !== 'webhook_trigger'"
         type="button"
-        class="w-full py-2 px-3 rounded-xl border border-rose-500/30 text-rose-500 text-xs font-semibold hover:bg-rose-500/10 transition-colors"
+        class="w-full h-9 rounded-lg text-xs font-medium text-n-ruby-11 hover:bg-n-ruby-9/10 flex items-center justify-center gap-2 transition-colors"
         @click="emit('deleteNode', node.id)"
       >
-        Excluir Bloco
+        <span class="i-lucide-trash-2 size-3.5" />
+        Excluir bloco
       </button>
     </div>
-  </div>
+  </aside>
   <div v-else />
 </template>

@@ -18,6 +18,13 @@ class WhatsappTemplatesAPI {
     return axios.get(this.baseUrl);
   }
 
+  uploadMedia(file) {
+    const body = new FormData();
+    body.append('attachment', file);
+    const accountId = this.baseUrl.split('/')[4];
+    return axios.post(`/api/v1/accounts/${accountId}/upload`, body);
+  }
+
   getTemplate(id) {
     return axios.get(`${this.baseUrl}/${id}`);
   }

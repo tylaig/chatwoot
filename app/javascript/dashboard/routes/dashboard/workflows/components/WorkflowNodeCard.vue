@@ -1,7 +1,14 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, inject, ref } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
-import { getNodeDefinition } from '../nodeRegistry';
+import { OnClickOutside } from '@vueuse/components';
+import {
+  getNodeDefinition,
+  getCategoryStyle,
+  getNodeOutputs,
+  getOutputColor,
+} from '../nodeRegistry';
+import { tokenizeTemplate } from '../variables';
 
 const props = defineProps({
   id: {
@@ -16,278 +23,328 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  connectTarget: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(['add-next']);
+const emit = defineEmits(['configure', 'duplicate', 'delete']);
+
+const builder = inject('workflowBuilder', null);
+const variableCatalog = inject('workflowVariables', null);
 
 const nodeMeta = computed(() => getNodeDefinition(props.data.type));
+const style = computed(() => getCategoryStyle(props.data.type));
+const config = computed(() => props.data.config || {});
+const outputs = computed(() => getNodeOutputs(props.data.type, config.value));
+const hasLabeledOutputs = computed(() => outputs.value.some(o => o.label));
+const isEditable = computed(
+  () => builder && !builder.readOnly && !props.data.readOnly
+);
+const issues = computed(() => builder?.issuesByNode.value.get(props.id) || []);
+const summary = computed(() =>
+  nodeMeta.value.summarize ? nodeMeta.value.summarize(config.value) : ''
+);
+const summarySegments = computed(() =>
+  tokenizeTemplate(
+    summary.value,
+    variableCatalog ? variableCatalog.value.isValid : () => true
+  )
+);
 
-const summary = computed(() => {
-  return nodeMeta.value.summarize
-    ? nodeMeta.value.summarize(props.data.config || {})
-    : '';
-});
+const OPERATOR_SYMBOLS = {
+  equal_to: '=',
+  not_equal_to: '≠',
+  contains: 'contém',
+  greater_than: '>',
+  less_than: '<',
+  is_empty: 'vazio',
+};
 
-// Renderização dinâmica de cor do badge semântico
-const badgeColorClasses = computed(() => {
-  switch (nodeMeta.value.badgeType) {
-    case 'trigger':
-      return 'bg-amber-500/10 text-amber-500 border border-amber-500/20';
-    case 'condition':
-      return 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
-    case 'time':
-      return 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20';
-    case 'integration':
-      return 'bg-sky-500/10 text-sky-400 border border-sky-500/20';
-    default:
-      return 'bg-n-alpha-2 text-n-slate-11 border border-n-weak';
-  }
-});
+const attachmentIcon = type =>
+  ({
+    image: 'i-lucide-image',
+    video: 'i-lucide-video',
+    audio: 'i-lucide-mic',
+    file: 'i-lucide-paperclip',
+  })[type] || 'i-lucide-paperclip';
+
+const showMenu = ref(false);
+const confirmingDelete = ref(false);
+
+const closeMenu = () => {
+  showMenu.value = false;
+  confirmingDelete.value = false;
+};
+
+const configureNode = () => {
+  closeMenu();
+  emit('configure', props.id);
+};
+
+const duplicateNode = () => {
+  closeMenu();
+  emit('duplicate', props.id);
+};
+
+const deleteNode = () => {
+  closeMenu();
+  emit('delete', props.id);
+};
 </script>
 
 <template>
   <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
   <div
-    class="relative rounded-2xl bg-n-solid-1 border transition-all duration-150 shadow-lg group select-none min-w-[280px] max-w-[320px]"
+    class="relative w-72 rounded-2xl bg-n-solid-1 border shadow-lg transition-all duration-150 select-none"
     :class="[
-      selected
-        ? 'border-blue-500 ring-2 ring-blue-500/25 shadow-xl shadow-blue-500/10'
-        : 'border-n-weak hover:border-n-strong',
+      connectTarget
+        ? 'border-n-brand ring-4 ring-n-brand/25 shadow-xl'
+        : selected
+          ? 'border-n-brand ring-4 ring-n-brand/15 shadow-xl'
+          : issues.length
+            ? 'border-n-ruby-8'
+            : 'border-n-weak hover:border-n-strong',
     ]"
   >
-    <!-- HANDLE DE ENTRADA (INPUT) -->
+    <div class="h-1.5 rounded-t-2xl" :class="style.accent" />
+
     <Handle
       v-if="nodeMeta.hasInput !== false"
       type="target"
       :position="Position.Left"
-      class="!w-3 !h-3 !bg-n-slate-9 !border-2 !border-n-solid-1 hover:!bg-blue-500 !transition-colors !-left-1.5"
+      class="!size-3.5 !bg-n-solid-1 !border-2 !border-n-slate-8 hover:!border-n-brand !transition-colors !-left-[0.4375rem]"
     />
 
-    <!-- CONTEÚDO DO CARD -->
-    <div class="p-4 space-y-3">
-      <!-- HEADER DO CARD -->
-      <div class="flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <!-- Ícone oficial WhatsApp ou Genérico -->
-          <div
-            v-if="nodeMeta.icon === 'whatsapp'"
-            class="w-7 h-7 rounded-full bg-[#25D366] flex items-center justify-center shrink-0 shadow-sm"
-          >
-            <svg class="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
-              <path
-                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"
-              />
-            </svg>
-          </div>
-          <div
-            v-else
-            class="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-semibold shrink-0"
-            :style="{
-              backgroundColor: `${nodeMeta.iconColor || '#3B82F6'}1A`,
-              color: nodeMeta.iconColor || '#3B82F6',
-            }"
-          >
-            {{ nodeMeta.icon }}
-          </div>
-          <div class="truncate">
-            <h4
-              class="text-xs font-bold text-n-slate-12 truncate leading-tight"
-            >
-              {{ data.config?.custom_title || nodeMeta.title }}
-            </h4>
-          </div>
+    <div class="px-4 pt-3 pb-4 space-y-3">
+      <div class="flex items-start gap-3">
+        <div
+          class="size-9 rounded-xl flex items-center justify-center shrink-0"
+          :class="[style.soft, style.text]"
+        >
+          <span class="size-5" :class="nodeMeta.icon" />
         </div>
-
-        <div class="flex items-center gap-1 shrink-0">
+        <div class="min-w-0 flex-1">
           <span
-            class="text-[10px] px-2 py-0.5 rounded-full font-medium"
-            :class="badgeColorClasses"
+            class="inline-flex items-center px-1.5 py-px rounded-md text-[0.625rem] font-semibold uppercase tracking-wide"
+            :class="style.badge"
           >
             {{ nodeMeta.badge }}
           </span>
+          <h4 class="mt-1 text-sm font-semibold text-n-slate-12 truncate">
+            {{ config.custom_title || nodeMeta.title }}
+          </h4>
+        </div>
+
+        <div
+          v-if="issues.length"
+          class="shrink-0 pt-0.5"
+          :title="issues.join('\n')"
+        >
+          <span class="i-lucide-circle-alert size-4 text-n-ruby-9" />
+        </div>
+
+        <OnClickOutside
+          v-if="isEditable"
+          class="relative shrink-0"
+          @trigger="closeMenu"
+        >
           <button
             type="button"
-            class="text-n-slate-9 hover:text-n-slate-12 p-0.5 rounded"
-            title="Mais opções"
+            class="nodrag nopan flex items-center justify-center size-7 rounded-lg text-n-slate-10 hover:text-n-slate-12 hover:bg-n-alpha-2 transition-colors"
+            title="Opções do bloco"
+            @click.stop="showMenu = !showMenu"
           >
-            •••
+            <span class="i-lucide-ellipsis size-4" />
           </button>
-        </div>
+          <div
+            v-if="showMenu"
+            class="nodrag nopan absolute end-0 top-8 z-30 w-56 p-1 rounded-xl bg-n-solid-2 border border-n-weak shadow-xl"
+            @click.stop
+          >
+            <template v-if="!confirmingDelete">
+              <button
+                type="button"
+                class="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm text-n-slate-12 hover:bg-n-alpha-2"
+                @click="configureNode"
+              >
+                <span class="i-lucide-settings-2 size-4 text-n-slate-11" />
+                Configurar
+              </button>
+              <button
+                v-if="!nodeMeta.isTrigger"
+                type="button"
+                class="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm text-n-slate-12 hover:bg-n-alpha-2"
+                @click="duplicateNode"
+              >
+                <span class="i-lucide-copy size-4 text-n-slate-11" />
+                Duplicar
+              </button>
+              <button
+                v-if="!nodeMeta.isTrigger"
+                type="button"
+                class="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm text-n-ruby-11 hover:bg-n-ruby-9/10"
+                @click="confirmingDelete = true"
+              >
+                <span class="i-lucide-trash-2 size-4" />
+                Excluir bloco
+              </button>
+            </template>
+            <div v-else class="p-2 space-y-2">
+              <p class="text-sm font-semibold text-n-slate-12">
+                Excluir este bloco?
+              </p>
+              <p class="text-xs text-n-slate-11">
+                As conexões dele também serão removidas. Você pode desfazer com
+                Ctrl+Z.
+              </p>
+              <div class="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  class="px-2.5 py-1.5 rounded-lg text-xs font-medium text-n-slate-12 hover:bg-n-alpha-2"
+                  @click="confirmingDelete = false"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-n-ruby-9 hover:bg-n-ruby-10"
+                  @click="deleteNode"
+                >
+                  Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+        </OnClickOutside>
       </div>
 
-      <!-- SUBTÍTULO / DESCRIÇÃO -->
-      <p class="text-[11px] text-n-slate-11 leading-relaxed">
-        {{ nodeMeta.subtitle }}
-      </p>
-
-      <!-- RESUMO VISUAL DO BLOCO (FIDELIDADE PACK) -->
-      <!-- Caso Condition: exibe as regras formatadas -->
       <div
         v-if="data.type === 'condition'"
-        class="p-2.5 rounded-xl bg-n-alpha-1 border border-n-weak text-[11px] space-y-1 font-mono text-n-slate-12"
+        class="p-2.5 rounded-xl bg-n-alpha-1 text-xs space-y-1.5"
       >
-        <div
-          v-for="(cond, idx) in data.config?.conditions || [
-            {
-              field: 'webhook.status',
-              operator: 'equal_to',
-              value: 'interested',
-            },
-            { field: 'score', operator: 'greater_than', value: '50' },
-          ]"
-          :key="idx"
-          class="space-y-1"
-        >
-          <div
+        <p v-if="!(config.conditions || []).length" class="text-n-slate-10">
+          Configure as regras…
+        </p>
+        <template v-for="(cond, idx) in config.conditions || []" :key="idx">
+          <p
             v-if="idx > 0"
-            class="text-[9px] font-bold text-purple-400 uppercase"
+            class="text-[0.625rem] font-bold uppercase text-violet-600 dark:text-violet-400"
           >
-            {{ data.config?.match_type === 'any' ? 'OR' : 'AND' }}
-          </div>
-          <div class="truncate">
-            <span class="text-n-slate-11">{{ cond.field }}</span>
-            <span class="text-purple-400 mx-1">{{
-              cond.operator === 'equal_to'
-                ? '='
-                : cond.operator === 'greater_than'
-                  ? '>'
-                  : cond.operator
+            {{ config.match_type === 'any' ? 'ou' : 'e' }}
+          </p>
+          <p class="font-mono text-n-slate-12 truncate flex items-center gap-1">
+            <span
+              class="font-mono text-sm font-bold leading-none text-n-iris-11 shrink-0"
+              >{ }</span
+            >
+            <span class="text-n-iris-11 truncate">{{ cond.field }}</span>
+            <span class="mx-1 text-n-slate-10">{{
+              OPERATOR_SYMBOLS[cond.operator] || cond.operator
             }}</span>
-            <span class="text-n-slate-12 font-semibold">{{ cond.value }}</span>
-          </div>
-        </div>
+            <span class="font-semibold">{{ cond.value }}</span>
+          </p>
+        </template>
       </div>
 
-      <!-- Caso Router: exibe a variável de roteamento -->
       <div
         v-else-if="data.type === 'router'"
-        class="p-2.5 rounded-xl bg-n-alpha-1 border border-n-weak font-mono text-[11px] text-n-slate-12 truncate"
+        class="p-2.5 rounded-xl bg-n-alpha-1 text-xs font-mono truncate flex items-center gap-1"
       >
-        <span class="text-n-slate-9 mr-1">Roteando:</span>
-        <span class="text-purple-400 font-semibold">{{
-          data.config?.source_variable || 'webhook.source'
+        <span class="text-n-slate-10 me-1">Rotear por</span>
+        <span
+          class="font-mono text-sm font-bold leading-none text-n-iris-11 shrink-0"
+          >{ }</span
+        >
+        <span class="text-n-iris-11 truncate">{{
+          config.source_variable || '—'
         }}</span>
       </div>
 
-      <!-- Caso Wait for Reply: exibe timeout formatado -->
-      <div
-        v-else-if="data.type === 'wait_for_reply'"
-        class="p-2.5 rounded-xl bg-n-alpha-1 border border-n-weak font-mono text-[11px] text-n-slate-12 flex items-center gap-1.5"
-      >
-        <span>⏱️</span>
-        <span>Timeout: {{ data.config?.timeout_hours || 24 }} horas</span>
-      </div>
-
-      <!-- Caso HTTP Request: exibe método e endpoint com badge -->
       <div
         v-else-if="data.type === 'http_request'"
-        class="p-2.5 rounded-xl bg-n-alpha-1 border border-n-weak text-[11px] space-y-1"
+        class="p-2.5 rounded-xl bg-n-alpha-1 text-xs flex items-center gap-2 min-w-0"
       >
-        <div
-          class="font-mono text-n-slate-12 truncate flex items-center gap-1.5"
+        <span
+          class="px-1.5 py-0.5 rounded-md text-[0.625rem] font-bold bg-n-iris-9/15 text-n-iris-11 shrink-0"
         >
-          <span
-            class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400"
-          >
-            {{ data.config?.method || 'POST' }}
-          </span>
-          <span class="truncate">{{
-            data.config?.url || 'https://api.exemplo.com/orders'
-          }}</span>
-        </div>
-        <p class="text-[10px] text-n-slate-11 truncate">
-          Envia dados para API externa
-        </p>
+          {{ config.method || 'POST' }}
+        </span>
+        <span class="font-mono text-n-slate-12 truncate">{{
+          config.url || 'https://…'
+        }}</span>
       </div>
 
-      <!-- Resumo Geral Padrão -->
-      <div
+      <p
         v-else-if="summary"
-        class="p-2.5 rounded-xl bg-n-alpha-1 border border-n-weak font-mono text-[11px] text-n-slate-12 whitespace-pre-line leading-relaxed break-words"
+        class="p-2.5 rounded-xl bg-n-alpha-1 text-xs text-n-slate-12 whitespace-pre-line break-words line-clamp-3"
       >
-        {{ summary }}
-      </div>
-    </div>
+        <template v-for="(segment, idx) in summarySegments" :key="idx">
+          <span
+            v-if="segment.type === 'variable'"
+            class="inline-flex items-center gap-0.5 px-0.5 rounded font-mono text-[0.6875rem]"
+            :class="
+              segment.valid
+                ? 'text-n-iris-11 bg-n-iris-3'
+                : 'text-n-ruby-11 bg-n-ruby-3'
+            "
+          >
+            <span class="font-mono text-sm font-bold leading-none">{ }</span>
+            {{ segment.text }}
+          </span>
+          <template v-else>{{ segment.text }}</template>
+        </template>
+      </p>
+      <p v-else class="text-xs text-n-slate-11">{{ nodeMeta.subtitle }}</p>
 
-    <!-- BOTÃO FLUTUANTE ADICIONAR PRÓXIMA AÇÃO (ESCONDIDO SE READ-ONLY) -->
-    <button
-      v-if="
-        !data.readOnly &&
-        nodeMeta.outputs &&
-        nodeMeta.outputs.length === 1 &&
-        !nodeMeta.outputs[0].label
-      "
-      type="button"
-      class="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-n-solid-2 border border-n-weak text-n-slate-12 hover:bg-blue-600 hover:text-white flex items-center justify-center text-xs font-bold transition-all shadow-md z-10"
-      title="Adicionar próximo passo"
-      @click.stop="emit('add-next', { nodeId: id, handleId: 'output' })"
-    >
-      +
-    </button>
-
-    <!-- HANDLES DE SAÍDA COM BADGES ESTILIZADOS (CONDIÇÃO, ROTEADOR, WAIT FOR REPLY, HTTP) -->
-    <template v-if="nodeMeta.outputs && nodeMeta.outputs.length">
-      <!-- SAÍDAS COM LABELS (TRUE, FALSE, ROUTER, REPLIED, TIMEOUT, SUCCESS, ERROR) -->
       <div
-        v-if="nodeMeta.outputs.some(o => o.label)"
-        class="flex flex-col gap-2.5 absolute -right-3 top-1/2 -translate-y-1/2 z-10"
+        v-if="data.type === 'send_message' && config.attachments?.length"
+        class="flex flex-wrap gap-1"
       >
-        <div
-          v-for="out in nodeMeta.outputs"
-          :key="out.id"
-          class="relative flex items-center"
+        <span
+          v-for="file in config.attachments"
+          :key="file.blob_id"
+          class="inline-flex max-w-full items-center gap-1 rounded-md bg-n-alpha-2 px-1.5 py-1 text-[0.6875rem] text-n-slate-12"
         >
-          <!-- Badge visual de Branch -->
           <span
-            v-if="
-              out.type === 'success' ||
-              out.label === 'TRUE' ||
-              out.label === 'REPLIED' ||
-              out.label === 'SUCCESS'
-            "
-            class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-wider shadow-sm cursor-pointer hover:bg-emerald-500/30 transition-colors"
-          >
-            {{ out.label }}
-          </span>
-          <span
-            v-else-if="
-              out.type === 'danger' ||
-              out.label === 'FALSE' ||
-              out.label === 'TIMEOUT' ||
-              out.label === 'ERROR'
-            "
-            class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 uppercase tracking-wider shadow-sm cursor-pointer hover:bg-rose-500/30 transition-colors"
-          >
-            {{ out.label }}
-          </span>
-          <span
-            v-else
-            class="text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-sm cursor-pointer transition-colors"
-            :style="{
-              backgroundColor: `${out.color || '#3B82F6'}20`,
-              color: out.color || '#3B82F6',
-              borderColor: `${out.color || '#3B82F6'}40`,
-            }"
-          >
-            {{ out.label }}
-          </span>
+            class="size-3 shrink-0"
+            :class="attachmentIcon(file.file_type)"
+          />
+          <span class="truncate">{{ file.filename }}</span>
+        </span>
+      </div>
 
+      <div v-if="hasLabeledOutputs" class="space-y-1.5 pt-1">
+        <div
+          v-for="out in outputs"
+          :key="out.id"
+          class="relative flex items-center justify-end gap-2 h-7 ps-3 pe-3 -me-4 rounded-s-lg bg-n-alpha-1"
+        >
+          <span
+            class="size-2 rounded-full"
+            :style="{ backgroundColor: getOutputColor(out) }"
+          />
+          <span class="text-xs font-medium text-n-slate-12 truncate">{{
+            out.label
+          }}</span>
           <Handle
             :id="out.id"
             type="source"
             :position="Position.Right"
-            class="!w-2.5 !h-2.5 !bg-n-slate-9 !border-2 !border-n-solid-1 hover:!bg-blue-500 !transition-colors !-right-1.5"
+            class="!size-3.5 !bg-n-solid-1 !border-2 hover:!border-n-brand !transition-colors !-right-[0.4375rem]"
+            :style="{ borderColor: getOutputColor(out) }"
           />
         </div>
       </div>
+    </div>
 
-      <!-- SAÍDA SIMPLES PADRÃO -->
+    <template v-if="outputs.length && !hasLabeledOutputs">
       <Handle
-        v-else
-        :id="nodeMeta.outputs[0].id"
+        :id="outputs[0].id"
         type="source"
         :position="Position.Right"
-        class="!w-3 !h-3 !bg-n-slate-9 !border-2 !border-n-solid-1 hover:!bg-blue-500 !transition-colors !-right-1.5"
+        class="!size-3.5 !bg-n-solid-1 !border-2 !border-n-slate-8 hover:!border-n-brand !transition-colors !-right-[0.4375rem]"
       />
     </template>
   </div>

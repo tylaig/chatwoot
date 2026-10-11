@@ -1,9 +1,19 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import { OnClickOutside } from '@vueuse/components';
 import { useAlert } from 'dashboard/composables';
 import whatsappTemplatesApi from 'dashboard/api/whatsappTemplates';
+import { templateVariables } from './metaTemplate';
+import {
+  SAMPLE_TEMPLATE_VARIABLES,
+  previewTemplateText,
+  templateButtons,
+} from './templatePreview';
 
+const router = useRouter();
 const templates = ref([]);
+const contentTab = ref('visual');
 const stats = ref({ total: 0, approved: 0, pending: 0, rejected: 0 });
 const isLoading = ref(true);
 const searchQuery = ref('');
@@ -12,7 +22,10 @@ const selectedLanguage = ref('ALL');
 const selectedCategory = ref('ALL');
 const selectedStatus = ref('ALL');
 const previewTemplate = ref(null);
-const activeDrawerTab = ref('details'); // 'details', 'edit', 'history'
+const activeDrawerTab = ref('details');
+const openMenuId = ref(null);
+const page = ref(1);
+const perPage = 8;
 const defaultPreviewBody =
   'Olá {{1}}! 👋\nBem-vindo à Games Safari!\n\nAqui você encontra os melhores jogos e ofertas exclusivas. Qualquer dúvida, é só nos chamar por aqui. 🚀';
 
@@ -27,7 +40,12 @@ const fetchTemplates = async () => {
       pending: 0,
       rejected: 0,
     };
-    if (templates.value.length && !previewTemplate.value) {
+    if (previewTemplate.value) {
+      previewTemplate.value =
+        templates.value.find(tpl => tpl.id === previewTemplate.value.id) ||
+        templates.value[0] ||
+        null;
+    } else if (templates.value.length) {
       previewTemplate.value = templates.value[0];
     }
   } catch (err) {
@@ -59,27 +77,183 @@ const filteredTemplates = computed(() => {
   });
 });
 
+const pageCount = computed(() =>
+  Math.max(1, Math.ceil(filteredTemplates.value.length / perPage))
+);
+
+const pagedTemplates = computed(() => {
+  const start = (page.value - 1) * perPage;
+  return filteredTemplates.value.slice(start, start + perPage);
+});
+
+const pageStart = computed(() =>
+  filteredTemplates.value.length ? (page.value - 1) * perPage + 1 : 0
+);
+
+const pageEnd = computed(() =>
+  Math.min(page.value * perPage, filteredTemplates.value.length)
+);
+
+watch([searchQuery, selectedCategory, selectedLanguage, selectedStatus], () => {
+  page.value = 1;
+});
+
+watch(pageCount, count => {
+  if (page.value > count) page.value = count;
+});
+
+const categoryClass = category => {
+  const value = (category || '').toUpperCase();
+  if (value === 'UTILITY') return 'bg-green-500/20 text-green-400';
+  if (value === 'MARKETING_LITE') return 'bg-n-violet-9/20 text-n-violet-11';
+  if (value === 'AUTHENTICATION') return 'bg-n-amber-9/20 text-n-amber-11';
+  return 'bg-n-violet-9/20 text-n-violet-11';
+};
+
+const languageLabel = code => {
+  if (!code || code === 'pt_BR') return 'Português (Brasil) — pt_BR';
+  if (code === 'en' || code === 'en_US') return 'English — en_US';
+  if (code === 'es' || code === 'es_ES') return 'Español — es';
+  return code;
+};
+
+const statusHint = status => {
+  const value = (status || '').toUpperCase();
+  if (value === 'APPROVED') return 'Aprovado pela Meta e pronto para uso.';
+  if (value === 'PENDING') return 'Aguardando revisão da Meta.';
+  if (value === 'REJECTED') return 'Rejeitado pela Meta.';
+  return status || '—';
+};
+
+const statusLabel = status => {
+  const value = (status || '').toUpperCase();
+  if (value === 'APPROVED') return 'Aprovado';
+  if (value === 'PENDING') return 'Pendente';
+  if (value === 'REJECTED') return 'Rejeitado';
+  return status || '—';
+};
+
+const categoryLabel = category => {
+  const value = (category || '').toUpperCase();
+  if (value === 'MARKETING_LITE') return 'Marketing Lite';
+  if (value === 'MARKETING') return 'Marketing';
+  if (value === 'UTILITY') return 'Utilidade';
+  if (value === 'AUTHENTICATION') return 'Autenticação';
+  return category || 'Marketing';
+};
+
 const handleSelectTemplate = tpl => {
   previewTemplate.value = tpl;
+  contentTab.value = 'visual';
+  activeDrawerTab.value = 'details';
+};
+
+const openEditor = tpl => {
+  openMenuId.value = null;
+  router.push({
+    name: 'whatsapp_templates_edit',
+    params: { templateId: tpl.id },
+  });
+};
+
+const formatStamp = value => {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+};
+
+const previewBody = computed(() =>
+  previewTemplateText(previewTemplate.value?.body || defaultPreviewBody)
+);
+
+const previewActions = computed(() => templateButtons(previewTemplate.value));
+
+const displayedVariables = computed(() => {
+  const stored = previewTemplate.value?.variables;
+  if (Array.isArray(stored) && stored.length) return stored;
+  const body = previewTemplate.value?.body || '';
+  const seen = new Set();
+  return [...body.matchAll(/\{\{\s*([a-zA-Z0-9_-]+)\s*\}\}/g)]
+    .filter(match => {
+      if (seen.has(match[1])) return false;
+      seen.add(match[1]);
+      return true;
+    })
+    .map(match => ({
+      key: `{{${match[1]}}}`,
+      name: match[1] === '1' ? 'Nome do cliente' : `Variável ${match[1]}`,
+      sample_value: SAMPLE_TEMPLATE_VARIABLES[match[1]] || '—',
+    }));
+});
+
+const duplicateTemplate = async tpl => {
+  const source = tpl || previewTemplate.value;
+  if (!source) return;
+  openMenuId.value = null;
+  const suffix = Date.now().toString(36);
+  try {
+    const variables = source.variables?.length
+      ? source.variables
+      : templateVariables(
+          source.header_type,
+          source.header_content,
+          source.body,
+          {}
+        ).map(item => ({
+          ...item,
+          sample_value: item.key === '1' ? 'Maria' : `exemplo ${item.key}`,
+        }));
+    await whatsappTemplatesApi.createTemplate({
+      name: `${source.name}_copia_${suffix}`.slice(0, 512),
+      category: source.category,
+      language: source.language,
+      status: 'APPROVED',
+      header_type: source.header_type,
+      header_content: source.header_content,
+      body: source.body,
+      footer: source.footer,
+      buttons: source.buttons || [],
+      variables,
+    });
+    await fetchTemplates();
+    useAlert('Template duplicado.');
+  } catch (err) {
+    useAlert('Erro ao duplicar template.');
+  }
+};
+
+const removeTemplate = async tpl => {
+  const source = tpl || previewTemplate.value;
+  if (!source) return;
+  openMenuId.value = null;
+  try {
+    await whatsappTemplatesApi.deleteTemplate(source.id);
+    if (previewTemplate.value?.id === source.id) previewTemplate.value = null;
+    await fetchTemplates();
+    useAlert('Template excluído.');
+  } catch (err) {
+    useAlert('Erro ao excluir template.');
+  }
 };
 </script>
 
 <template>
   <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text, vue/html-closing-bracket-newline -->
   <div
-    class="flex h-full bg-[#0D1017] text-slate-100 overflow-hidden select-none"
+    class="flex flex-1 w-full h-full min-h-0 min-w-0 bg-n-background text-n-slate-12 overflow-x-auto overflow-y-hidden"
   >
-    <!-- COLUNA ESQUERDA: LISTA & FILTROS DE TEMPLATES -->
-    <div class="flex-1 flex flex-col min-w-0 border-r border-slate-800">
-      <!-- HEADER -->
+    <div class="flex flex-1 flex-col min-w-[52rem] border-e border-n-weak">
       <header
-        class="p-6 border-b border-slate-800 bg-[#14171F] flex items-center justify-between"
+        class="px-6 py-5 border-b border-n-weak bg-n-solid-1 flex items-center justify-between gap-4"
       >
         <div>
-          <h1 class="text-xl font-bold text-white tracking-tight">
-            Templates WhatsApp
-          </h1>
-          <p class="text-xs text-slate-400 mt-1">
+          <h1 class="text-xl font-semibold text-n-slate-12">Templates</h1>
+          <p class="text-sm text-n-slate-11 mt-0.5">
             Gerencie modelos de mensagens aprovados pela Meta para usar nos seus
             workflows.
           </p>
@@ -88,19 +262,20 @@ const handleSelectTemplate = tpl => {
         <div class="flex items-center gap-3">
           <button
             type="button"
-            class="px-3.5 py-2 rounded-xl border border-slate-700 bg-[#14171F] hover:bg-slate-800 text-xs font-semibold text-slate-300 transition-colors flex items-center gap-1.5"
+            class="h-10 px-3.5 rounded-xl border border-n-weak bg-n-solid-1 hover:bg-n-alpha-2 text-sm font-medium text-n-slate-12 transition-colors flex items-center gap-1.5"
             @click="fetchTemplates"
           >
-            <span>🔄</span>
-            <span>Sincronizar com a Meta</span>
+            <span class="i-lucide-refresh-cw size-4" />
+            <span>Sincronizar</span>
           </button>
 
           <button
             type="button"
-            class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-1.5"
+            class="h-10 ps-3 pe-4 rounded-xl bg-n-brand hover:opacity-90 text-white text-sm font-semibold shadow-sm flex items-center gap-2"
+            @click="router.push({ name: 'whatsapp_templates_new' })"
           >
-            <span>+</span>
-            <span>Criar Template</span>
+            <span class="i-lucide-plus size-4" />
+            <span>Criar template</span>
           </button>
         </div>
       </header>
@@ -110,23 +285,23 @@ const handleSelectTemplate = tpl => {
         class="p-6 pb-4 flex flex-col md:flex-row gap-3 items-center justify-between"
       >
         <div class="relative flex-1 w-full">
-          <span class="absolute left-3.5 top-2.5 text-xs text-slate-500"
-            >🔍</span
-          >
+          <span
+            class="i-lucide-search size-3.5 absolute start-3.5 top-1/2 -translate-y-1/2 text-n-slate-10"
+          />
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Buscar templates..."
-            class="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-[#14171F] border border-slate-800 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            class="reset-base w-full h-9 m-0 ps-9 pe-4 text-sm rounded-lg bg-n-alpha-black2 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12 placeholder:text-n-slate-10"
           />
         </div>
 
         <div class="flex items-center gap-3 w-full md:w-auto">
           <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-400">Inbox</span>
+            <span class="text-xs text-n-slate-11">Inbox</span>
             <select
               v-model="selectedInbox"
-              class="px-3 py-1.5 text-xs rounded-xl bg-[#14171F] border border-slate-800 text-slate-300 focus:outline-none"
+              class="reset-base w-auto h-9 m-0 py-0 ps-3 pe-8 text-xs rounded-lg bg-n-solid-1 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12"
             >
               <option value="ALL">Todos</option>
               <option value="1">Suporte - WhatsApp</option>
@@ -134,10 +309,10 @@ const handleSelectTemplate = tpl => {
           </div>
 
           <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-400">Idioma</span>
+            <span class="text-xs text-n-slate-11">Idioma</span>
             <select
               v-model="selectedLanguage"
-              class="px-3 py-1.5 text-xs rounded-xl bg-[#14171F] border border-slate-800 text-slate-300 focus:outline-none"
+              class="reset-base w-auto h-9 m-0 py-0 ps-3 pe-8 text-xs rounded-lg bg-n-solid-1 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12"
             >
               <option value="ALL">Todos</option>
               <option value="pt_BR">pt_BR</option>
@@ -146,42 +321,43 @@ const handleSelectTemplate = tpl => {
           </div>
 
           <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-400">Categoria</span>
+            <span class="text-xs text-n-slate-11">Categoria</span>
             <select
               v-model="selectedCategory"
-              class="px-3 py-1.5 text-xs rounded-xl bg-[#14171F] border border-slate-800 text-slate-300 focus:outline-none"
+              class="reset-base w-auto h-9 m-0 py-0 ps-3 pe-8 text-xs rounded-lg bg-n-solid-1 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12"
             >
               <option value="ALL">Todas</option>
               <option value="MARKETING">Marketing</option>
-              <option value="UTILITY">Utility</option>
-              <option value="AUTHENTICATION">Authentication</option>
+              <option value="MARKETING_LITE">Marketing Lite</option>
+              <option value="UTILITY">Utilidade</option>
+              <option value="AUTHENTICATION">Autenticação</option>
             </select>
           </div>
 
           <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-400">Status</span>
+            <span class="text-xs text-n-slate-11">Status</span>
             <select
               v-model="selectedStatus"
-              class="px-3 py-1.5 text-xs rounded-xl bg-[#14171F] border border-slate-800 text-slate-300 focus:outline-none"
+              class="reset-base w-auto h-9 m-0 py-0 ps-3 pe-8 text-xs rounded-lg bg-n-solid-1 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12"
             >
               <option value="ALL">Todos</option>
-              <option value="APPROVED">Approved</option>
-              <option value="PENDING">Pending</option>
-              <option value="REJECTED">Rejected</option>
+              <option value="APPROVED">Aprovado</option>
+              <option value="PENDING">Pendente</option>
+              <option value="REJECTED">Rejeitado</option>
             </select>
           </div>
         </div>
       </div>
 
       <!-- TABELA DE TEMPLATES -->
-      <div class="flex-1 overflow-y-auto px-6 pb-6">
+      <div class="flex flex-1 flex-col min-h-0 overflow-auto px-6 pb-4">
         <div
-          class="border border-slate-800/80 rounded-2xl bg-[#14171F] overflow-hidden"
+          class="flex flex-col flex-1 min-h-0 border border-n-weak rounded-xl bg-n-solid-1"
         >
-          <table class="w-full text-left border-collapse text-xs">
+          <table class="w-full text-left border-collapse text-sm">
             <thead>
               <tr
-                class="border-b border-slate-800/80 text-[11px] font-semibold text-slate-400 uppercase tracking-wider"
+                class="border-b border-n-weak text-xs font-medium text-n-slate-11"
               >
                 <th class="py-3 px-4">Nome do Template</th>
                 <th class="py-3 px-4">Categoria</th>
@@ -191,139 +367,201 @@ const handleSelectTemplate = tpl => {
                 <th class="py-3 px-4 text-right">Ações</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-800/60">
+            <tbody class="divide-y divide-n-weak">
               <tr
-                v-for="tpl in filteredTemplates"
+                v-for="tpl in pagedTemplates"
                 :key="tpl.id"
-                class="hover:bg-slate-800/30 transition-colors cursor-pointer"
-                :class="previewTemplate?.id === tpl.id ? 'bg-blue-600/10' : ''"
+                class="hover:bg-n-alpha-1 transition-colors cursor-pointer"
+                :class="previewTemplate?.id === tpl.id ? 'bg-n-brand/5' : ''"
                 @click="handleSelectTemplate(tpl)"
               >
-                <!-- NOME COM ÍCONE -->
-                <td
-                  class="py-3.5 px-4 font-bold text-slate-100 flex items-center gap-3"
-                >
-                  <div
-                    class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-sm shrink-0"
-                  >
-                    📄
-                  </div>
-                  <div class="min-w-0">
-                    <p class="truncate">{{ tpl.name }}</p>
-                    <p
-                      class="text-[11px] text-slate-400 font-normal truncate max-w-[220px]"
+                <td class="py-3 px-4">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div
+                      class="size-9 rounded-xl bg-n-brand/10 text-n-brand flex items-center justify-center shrink-0"
                     >
-                      {{ tpl.body }}
-                    </p>
+                      <span class="i-lucide-file-text size-4" />
+                    </div>
+                    <div class="min-w-0">
+                      <p class="font-medium text-n-slate-12 truncate">
+                        {{ tpl.name }}
+                      </p>
+                      <p
+                        class="text-xs text-n-slate-11 font-normal truncate max-w-[20rem]"
+                      >
+                        {{ tpl.body }}
+                      </p>
+                    </div>
                   </div>
                 </td>
 
-                <!-- CATEGORIA -->
-                <td class="py-3.5 px-4">
+                <td class="py-3 px-4">
                   <span
-                    class="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[10px] font-bold"
+                    class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium"
+                    :class="categoryClass(tpl.category)"
                   >
-                    {{ tpl.category || 'Marketing' }}
+                    {{ categoryLabel(tpl.category) }}
                   </span>
                 </td>
 
-                <!-- IDIOMA -->
-                <td class="py-3.5 px-4 font-mono text-slate-300">
+                <td class="py-3 px-4 text-xs text-n-slate-11">
                   {{ tpl.language || 'pt_BR' }}
                 </td>
 
-                <!-- STATUS -->
-                <td class="py-3.5 px-4">
+                <td class="py-3 px-4">
                   <span
-                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1.5 w-max"
+                    class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium"
                     :class="
                       tpl.status === 'APPROVED' || tpl.status === 'approved'
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        ? 'bg-green-500/15 text-green-700 dark:text-green-300'
                         : tpl.status === 'PENDING'
-                          ? 'bg-amber-500/20 text-amber-400'
-                          : 'bg-rose-500/20 text-rose-400'
+                          ? 'bg-n-amber-9/15 text-n-amber-11'
+                          : 'bg-n-ruby-9/15 text-n-ruby-11'
                     "
                   >
                     <span
-                      class="w-1.5 h-1.5 rounded-full"
+                      class="size-1.5 rounded-full"
                       :class="
                         tpl.status === 'APPROVED' || tpl.status === 'approved'
-                          ? 'bg-emerald-400'
+                          ? 'bg-green-500'
                           : tpl.status === 'PENDING'
-                            ? 'bg-amber-400'
-                            : 'bg-rose-400'
+                            ? 'bg-n-amber-9'
+                            : 'bg-n-ruby-9'
                       "
                     />
-                    {{ tpl.status }}
+                    {{ statusLabel(tpl.status) }}
                   </span>
                 </td>
 
-                <!-- DATA -->
-                <td class="py-3.5 px-4 text-slate-400 font-mono text-[11px]">
-                  10 out 2026, 14:32
+                <td class="py-3 px-4 text-xs text-n-slate-11">
+                  {{ formatStamp(tpl.updated_at || tpl.created_at) }}
                 </td>
 
-                <!-- AÇÕES -->
-                <td class="py-3.5 px-4 text-right">
-                  <button
-                    type="button"
-                    class="text-slate-400 hover:text-white p-1 rounded-lg"
+                <td class="py-3 px-4 text-end" @click.stop>
+                  <OnClickOutside
+                    class="relative inline-block"
+                    @trigger="openMenuId === tpl.id && (openMenuId = null)"
                   >
-                    •••
-                  </button>
+                    <button
+                      type="button"
+                      class="flex items-center justify-center size-8 rounded-lg text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 ms-auto"
+                      title="Ações"
+                      @click="
+                        openMenuId = openMenuId === tpl.id ? null : tpl.id
+                      "
+                    >
+                      <span class="i-lucide-ellipsis size-4" />
+                    </button>
+                    <div
+                      v-if="openMenuId === tpl.id"
+                      class="absolute end-0 top-9 z-30 w-48 p-1 rounded-xl bg-n-solid-2 border border-n-weak shadow-xl text-start"
+                    >
+                      <button
+                        type="button"
+                        class="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm hover:bg-n-alpha-2"
+                        @click="openEditor(tpl)"
+                      >
+                        <span class="i-lucide-pencil size-4 text-n-slate-11" />
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        class="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm hover:bg-n-alpha-2"
+                        @click="duplicateTemplate(tpl)"
+                      >
+                        <span class="i-lucide-copy size-4 text-n-slate-11" />
+                        Duplicar
+                      </button>
+                      <div class="my-1 h-px bg-n-weak" />
+                      <button
+                        type="button"
+                        class="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm text-n-ruby-11 hover:bg-n-ruby-9/10"
+                        @click="removeTemplate(tpl)"
+                      >
+                        <span class="i-lucide-trash-2 size-4" />
+                        Excluir
+                      </button>
+                    </div>
+                  </OnClickOutside>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
+      <div
+        class="shrink-0 px-6 py-3 border-t border-n-weak flex items-center justify-between text-xs text-n-slate-11"
+      >
+        <span>
+          Mostrando {{ pageStart }}–{{ pageEnd }} de
+          {{ filteredTemplates.length }} templates
+        </span>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="flex items-center justify-center size-8 rounded-lg border border-n-weak text-n-slate-11 hover:bg-n-alpha-2 disabled:opacity-40"
+            :disabled="page <= 1"
+            @click="page -= 1"
+          >
+            <span class="i-lucide-chevron-left size-4" />
+          </button>
+          <span>{{ page }} / {{ pageCount }}</span>
+          <button
+            type="button"
+            class="flex items-center justify-center size-8 rounded-lg border border-n-weak text-n-slate-11 hover:bg-n-alpha-2 disabled:opacity-40"
+            :disabled="page >= pageCount"
+            @click="page += 1"
+          >
+            <span class="i-lucide-chevron-right size-4" />
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- COLUNA DIREITA: DRAWER DE DETALHES & PREVIEW WHATSAPP (100% FIEL AO REFERENCE PACK) -->
     <div
       v-if="previewTemplate"
-      class="w-96 bg-[#14171F] flex flex-col justify-between overflow-y-auto p-6 space-y-6 select-none shrink-0"
+      class="w-96 bg-n-solid-1 border-s border-n-weak flex flex-col justify-between overflow-y-auto p-6 space-y-6 shrink-0"
     >
       <div class="space-y-6">
-        <!-- HEADER DO DRAWER -->
         <div
-          class="flex items-center justify-between pb-4 border-b border-slate-800"
+          class="flex items-center justify-between pb-4 border-b border-n-weak"
         >
           <div class="flex items-center gap-3 min-w-0">
             <div
-              class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg"
+              class="size-9 rounded-xl bg-n-brand/15 text-n-brand flex items-center justify-center shrink-0"
             >
-              📄
+              <span class="i-lucide-file-text size-4" />
             </div>
             <div class="min-w-0">
-              <h3 class="text-sm font-bold text-white truncate">
+              <h3 class="text-sm font-semibold text-n-slate-12 truncate">
                 {{ previewTemplate.name }}
               </h3>
               <div class="flex items-center gap-2 mt-0.5">
                 <span
-                  class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-bold"
+                  class="text-[10px] px-2 py-0.5 rounded-md font-medium"
+                  :class="categoryClass(previewTemplate.category)"
                 >
-                  {{ previewTemplate.category || 'Marketing' }}
+                  {{ categoryLabel(previewTemplate.category) }}
                 </span>
                 <span
-                  class="text-[10px] text-emerald-400 font-bold flex items-center gap-1"
+                  class="text-[10px] text-green-600 dark:text-green-400 font-medium flex items-center gap-1"
                 >
-                  ● Approved
+                  <span class="size-1.5 rounded-full bg-green-500" />
+                  {{ statusLabel(previewTemplate.status) }}
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- TABS DO DRAWER -->
-        <div class="flex border-b border-slate-800 text-xs">
+        <div class="flex border-b border-n-weak text-xs">
           <button
             type="button"
-            class="pb-2 px-3 font-semibold transition-colors"
+            class="pb-2 px-3 font-medium transition-colors"
             :class="
               activeDrawerTab === 'details'
-                ? 'text-blue-400 border-b-2 border-blue-500'
-                : 'text-slate-400'
+                ? 'text-n-brand border-b-2 border-n-brand'
+                : 'text-n-slate-11'
             "
             @click="activeDrawerTab = 'details'"
           >
@@ -331,23 +569,11 @@ const handleSelectTemplate = tpl => {
           </button>
           <button
             type="button"
-            class="pb-2 px-3 font-semibold transition-colors"
-            :class="
-              activeDrawerTab === 'edit'
-                ? 'text-blue-400 border-b-2 border-blue-500'
-                : 'text-slate-400'
-            "
-            @click="activeDrawerTab = 'edit'"
-          >
-            Editar
-          </button>
-          <button
-            type="button"
-            class="pb-2 px-3 font-semibold transition-colors"
+            class="pb-2 px-3 font-medium transition-colors"
             :class="
               activeDrawerTab === 'history'
-                ? 'text-blue-400 border-b-2 border-blue-500'
-                : 'text-slate-400'
+                ? 'text-n-brand border-b-2 border-n-brand'
+                : 'text-n-slate-11'
             "
             @click="activeDrawerTab = 'history'"
           >
@@ -355,133 +581,198 @@ const handleSelectTemplate = tpl => {
           </button>
         </div>
 
-        <!-- INFORMAÇÕES DO TEMPLATE -->
         <div
-          class="p-3.5 rounded-xl bg-[#0D1017] border border-slate-800 space-y-2 text-xs"
+          v-if="activeDrawerTab === 'details'"
+          class="p-3.5 rounded-xl bg-n-alpha-1 border border-n-weak space-y-2 text-xs"
         >
-          <h4 class="font-bold text-slate-300">Informações do Template</h4>
-          <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-400">
+          <h4 class="font-semibold text-n-slate-12">Informações do template</h4>
+          <div class="grid grid-cols-2 gap-2 text-[11px] text-n-slate-11">
             <div>
-              <span class="text-slate-500 block">Nome:</span>
-              <span class="font-bold text-slate-200">{{
+              <span class="text-n-slate-10 block">Nome</span>
+              <span class="font-medium text-n-slate-12">{{
                 previewTemplate.name
               }}</span>
             </div>
             <div>
-              <span class="text-slate-500 block">Categoria:</span>
-              <span class="text-slate-200">{{
-                previewTemplate.category || 'Marketing'
+              <span class="text-n-slate-10 block">Categoria</span>
+              <span class="text-n-slate-12">{{
+                categoryLabel(previewTemplate.category)
               }}</span>
             </div>
             <div>
-              <span class="text-slate-500 block">Idioma:</span>
-              <span class="text-slate-200">{{
-                previewTemplate.language || 'pt_BR'
+              <span class="text-n-slate-10 block">Idioma</span>
+              <span class="text-n-slate-12">{{
+                languageLabel(previewTemplate.language)
               }}</span>
             </div>
             <div>
-              <span class="text-slate-500 block">Status:</span>
-              <span class="text-emerald-400 font-bold">Approved</span>
+              <span class="text-n-slate-10 block">Status</span>
+              <span class="text-green-600 dark:text-green-400 font-medium">{{
+                statusLabel(previewTemplate.status)
+              }}</span>
+              <span class="block text-n-slate-10">{{
+                statusHint(previewTemplate.status)
+              }}</span>
             </div>
           </div>
         </div>
 
-        <!-- CONTEÚDO DO TEMPLATE / BALÃO WHATSAPP -->
-        <div class="space-y-3">
+        <div v-if="activeDrawerTab === 'details'" class="space-y-3">
           <div class="flex items-center justify-between">
-            <h4 class="text-xs font-bold text-slate-300">
-              Conteúdo do Template
+            <h4 class="text-xs font-semibold text-n-slate-12">
+              Conteúdo do template
             </h4>
             <div
-              class="flex rounded-lg bg-[#0D1017] p-0.5 border border-slate-800"
+              class="flex rounded-lg bg-n-alpha-1 p-0.5 border border-n-weak"
             >
               <button
                 type="button"
-                class="px-2 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded"
+                class="px-2 py-0.5 text-[10px] font-medium rounded"
+                :class="
+                  contentTab === 'visual'
+                    ? 'bg-n-brand text-white'
+                    : 'text-n-slate-11'
+                "
+                @click="contentTab = 'visual'"
               >
                 Visualização
               </button>
               <button
                 type="button"
-                class="px-2 py-0.5 text-[10px] font-semibold text-slate-400 rounded"
+                class="px-2 py-0.5 text-[10px] font-medium rounded"
+                :class="
+                  contentTab === 'json'
+                    ? 'bg-n-brand text-white'
+                    : 'text-n-slate-11'
+                "
+                @click="contentTab = 'json'"
               >
                 Código JSON
               </button>
             </div>
           </div>
 
-          <!-- BALÃO WHATSAPP -->
           <div
-            class="p-4 rounded-2xl bg-[#E1F8DC] dark:bg-[#1E2C22] border border-[#C5E8BF] dark:border-[#2D4533] text-slate-900 dark:text-slate-100 text-xs shadow-sm space-y-2 relative"
+            v-if="contentTab === 'json'"
+            class="p-3 rounded-xl bg-n-alpha-1 border border-n-weak"
+          >
+            <pre
+              class="text-[10px] font-mono text-n-slate-12 whitespace-pre-wrap"
+              >{{ JSON.stringify(previewTemplate, null, 2) }}</pre
+            >
+          </div>
+          <div
+            v-else
+            class="p-4 rounded-2xl bg-[#F6F1E7] border border-[#E6DCC8] text-slate-900 text-xs shadow-sm space-y-2 relative"
           >
             <p class="whitespace-pre-line leading-relaxed font-sans">
-              {{ previewTemplate.body || defaultPreviewBody }}
+              {{ previewBody }}
             </p>
             <div class="text-[10px] text-slate-400 text-right">12:30</div>
 
-            <div class="pt-2 border-t border-emerald-600/20 space-y-1.5">
-              <button
-                type="button"
-                class="w-full py-1.5 px-3 rounded-lg bg-white/70 dark:bg-slate-800/80 text-blue-600 dark:text-blue-400 font-semibold text-center text-[11px] flex items-center justify-center gap-1.5 shadow-sm"
+            <div
+              v-if="previewActions.length"
+              class="pt-2 border-t border-green-600/20 space-y-1.5"
+            >
+              <div
+                v-for="label in previewActions"
+                :key="label"
+                class="w-full py-1.5 px-3 rounded-lg bg-white text-n-brand font-semibold text-center text-[11px]"
               >
-                <span>🔗</span> Ver ofertas
-              </button>
-              <button
-                type="button"
-                class="w-full py-1.5 px-3 rounded-lg bg-white/70 dark:bg-slate-800/80 text-blue-600 dark:text-blue-400 font-semibold text-center text-[11px] flex items-center justify-center gap-1.5 shadow-sm"
-              >
-                <span>💬</span> Falar com suporte
-              </button>
+                {{ label }}
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- VARIÁVEIS DO TEMPLATE -->
         <div
-          class="p-3.5 rounded-xl bg-[#0D1017] border border-slate-800 space-y-2 text-xs"
+          v-if="activeDrawerTab === 'details'"
+          class="p-3.5 rounded-xl bg-n-alpha-1 border border-n-weak space-y-2 text-xs"
         >
-          <h4 class="font-bold text-slate-300">Variáveis do Template</h4>
-          <div class="space-y-1 text-[11px]">
-            <div class="flex items-center justify-between text-slate-300">
-              <span class="font-mono text-slate-400"
-                >&#123;&#123;1&#125;&#125;</span
+          <h4 class="font-semibold text-n-slate-12">Variáveis do template</h4>
+          <p
+            v-if="!displayedVariables.length"
+            class="text-[11px] text-n-slate-10"
+          >
+            Nenhuma variável cadastrada.
+          </p>
+          <div v-else class="space-y-1 text-[11px]">
+            <div
+              v-for="variable in displayedVariables"
+              :key="variable.key || variable.name"
+              class="flex items-center gap-2 text-n-slate-12"
+            >
+              <span
+                class="font-mono text-sm font-bold leading-none text-n-iris-11 shrink-0"
+                >{ }</span
               >
-              <span>Nome do cliente</span>
-              <span class="text-slate-500 font-mono">Exemplo: João</span>
+              <span class="font-medium truncate">{{
+                variable.key || variable.name
+              }}</span>
+              <span class="text-n-slate-11 truncate">{{ variable.name }}</span>
+              <span class="text-n-slate-10 truncate ms-auto">{{
+                variable.sample_value || '—'
+              }}</span>
             </div>
-            <div class="flex items-center justify-between text-slate-300">
-              <span class="font-mono text-slate-400"
-                >&#123;&#123;2&#125;&#125;</span
-              >
-              <span>Link personalizado</span>
-              <span class="text-slate-500 font-mono">Exemplo: https://...</span>
+          </div>
+        </div>
+
+        <div
+          v-else-if="activeDrawerTab === 'history'"
+          class="space-y-2 text-xs text-n-slate-12"
+        >
+          <div
+            class="p-3.5 rounded-xl bg-n-alpha-1 border border-n-weak space-y-2"
+          >
+            <div class="flex justify-between gap-3">
+              <span class="text-n-slate-11">Criado em</span>
+              <span>{{ formatStamp(previewTemplate.created_at) }}</span>
+            </div>
+            <div class="flex justify-between gap-3">
+              <span class="text-n-slate-11">Atualizado em</span>
+              <span>{{ formatStamp(previewTemplate.updated_at) }}</span>
+            </div>
+            <div class="flex justify-between gap-3">
+              <span class="text-n-slate-11">Status</span>
+              <span>{{ statusHint(previewTemplate.status) }}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- BOTÕES DE AÇÃO DO DRAWER -->
-      <div class="pt-4 border-t border-slate-800 space-y-2">
+      <div class="pt-4 border-t border-n-weak space-y-2">
         <button
           type="button"
-          class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+          class="w-full py-2 px-3 rounded-xl bg-n-brand hover:opacity-90 text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5"
+          @click="openEditor(previewTemplate)"
         >
-          <span>⚡</span>
-          <span>Usar no Workflow</span>
+          <span class="i-lucide-pencil size-3.5" />
+          Editar template
         </button>
-
+        <button
+          type="button"
+          class="w-full py-2 px-3 rounded-xl border border-n-weak text-xs font-medium text-n-slate-12 hover:bg-n-alpha-2 inline-flex items-center justify-center gap-1.5"
+          @click="router.push({ name: 'workflows_index' })"
+        >
+          <span class="i-lucide-workflow size-3.5" />
+          Usar no workflow
+        </button>
         <div class="grid grid-cols-2 gap-2">
           <button
             type="button"
-            class="py-2 px-3 rounded-xl border border-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-800 transition-colors"
+            class="py-2 px-2 rounded-xl border border-n-ruby-9/30 text-xs font-medium text-n-ruby-11 hover:bg-n-ruby-9/10 inline-flex items-center justify-center gap-1.5"
+            @click="removeTemplate"
           >
-            Duplicar
+            <span class="i-lucide-trash-2 size-3.5" />
+            Excluir
           </button>
           <button
             type="button"
-            class="py-2 px-3 rounded-xl border border-rose-500/30 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors"
+            class="py-2 px-2 rounded-xl border border-n-weak text-xs font-medium text-n-slate-12 hover:bg-n-alpha-2 inline-flex items-center justify-center gap-1.5"
+            @click="duplicateTemplate"
           >
-            Excluir Template
+            <span class="i-lucide-copy size-3.5" />
+            Duplicar
           </button>
         </div>
       </div>

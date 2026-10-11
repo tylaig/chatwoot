@@ -5,7 +5,7 @@ class Api::V1::Accounts::WhatsappTemplatesController < Api::V1::Accounts::BaseCo
   before_action :check_authorization
 
   def index
-    @templates = Current.account.whatsapp_templates.order(created_at: :desc)
+    @templates = Current.account.whatsapp_templates.with_attached_header_media.order(created_at: :desc)
     
     stats = {
       total: @templates.count,
@@ -25,7 +25,10 @@ class Api::V1::Accounts::WhatsappTemplatesController < Api::V1::Accounts::BaseCo
   end
 
   def create
-    @template = Current.account.whatsapp_templates.new(template_params)
+    @template = Current.account.whatsapp_templates.new
+    return unless assign_template(@template)
+    return unless meta_valid?(@template, require_examples: @template.status == 'PENDING')
+    return if @template.status == 'PENDING' && !submit_to_meta(@template)
 
     if @template.save
       render json: @template, status: :created
@@ -35,7 +38,10 @@ class Api::V1::Accounts::WhatsappTemplatesController < Api::V1::Accounts::BaseCo
   end
 
   def update
-    if @template.update(template_params)
+    return unless assign_template(@template)
+    return unless meta_valid?(@template, require_examples: @template.status == 'PENDING')
+
+    if @template.save
       render json: @template
     else
       render json: { error: @template.errors.full_messages }, status: :unprocessable_entity
@@ -53,7 +59,10 @@ class Api::V1::Accounts::WhatsappTemplatesController < Api::V1::Accounts::BaseCo
   end
 
   def submit_review
-    @template.submit_review!
+    return unless meta_valid?(@template, require_examples: true)
+    return unless submit_to_meta(@template)
+
+    @template.save!
     render json: @template
   end
 
@@ -68,6 +77,39 @@ class Api::V1::Accounts::WhatsappTemplatesController < Api::V1::Accounts::BaseCo
     @template = Current.account.whatsapp_templates.find(params[:id])
   end
 
+  def meta_valid?(template, require_examples:)
+    builder = Whatsapp::MetaTemplateBuilder.new(template, require_examples: require_examples)
+    return true if builder.valid?
+
+    render json: { error: builder.errors }, status: :unprocessable_entity
+    false
+  end
+
+  def submit_to_meta(template)
+    result = Whatsapp::SubmitMessageTemplateService.new(template).perform
+    if result[:success]
+      template.meta_template_id = result[:template_id]
+      template.status = result[:status] || 'PENDING'
+      return true
+    end
+
+    render json: { error: result[:error] }, status: :unprocessable_entity
+    false
+  end
+
+  def assign_template(record)
+    record.assign_attributes(template_params)
+    apply_stored_header_url(record)
+    true
+  end
+
+  def apply_stored_header_url(record)
+    return unless record.header_media.attached?
+    return unless WhatsappTemplate::HEADER_MEDIA_TYPES.key?(record.header_type)
+
+    record.header_content = url_for(record.header_media.blob)
+  end
+
   def template_params
     params.require(:whatsapp_template).permit(
       :name,
@@ -76,12 +118,13 @@ class Api::V1::Accounts::WhatsappTemplatesController < Api::V1::Accounts::BaseCo
       :status,
       :header_type,
       :header_content,
+      :header_media,
       :body,
       :footer,
       :rejection_reason,
       :inbox_id,
       buttons: [:type, :text, :url, :phone_number],
-      variables: [:key, :name, :sample_value]
+      variables: [:key, :name, :component, :sample_value]
     )
   end
 end

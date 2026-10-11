@@ -30,6 +30,12 @@ module Workflows
         when 'update_contact'
           if contact.present?
             updates = {}
+            if config[:field_name].present?
+              field = config[:field_name].to_s
+              raise ArgumentError, "Campo de contato não suportado: #{field}" unless %w[name email phone_number identifier].include?(field)
+
+              updates[field.to_sym] = resolve_vars(config[:field_value].to_s)
+            end
             updates[:name] = resolve_vars(config[:name]) if config[:name].present?
             updates[:email] = resolve_vars(config[:email]) if config[:email].present?
             updates[:phone_number] = resolve_vars(config[:phone_number]) if config[:phone_number].present?
@@ -106,7 +112,7 @@ module Workflows
 
         when 'add_private_note'
           if conversation.present?
-            note_content = resolve_vars(config[:note] || config[:content] || '')
+            note_content = resolve_vars(config[:note_text] || config[:note] || config[:content] || '')
             conversation.messages.create!(
               account_id: account.id,
               inbox_id: conversation.inbox_id,
@@ -118,7 +124,7 @@ module Workflows
           end
 
         when 'set_variable'
-          var_name = config[:variable_name]
+          var_name = config[:variable_name].to_s.delete_prefix('vars.')
           var_val = resolve_vars(config[:variable_value].to_s)
           current_vars = execution.variables || {}
           current_vars[var_name] = var_val

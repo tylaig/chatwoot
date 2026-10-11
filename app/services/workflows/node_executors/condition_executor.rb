@@ -7,22 +7,15 @@ module Workflows
         conditions = config[:conditions] || []
         match_type = config[:match_type] || 'all' # 'all' or 'any'
 
-        results = conditions.map do |cond|
-          evaluate_single_condition(cond)
-        end
-
-        is_match = if match_type == 'any'
-                     results.any?
+        is_match = if conditions.blank?
+                     false
                    else
-                     results.all?
+                     results = conditions.map { |cond| evaluate_single_condition(cond) }
+                     match_type == 'any' ? results.any? : results.all?
                    end
 
         handle = is_match ? 'true' : 'false'
         target_nodes = next_nodes(handle)
-        target_nodes = next_nodes(is_match ? 'yes' : 'no') if target_nodes.empty?
-
-        # Fallback if no specific handle edge
-        target_nodes = next_nodes if target_nodes.empty?
 
         {
           status: 'success',

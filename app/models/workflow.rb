@@ -21,21 +21,51 @@ class Workflow < ApplicationRecord
   scope :archived, -> { where(status: 'archived') }
 
   def execution_stats
+    grouped = executions.group(:status).count
+    completed = grouped['completed'].to_i
+    failed = grouped['failed'].to_i
+    finished = completed + failed
+    duration = executions.where.not(started_at: nil).where.not(finished_at: nil)
+                         .average('EXTRACT(EPOCH FROM (finished_at - started_at))')
+
     {
-      total: executions.count,
-      completed: executions.completed.count,
-      failed: executions.failed.count,
-      running: executions.running.count,
-      waiting: executions.waiting.count
+      total: grouped.values.sum,
+      completed: completed,
+      failed: failed,
+      running: grouped['running'].to_i,
+      waiting: grouped['waiting'].to_i,
+      success_rate: finished.positive? ? ((completed * 100.0) / finished).round : 0,
+      avg_duration_seconds: duration&.to_f&.round
     }
+  end
+
+  def webhook_trigger
+    WebhookDispatchTrigger.where(account_id: account_id, workflow_id: id).order(updated_at: :desc).first
+  end
+
+  def webhook_path
+    token = webhook_trigger&.token
+    return if token.blank?
+
+    "/webhooks/trigger/#{token}"
   end
 
   def current_draft_version
     versions.find_or_create_by!(status: 'draft') do |v|
       v.version_number = (versions.maximum(:version_number) || 0) + 1
-      v.nodes = default_initial_nodes
-      v.edges = []
+      v.nodes = active_version&.nodes.presence || default_initial_nodes
+      v.edges = active_version&.edges || []
+      v.viewport = active_version.viewport if active_version
     end
+  end
+
+  def unpublished_changes?
+    return true if active_version.blank?
+
+    draft = versions.drafts.first
+    return false if draft.blank?
+
+    draft.nodes != active_version.nodes || draft.edges != active_version.edges
   end
 
   def publish!(summary = nil)
@@ -57,6 +87,23 @@ class Workflow < ApplicationRecord
 
   def archive!
     update!(status: 'archived')
+  end
+
+  def ensure_webhook_trigger_node!
+    draft = current_draft_version
+    nodes = Array(draft.nodes).map(&:deep_dup)
+    has_webhook = nodes.any? { |node| [node['type'], node.dig('data', 'type')].include?('webhook_trigger') }
+    update!(trigger_type: 'webhook') unless trigger_type == 'webhook'
+    return if has_webhook
+
+    nodes.unshift(
+      'id' => "node_#{SecureRandom.hex(4)}",
+      'type' => 'webhook_trigger',
+      'position' => { 'x' => 80, 'y' => 160 },
+      'data' => { 'type' => 'webhook_trigger', 'config' => {} },
+      'config' => {}
+    )
+    draft.update!(nodes: nodes)
   end
 
   private

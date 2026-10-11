@@ -9,6 +9,9 @@ module Workflows
       # WhatsApp / Mensagens
       'send_whatsapp_message' => Workflows::NodeExecutors::SendWhatsappMessageExecutor,
       'send_whatsapp_template' => Workflows::NodeExecutors::SendWhatsappMessageExecutor,
+      'send_whatsapp_buttons' => Workflows::NodeExecutors::SendWhatsappCloudExecutor,
+      'send_whatsapp_list' => Workflows::NodeExecutors::SendWhatsappCloudExecutor,
+      'send_whatsapp_media' => Workflows::NodeExecutors::SendWhatsappCloudExecutor,
       'send_message' => Workflows::NodeExecutors::SendWhatsappMessageExecutor,
 
       # Lógica

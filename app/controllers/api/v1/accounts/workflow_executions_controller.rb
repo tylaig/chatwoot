@@ -45,13 +45,13 @@ class Api::V1::Accounts::WorkflowExecutionsController < Api::V1::Accounts::BaseC
   end
 
   def retry_execution
-    if @execution.status.in?(%w[failed cancelled])
-      @execution.update!(status: 'running', error_message: nil)
-      WorkflowExecutionJob.perform_later(@execution.id, @execution.current_node_id)
-      render json: { success: true, message: 'Execução reenfileirada com sucesso.' }
-    else
-      render json: { error: 'Apenas execuções com falha ou canceladas podem ser reiniciadas.' }, status: :unprocessable_entity
+    unless @execution.status.in?(%w[failed cancelled])
+      return render json: { error: 'Apenas execuções com falha ou canceladas podem ser reexecutadas.' }, status: :unprocessable_entity
     end
+
+    @execution.update!(status: 'running', error_message: nil, finished_at: nil, current_node_id: nil)
+    WorkflowExecutionJob.perform_later(@execution.id)
+    render json: { success: true, status: @execution.status }
   end
 
   def cancel

@@ -14,5 +14,8 @@ class WorkflowExecutionJob < ApplicationJob
     else
       engine.start!
     end
+  rescue StandardError => e
+    execution&.mark_failed!(e.message) if execution&.status == 'running'
+    Rails.logger.error("[WorkflowExecutionJob] execution=#{execution_id} #{e.class}: #{e.message}")
   end
 end

@@ -472,17 +472,24 @@ Rails.application.routes.draw do
             end
           end
           resources :workflows do
+            collection do
+              post :test_http
+            end
             member do
               post :publish
               post :pause
               post :activate
               post :duplicate
               get :executions
+              get :webhook_trigger
+              post :webhook_trigger, action: :upsert_webhook_trigger
+              post :test_webhook_trigger
             end
           end
           resources :workflow_executions, only: [:index, :show] do
             member do
               post :cancel
+              post :retry, action: :retry_execution
             end
           end
         end

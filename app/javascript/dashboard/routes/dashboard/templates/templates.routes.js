@@ -23,6 +23,14 @@ export default {
             permissions: ['administrator', 'agent'],
           },
         },
+        {
+          path: ':templateId/edit',
+          name: 'whatsapp_templates_edit',
+          component: NewTemplateView,
+          meta: {
+            permissions: ['administrator', 'agent'],
+          },
+        },
       ],
     },
   ],

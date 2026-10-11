@@ -7,9 +7,21 @@ import { Controls } from '@vue-flow/controls';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 
+import { useAlert } from 'dashboard/composables';
 import WorkflowsAPI from 'dashboard/api/workflows';
 import WorkflowNodeCard from './components/WorkflowNodeCard.vue';
 import { getNodeDefinition } from './nodeRegistry';
+
+const STATUS_LABELS = {
+  completed: 'Concluída',
+  success: 'Concluída',
+  failed: 'Falhou',
+  running: 'Executando',
+  waiting: 'Aguardando',
+  cancelled: 'Cancelada',
+  paused: 'Pausada',
+  skipped: 'Não executado',
+};
 
 const route = useRoute();
 const router = useRouter();
@@ -32,39 +44,63 @@ const selectedNodeMeta = computed(() => {
   return getNodeDefinition(selectedNodeExecution.value.node_type);
 });
 
-// Carregar execução detalhada e montar o grafo exato da versão executada
-const fetchExecutionDetail = async () => {
-  try {
-    isLoading.value = true;
-    const [wfRes, execRes] = await Promise.all([
-      WorkflowsAPI.getWorkflow(workflowId.value),
-      WorkflowsAPI.getExecution(executionId.value),
-    ]);
+function selectNodeForInspector(ne, nodeObj) {
+  const nodeId = ne?.node_id || nodeObj?.id;
+  const nodeType = ne?.node_type || nodeObj?.data?.type || nodeObj?.type;
+  const nodeDef = getNodeDefinition(nodeType);
+  const nodeName =
+    nodeObj?.data?.config?.custom_title ||
+    nodeObj?.config?.custom_title ||
+    nodeDef?.title ||
+    nodeType;
 
-    workflow.value = wfRes.data;
-    execution.value = execRes.data;
-
-    buildExecutionGraph(execRes.data, wfRes.data);
-  } catch (err) {
-    console.error('Erro ao buscar detalhe da execução:', err);
-  } finally {
-    isLoading.value = false;
+  if (ne) {
+    selectedNodeExecution.value = {
+      ...ne,
+      node_name: nodeName,
+      node_type: nodeType,
+    };
+  } else {
+    selectedNodeExecution.value = {
+      node_id: nodeId,
+      node_name: nodeName,
+      node_type: nodeType,
+      status: nodeObj?.data?.executionStatus || 'skipped',
+      input_data: nodeObj?.config || nodeObj?.data?.config || {},
+      output_data: {},
+      error_message:
+        nodeObj?.data?.executionStatus === 'failed'
+          ? execution.value?.error_message
+          : null,
+      duration_ms: 0,
+      retry_count: 0,
+      started_at: null,
+      finished_at: null,
+    };
   }
-};
+}
 
-const buildExecutionGraph = (execData, wfData) => {
-  const version =
-    execData.workflow_version ||
+// Carregar execução detalhada e montar o grafo exato da versão executada
+function buildExecutionGraph(execData, wfData) {
+  const version = execData.workflow_version ||
     wfData?.current_version ||
     wfData?.draft_version || { nodes: [], edges: [] };
 
-  const nodeExecutions = execData.node_executions || [];
-  const executedNodeIds = new Set(nodeExecutions.map(ne => String(ne.node_id)));
+  const nodeExecutions = [...(execData.node_executions || [])].sort(
+    (a, b) => a.id - b.id
+  );
+  const latestByNode = new Map();
+  nodeExecutions.forEach(item => {
+    latestByNode.set(String(item.node_id), item);
+  });
+  const executedNodeIds = new Set(latestByNode.keys());
 
   // Mapear nós originais com posições e propriedades de execução
   const mappedNodes = (version.nodes || []).map((n, idx) => {
     const stringId = String(n.id);
-    const ne = nodeExecutions.find(item => String(item.node_id) === stringId);
+    const ne = latestByNode.get(stringId) || null;
+    const nodeType = n.data?.type || n.type;
+    const isTrigger = getNodeDefinition(nodeType)?.isTrigger;
 
     let status = 'skipped';
     if (ne) {
@@ -72,6 +108,12 @@ const buildExecutionGraph = (execData, wfData) => {
         ne.status === 'success' || ne.status === 'completed'
           ? 'completed'
           : ne.status;
+    } else if (
+      !nodeExecutions.length &&
+      execData.status === 'failed' &&
+      (isTrigger || (version.nodes || []).length === 1)
+    ) {
+      status = 'failed';
     } else if (
       stringId === String(execData.current_node_id) &&
       execData.status === 'running'
@@ -112,11 +154,14 @@ const buildExecutionGraph = (execData, wfData) => {
       executedNodeIds.has(String(e.source)) &&
       executedNodeIds.has(String(e.target));
 
-    const edgeColor = isTraversed
-      ? e.sourceHandle === 'false' || e.sourceHandle === 'TIMEOUT' || e.sourceHandle === 'error'
-        ? '#EF4444'
-        : '#10B981'
-      : '#94A3B8';
+    let edgeColor = '#94A3B8';
+    if (isTraversed) {
+      const isFailure =
+        e.sourceHandle === 'false' ||
+        e.sourceHandle === 'TIMEOUT' ||
+        e.sourceHandle === 'error';
+      edgeColor = isFailure ? '#EF4444' : '#10B981';
+    }
 
     return {
       ...e,
@@ -131,62 +176,60 @@ const buildExecutionGraph = (execData, wfData) => {
 
   elements.value = [...mappedNodes, ...mappedEdges];
 
+  const focus =
+    mappedNodes.find(node => node.data.executionStatus === 'failed') ||
+    mappedNodes.find(node => node.data.execution) ||
+    null;
+  if (focus) selectNodeForInspector(focus.data.execution, focus);
+
   nextTick(() => {
     setTimeout(() => {
       fitView({ padding: 0.25 });
     }, 200);
   });
-};
+}
 
-const selectNodeForInspector = (ne, nodeObj) => {
-  const nodeId = ne?.node_id || nodeObj?.id;
-  const nodeType = ne?.node_type || nodeObj?.data?.type || nodeObj?.type;
-  const nodeDef = getNodeDefinition(nodeType);
-  const nodeName =
-    nodeObj?.data?.config?.custom_title ||
-    nodeObj?.config?.custom_title ||
-    nodeDef?.title ||
-    nodeType;
+const fetchExecutionDetail = async () => {
+  try {
+    isLoading.value = true;
+    const [wfRes, execRes] = await Promise.all([
+      WorkflowsAPI.getWorkflow(workflowId.value),
+      WorkflowsAPI.getExecution(executionId.value),
+    ]);
 
-  if (ne) {
-    selectedNodeExecution.value = {
-      ...ne,
-      node_name: nodeName,
-      node_type: nodeType,
-    };
-  } else {
-    selectedNodeExecution.value = {
-      node_id: nodeId,
-      node_name: nodeName,
-      node_type: nodeType,
-      status: 'skipped',
-      input_data: nodeObj?.config || nodeObj?.data?.config || {},
-      output_data: {},
-      error_message: null,
-      duration_ms: 0,
-      retry_count: 0,
-      started_at: null,
-      finished_at: null,
-    };
+    workflow.value = wfRes.data;
+    execution.value = execRes.data;
+
+    buildExecutionGraph(execRes.data, wfRes.data);
+  } catch {
+    execution.value = execution.value || null;
+  } finally {
+    isLoading.value = false;
   }
 };
 
 const handleNodeClick = event => {
   const clickedNode = event.node;
-  const ne = execution.value?.node_executions?.find(
+  const matches = (execution.value?.node_executions || []).filter(
     item => String(item.node_id) === String(clickedNode.id)
   );
+  const ne = matches.sort((a, b) => a.id - b.id).at(-1) || null;
   selectNodeForInspector(ne, clickedNode);
 };
 
+const canRetry = computed(() =>
+  ['failed', 'cancelled'].includes(execution.value?.status)
+);
+
 const retryExecution = async () => {
-  if (!execution.value) return;
+  if (!execution.value || !canRetry.value) return;
   try {
     isRetrying.value = true;
-    await WorkflowsAPI.getExecution(execution.value.id);
+    await WorkflowsAPI.retryExecution(execution.value.id);
     await fetchExecutionDetail();
+    useAlert('Execução reenfileirada.');
   } catch (err) {
-    console.error('Erro ao retentar execução:', err);
+    useAlert(err.response?.data?.error || 'Não foi possível reexecutar.');
   } finally {
     isRetrying.value = false;
   }
@@ -198,8 +241,9 @@ onMounted(() => {
 </script>
 
 <template>
+  <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
   <div
-    class="flex flex-col h-full bg-n-background text-n-slate-12 overflow-hidden select-none"
+    class="flex flex-1 flex-col w-full h-full min-h-0 min-w-0 bg-n-background text-n-slate-12 overflow-hidden"
   >
     <!-- BARRA SUPERIOR DE NAVEGAÇÃO -->
     <header
@@ -216,7 +260,7 @@ onMounted(() => {
             })
           "
         >
-          <span>←</span>
+          <span class="i-lucide-arrow-left size-4" />
           <span>Lista de Execuções</span>
         </button>
 
@@ -227,7 +271,7 @@ onMounted(() => {
             <span>Execução</span>
             <span class="font-mono text-n-blue-9">#{{ executionId }}</span>
           </h1>
-          <span class="text-n-slate-9">•</span>
+          <span class="size-1 rounded-full bg-n-slate-9" />
           <span class="text-xs text-n-slate-11 font-medium">
             {{ workflow?.name || 'Workflow' }}
           </span>
@@ -236,7 +280,9 @@ onMounted(() => {
 
       <!-- BADGES E AÇÕES DA EXECUÇÃO -->
       <div v-if="execution" class="flex items-center gap-3 text-xs">
-        <div class="flex items-center gap-2 px-3 py-1 rounded-xl bg-n-alpha-1 border border-n-weak">
+        <div
+          class="flex items-center gap-2 px-3 py-1 rounded-xl bg-n-alpha-1 border border-n-weak"
+        >
           <span class="text-n-slate-9 text-[11px]">Status:</span>
           <span
             class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
@@ -246,35 +292,55 @@ onMounted(() => {
                 : execution.status === 'failed'
                   ? 'bg-n-ruby-3 text-n-ruby-11 border border-n-ruby-7'
                   : execution.status === 'running'
-                    ? 'bg-n-blue-9/20 text-n-blue-9 border border-blue-500/30 animate-pulse'
+                    ? 'bg-n-iris-3 text-n-iris-11 border border-n-iris-7'
                     : 'bg-n-amber-3 text-n-amber-11 border border-n-amber-7'
             "
           >
-            {{ execution.status }}
+            {{ STATUS_LABELS[execution.status] || execution.status }}
           </span>
         </div>
 
-        <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-n-alpha-1 border border-n-weak text-[11px] text-n-slate-11">
+        <div
+          class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-n-alpha-1 border border-n-weak text-[11px] text-n-slate-11"
+        >
           <span>Gatilho:</span>
-          <span class="font-mono font-bold text-n-slate-12">{{ execution.trigger_type || 'manual' }}</span>
+          <span class="font-mono font-bold text-n-slate-12">{{
+            execution.trigger_type || 'manual'
+          }}</span>
         </div>
 
-        <div class="hidden md:flex items-center gap-2 px-3 py-1 rounded-xl bg-n-alpha-1 border border-n-weak text-[11px] text-n-slate-11">
+        <div
+          class="hidden md:flex items-center gap-2 px-3 py-1 rounded-xl bg-n-alpha-1 border border-n-weak text-[11px] text-n-slate-11"
+        >
           <span>Contato:</span>
-          <span class="font-bold text-n-slate-12">{{ execution.contact?.name || 'Lead #1' }}</span>
+          <span class="font-bold text-n-slate-12">{{
+            execution.contact?.name || '—'
+          }}</span>
         </div>
 
         <button
+          v-if="canRetry"
           type="button"
-          class="px-3 py-1.5 rounded-xl border border-n-weak bg-n-solid-2 hover:bg-n-alpha-2 text-xs font-semibold text-n-slate-12 flex items-center gap-1.5 transition-colors"
+          class="px-3 py-1.5 rounded-xl bg-n-brand text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
           :disabled="isRetrying"
           @click="retryExecution"
         >
-          <span>🔄</span>
-          <span>Retentar</span>
+          <span
+            class="i-lucide-refresh-cw size-4"
+            :class="isRetrying ? 'animate-spin' : ''"
+          />
+          <span>{{ isRetrying ? 'Reexecutando…' : 'Reexecutar' }}</span>
         </button>
       </div>
     </header>
+
+    <div
+      v-if="execution?.error_message"
+      class="px-6 py-2.5 border-b border-n-ruby-7 bg-n-ruby-3 text-n-ruby-11 text-xs flex items-start gap-2 shrink-0"
+    >
+      <span class="i-lucide-circle-alert size-4 shrink-0 mt-0.5" />
+      <p class="min-w-0 break-words">{{ execution.error_message }}</p>
+    </div>
 
     <!-- CORPO COM CANVAS DO GRAFO E INSPECTOR LATERAL -->
     <div class="flex flex-1 overflow-hidden relative">
@@ -285,28 +351,28 @@ onMounted(() => {
           class="absolute top-4 left-6 z-10 p-2.5 rounded-2xl bg-n-solid-1/90 border border-n-weak shadow-xl backdrop-blur-md flex flex-wrap items-center gap-4 text-xs font-semibold"
         >
           <span class="text-n-slate-11 font-mono text-[11px]">
-            Modo Read-Only
+            Somente leitura
           </span>
           <div class="h-3 w-px bg-n-weak" />
           <span class="flex items-center gap-1.5 text-n-teal-11">
             <span class="w-2.5 h-2.5 rounded-full bg-n-teal-9" />
-            COMPLETED
+            Concluído
           </span>
-          <span class="flex items-center gap-1.5 text-n-blue-9">
-            <span class="w-2.5 h-2.5 rounded-full bg-n-blue-9 animate-pulse" />
-            RUNNING
+          <span class="flex items-center gap-1.5 text-n-iris-11">
+            <span class="w-2.5 h-2.5 rounded-full bg-n-iris-9" />
+            Executando
           </span>
           <span class="flex items-center gap-1.5 text-n-amber-11">
             <span class="w-2.5 h-2.5 rounded-full bg-n-amber-9" />
-            WAITING
+            Aguardando
           </span>
           <span class="flex items-center gap-1.5 text-n-ruby-11">
             <span class="w-2.5 h-2.5 rounded-full bg-n-ruby-9" />
-            FAILED
+            Falhou
           </span>
           <span class="flex items-center gap-1.5 text-n-slate-9">
             <span class="w-2.5 h-2.5 rounded-full bg-n-slate-9" />
-            SKIPPED
+            Não executado
           </span>
         </div>
 
@@ -315,7 +381,7 @@ onMounted(() => {
           v-model="elements"
           :nodes-draggable="false"
           :nodes-connectable="false"
-          :elements-selectable="true"
+          elements-selectable
           :snap-to-grid="false"
           fit-view-on-init
           class="h-full w-full"
@@ -333,7 +399,7 @@ onMounted(() => {
                   ? 'ring-2 ring-n-teal-9 shadow-lg shadow-n-teal-9/20'
                   : '',
                 data.executionStatus === 'running'
-                  ? 'ring-2 ring-n-blue-9 shadow-lg shadow-n-blue-9/20 animate-pulse'
+                  ? 'ring-2 ring-n-iris-9 shadow-lg'
                   : '',
                 data.executionStatus === 'waiting'
                   ? 'ring-2 ring-n-amber-9 shadow-lg shadow-n-amber-9/20'
@@ -353,7 +419,7 @@ onMounted(() => {
                   data.executionStatus === 'completed'
                     ? 'bg-n-teal-9 text-white'
                     : data.executionStatus === 'running'
-                      ? 'bg-n-blue-9 text-white animate-pulse'
+                      ? 'bg-n-iris-9 text-white'
                       : data.executionStatus === 'waiting'
                         ? 'bg-n-amber-9 text-white'
                         : data.executionStatus === 'failed'
@@ -361,7 +427,9 @@ onMounted(() => {
                           : 'bg-n-slate-9 text-white'
                 "
               >
-                {{ data.executionStatus }}
+                {{
+                  STATUS_LABELS[data.executionStatus] || data.executionStatus
+                }}
               </div>
 
               <WorkflowNodeCard :id="id" :data="data" />
@@ -380,7 +448,7 @@ onMounted(() => {
           class="p-4 border-b border-n-weak flex items-center justify-between"
         >
           <div class="flex items-center gap-2.5 min-w-0">
-            <span class="text-base">📋</span>
+            <span class="i-lucide-clipboard-list size-4" />
             <div class="truncate">
               <h3 class="text-xs font-bold text-n-slate-12 truncate">
                 Node Inspector
@@ -395,7 +463,7 @@ onMounted(() => {
             class="p-1 rounded-lg text-n-slate-9 hover:text-n-slate-12 hover:bg-n-alpha-2 text-xs"
             @click="selectedNodeExecution = null"
           >
-            ✕
+            <span class="i-lucide-x size-4" />
           </button>
         </div>
 
@@ -408,13 +476,19 @@ onMounted(() => {
             <div class="flex items-center justify-between">
               <span class="text-[11px] text-n-slate-11">Node Name</span>
               <span class="font-bold text-n-slate-12 truncate max-w-[180px]">
-                {{ selectedNodeExecution.node_name || selectedNodeMeta?.title || selectedNodeExecution.node_id }}
+                {{
+                  selectedNodeExecution.node_name ||
+                  selectedNodeMeta?.title ||
+                  selectedNodeExecution.node_id
+                }}
               </span>
             </div>
 
             <div class="flex items-center justify-between">
               <span class="text-[11px] text-n-slate-11">Node Type</span>
-              <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-n-alpha-1 border border-n-weak text-n-slate-12">
+              <span
+                class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-n-alpha-1 border border-n-weak text-n-slate-12"
+              >
                 {{ selectedNodeExecution.node_type }}
               </span>
             </div>
@@ -430,13 +504,16 @@ onMounted(() => {
                     : selectedNodeExecution.status === 'failed'
                       ? 'bg-n-ruby-3 text-n-ruby-11 border border-n-ruby-7'
                       : selectedNodeExecution.status === 'running'
-                        ? 'bg-n-blue-9/20 text-n-blue-9 border border-blue-500/30 animate-pulse'
+                        ? 'bg-n-blue-9/20 text-n-blue-9 border border-n-blue-9/30 animate-pulse'
                         : selectedNodeExecution.status === 'waiting'
                           ? 'bg-n-amber-3 text-n-amber-11 border border-n-amber-7'
                           : 'bg-n-alpha-2 text-n-slate-9 border border-n-weak'
                 "
               >
-                {{ selectedNodeExecution.status }}
+                {{
+                  STATUS_LABELS[selectedNodeExecution.status] ||
+                  selectedNodeExecution.status
+                }}
               </span>
             </div>
           </div>
@@ -448,21 +525,39 @@ onMounted(() => {
             <div class="flex items-center justify-between">
               <span class="text-n-slate-11">Started At</span>
               <span class="font-mono text-n-slate-12">
-                {{ selectedNodeExecution.started_at ? new Date(selectedNodeExecution.started_at).toLocaleString('pt-BR') : '-' }}
+                {{
+                  selectedNodeExecution.started_at
+                    ? new Date(selectedNodeExecution.started_at).toLocaleString(
+                        'pt-BR'
+                      )
+                    : '-'
+                }}
               </span>
             </div>
 
             <div class="flex items-center justify-between">
               <span class="text-n-slate-11">Finished At</span>
               <span class="font-mono text-n-slate-12">
-                {{ selectedNodeExecution.finished_at || selectedNodeExecution.completed_at ? new Date(selectedNodeExecution.finished_at || selectedNodeExecution.completed_at).toLocaleString('pt-BR') : '-' }}
+                {{
+                  selectedNodeExecution.finished_at ||
+                  selectedNodeExecution.completed_at
+                    ? new Date(
+                        selectedNodeExecution.finished_at ||
+                          selectedNodeExecution.completed_at
+                      ).toLocaleString('pt-BR')
+                    : '-'
+                }}
               </span>
             </div>
 
             <div class="flex items-center justify-between">
               <span class="text-n-slate-11">Duration</span>
               <span class="font-mono font-bold text-n-slate-12">
-                {{ selectedNodeExecution.duration_ms || 2 }} ms
+                {{
+                  selectedNodeExecution.duration_ms == null
+                    ? '—'
+                    : `${selectedNodeExecution.duration_ms} ms`
+                }}
               </span>
             </div>
 
@@ -477,7 +572,7 @@ onMounted(() => {
           <!-- ERRO (SE HOUVER) -->
           <div
             v-if="selectedNodeExecution.error_message"
-            class="p-3.5 rounded-xl bg-n-ruby-9/10 border border-rose-500/20 space-y-1 text-n-ruby-11"
+            class="p-3.5 rounded-xl bg-n-ruby-9/10 border border-n-ruby-9/20 space-y-1 text-n-ruby-11"
           >
             <span class="font-bold text-[11px] block">Error Message</span>
             <p class="font-mono text-[10px] break-words leading-relaxed">
@@ -490,12 +585,18 @@ onMounted(() => {
             <label
               class="block text-[11px] font-bold text-n-slate-12 mb-1 flex items-center justify-between"
             >
-              <span>📥 Input</span>
+              <span class="flex items-center gap-1"
+                ><span class="i-lucide-arrow-down-to-line size-3.5" />
+                Entrada</span
+              >
               <span class="text-[10px] text-n-slate-9 font-normal">JSON</span>
             </label>
             <pre
               class="p-3 rounded-xl bg-n-alpha-1 border border-n-weak font-mono text-[10px] text-n-slate-12 overflow-x-auto max-h-44 leading-relaxed"
-            >{{ JSON.stringify(selectedNodeExecution.input_data || {}, null, 2) }}</pre>
+              >{{
+                JSON.stringify(selectedNodeExecution.input_data || {}, null, 2)
+              }}</pre
+            >
           </div>
 
           <!-- OUTPUT DATA (SAÍDA) -->
@@ -503,12 +604,18 @@ onMounted(() => {
             <label
               class="block text-[11px] font-bold text-n-slate-12 mb-1 flex items-center justify-between"
             >
-              <span>📤 Output</span>
+              <span class="flex items-center gap-1"
+                ><span class="i-lucide-arrow-up-from-line size-3.5" />
+                Saída</span
+              >
               <span class="text-[10px] text-n-slate-9 font-normal">JSON</span>
             </label>
             <pre
               class="p-3 rounded-xl bg-n-alpha-1 border border-n-weak font-mono text-[10px] text-n-slate-12 overflow-x-auto max-h-44 leading-relaxed"
-            >{{ JSON.stringify(selectedNodeExecution.output_data || {}, null, 2) }}</pre>
+              >{{
+                JSON.stringify(selectedNodeExecution.output_data || {}, null, 2)
+              }}</pre
+            >
           </div>
         </div>
       </aside>

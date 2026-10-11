@@ -2,6 +2,15 @@
 
 module Workflows
   class VariableResolverService
+    TOKEN_PATTERN = /\{\{\s*\$?([a-zA-Z0-9_.\-]+)\s*\}\}/
+
+    def self.normalize_path(raw_path)
+      path = raw_path.to_s.strip
+      wrapped = path.match(/\A\{\{\s*(.+?)\s*\}\}\z/)
+      path = wrapped[1] if wrapped
+      path.delete_prefix('$')
+    end
+
     # Suporte tanto a chamada estática com contexto direto quanto instanciada com execution
     def self.resolve(text, context = {})
       resolver = new(nil, context)
@@ -22,14 +31,15 @@ module Workflows
       return '' if text.nil?
       return text unless text.is_a?(String)
 
-      text.gsub(/\{\{\s*([a-zA-Z0-9_\.\-]+)\s*\}\}/) do |_match|
+      text.gsub(TOKEN_PATTERN) do |_match|
         var_path = Regexp.last_match(1)
         val = extract_value(var_path)
         val.nil? ? '' : val.to_s
       end
     end
 
-    def extract_value(path)
+    def extract_value(raw_path)
+      path = self.class.normalize_path(raw_path)
       return nil if path.blank?
 
       parts = path.split('.')

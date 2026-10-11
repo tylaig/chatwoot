@@ -719,7 +719,7 @@ const menuItems = computed(() => {
     },
     {
       name: 'Templates',
-      label: 'Templates WhatsApp',
+      label: 'Templates',
       icon: 'i-lucide-layout-template',
       activeOn: ['whatsapp_templates_index', 'whatsapp_templates_new'],
       to: accountScopedRoute('whatsapp_templates_index'),
