@@ -54,4 +54,20 @@ class WorkflowPolicy < ApplicationPolicy
   def test_webhook_trigger?
     @account_user.administrator?
   end
+
+  def show_flow_test?
+    @account_user.administrator?
+  end
+
+  def start_flow_test?
+    @account_user.administrator?
+  end
+
+  def reply_flow_test?
+    @account_user.administrator?
+  end
+
+  def timeout_flow_test?
+    @account_user.administrator?
+  end
 end

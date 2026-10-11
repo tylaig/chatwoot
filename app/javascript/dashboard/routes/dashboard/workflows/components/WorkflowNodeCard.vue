@@ -32,9 +32,11 @@ const props = defineProps({
 const emit = defineEmits(['configure', 'duplicate', 'delete']);
 
 const builder = inject('workflowBuilder', null);
+const testNodeId = inject('workflowTestNodeId', ref(null));
 const variableCatalog = inject('workflowVariables', null);
 
 const nodeMeta = computed(() => getNodeDefinition(props.data.type));
+const isTestCurrent = computed(() => testNodeId.value === props.id);
 const style = computed(() => getCategoryStyle(props.data.type));
 const config = computed(() => props.data.config || {});
 const outputs = computed(() => getNodeOutputs(props.data.type, config.value));
@@ -103,9 +105,11 @@ const deleteNode = () => {
         ? 'border-n-brand ring-4 ring-n-brand/25 shadow-xl'
         : selected
           ? 'border-n-brand ring-4 ring-n-brand/15 shadow-xl'
-          : issues.length
-            ? 'border-n-ruby-8'
-            : 'border-n-weak',
+          : isTestCurrent
+            ? 'border-green-500 ring-4 ring-green-500/20 shadow-xl'
+            : issues.length
+              ? 'border-n-ruby-8'
+              : 'border-n-weak',
     ]"
   >
     <div class="h-1.5 rounded-t-2xl" :class="style.accent" />

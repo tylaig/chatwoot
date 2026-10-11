@@ -20,6 +20,7 @@ class WorkflowExecution < ApplicationRecord
   scope :waiting, -> { where(status: 'waiting') }
   scope :completed, -> { where(status: 'completed') }
   scope :failed, -> { where(status: 'failed') }
+  scope :customer_runs, -> { where("COALESCE(workflow_executions.context ->> 'test_mode', 'false') <> 'true'") }
 
   def mark_completed!
     update!(status: 'completed', finished_at: Time.current)

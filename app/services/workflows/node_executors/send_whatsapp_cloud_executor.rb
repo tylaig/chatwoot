@@ -6,6 +6,8 @@ module Workflows
       MEDIA_TYPES = %w[image video audio document].freeze
 
       def execute
+        return execute_preview if test_execution?
+
         conversation = execution.conversation
         return failure('Conversa não encontrada no contexto de execução.') if conversation.blank?
 
@@ -57,6 +59,39 @@ module Workflows
       end
 
       private
+
+      def execute_preview
+        conversation = execution.conversation
+        return failure('Conversa não encontrada no contexto de execução.') if conversation.blank?
+
+        existing = find_existing_message(conversation)
+        return wait_for_choice if existing.present? && choice_node?
+
+        built = build_session
+        return built if built[:status] == 'failed'
+
+        conversation.messages.create!(
+          account_id: execution.account_id,
+          inbox_id: conversation.inbox_id,
+          message_type: :outgoing,
+          status: :sent,
+          content: built[:content],
+          content_type: built[:content_type],
+          content_attributes: built[:content_attributes],
+          additional_attributes: {
+            workflow_execution_id: execution.id,
+            workflow_node_id: node['id'],
+            workflow_test: true
+          }
+        )
+        return wait_for_choice if choice_node?
+
+        {
+          status: 'success',
+          output: { mode: node_type, preview: true },
+          next_nodes: next_nodes
+        }
+      end
 
       def node_type
         self.class.node_type_for(node)
@@ -161,7 +196,7 @@ module Workflows
             status: 'pending',
             metadata: { choices: configured_choices.map { |choice| choice.slice('id', 'title') } }
           )
-          WorkflowExecutionJob.set(wait_until: timeout_time).perform_later(execution.id, node['id'], 'timeout')
+          WorkflowExecutionJob.set(wait_until: timeout_time).perform_later(execution.id, node['id'], 'timeout') unless test_execution?
         end
 
         {

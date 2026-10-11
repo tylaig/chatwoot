@@ -5,7 +5,8 @@ class Api::V1::Accounts::WorkflowsController < Api::V1::Accounts::BaseController
   NODE_KEYS = %w[id type position data config].freeze
 
   before_action :fetch_workflow, only: [:show, :update, :destroy, :publish, :pause, :activate, :duplicate, :executions,
-                                        :webhook_trigger, :upsert_webhook_trigger, :test_webhook_trigger]
+                                        :webhook_trigger, :upsert_webhook_trigger, :test_webhook_trigger,
+                                        :show_flow_test, :start_flow_test, :reply_flow_test, :timeout_flow_test]
   before_action :check_authorization
   before_action :validate_draft_version_params, only: [:update]
 
@@ -127,8 +128,33 @@ class Api::V1::Accounts::WorkflowsController < Api::V1::Accounts::BaseController
     render json: result, status: result[:ok] ? :ok : :unprocessable_entity
   end
 
+  def show_flow_test
+    render json: Workflows::FlowTestService.new(@workflow).show
+  end
+
+  def start_flow_test
+    render json: Workflows::FlowTestService.new(@workflow).start!
+  rescue Workflows::FlowTestService::Error => e
+    render json: { error: [e.message] }, status: :unprocessable_entity
+  end
+
+  def reply_flow_test
+    render json: Workflows::FlowTestService.new(@workflow).reply!(
+      content: params[:content],
+      choice_id: params[:choice_id]
+    )
+  rescue Workflows::FlowTestService::Error => e
+    render json: { error: [e.message] }, status: :unprocessable_entity
+  end
+
+  def timeout_flow_test
+    render json: Workflows::FlowTestService.new(@workflow).timeout!
+  rescue Workflows::FlowTestService::Error => e
+    render json: { error: [e.message] }, status: :unprocessable_entity
+  end
+
   def executions
-    execs = @workflow.executions.order(created_at: :desc).limit(50)
+    execs = @workflow.executions.customer_runs.order(created_at: :desc).limit(50)
     render json: execs.as_json(
       include: {
         contact: { only: [:id, :name, :phone_number] },

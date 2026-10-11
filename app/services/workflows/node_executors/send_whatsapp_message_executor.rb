@@ -4,6 +4,8 @@ module Workflows
   module NodeExecutors
     class SendWhatsappMessageExecutor < BaseExecutor
       def execute
+        return preview_template if test_execution? && template_delivery?
+
         conversation = execution.conversation
         if conversation.blank?
           return { status: 'failed', error: 'Conversation não encontrada no contexto de execução.' }
@@ -254,7 +256,23 @@ module Workflows
         }
       end
 
+      def template_delivery?
+        return true if self.class.node_type_for(node) == 'send_whatsapp_template'
+
+        mode = (config[:delivery_mode] || config[:mode] || '').to_s.downcase
+        %w[outside_24h template].include?(mode)
+      end
+
+      def preview_template
+        template_name = config[:template_name] || config['template_name']
+        return { status: 'failed', error: 'Selecione um template aprovado.' } if template_name.blank?
+
+        send_template(template_name, config[:template_params] || config['template_params'])
+      end
+
       def dispatch_to_channel(message)
+        return if test_execution?
+
         inbox = message.inbox
         if inbox.channel.is_a?(Channel::Whatsapp)
           Whatsapp::SendOnWhatsappService.new(message: message).perform

@@ -24,8 +24,7 @@ module Workflows
           }
         )
 
-        # Enqueue timeout check job via ActiveJob
-        WorkflowExecutionJob.set(wait_until: timeout_time).perform_later(execution.id, node['id'], 'timeout')
+        WorkflowExecutionJob.set(wait_until: timeout_time).perform_later(execution.id, node['id'], 'timeout') unless test_execution?
 
         {
           status: 'waiting',

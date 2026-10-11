@@ -103,6 +103,7 @@ class ConversationFinder
       current_account
     ).perform
     filter_by_conversation_type if params[:conversation_type]
+    @conversations = @conversations.where("COALESCE(conversations.additional_attributes ->> 'workflow_test', 'false') <> 'true'")
     @conversations
   end
 

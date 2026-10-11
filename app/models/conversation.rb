@@ -305,6 +305,7 @@ class Conversation < ApplicationRecord
   end
 
   def determine_conversation_status
+    return if additional_attributes['workflow_test'] == true
     self.status = :resolved and return if contact.blocked?
 
     return handle_campaign_status if campaign.present?
@@ -325,6 +326,8 @@ class Conversation < ApplicationRecord
   end
 
   def notify_conversation_creation
+    return if additional_attributes['workflow_test'] == true
+
     dispatcher_dispatch(CONVERSATION_CREATED)
   end
 
@@ -335,6 +338,7 @@ class Conversation < ApplicationRecord
   end
 
   def notify_conversation_updation
+    return if additional_attributes['workflow_test'] == true
     return unless previous_changes.keys.present? && allowed_keys?
 
     dispatch_conversation_updated_event(previous_changes)

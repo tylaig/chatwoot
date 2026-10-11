@@ -487,6 +487,10 @@ Rails.application.routes.draw do
               get :webhook_trigger
               post :webhook_trigger, action: :upsert_webhook_trigger
               post :test_webhook_trigger
+              get :flow_test, action: :show_flow_test
+              post :flow_test, action: :start_flow_test
+              post 'flow_test/reply', action: :reply_flow_test
+              post 'flow_test/timeout', action: :timeout_flow_test
             end
           end
           resources :workflow_executions, only: [:index, :show] do

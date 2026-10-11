@@ -28,12 +28,13 @@ class Workflow < ApplicationRecord
   scope :archived, -> { where(status: 'archived') }
 
   def execution_stats
-    grouped = executions.group(:status).count
+    live = executions.customer_runs
+    grouped = live.group(:status).count
     completed = grouped['completed'].to_i
     failed = grouped['failed'].to_i
     finished = completed + failed
-    duration = executions.where.not(started_at: nil).where.not(finished_at: nil)
-                         .average('EXTRACT(EPOCH FROM (finished_at - started_at))')
+    duration = live.where.not(started_at: nil).where.not(finished_at: nil)
+                   .average('EXTRACT(EPOCH FROM (finished_at - started_at))')
 
     {
       total: grouped.values.sum,

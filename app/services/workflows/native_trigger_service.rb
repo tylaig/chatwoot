@@ -19,7 +19,7 @@ module Workflows
     end
 
     def perform
-      return if @account.blank?
+      return if @account.blank? || test_conversation?
 
       Workflow.active.where(account_id: @account.id, trigger_type: @event_name).includes(:active_version).find_each do |workflow|
         start_workflow(workflow)
@@ -65,6 +65,11 @@ module Workflows
         started_at: Time.current,
         context: execution_context
       )
+    end
+
+    def test_conversation?
+      conversation = @conversation || @message&.conversation
+      conversation&.additional_attributes&.[]('workflow_test') == true
     end
 
     def trigger_node(version)

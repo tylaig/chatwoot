@@ -46,6 +46,10 @@ module Workflows
         edges = version.outgoing_edges(node['id'], handle)
         edges.map { |e| version.find_node(e['target']) }.compact
       end
+
+      def test_execution?
+        execution.context.to_h['test_mode'] == true
+      end
     end
   end
 end

@@ -23,11 +23,12 @@ module Workflows
                         Time.current + delay_duration
                       end
 
-        # If resume time is already in the past, continue immediately
-        if resume_time <= Time.current
+        # If resume time is already in the past, continue immediately.
+        # Test mode skips the wait so the chat preview can continue.
+        if resume_time <= Time.current || test_execution?
           return {
             status: 'success',
-            output: { delay_bypassed: true, resume_at: resume_time },
+            output: { delay_bypassed: true, delay_skipped: test_execution?, resume_at: resume_time },
             next_nodes: next_nodes
           }
         end

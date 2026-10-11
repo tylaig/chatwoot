@@ -5,7 +5,7 @@ class Api::V1::Accounts::WorkflowExecutionsController < Api::V1::Accounts::BaseC
   before_action :check_authorization
 
   def index
-    @executions = Current.account.workflow_executions.order(created_at: :desc)
+    @executions = Current.account.workflow_executions.customer_runs.order(created_at: :desc)
     @executions = @executions.where(workflow_id: params[:workflow_id]) if params[:workflow_id].present?
     @executions = @executions.where(status: params[:status]) if params[:status].present?
 

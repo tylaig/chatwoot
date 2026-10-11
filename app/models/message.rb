@@ -335,6 +335,7 @@ class Message < ApplicationRecord
   end
 
   def resume_waiting_workflows_on_incoming_message
+    return if workflow_test_conversation?
     return unless incoming? && conversation.present?
 
     WorkflowExecution.where(conversation_id: conversation.id, status: 'waiting').find_each do |execution|
@@ -419,6 +420,8 @@ class Message < ApplicationRecord
   end
 
   def dispatch_create_events
+    return if workflow_test_conversation?
+
     Rails.configuration.dispatcher.dispatch(MESSAGE_CREATED, Time.zone.now, message: self, performed_by: Current.executed_by)
 
     if valid_first_reply?
@@ -438,9 +441,15 @@ class Message < ApplicationRecord
   end
 
   def send_reply
+    return if workflow_test_conversation?
+
     # FIXME: Giving it few seconds for the attachment to be uploaded to the service
     # active storage attaches the file only after commit
     attachments.blank? ? ::SendReplyJob.perform_later(id) : ::SendReplyJob.set(wait: 2.seconds).perform_later(id)
+  end
+
+  def workflow_test_conversation?
+    conversation&.additional_attributes&.[]('workflow_test') == true
   end
 
   def reopen_conversation

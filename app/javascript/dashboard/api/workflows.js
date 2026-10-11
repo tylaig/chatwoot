@@ -93,6 +93,22 @@ class WorkflowsAPI {
     return axios.post(`${this.baseUrl}/${id}/test_webhook_trigger`);
   }
 
+  getFlowTest(id) {
+    return axios.get(`${this.baseUrl}/${id}/flow_test`);
+  }
+
+  startFlowTest(id) {
+    return axios.post(`${this.baseUrl}/${id}/flow_test`);
+  }
+
+  replyFlowTest(id, payload) {
+    return axios.post(`${this.baseUrl}/${id}/flow_test/reply`, payload);
+  }
+
+  timeoutFlowTest(id) {
+    return axios.post(`${this.baseUrl}/${id}/flow_test/timeout`);
+  }
+
   getWorkflowExecutions(id) {
     return axios.get(`${this.baseUrl}/${id}/executions`);
   }

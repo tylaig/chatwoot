@@ -17,6 +17,7 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import WorkflowNodeCard from './components/WorkflowNodeCard.vue';
 import WorkflowEdge from './components/WorkflowEdge.vue';
 import WorkflowNodeConfigPanel from './components/WorkflowNodeConfigPanel.vue';
+import WorkflowTestChat from './components/WorkflowTestChat.vue';
 import WorkflowNodeSelectorModal from './components/WorkflowNodeSelectorModal.vue';
 import WorkflowTemplatePickerModal from './components/WorkflowTemplatePickerModal.vue';
 import {
@@ -68,6 +69,8 @@ const showAddModal = ref(false);
 const showTemplatePicker = ref(false);
 const showHeaderMenu = ref(false);
 const showIssues = ref(false);
+const testOpen = ref(false);
+const testNodeId = ref(null);
 const serverIssues = ref([]);
 const editingName = ref(false);
 const nameDraft = ref('');
@@ -497,6 +500,7 @@ onEdgeMouseEnter(({ edge }) => setHoveredEdge(edge.id));
 onEdgeMouseLeave(() => setHoveredEdge(null));
 
 provide('workflowVariables', variableCatalog);
+provide('workflowTestNodeId', testNodeId);
 provide('workflowBuilder', {
   readOnly: false,
   issuesByNode,
@@ -863,6 +867,17 @@ useEventListener(window, 'keydown', event => {
   }
 });
 
+const openTest = async () => {
+  await flushSave();
+  selectedNodeId.value = null;
+  testOpen.value = true;
+};
+
+const closeTest = () => {
+  testOpen.value = false;
+  testNodeId.value = null;
+};
+
 const saveLabel = computed(
   () =>
     ({
@@ -993,6 +1008,16 @@ const saveLabel = computed(
           <span class="i-lucide-circle-alert size-4" />
           {{ issues.length }}
           {{ issues.length === 1 ? 'problema' : 'problemas' }}
+        </button>
+
+        <button
+          type="button"
+          class="h-9 px-3 rounded-lg border border-n-weak text-xs font-medium text-n-slate-12 hover:bg-n-alpha-2 flex items-center gap-1.5"
+          :class="testOpen ? 'bg-n-alpha-2' : ''"
+          @click="testOpen ? closeTest() : openTest()"
+        >
+          <span class="i-lucide-message-circle size-4 text-n-slate-11" />
+          Testar
         </button>
 
         <button
@@ -1253,7 +1278,15 @@ const saveLabel = computed(
         </div>
       </div>
 
+      <WorkflowTestChat
+        v-if="testOpen"
+        :workflow-id="workflowId"
+        @close="closeTest"
+        @highlight="testNodeId = $event"
+      />
+
       <WorkflowNodeConfigPanel
+        v-else
         :node="
           selectedNode
             ? {
