@@ -16,6 +16,10 @@ const CONVERSATION_FIELDS = [
   { path: 'conversation.id', label: 'ID da conversa' },
   { path: 'conversation.status', label: 'Status' },
   { path: 'conversation.priority', label: 'Prioridade' },
+  {
+    path: 'conversation.last_message',
+    label: 'Última mensagem do contato',
+  },
 ];
 
 const SYSTEM_FIELDS = [
@@ -70,6 +74,9 @@ export const declaredFlowVariables = nodes =>
     const config = node.data?.config || {};
     if (type === 'set_variable' && config.variable_name) {
       return [config.variable_name.replace(/^vars\./, '')];
+    }
+    if (type === 'wait_for_reply' && config.save_reply_as) {
+      return [String(config.save_reply_as).replace(/^vars\./, '')];
     }
     if (type === 'http_request') {
       const name = (config.save_response_as || 'http_response').replace(
@@ -147,7 +154,8 @@ export const buildVariableCatalog = ({
       label: 'Variáveis do fluxo',
       icon: 'i-lucide-variable',
       items: flowItems,
-      emptyHint: 'Use "Definir Variável" ou "Requisição HTTP" para criar.',
+      emptyHint:
+        'Use Definir Variável, Aguardar Resposta ou Requisição HTTP para criar.',
     },
     {
       id: 'system',

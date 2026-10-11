@@ -140,7 +140,10 @@ const addRow = () => {
           Adicionar
         </button>
       </div>
-      <p :class="HINT_CLASS">Até 3 botões, com no máximo 20 caracteres cada.</p>
+      <p :class="HINT_CLASS">
+        Até 3 botões, com no máximo 20 caracteres. Cada botão vira uma saída do
+        bloco.
+      </p>
       <div v-for="(button, index) in buttons" :key="index" class="flex gap-1.5">
         <div class="flex-1 min-w-0">
           <WorkflowVariableInput
@@ -178,6 +181,7 @@ const addRow = () => {
         <p :class="HINT_CLASS">Máximo de 20 caracteres.</p>
       </div>
       <div class="space-y-2">
+        <p :class="HINT_CLASS">Cada opção da lista vira uma saída do bloco.</p>
         <div class="flex items-center justify-between">
           <label class="text-xs font-medium text-n-slate-12">Opções</label>
           <button

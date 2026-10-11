@@ -131,10 +131,19 @@ const configIssues = (type, config) => {
       return Number(config.duration) > 0
         ? []
         : ['A duração da espera deve ser um número positivo.'];
-    case 'wait_for_reply':
-      return Number(config.timeout_hours) > 0
-        ? []
-        : ['O tempo limite deve ser um número positivo.'];
+    case 'wait_for_reply': {
+      const issues = [];
+      if (!(Number(config.timeout_hours) > 0)) {
+        issues.push('O tempo limite deve ser um número positivo.');
+      }
+      const replyVar = String(config.save_reply_as || '').trim();
+      if (replyVar && !VARIABLE_NAME_REGEX.test(replyVar)) {
+        issues.push(
+          'Informe um nome de variável válido (letras, números e _).'
+        );
+      }
+      return issues;
+    }
     case 'set_variable':
       return VARIABLE_NAME_REGEX.test(config.variable_name || '')
         ? []

@@ -3,10 +3,12 @@ import WebhookDispatchApi from 'dashboard/api/webhookDispatchTriggers';
 import WorkflowsAPI from 'dashboard/api/workflows';
 import { flattenPayload } from 'dashboard/routes/dashboard/workflows/variables';
 import WebhookAttributeMapping from 'dashboard/routes/dashboard/workflows/components/WebhookAttributeMapping.vue';
+import WebhookPathPicker from 'dashboard/routes/dashboard/workflows/components/WebhookPathPicker.vue';
+import WebhookTestDialog from './WebhookTestDialog.vue';
 
 export default {
   name: 'WebhookDispatchTriggersIndex',
-  components: { WebhookAttributeMapping },
+  components: { WebhookAttributeMapping, WebhookPathPicker, WebhookTestDialog },
   data() {
     return {
       triggers: [],
@@ -21,23 +23,6 @@ export default {
       editingId: null,
       copiedToken: null,
       selectedTrigger: null,
-      testPayloadText: JSON.stringify(
-        {
-          customer: {
-            name: 'Mestre Samuel',
-            phone: '17991173157',
-            first_name: 'Samuel',
-          },
-          order: {
-            order_id: 'ORD-9842',
-            total: 'R$ 150,00',
-            source: 'instagram',
-          },
-        },
-        null,
-        2
-      ),
-      testResult: null,
       activeTestTrigger: null,
       form: {
         name: '',
@@ -63,14 +48,31 @@ export default {
         'contact_attribute'
       );
     },
+    activePayload() {
+      const trigger = this.selectedTrigger;
+      if (!trigger) return null;
+      const pinned = trigger.pinned_payload;
+      if (
+        trigger.payload_pinned &&
+        pinned &&
+        typeof pinned === 'object' &&
+        Object.keys(pinned).length
+      ) {
+        return pinned;
+      }
+      return trigger.sample_payload;
+    },
     payloadFields() {
-      const sample = this.selectedTrigger?.sample_payload;
-      if (!sample || typeof sample !== 'object') return [];
+      const sample = this.activePayload;
+      if (!sample || typeof sample !== 'object' || Array.isArray(sample)) {
+        return [];
+      }
       return flattenPayload(sample)
         .map(field => ({
           path: String(field.path || '').replace(/^webhook\./, ''),
+          sample: field.sample,
         }))
-        .filter(field => field.path);
+        .filter(field => field.path && !['{…}', '[…]'].includes(field.sample));
     },
     attributeRows() {
       return this.selectedTrigger?.field_mapping?.custom_attributes || [];
@@ -168,7 +170,17 @@ export default {
     closeModal() {
       this.showModal = false;
     },
-    async saveAttributeRows(rows) {
+    applyTrigger(data) {
+      if (!data?.id) return;
+      this.selectedTrigger = data;
+      this.triggers = this.triggers.map(trigger =>
+        trigger.id === data.id ? { ...trigger, ...data } : trigger
+      );
+      if (this.activeTestTrigger?.id === data.id) {
+        this.activeTestTrigger = data;
+      }
+    },
+    async saveMapping(patch) {
       const current = this.selectedTrigger;
       if (!current) return;
       this.mappingSaveId += 1;
@@ -176,18 +188,29 @@ export default {
       this.mappingError = '';
       try {
         const response = await WebhookDispatchApi.updateTrigger(current.id, {
-          field_mapping: { custom_attributes: rows },
+          field_mapping: patch,
         });
         if (requestId !== this.mappingSaveId) return;
-        this.selectedTrigger = response.data;
-        this.triggers = this.triggers.map(trigger =>
-          trigger.id === response.data.id
-            ? { ...trigger, field_mapping: response.data.field_mapping }
-            : trigger
-        );
+        this.applyTrigger(response.data);
       } catch (error) {
         if (requestId !== this.mappingSaveId) return;
         this.mappingError = 'Não foi possível salvar o mapeamento.';
+      }
+    },
+    saveAttributeRows(rows) {
+      this.saveMapping({ custom_attributes: rows });
+    },
+    async togglePinned() {
+      const current = this.selectedTrigger;
+      if (!current) return;
+      this.mappingError = '';
+      try {
+        const response = await WebhookDispatchApi.updateTrigger(current.id, {
+          payload_pinned: !current.payload_pinned,
+        });
+        this.applyTrigger(response.data);
+      } catch (error) {
+        this.mappingError = 'Não foi possível atualizar o exemplo pinado.';
       }
     },
     async saveTrigger() {
@@ -265,27 +288,6 @@ export default {
     closeTestModal() {
       this.showTestModal = false;
       this.activeTestTrigger = null;
-      this.testResult = null;
-    },
-    async runTest() {
-      try {
-        let payload = {};
-        try {
-          payload = JSON.parse(this.testPayloadText);
-        } catch (e) {
-          alert('JSON inválido no corpo do teste.');
-          return;
-        }
-        const res = await WebhookDispatchApi.testTrigger(
-          this.activeTestTrigger.id,
-          payload
-        );
-        this.testResult = res.data;
-      } catch (err) {
-        this.testResult = {
-          error: err.response?.data?.error || err.message,
-        };
-      }
     },
   },
 };
@@ -501,20 +503,45 @@ export default {
         <div
           class="p-3.5 rounded-xl bg-n-alpha-1 border border-n-weak space-y-2 text-xs"
         >
-          <h4 class="font-semibold text-n-slate-12">Mapeamento do payload</h4>
-          <div class="space-y-1 text-[11px] text-n-slate-11">
-            <div class="flex justify-between">
-              <span>Telefone do Contato:</span>
-              <span class="font-mono text-n-slate-12">{{
-                selectedTrigger.field_mapping?.phone_path || 'customer.phone'
-              }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span>Nome do Contato:</span>
-              <span class="font-mono text-n-slate-12">{{
-                selectedTrigger.field_mapping?.name_path || 'customer.name'
-              }}</span>
-            </div>
+          <div class="flex items-center justify-between gap-2">
+            <h4 class="font-semibold text-n-slate-12">Mapeamento do payload</h4>
+            <button
+              v-if="selectedTrigger.payload_pinned"
+              type="button"
+              class="inline-flex items-center gap-1 text-[0.6875rem] font-medium text-n-amber-11"
+              @click="togglePinned"
+            >
+              <span class="i-lucide-pin size-3" />
+              Desafixar
+            </button>
+          </div>
+          <p
+            v-if="!payloadFields.length"
+            class="text-[0.6875rem] text-n-slate-11"
+          >
+            Abra Testar e salve um JSON de exemplo para escolher os campos.
+          </p>
+          <div>
+            <label class="mb-1 block text-[0.6875rem] text-n-slate-11">
+              Telefone do contato
+            </label>
+            <WebhookPathPicker
+              :model-value="selectedTrigger.field_mapping?.phone_path || ''"
+              :fields="payloadFields"
+              placeholder="customer.phone"
+              @update:model-value="saveMapping({ phone_path: $event })"
+            />
+          </div>
+          <div>
+            <label class="mb-1 block text-[0.6875rem] text-n-slate-11">
+              Nome do contato
+            </label>
+            <WebhookPathPicker
+              :model-value="selectedTrigger.field_mapping?.name_path || ''"
+              :fields="payloadFields"
+              placeholder="customer.name"
+              @update:model-value="saveMapping({ name_path: $event })"
+            />
           </div>
           <WebhookAttributeMapping
             :rows="attributeRows"
@@ -594,6 +621,13 @@ export default {
         </button>
       </div>
     </div>
+
+    <WebhookTestDialog
+      v-if="showTestModal && activeTestTrigger"
+      :trigger="activeTestTrigger"
+      @close="closeTestModal"
+      @updated="applyTrigger"
+    />
 
     <div
       v-if="showModal"

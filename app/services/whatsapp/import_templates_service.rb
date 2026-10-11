@@ -63,32 +63,41 @@ class Whatsapp::ImportTemplatesService
   end
 
   def cloud?(channel)
-    channel.is_a?(Channel::Whatsapp) &&
-      channel.provider == 'whatsapp_cloud' &&
-      channel.provider_config['business_account_id'].present? &&
-      channel.provider_config['api_key'].present?
+    return false unless channel.is_a?(Channel::Whatsapp) && channel.provider == 'whatsapp_cloud'
+
+    config = channel.provider_config
+    config.is_a?(Hash) && config['business_account_id'].present? && config['api_key'].present?
   end
 
   def fetch_templates(channel)
-    service = channel.provider_service
     collected = []
     cursor = nil
 
     20.times do
-      options = { headers: { 'Authorization' => "Bearer #{channel.template_access_token}" } }
-      options[:query] = { after: cursor } if cursor.present?
-      response = HTTParty.get("#{service.business_account_path}/message_templates", options)
-      unless response.success?
-        message = response.parsed_response.is_a?(Hash) ? response.parsed_response.dig('error', 'message') : nil
-        return { error: message.presence || 'A Meta recusou a sincronização dos templates.' }
-      end
+      page = template_page(channel, cursor)
+      return { error: page } if page.is_a?(String)
 
-      collected.concat(Array(response['data']))
-      cursor = response.dig('paging', 'cursors', 'after')
+      collected.concat(Array(page['data']))
+      cursor = page.dig('paging', 'cursors', 'after')
       break if cursor.blank?
     end
 
     { templates: collected }
+  end
+
+  def template_page(channel, cursor)
+    waba_id = channel.provider_config['business_account_id']
+    base_url = ENV.fetch('WHATSAPP_CLOUD_BASE_URL', 'https://graph.facebook.com')
+    options = { headers: { 'Authorization' => "Bearer #{channel.template_access_token}" } }
+    options[:query] = { after: cursor } if cursor.present?
+    response = HTTParty.get("#{base_url}/v14.0/#{waba_id}/message_templates", options)
+    body = response.parsed_response
+    return body if response.success? && body.is_a?(Hash)
+
+    message = body.is_a?(Hash) ? body.dig('error', 'message') : nil
+    message.presence || 'A Meta recusou a sincronização dos templates.'
+  rescue StandardError
+    'Não foi possível falar com a Meta para sincronizar os templates.'
   end
 
   def store_channel_templates(channel, templates)
@@ -113,7 +122,7 @@ class Whatsapp::ImportTemplatesService
     assign_record(record, inbox, payload, components, body)
     record.save!
     created ? :created : :updated
-  rescue ActiveRecord::RecordInvalid
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique, ActiveRecord::StatementInvalid
     :skipped
   end
 
@@ -130,7 +139,7 @@ class Whatsapp::ImportTemplatesService
     record.variables = variables_from(components, body)
     record.meta_template_id = payload['id']
     reason = payload['rejected_reason'].to_s
-    record.rejection_reason = reason if reason.present? && reason != 'NONE'
+    record.rejection_reason = reason.truncate(255, omission: '') if reason.present? && reason != 'NONE'
   end
 
   def mapped_category(category)

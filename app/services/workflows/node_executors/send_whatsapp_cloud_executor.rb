@@ -18,13 +18,7 @@ module Workflows
         end
 
         existing = find_existing_message(conversation)
-        if existing.present?
-          return {
-            status: 'success',
-            output: { message_id: existing.id, mode: node_type, note: 'reused_existing_execution_message_for_idempotency' },
-            next_nodes: next_nodes
-          }
-        end
+        return wait_for_choice if existing.present? && choice_node?
 
         built = build_session
         return built if built[:status] == 'failed'
@@ -53,6 +47,8 @@ module Workflows
         end
 
         message.update!(source_id: message_id) if message.source_id.blank?
+        return wait_for_choice if choice_node?
+
         {
           status: 'success',
           output: { message_id: message.id, source_id: message_id, mode: node_type },
@@ -93,21 +89,38 @@ module Workflows
         end
       end
 
+      def choice_node?
+        %w[send_whatsapp_buttons send_whatsapp_list].include?(node_type)
+      end
+
+      def configured_choices
+        list = node_type == 'send_whatsapp_list'
+        items = Array(list ? config[:rows] : config[:buttons]).first(list ? 10 : 3)
+        prefix = list ? 'item' : 'opcao'
+        title_limit = list ? 24 : 20
+        id_limit = list ? 200 : 256
+
+        items.filter_map.with_index do |item, index|
+          item = item.to_h
+          title = resolve_vars(item['title']).to_s.strip
+          next if title.blank?
+
+          {
+            'id' => (item['id'].presence || "#{prefix}_#{index + 1}").to_s.first(id_limit),
+            'title' => title.first(title_limit),
+            'description' => resolve_vars(item['description']).to_s.strip.first(72)
+          }
+        end
+      end
+
       def build_buttons
         body = resolve_vars(config[:body]).to_s.strip
         return failure('O texto da mensagem não pode ficar vazio.') if body.blank?
 
-        buttons = []
-        Array(config[:buttons]).first(3).each_with_index do |button, index|
-          title = resolve_vars(button.to_h['title']).to_s.strip
-          next if title.blank?
+        choices = configured_choices
+        return failure('Informe de 1 a 3 botões.') if choices.empty?
 
-          raw_id = resolve_vars(button.to_h['id'].presence || title).to_s.strip
-          identifier = raw_id.presence || "opcao_#{index + 1}"
-          buttons << { type: 'reply', reply: { id: identifier.first(256), title: title.first(20) } }
-        end
-        return failure('Informe de 1 a 3 botões.') if buttons.empty?
-
+        buttons = choices.map { |choice| { type: 'reply', reply: { id: choice['id'], title: choice['title'] } } }
         interactive = { type: 'button', body: { text: body.first(1024) }, action: { buttons: buttons } }
         apply_header_footer(interactive)
         session_result(body, 'input_select', items_for(buttons), { type: 'interactive', interactive: interactive })
@@ -119,21 +132,14 @@ module Workflows
         return failure('O texto da mensagem não pode ficar vazio.') if body.blank?
         return failure('Informe o texto do botão que abre a lista.') if label.blank?
 
-        rows = []
-        Array(config[:rows]).first(10).each_with_index do |row, index|
-          title = resolve_vars(row.to_h['title']).to_s.strip
-          next if title.blank?
+        choices = configured_choices
+        return failure('A lista precisa de pelo menos uma opção.') if choices.empty?
 
-          item = {
-            id: resolve_vars(row.to_h['id'].presence || title).to_s.strip.first(200).presence || "item_#{index + 1}",
-            title: title.first(24)
-          }
-          description = resolve_vars(row.to_h['description']).to_s.strip
-          item[:description] = description.first(72) if description.present?
-          rows << item
+        rows = choices.map do |choice|
+          item = { id: choice['id'], title: choice['title'] }
+          item[:description] = choice['description'] if choice['description'].present?
+          item
         end
-        return failure('A lista precisa de pelo menos uma opção.') if rows.empty?
-
         interactive = {
           type: 'list',
           body: { text: body.first(1024) },
@@ -142,6 +148,27 @@ module Workflows
         apply_header_footer(interactive)
         items = rows.map { |row| { 'title' => row[:title], 'value' => row[:id] } }
         session_result(body, 'input_select', items, { type: 'interactive', interactive: interactive })
+      end
+
+      def wait_for_choice
+        timeout_time = 24.hours.from_now
+        wait_state = execution.wait_states.pending.find_by(node_id: node['id'], wait_type: 'wait_for_reply')
+        if wait_state.blank?
+          wait_state = execution.wait_states.create!(
+            node_id: node['id'],
+            wait_type: 'wait_for_reply',
+            timeout_at: timeout_time,
+            status: 'pending',
+            metadata: { choices: configured_choices.map { |choice| choice.slice('id', 'title') } }
+          )
+          WorkflowExecutionJob.set(wait_until: timeout_time).perform_later(execution.id, node['id'], 'timeout')
+        end
+
+        {
+          status: 'waiting',
+          output: { waiting_for: 'whatsapp_choice', timeout_at: timeout_time, wait_state_id: wait_state.id },
+          next_nodes: []
+        }
       end
 
       def build_media

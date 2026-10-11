@@ -32,8 +32,15 @@ module Workflows
 
         if event_type == 'timeout'
           wait_state.timeout!
-          next_nodes = nodes_for_handles(from_node_id, %w[TIMEOUT timeout])
+          handles = %w[TIMEOUT timeout]
+          handles << 'else' if choice_node?(from_node_id)
+          next_nodes = nodes_for_handles(from_node_id, handles)
+        elsif event_type.present? && event_type != 'reply_received'
+          store_wait_reply!(from_node_id, wait_state)
+          wait_state.resume!
+          next_nodes = nodes_for_handles(from_node_id, [event_type])
         else
+          store_wait_reply!(from_node_id, wait_state)
           wait_state.resume!
           next_nodes = nodes_for_handles(from_node_id, %w[REPLIED replied reply])
         end
@@ -101,6 +108,23 @@ module Workflows
       Rails.logger.error "[ExecutionEngineService] Error at node #{node['id']}: #{e.message}\n#{e.backtrace.first(5).join("\n")}"
       node_exec&.mark_failed!(e.message)
       @execution.mark_failed!(e.message)
+    end
+
+    def store_wait_reply!(node_id, wait_state)
+      node = @version.find_node(node_id)
+      return unless Workflows::NodeExecutors::BaseExecutor.node_type_for(node) == 'wait_for_reply'
+
+      name = Workflows::NodeExecutors::BaseExecutor.config_for(node)[:save_reply_as].to_s.strip.delete_prefix('vars.')
+      return if name.blank? || !name.match?(/\A[a-zA-Z_][a-zA-Z0-9_]*\z/)
+
+      reply = (wait_state.metadata || {})['reply_content'].to_s
+      @execution.update!(variables: (@execution.variables || {}).merge(name => reply))
+    end
+
+    def choice_node?(node_id)
+      node = @version.find_node(node_id)
+      type = Workflows::NodeExecutors::BaseExecutor.node_type_for(node)
+      %w[send_whatsapp_buttons send_whatsapp_list].include?(type)
     end
 
     def nodes_for_handles(node_id, handles)

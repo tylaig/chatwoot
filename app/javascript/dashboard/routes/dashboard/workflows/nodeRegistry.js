@@ -389,8 +389,12 @@ export const WORKFLOW_NODES_REGISTRY = {
       ignore_bot_messages: true,
       ignore_private_notes: true,
       only_customer_messages: true,
+      save_reply_as: '',
     },
-    summarize: cfg => `Tempo limite: ${cfg.timeout_hours || 24}h`,
+    summarize: cfg => {
+      const wait = `Tempo limite: ${cfg.timeout_hours || 24}h`;
+      return cfg.save_reply_as ? `${wait} · ${cfg.save_reply_as}` : wait;
+    },
   },
 
   set_variable: {
@@ -665,8 +669,42 @@ export const getCategoryStyle = type =>
   CATEGORY_STYLES[getNodeDefinition(type).category] ||
   CATEGORY_STYLES.messaging;
 
+const CHOICE_COLORS = [
+  '#3B82F6',
+  '#10B981',
+  '#F59E0B',
+  '#8B5CF6',
+  '#EC4899',
+  '#06B6D4',
+  '#F97316',
+  '#14B8A6',
+  '#6366F1',
+  '#84CC16',
+];
+const ELSE_OUTPUT = { id: 'else', label: 'Outra resposta', color: '#94A3B8' };
+
+const choiceOutputs = (items, prefix, idLimit) =>
+  (items || []).flatMap((item, index) => {
+    const title = String(item?.title || '').trim();
+    if (!title) return [];
+
+    return [
+      {
+        id: String(item.id || `${prefix}_${index + 1}`).slice(0, idLimit),
+        label: title,
+        color: CHOICE_COLORS[index % CHOICE_COLORS.length],
+      },
+    ];
+  });
+
 export const getNodeOutputs = (type, config = {}) => {
   const definition = getNodeDefinition(type);
+  if (type === 'send_whatsapp_buttons') {
+    return [...choiceOutputs(config.buttons, 'opcao', 256), ELSE_OUTPUT];
+  }
+  if (type === 'send_whatsapp_list') {
+    return [...choiceOutputs(config.rows, 'item', 200), ELSE_OUTPUT];
+  }
   if (type !== 'router') return definition.outputs || [];
 
   const named = (config.routes || [])

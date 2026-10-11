@@ -118,6 +118,10 @@ module Workflows
         add_issue('A duração da espera deve ser um número positivo.', node) unless cfg[:duration].to_i.positive?
       when 'wait_for_reply'
         add_issue('O tempo limite deve ser um número positivo.', node) unless cfg[:timeout_hours].to_i.positive?
+        reply_var = cfg[:save_reply_as].to_s.strip
+        if reply_var.present? && !reply_var.match?(/\A[a-zA-Z_][a-zA-Z0-9_]*\z/)
+          add_issue('Informe um nome de variável válido (letras, números e _).', node)
+        end
       when 'set_variable'
         add_issue('Informe um nome de variável válido (letras, números e _).', node) unless cfg[:variable_name].to_s.match?(/\A[a-zA-Z_][a-zA-Z0-9_]*\z/)
       when 'add_tag', 'remove_tag'

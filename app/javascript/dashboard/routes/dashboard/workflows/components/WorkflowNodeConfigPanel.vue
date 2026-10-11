@@ -740,6 +740,35 @@ const responseVariable = computed(
             Sem resposta nesse prazo, o fluxo segue pela saída "Sem resposta".
           </p>
         </div>
+        <div>
+          <label :class="LABEL_CLASS">Salvar resposta na variável</label>
+          <input
+            :value="config.save_reply_as || ''"
+            type="text"
+            placeholder="resposta_cliente"
+            class="font-mono"
+            :class="[INPUT_CLASS]"
+            @input="
+              updateField(
+                'save_reply_as',
+                $event.target.value.replace(/[^a-zA-Z0-9_]/g, '')
+              )
+            "
+          />
+          <p :class="HINT_CLASS">
+            O texto da resposta fica disponível como
+            <span class="font-mono text-n-iris-11">{{
+              formatVariable(
+                `vars.${config.save_reply_as || 'resposta_cliente'}`
+              )
+            }}</span>
+            . A última mensagem do contato, a qualquer momento, é
+            <span class="font-mono text-n-iris-11">{{
+              formatVariable('conversation.last_message')
+            }}</span>
+            .
+          </p>
+        </div>
         <div class="space-y-2">
           <label
             v-for="option in [

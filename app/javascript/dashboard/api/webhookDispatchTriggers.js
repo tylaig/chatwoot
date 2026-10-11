@@ -41,12 +41,10 @@ export default {
       `/api/v1/accounts/${getAccountId()}/webhook_dispatch_triggers/${id}`
     );
   },
-  testPayload(id, payload) {
+  testTrigger(id, { payload, save = false, execute = false } = {}) {
     return axios.post(
       `/api/v1/accounts/${getAccountId()}/webhook_dispatch_triggers/${id}/test_payload`,
-      {
-        payload,
-      }
+      { payload, save, execute }
     );
   },
 };

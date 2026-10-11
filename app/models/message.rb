@@ -347,10 +347,32 @@ class Message < ApplicationRecord
       next if cfg[:only_customer_messages] != false && !sender.is_a?(Contact)
       next if cfg[:ignore_bot_messages] != false && bot_response?
 
-      WorkflowExecutionJob.perform_later(execution.id, pending_wait.node_id, 'reply_received')
+      remember_reply(pending_wait) if Workflows::NodeExecutors::BaseExecutor.node_type_for(node) == 'wait_for_reply'
+      WorkflowExecutionJob.perform_later(
+        execution.id,
+        pending_wait.node_id,
+        choice_resume_event(node, pending_wait) || 'reply_received'
+      )
     end
   rescue StandardError => e
     Rails.logger.error "[WorkflowExecution] Erro ao retomar workflow por resposta: #{e.message}"
+  end
+
+  def remember_reply(pending_wait)
+    metadata = (pending_wait.metadata || {}).merge('reply_content' => content.to_s)
+    pending_wait.update!(metadata: metadata)
+  end
+
+  def choice_resume_event(node, pending_wait)
+    type = Workflows::NodeExecutors::BaseExecutor.node_type_for(node)
+    return unless %w[send_whatsapp_buttons send_whatsapp_list].include?(type)
+
+    choices = Array((pending_wait.metadata || {})['choices'])
+    reply_id = content_attributes.to_h['whatsapp_choice_id'].to_s
+    reply_text = content.to_s.strip
+    match = choices.find { |choice| reply_id.present? && choice['id'].to_s == reply_id }
+    match ||= choices.find { |choice| reply_text.casecmp?(choice['title'].to_s) }
+    match ? match['id'].to_s : 'else'
   end
 
   def update_contact_activity

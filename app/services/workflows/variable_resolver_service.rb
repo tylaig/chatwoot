@@ -118,11 +118,19 @@ module Workflows
       when 'id', 'display_id' then conv_ctx.display_id
       when 'status' then conv_ctx.status
       when 'priority' then conv_ctx.priority
+      when 'last_message' then last_contact_message(conv_ctx)
       when 'custom_attributes'
         conv_ctx.custom_attributes.is_a?(Hash) ? conv_ctx.custom_attributes.dig(*parts[1..]) : nil
       else
         conv_ctx.respond_to?(parts.first) ? conv_ctx.public_send(parts.first) : nil
       end
+    end
+
+    def last_contact_message(conversation)
+      conversation.messages
+                  .where(message_type: :incoming, private: false, sender_type: 'Contact')
+                  .order(created_at: :desc)
+                  .pick(:content)
     end
 
     def resolve_inbox(parts)

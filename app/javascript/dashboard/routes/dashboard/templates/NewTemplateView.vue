@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUpdate, watch, nextTick } from 'vue';
 import { OnClickOutside } from '@vueuse/components';
 import { useRoute, useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
@@ -36,6 +36,9 @@ const form = ref({
 const isVariableMenuOpen = ref(false);
 const variableSearch = ref('');
 const textareaRef = ref(null);
+const headerTextRef = ref(null);
+const footerTextRef = ref(null);
+const sampleFieldEls = ref([]);
 const fileInput = ref(null);
 const isUploading = ref(false);
 const headerMediaSignedId = ref('');
@@ -48,7 +51,30 @@ const MEDIA_ACCEPT = {
 const MEDIA_LIMIT_MB = { IMAGE: 5, VIDEO: 16, DOCUMENT: 100 };
 const FIELD_CLASS =
   'reset-base w-full h-10 m-0 px-3 text-sm rounded-lg bg-n-solid-1 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12 placeholder:text-n-slate-10';
+const GROW_FIELD_CLASS =
+  'reset-base m-0 w-full min-h-10 max-h-24 resize-none overflow-y-auto rounded-lg bg-n-solid-1 border-0 px-3 py-2 text-sm leading-5 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12 placeholder:text-n-slate-10';
 const LABEL_CLASS = 'block text-xs font-medium text-n-slate-11 mb-1.5';
+const BODY_MAX_PX = 240;
+const SHORT_MAX_PX = 96;
+
+const resizeToContent = (element, maxPx) => {
+  if (!element) return;
+  element.style.height = 'auto';
+  element.style.height = `${Math.min(element.scrollHeight, maxPx)}px`;
+};
+
+const resizeContentFields = () => {
+  resizeToContent(textareaRef.value, BODY_MAX_PX);
+  resizeToContent(headerTextRef.value, SHORT_MAX_PX);
+  resizeToContent(footerTextRef.value, SHORT_MAX_PX);
+  sampleFieldEls.value.forEach(element =>
+    resizeToContent(element, SHORT_MAX_PX)
+  );
+};
+
+onBeforeUpdate(() => {
+  sampleFieldEls.value = [];
+});
 
 const systemVariables = [
   {
@@ -394,6 +420,17 @@ const loadTemplate = async () => {
   }
 };
 
+watch(
+  () => [
+    form.value.body,
+    form.value.header_content,
+    form.value.header_type,
+    form.value.footer,
+    sampleValues.value,
+  ],
+  () => nextTick(resizeContentFields)
+);
+
 onMounted(() => {
   store.dispatch('inboxes/get');
   loadTemplate();
@@ -680,12 +717,14 @@ onMounted(() => {
                 </div>
 
                 <div v-if="form.header_type === 'TEXT'" class="mt-3">
-                  <input
+                  <textarea
+                    ref="headerTextRef"
                     v-model="form.header_content"
-                    type="text"
-                    placeholder="Texto do título (máximo 60 caracteres)"
+                    rows="1"
                     maxlength="60"
-                    :class="FIELD_CLASS"
+                    placeholder="Texto do título (máximo 60 caracteres)"
+                    :class="GROW_FIELD_CLASS"
+                    @input="resizeToContent($event.target, SHORT_MAX_PX)"
                   />
                 </div>
                 <div
@@ -785,10 +824,11 @@ onMounted(() => {
                   <textarea
                     ref="textareaRef"
                     v-model="form.body"
-                    rows="6"
+                    rows="1"
                     maxlength="1024"
                     placeholder="Olá {{1}}, seu pedido foi recebido."
-                    class="reset-base m-0 w-full resize-none border-0 bg-transparent p-3 text-sm leading-relaxed text-n-slate-12 placeholder:text-n-slate-10 focus:outline-none"
+                    class="reset-base m-0 w-full min-h-[4.5rem] max-h-60 resize-none overflow-y-auto border-0 bg-transparent p-3 text-sm leading-relaxed text-n-slate-12 placeholder:text-n-slate-10 focus:outline-none"
+                    @input="resizeToContent($event.target, BODY_MAX_PX)"
                   />
 
                   <div
@@ -914,12 +954,18 @@ onMounted(() => {
                     >
                     {{ row.key }}
                   </span>
-                  <input
+                  <textarea
+                    :ref="
+                      element => element && sampleFieldEls.value.push(element)
+                    "
                     :value="sampleValues[`${row.component}:${row.key}`] || ''"
-                    type="text"
+                    rows="1"
                     placeholder="Exemplo enviado à Meta"
-                    :class="FIELD_CLASS"
-                    @input="setSample(row, $event.target.value)"
+                    :class="GROW_FIELD_CLASS"
+                    @input="
+                      setSample(row, $event.target.value);
+                      resizeToContent($event.target, SHORT_MAX_PX);
+                    "
                   />
                 </div>
               </div>
@@ -947,12 +993,14 @@ onMounted(() => {
                     >{{ footerLength }}/60</span
                   >
                 </div>
-                <input
+                <textarea
+                  ref="footerTextRef"
                   v-model="form.footer"
-                  type="text"
+                  rows="1"
                   maxlength="60"
                   placeholder="ex: Para não receber mais promoções, responda PARAR"
-                  :class="FIELD_CLASS"
+                  :class="GROW_FIELD_CLASS"
+                  @input="resizeToContent($event.target, SHORT_MAX_PX)"
                 />
               </div>
 

@@ -49,6 +49,7 @@ class Api::V1::Accounts::WebhookDispatchTriggersController < Api::V1::Accounts::
     if mapping.present?
       @trigger.field_mapping = @trigger.field_mapping.to_h.merge(mapping.to_h)
     end
+    pin_sample_payload!
 
     if @trigger.update(trigger_params.except(:workflow_id, :field_mapping))
       render json: serialize_trigger(@trigger)
@@ -64,29 +65,29 @@ class Api::V1::Accounts::WebhookDispatchTriggersController < Api::V1::Accounts::
     head :no_content
   end
 
-  # Dry-run test endpoint: tests the JSON mapping against a payload without sending real WhatsApp message
   def test_payload
-    payload = params[:payload].presence || {}
+    payload = parsed_test_payload
+    return if payload == :invalid
 
-    phone = @trigger.extract_by_path(payload, @trigger.field_mapping['phone_path'])
-    name = @trigger.extract_by_path(payload, @trigger.field_mapping['name_path'])
-    
-    mapping_params = @trigger.field_mapping['parameters'] || []
-    resolved_params = mapping_params.map do |param|
-      if param['type'] == 'static'
-        param['value']
-      else
-        @trigger.extract_by_path(payload, param['value'])
-      end
+    if ActiveModel::Type::Boolean.new.cast(params[:save])
+      suggest_mapping_paths!(payload)
+      @trigger.update!(
+        sample_payload: payload,
+        sample_received_at: Time.current,
+        pinned_payload: payload,
+        payload_pinned: true
+      )
     end
 
-    render json: {
-      phone: phone,
-      name: name,
-      template_name: @trigger.template_name,
-      resolved_parameters: resolved_params,
-      valid: phone.present?
-    }
+    body = mapping_preview(payload).merge(trigger: serialize_trigger(@trigger))
+    return render json: body unless ActiveModel::Type::Boolean.new.cast(params[:execute])
+
+    result = @trigger.run_test_execution(payload)
+    if result[:success]
+      render json: body.merge(result).merge(trigger: serialize_trigger(@trigger))
+    else
+      render json: body.merge(error: result[:error]), status: :unprocessable_entity
+    end
   end
 
   private
@@ -122,11 +123,92 @@ class Api::V1::Accounts::WebhookDispatchTriggersController < Api::V1::Accounts::
       :workflow_id,
       :name,
       :active,
+      :payload_pinned,
       :template_name,
       :template_language,
       field_mapping: [:phone_path, :name_path, { custom_attributes: [:attribute_key, :source_path] }],
       sample_payload: {}
     )
+  end
+
+  def parsed_test_payload
+    raw = params[:payload]
+    data = raw.is_a?(ActionController::Parameters) ? raw.to_unsafe_h : raw
+    data = JSON.parse(data) if data.is_a?(String)
+    unless data.is_a?(Hash)
+      render json: { error: 'Cole um objeto JSON, como { "customer": { "phone": "5511999990000" } }.' }, status: :unprocessable_entity
+      return :invalid
+    end
+    if data.to_json.bytesize > 100_000
+      render json: { error: 'O JSON passa de 100 KB.' }, status: :unprocessable_entity
+      return :invalid
+    end
+
+    data
+  rescue JSON::ParserError
+    render json: { error: 'Esse texto não é um JSON válido.' }, status: :unprocessable_entity
+    :invalid
+  end
+
+  def mapping_preview(payload)
+    mapping = @trigger.field_mapping.to_h
+    phone_path = mapping['phone_path'].presence || 'customer.phone'
+    name_path = mapping['name_path'].presence || 'customer.name'
+    phone = @trigger.extract_by_path(payload, phone_path)
+    resolved_parameters = Array(mapping['parameters']).map do |param|
+      param.to_h['type'] == 'static' ? param.to_h['value'] : @trigger.extract_by_path(payload, param.to_h['value'])
+    end
+    attributes = Array(mapping['custom_attributes']).filter_map do |row|
+      source = row.to_h['source_path'].presence
+      key = row.to_h['attribute_key'].presence
+      next if source.blank? && key.blank?
+
+      { attribute_key: key, source_path: source, value: @trigger.extract_by_path(payload, source) }
+    end
+
+    {
+      phone: phone,
+      phone_path: phone_path,
+      name: @trigger.extract_by_path(payload, name_path),
+      name_path: name_path,
+      template_name: @trigger.template_name,
+      resolved_parameters: resolved_parameters,
+      attributes: attributes,
+      valid: phone.present?
+    }
+  end
+
+  def suggest_mapping_paths!(payload)
+    mapping = @trigger.field_mapping.to_h
+    paths = payload_leaf_paths(payload)
+    mapping['phone_path'] = mapping['phone_path'].presence || paths.find { |path| phone_key?(path) }
+    mapping['name_path'] = mapping['name_path'].presence || paths.find { |path| name_key?(path) }
+    @trigger.field_mapping = mapping
+  end
+
+  def phone_key?(path)
+    path.split('.').last.match?(/phone|telefone|celular|whatsapp|mobile/i)
+  end
+
+  def name_key?(path)
+    path.split('.').last.match?(/\A(name|full_name|nome|nome_completo)\z/i)
+  end
+
+  def payload_leaf_paths(value, prefix = nil)
+    return [] unless value.is_a?(Hash)
+
+    value.flat_map do |key, child|
+      path = prefix ? "#{prefix}.#{key}" : key.to_s
+      child.is_a?(Hash) ? payload_leaf_paths(child, path) : [path]
+    end
+  end
+
+  def pin_sample_payload!
+    return unless trigger_params.key?(:payload_pinned)
+    return unless ActiveModel::Type::Boolean.new.cast(trigger_params[:payload_pinned])
+    return if @trigger.pinned_payload.present? || @trigger.sample_payload.blank?
+
+    @trigger.pinned_payload = @trigger.sample_payload
   end
 
   def resolve_inbox
