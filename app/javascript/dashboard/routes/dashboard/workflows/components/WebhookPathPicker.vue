@@ -17,7 +17,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'focus']);
 
 const registerTarget = inject('registerWebhookPathTarget', null);
 const open = ref(false);
@@ -49,6 +49,7 @@ const showMenu = () => {
   open.value = true;
   query.value = draft.value;
   activeIndex.value = 0;
+  emit('focus');
   registerTarget?.(commit);
 };
 

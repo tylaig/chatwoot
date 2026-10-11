@@ -1,14 +1,13 @@
 <script setup>
-import { computed, onBeforeUnmount, provide, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
 import { useMapGetter } from 'dashboard/composables/store';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import WorkflowsAPI from 'dashboard/api/workflows';
-import { flattenPayload, formatVariable } from '../variables';
-import WebhookAttributeMapping from './WebhookAttributeMapping.vue';
-import WebhookJsonTree from './WebhookJsonTree.vue';
-import WebhookPathPicker from './WebhookPathPicker.vue';
+import { flattenPayload } from '../variables';
+import { curlExample } from '../webhookMapping';
+import WebhookFieldMapping from './WebhookFieldMapping.vue';
 
 const props = defineProps({
   workflowId: {
@@ -33,6 +32,9 @@ const LISTEN_TIMEOUT_MS = 180000;
 const MAPPING_GUESSES = {
   phone_path: /^(phone|phone_number|telefone|celular|whatsapp|mobile)$/i,
   name_path: /^(name|full_name|nome|nome_completo)$/i,
+  email_path: /^(email|e-mail|mail)$/i,
+  identifier_path: /^(identifier|external_id|customer_id)$/i,
+  labels_path: /^(labels|tags|etiquetas)$/i,
 };
 const SELECT_CLASS =
   'w-full h-9 m-0 py-0 ps-3 text-xs rounded-lg bg-n-alpha-black2 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12';
@@ -46,10 +48,6 @@ const pasteOpen = ref(false);
 const pasteText = ref('');
 const pasteError = ref('');
 const selectedInboxId = ref('');
-const pathSetter = ref(null);
-provide('registerWebhookPathTarget', setter => {
-  pathSetter.value = setter;
-});
 let pollTimer = null;
 let listenStartedAt = 0;
 let baselineReceivedAt = null;
@@ -89,19 +87,18 @@ const prettyPayload = computed(() =>
 );
 const mapping = computed(() => props.trigger?.field_mapping || {});
 const contactAttributes = useMapGetter('attributes/getAttributesByModel');
-const attributeRows = computed(() => mapping.value.custom_attributes || []);
 const contactAttributeOptions = computed(() =>
   contactAttributes.value('contact_attribute')
+);
+const conversationAttributeOptions = computed(() =>
+  contactAttributes.value('conversation_attribute')
 );
 const receivedAtLabel = computed(() =>
   props.trigger?.received_at
     ? new Date(props.trigger.received_at).toLocaleString('pt-BR')
     : ''
 );
-const curlExample = computed(
-  () =>
-    `curl -X POST ${webhookUrl.value} \\\n  -H "Content-Type: application/json" \\\n  -d '{"customer":{"name":"Maria","phone":"5511999990000"},"source":"site"}'`
-);
+const curlText = computed(() => curlExample(webhookUrl.value, mapping.value));
 
 watch(
   () => [props.trigger?.inbox_id, props.inboxes[0]?.id],
@@ -152,14 +149,11 @@ const suggestMapping = async trigger => {
   const guess = pattern =>
     paths.find(path => pattern.test(path.split('.').pop()));
   const suggestion = {};
-  if (!current.phone_path) {
-    const phone = guess(MAPPING_GUESSES.phone_path);
-    if (phone) suggestion.phone_path = phone;
-  }
-  if (!current.name_path) {
-    const name = guess(MAPPING_GUESSES.name_path);
-    if (name) suggestion.name_path = name;
-  }
+  Object.entries(MAPPING_GUESSES).forEach(([key, pattern]) => {
+    if (current[key]) return;
+    const guessed = guess(pattern);
+    if (guessed) suggestion[key] = guessed;
+  });
   if (Object.keys(suggestion).length) {
     await saveTrigger({ field_mapping: suggestion });
   }
@@ -266,14 +260,6 @@ async function copy(value, message) {
   useAlert(message);
 }
 
-const onPickPath = path => {
-  if (pathSetter.value) {
-    pathSetter.value(path);
-    return;
-  }
-  copy(formatVariable(`webhook.${path}`), 'Variável copiada.');
-};
-
 const openInWebhooks = () => {
   router.push({
     name: 'webhook_dispatch_index',
@@ -286,6 +272,9 @@ const updateMapping = (key, value) =>
 
 const saveAttributeRows = rows =>
   saveTrigger({ field_mapping: { custom_attributes: rows } });
+
+const saveConversationRows = rows =>
+  saveTrigger({ field_mapping: { conversation_attributes: rows } });
 
 onBeforeUnmount(stopListening);
 </script>
@@ -496,7 +485,7 @@ onBeforeUnmount(stopListening);
           </p>
           <pre
             class="p-2 rounded-lg bg-n-alpha-black2 text-[0.625rem] font-mono text-n-slate-12 whitespace-pre-wrap break-all"
-            >{{ curlExample }}</pre
+            >{{ curlText }}</pre
           >
         </div>
       </div>
@@ -554,58 +543,18 @@ onBeforeUnmount(stopListening);
           class="max-h-48 overflow-auto p-3 rounded-xl bg-n-alpha-black2 text-[0.625rem] font-mono text-n-slate-12 whitespace-pre-wrap break-all"
           >{{ prettyPayload }}</pre
         >
-        <div class="max-h-48 overflow-auto rounded-xl border border-n-weak p-2">
-          <p class="mb-1 px-1 text-[0.6875rem] text-n-slate-11">
-            Clique em um campo para preencher o mapeamento em foco.
-          </p>
-          <WebhookJsonTree :value="activePayload" @pick="onPickPath" />
-        </div>
       </div>
 
-      <div v-if="payloadFields.length" class="space-y-3">
-        <div class="space-y-2">
-          <div>
-            <label class="block mb-1.5 text-xs font-medium text-n-slate-12"
-              >Telefone do contato</label
-            >
-            <WebhookPathPicker
-              :model-value="mapping.phone_path || ''"
-              :fields="mappingFields"
-              placeholder="customer.phone"
-              @update:model-value="updateMapping('phone_path', $event)"
-            />
-          </div>
-          <div>
-            <label class="block mb-1.5 text-xs font-medium text-n-slate-12"
-              >Nome do contato</label
-            >
-            <WebhookPathPicker
-              :model-value="mapping.name_path || ''"
-              :fields="mappingFields"
-              placeholder="customer.name"
-              @update:model-value="updateMapping('name_path', $event)"
-            />
-          </div>
-        </div>
-        <p class="text-[0.6875rem] text-n-slate-11">
-          Digite para filtrar os campos do JSON, como no n8n. As setas e Enter
-          escolhem a sugestão.
-        </p>
-        <p
-          v-if="!mapping.phone_path"
-          class="flex items-center gap-1 text-[0.6875rem] text-n-ruby-11"
-        >
-          <span class="i-lucide-circle-alert size-3" />
-          Mapeie o telefone para identificar o contato e abrir a conversa.
-        </p>
-
-        <WebhookAttributeMapping
-          :rows="attributeRows"
-          :attributes="contactAttributeOptions"
-          :fields="mappingFields"
-          @change="saveAttributeRows"
-        />
-      </div>
+      <WebhookFieldMapping
+        :mapping="mapping"
+        :fields="mappingFields"
+        :payload="hasPayload ? activePayload : null"
+        :contact-attributes="contactAttributeOptions"
+        :conversation-attributes="conversationAttributeOptions"
+        @update-field="updateMapping"
+        @update-contact-rows="saveAttributeRows"
+        @update-conversation-rows="saveConversationRows"
+      />
     </template>
   </div>
 </template>

@@ -26,16 +26,11 @@ class WebhookDispatchTrigger < ApplicationRecord
   public
 
   def execute_payload(payload)
-    parsed_phone = extract_by_path(payload, field_mapping['phone_path'])
-    parsed_name = extract_by_path(payload, field_mapping['name_path'])
+    prepared = prepare_dispatch(payload)
+    return prepared if prepared[:error]
 
-    return { error: 'Telefone não encontrado no mapeamento do payload' } if parsed_phone.blank?
-
-    normalized_phone = normalize_phone_number(parsed_phone)
-    contact = find_or_create_contact(account, normalized_phone, parsed_name)
-    apply_contact_custom_attributes!(contact, payload)
-    contact_inbox = find_or_create_contact_inbox(contact, inbox, normalized_phone)
-    conversation = find_or_create_conversation(account, inbox, contact, contact_inbox)
+    contact = prepared[:contact]
+    conversation = prepared[:conversation]
 
     # If trigger is associated with a Workflow and active, start the workflow execution
     if workflow.present? && workflow.status == 'active' && workflow.active_version.present?
@@ -92,13 +87,14 @@ class WebhookDispatchTrigger < ApplicationRecord
       }
     end
 
-    # Fallback to direct single template dispatch
+    return { error: 'Esta caixa exige o telefone do contato.' } if prepared[:phone].blank?
+
     template_params = build_template_parameters(payload)
 
     Whatsapp::WebhookTriggerDispatchService.new(
       trigger: self,
-      phone_number: parsed_phone.to_s,
-      contact_name: parsed_name.to_s.presence || 'Cliente',
+      phone_number: prepared[:phone].to_s,
+      contact_name: prepared[:name].presence || 'Cliente',
       template_params: template_params,
       labels: field_mapping['labels'] || []
     ).perform
@@ -112,18 +108,14 @@ class WebhookDispatchTrigger < ApplicationRecord
     return { error: 'Nenhum payload recebido para executar o teste.' } if payload.blank?
     return { error: 'O fluxo não está ligado a este webhook.' } if workflow.blank?
 
-    parsed_phone = extract_by_path(payload, field_mapping['phone_path'])
-    parsed_name = extract_by_path(payload, field_mapping['name_path'])
-    return { error: 'Telefone não encontrado no mapeamento do payload' } if parsed_phone.blank?
-
     version = workflow.versions.drafts.order(updated_at: :desc).first || workflow.active_version
     return { error: 'O fluxo ainda não tem uma versão para executar.' } if version.blank?
 
-    normalized_phone = normalize_phone_number(parsed_phone)
-    contact = find_or_create_contact(account, normalized_phone, parsed_name)
-    apply_contact_custom_attributes!(contact, payload)
-    contact_inbox = find_or_create_contact_inbox(contact, inbox, normalized_phone)
-    conversation = find_or_create_conversation(account, inbox, contact, contact_inbox)
+    prepared = prepare_dispatch(payload)
+    return prepared if prepared[:error]
+
+    contact = prepared[:contact]
+    conversation = prepared[:conversation]
 
     execution = account.workflow_executions.create!(
       workflow: workflow,
@@ -152,25 +144,36 @@ class WebhookDispatchTrigger < ApplicationRecord
   end
 
   def apply_contact_custom_attributes!(contact, payload)
-    rows = Array(field_mapping.to_h['custom_attributes'])
-    return if rows.blank?
+    apply_attribute_rows!(contact, field_mapping.to_h['custom_attributes'], :contact_attribute, payload)
+  end
 
-    definitions = account.custom_attribute_definitions.contact_attribute.index_by(&:attribute_key)
-    attrs = (contact.custom_attributes || {}).dup
-    changed = false
-    rows.each do |row|
-      key = row.to_h['attribute_key'].presence
-      path = row.to_h['source_path'].presence
-      definition = definitions[key]
-      next if key.blank? || path.blank? || definition.blank?
+  def mapping_report(payload)
+    mapping = field_mapping.to_h
+    phone = scalar_value(extract_by_path(payload, mapping['phone_path']))
+    email = scalar_value(extract_by_path(payload, mapping['email_path']))
+    identifier = scalar_value(extract_by_path(payload, mapping['identifier_path']))
+    phone_ready = phone.present?
+    identity = phone_ready || email.present? || identifier.present?
+    requires_phone = inbox&.channel_type.in?(%w[Channel::Whatsapp Channel::TwilioSms])
+    warnings = mapping_warnings(mapping, payload)
+    warnings << 'Esta caixa exige o telefone do contato.' if requires_phone && mapping['phone_path'].present? && !phone_ready
 
-      value = extract_by_path(payload, path)
-      next if value.nil?
-
-      attrs[key] = coerce_attribute_value(definition.attribute_display_type, value)
-      changed = true
-    end
-    contact.update!(custom_attributes: attrs) if changed
+    {
+      phone: phone,
+      phone_path: mapping['phone_path'],
+      name: scalar_value(extract_by_path(payload, mapping['name_path'])),
+      name_path: mapping['name_path'],
+      email: email,
+      email_path: mapping['email_path'],
+      identifier: identifier,
+      identifier_path: mapping['identifier_path'],
+      labels: label_names(extract_by_path(payload, mapping['labels_path'])),
+      labels_path: mapping['labels_path'],
+      attributes: attribute_preview(mapping['custom_attributes'], :contact_attribute, payload),
+      conversation_attributes: attribute_preview(mapping['conversation_attributes'], :conversation_attribute, payload),
+      warnings: warnings,
+      valid: identity && (!requires_phone || phone_ready)
+    }
   end
 
   def extract_by_path(data, path)
@@ -211,20 +214,175 @@ class WebhookDispatchTrigger < ApplicationRecord
     end
   end
 
+  def prepare_dispatch(payload)
+    identity = mapped_identity(payload)
+    error = identity_error(identity)
+    return { error: error } if error
+
+    contact = resolve_contact!(identity)
+    apply_attribute_rows!(contact, field_mapping.to_h['custom_attributes'], :contact_attribute, payload)
+    contact_inbox = find_or_create_contact_inbox(contact, inbox, contact_source_id(identity))
+    conversation = find_or_create_conversation(account, inbox, contact, contact_inbox)
+    apply_attribute_rows!(conversation, field_mapping.to_h['conversation_attributes'], :conversation_attribute, payload)
+    apply_labels!(conversation, payload)
+    { contact: contact, conversation: conversation, phone: identity[:phone], name: identity[:name] }
+  end
+
+  def mapped_identity(payload)
+    mapping = field_mapping.to_h
+    raw_phone = scalar_value(extract_by_path(payload, mapping['phone_path']))
+    {
+      phone: raw_phone.present? ? normalize_phone_number(raw_phone) : nil,
+      name: scalar_value(extract_by_path(payload, mapping['name_path'])),
+      email: scalar_value(extract_by_path(payload, mapping['email_path'])).presence&.downcase,
+      identifier: scalar_value(extract_by_path(payload, mapping['identifier_path'])).presence
+    }
+  end
+
+  def identity_error(identity)
+    return 'Mapeie telefone, e-mail ou identificador para achar o contato.' if identity.values_at(:phone, :email, :identifier).all?(&:blank?)
+    return 'Esta caixa exige o telefone do contato.' if identity[:phone].blank? && phone_required_inbox?
+
+    nil
+  end
+
+  def phone_required_inbox?
+    inbox&.channel_type.in?(%w[Channel::Whatsapp Channel::TwilioSms])
+  end
+
+  def resolve_contact!(identity)
+    contact = account.contacts.find_by(phone_number: identity[:phone]) if identity[:phone].present?
+    contact ||= account.contacts.where('LOWER(email) = ?', identity[:email]).first if identity[:email].present?
+    contact ||= account.contacts.find_by(identifier: identity[:identifier]) if identity[:identifier].present?
+    return refresh_contact!(contact, identity) if contact
+
+    account.contacts.create!(
+      name: identity[:name].presence || 'Cliente',
+      phone_number: identity[:phone].presence,
+      email: identity[:email].presence,
+      identifier: identity[:identifier].presence
+    )
+  end
+
+  def refresh_contact!(contact, identity)
+    contact.name = identity[:name] if identity[:name].present?
+    contact.email = identity[:email] if identity[:email].present?
+    contact.identifier = identity[:identifier] if identity[:identifier].present?
+    contact.phone_number = identity[:phone] if identity[:phone].present? && contact.phone_number.blank?
+    contact.save! if contact.changed?
+    contact
+  rescue ActiveRecord::RecordInvalid
+    contact.reload
+  end
+
+  def contact_source_id(identity)
+    identity[:phone].presence || identity[:email].presence || identity[:identifier].presence
+  end
+
+  def apply_attribute_rows!(record, rows, model_name, payload)
+    definitions = account.custom_attribute_definitions.public_send(model_name).index_by(&:attribute_key)
+    attrs = (record.custom_attributes || {}).dup
+    changed = false
+    Array(rows).each do |row|
+      key = row.to_h['attribute_key'].presence
+      path = row.to_h['source_path'].presence
+      definition = definitions[key]
+      next if key.blank? || path.blank? || definition.blank?
+
+      value = extract_by_path(payload, path)
+      next if value.nil?
+
+      attrs[key] = coerce_attribute_value(definition.attribute_display_type, value)
+      changed = true
+    end
+    record.update!(custom_attributes: attrs) if changed
+  end
+
+  def apply_labels!(conversation, payload)
+    names = label_names(extract_by_path(payload, field_mapping.to_h['labels_path']))
+    conversation.add_labels(names) if names.any?
+  end
+
+  def label_names(value)
+    list = value.is_a?(Array) ? value.flatten : value.to_s.split(',')
+    list.map { |item| item.to_s.strip }.reject(&:blank?).uniq
+  end
+
+  def attribute_preview(rows, model_name, payload)
+    definitions = account.custom_attribute_definitions.public_send(model_name).index_by(&:attribute_key)
+    Array(rows).filter_map do |row|
+      source = row.to_h['source_path'].presence
+      key = row.to_h['attribute_key'].presence
+      next if source.blank? && key.blank?
+
+      raw = extract_by_path(payload, source)
+      definition = definitions[key]
+      value = definition ? coerce_attribute_value(definition.attribute_display_type, raw) : scalar_value(raw)
+      { attribute_key: key, source_path: source, value: value }
+    end
+  end
+
+  def mapping_warnings(mapping, payload)
+    warnings = []
+    if mapping.values_at('phone_path', 'email_path', 'identifier_path').all?(&:blank?)
+      warnings << 'Mapeie telefone, e-mail ou identificador para achar o contato.'
+    end
+    %w[phone_path name_path email_path identifier_path].each do |key|
+      warnings.concat(path_warnings(mapping[key], payload))
+    end
+    warnings.concat(label_warnings(mapping['labels_path'], payload))
+    warnings.concat(row_warnings(mapping['custom_attributes'], payload))
+    warnings.concat(row_warnings(mapping['conversation_attributes'], payload))
+    warnings.uniq
+  end
+
+  def label_warnings(path, payload)
+    return [] if path.blank?
+
+    value = extract_by_path(payload, path)
+    return ["O caminho #{path} não está no JSON de exemplo."] if value.nil?
+    return ["O caminho #{path} aponta para um objeto. Escolha a lista de etiquetas."] if value.is_a?(Hash)
+    return ["O caminho #{path} veio vazio no exemplo."] if label_names(value).empty?
+
+    []
+  end
+
+  def path_warnings(path, payload)
+    return [] if path.blank?
+
+    value = extract_by_path(payload, path)
+    return ["O caminho #{path} não está no JSON de exemplo."] if value.nil?
+    return ["O caminho #{path} aponta para um objeto ou lista. Escolha um valor."] if value.is_a?(Hash) || value.is_a?(Array)
+    return ["O caminho #{path} veio vazio no exemplo."] if value.to_s.strip.blank?
+
+    []
+  end
+
+  def row_warnings(rows, payload)
+    keys = []
+    Array(rows).flat_map do |row|
+      key = row.to_h['attribute_key'].to_s
+      path = row.to_h['source_path'].to_s
+      messages = []
+      if key.present? && keys.include?(key)
+        messages << "O atributo #{key} está mapeado mais de uma vez."
+      end
+      keys << key if key.present?
+      messages + path_warnings(path, payload)
+    end
+  end
+
+  def scalar_value(value)
+    return if value.nil?
+    return if value.is_a?(Hash) || value.is_a?(Array)
+
+    value.to_s.strip
+  end
+
   def normalize_phone_number(phone)
     raw = phone.to_s.gsub(/\D/, '')
     raw = "55#{raw}" if raw.length.between?(10, 11) && !raw.start_with?('55')
     "+#{raw}"
-  end
-
-  def find_or_create_contact(account, phone, name)
-    contact = account.contacts.find_by(phone_number: phone)
-    return contact if contact.present?
-
-    account.contacts.create!(
-      name: name.presence || 'Cliente',
-      phone_number: phone
-    )
   end
 
   def find_or_create_contact_inbox(contact, inbox, phone)

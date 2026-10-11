@@ -2,13 +2,13 @@
 import WebhookDispatchApi from 'dashboard/api/webhookDispatchTriggers';
 import WorkflowsAPI from 'dashboard/api/workflows';
 import { flattenPayload } from 'dashboard/routes/dashboard/workflows/variables';
-import WebhookAttributeMapping from 'dashboard/routes/dashboard/workflows/components/WebhookAttributeMapping.vue';
-import WebhookPathPicker from 'dashboard/routes/dashboard/workflows/components/WebhookPathPicker.vue';
+import { curlExample } from 'dashboard/routes/dashboard/workflows/webhookMapping';
+import WebhookFieldMapping from 'dashboard/routes/dashboard/workflows/components/WebhookFieldMapping.vue';
 import WebhookTestDialog from './WebhookTestDialog.vue';
 
 export default {
   name: 'WebhookDispatchTriggersIndex',
-  components: { WebhookAttributeMapping, WebhookPathPicker, WebhookTestDialog },
+  components: { WebhookFieldMapping, WebhookTestDialog },
   data() {
     return {
       triggers: [],
@@ -48,6 +48,19 @@ export default {
         'contact_attribute'
       );
     },
+    conversationAttributeOptions() {
+      return this.$store.getters['attributes/getAttributesByModel'](
+        'conversation_attribute'
+      );
+    },
+    curlText() {
+      const trigger = this.selectedTrigger;
+      if (!trigger?.token) return '';
+      return curlExample(
+        this.getWebhookUrl(trigger.token),
+        trigger.field_mapping || {}
+      );
+    },
     activePayload() {
       const trigger = this.selectedTrigger;
       if (!trigger) return null;
@@ -73,9 +86,6 @@ export default {
           sample: field.sample,
         }))
         .filter(field => field.path && !['{…}', '[…]'].includes(field.sample));
-    },
-    attributeRows() {
-      return this.selectedTrigger?.field_mapping?.custom_attributes || [];
     },
   },
   mounted() {
@@ -199,6 +209,27 @@ export default {
     },
     saveAttributeRows(rows) {
       this.saveMapping({ custom_attributes: rows });
+    },
+    saveConversationRows(rows) {
+      this.saveMapping({ conversation_attributes: rows });
+    },
+    updateMappingField(key, value) {
+      this.saveMapping({ [key]: value });
+    },
+    async useDispatchPayload(dispatch) {
+      const current = this.selectedTrigger;
+      if (!current || !dispatch?.payload) return;
+      this.mappingError = '';
+      try {
+        const response = await WebhookDispatchApi.updateTrigger(current.id, {
+          sample_payload: dispatch.payload,
+          payload_pinned: false,
+        });
+        this.applyTrigger(response.data);
+      } catch (error) {
+        this.mappingError =
+          'Não foi possível usar essa requisição no mapeamento.';
+      }
     },
     async togglePinned() {
       const current = this.selectedTrigger;
@@ -486,16 +517,7 @@ export default {
           <div
             class="p-3 rounded-xl bg-n-alpha-1 border border-n-weak space-y-2 font-mono text-[10px] text-n-slate-11"
           >
-            <p class="font-semibold text-green-700 dark:text-green-300">
-              curl -X POST \
-            </p>
-            <p class="break-all">
-              {{ getWebhookUrl(selectedTrigger.token) }} \
-            </p>
-            <p class="text-n-slate-11">-H "Content-Type: application/json" \</p>
-            <p class="text-n-slate-11">
-              -d '{"customer": {"phone": "17991173157"}}'
-            </p>
+            <p class="whitespace-pre-wrap break-all">{{ curlText }}</p>
           </div>
         </div>
 
@@ -515,39 +537,15 @@ export default {
               Desafixar
             </button>
           </div>
-          <p
-            v-if="!payloadFields.length"
-            class="text-[0.6875rem] text-n-slate-11"
-          >
-            Abra Testar e salve um JSON de exemplo para escolher os campos.
-          </p>
-          <div>
-            <label class="mb-1 block text-[0.6875rem] text-n-slate-11">
-              Telefone do contato
-            </label>
-            <WebhookPathPicker
-              :model-value="selectedTrigger.field_mapping?.phone_path || ''"
-              :fields="payloadFields"
-              placeholder="customer.phone"
-              @update:model-value="saveMapping({ phone_path: $event })"
-            />
-          </div>
-          <div>
-            <label class="mb-1 block text-[0.6875rem] text-n-slate-11">
-              Nome do contato
-            </label>
-            <WebhookPathPicker
-              :model-value="selectedTrigger.field_mapping?.name_path || ''"
-              :fields="payloadFields"
-              placeholder="customer.name"
-              @update:model-value="saveMapping({ name_path: $event })"
-            />
-          </div>
-          <WebhookAttributeMapping
-            :rows="attributeRows"
-            :attributes="contactAttributeOptions"
+          <WebhookFieldMapping
+            :mapping="selectedTrigger.field_mapping || {}"
             :fields="payloadFields"
-            @change="saveAttributeRows"
+            :payload="activePayload"
+            :contact-attributes="contactAttributeOptions"
+            :conversation-attributes="conversationAttributeOptions"
+            @update-field="updateMappingField"
+            @update-contact-rows="saveAttributeRows"
+            @update-conversation-rows="saveConversationRows"
           />
           <p v-if="mappingError" class="text-[0.6875rem] text-n-ruby-11">
             {{ mappingError }}
@@ -591,6 +589,14 @@ export default {
             >
               {{ dispatch.error_message }}
             </p>
+            <button
+              v-if="dispatch.payload"
+              type="button"
+              class="text-[0.6875rem] font-medium text-n-brand hover:underline"
+              @click="useDispatchPayload(dispatch)"
+            >
+              Usar no mapeamento
+            </button>
           </div>
         </div>
       </div>

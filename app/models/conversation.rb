@@ -374,6 +374,11 @@ class Conversation < ApplicationRecord
     self[:uuid] = obj_from_db[:uuid]
   end
 
+  def status_change
+    change = saved_changes[:status]
+    { status: change } if change.present?
+  end
+
   def notify_status_change
     {
       CONVERSATION_OPENED => -> { saved_change_to_status? && open? },

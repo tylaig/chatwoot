@@ -132,7 +132,27 @@ module Workflows
         add_issue('Selecione um agente válido.', node) unless @account.users.exists?(id: cfg[:agent_id])
       when 'assign_team'
         add_issue('Selecione um time válido.', node) unless @account.teams.exists?(id: cfg[:team_id])
+      when 'incoming_message_trigger', 'conversation_created_trigger', 'widget_opened_trigger', 'conversation_reopened_trigger'
+        validate_native_trigger(node, cfg)
       end
+    end
+
+    def validate_native_trigger(node, cfg)
+      inbox = @account.inboxes.find_by(id: cfg[:inbox_id])
+      add_issue('Selecione a caixa de entrada.', node) if inbox.blank?
+      if node_type(node) == 'widget_opened_trigger' && inbox && inbox.channel_type != 'Channel::WebWidget'
+        add_issue('Este gatilho só funciona em uma caixa de widget.', node)
+      end
+      if node_type(node) == 'incoming_message_trigger' && !%w[first every].include?(cfg[:occurrence].to_s)
+        add_issue('Escolha se o fluxo começa na primeira mensagem ou em cada mensagem.', node)
+      end
+      if node_type(node) == 'widget_opened_trigger' && !%w[once_per_contact every_open].include?(cfg[:frequency].to_s)
+        add_issue('Escolha se o widget inicia o fluxo uma vez ou a cada abertura.', node)
+      end
+      return unless node_type(node) == 'conversation_reopened_trigger'
+
+      sources = Array(cfg[:from_statuses]).map(&:to_s)
+      add_issue('Escolha resolvida, adiada ou as duas.', node) if (sources & %w[resolved snoozed]).empty?
     end
 
     def validate_whatsapp(node, cfg)

@@ -9,7 +9,14 @@ class Workflow < ApplicationRecord
   has_many :executions, class_name: 'WorkflowExecution', dependent: :destroy_async
 
   STATUSES = %w[draft active paused archived].freeze
-  TRIGGER_TYPES = %w[webhook conversation_created message_created contact_created].freeze
+  TRIGGER_TYPES = %w[webhook conversation_created message_created contact_created webwidget_triggered conversation_reopened].freeze
+  NATIVE_TRIGGER_TYPES = {
+    'webhook_trigger' => 'webhook',
+    'incoming_message_trigger' => 'message_created',
+    'conversation_created_trigger' => 'conversation_created',
+    'widget_opened_trigger' => 'webwidget_triggered',
+    'conversation_reopened_trigger' => 'conversation_reopened'
+  }.freeze
 
   validates :name, presence: true
   validates :status, inclusion: { in: STATUSES }
@@ -72,7 +79,7 @@ class Workflow < ApplicationRecord
     transaction do
       draft = current_draft_version
       draft.update!(status: 'published', change_summary: summary)
-      update!(status: 'active', active_version_id: draft.id)
+      update!(status: 'active', active_version_id: draft.id, trigger_type: trigger_type_for(draft))
       draft
     end
   end
@@ -104,6 +111,16 @@ class Workflow < ApplicationRecord
       'config' => {}
     )
     draft.update!(nodes: nodes)
+  end
+
+  def trigger_type_for(version)
+    node = Array(version.nodes).find do |item|
+      type = item['type'].to_s
+      type = item.dig('data', 'type').to_s if type.blank? || type == 'custom'
+      type.end_with?('_trigger')
+    end
+    type = node&.dig('data', 'type').presence || node&.[]('type').to_s
+    NATIVE_TRIGGER_TYPES[type] || trigger_type
   end
 
   private

@@ -197,7 +197,14 @@ class Api::V1::Accounts::WorkflowsController < Api::V1::Accounts::BaseController
   end
 
   def webhook_trigger_params
-    params.permit(:inbox_id, :payload_pinned, field_mapping: [:phone_path, :name_path, { custom_attributes: [:attribute_key, :source_path] }])
+    params.permit(
+      :inbox_id, :payload_pinned,
+      field_mapping: [
+        :phone_path, :name_path, :email_path, :identifier_path, :labels_path,
+        { custom_attributes: [:attribute_key, :source_path] },
+        { conversation_attributes: [:attribute_key, :source_path] }
+      ]
+    )
   end
 
   def pasted_sample_payload

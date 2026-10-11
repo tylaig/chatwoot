@@ -6,6 +6,7 @@ import { getNodeDefinition, getCategoryStyle } from '../nodeRegistry';
 import { formatVariable } from '../variables';
 import WorkflowVariableInput from './WorkflowVariableInput.vue';
 import WorkflowWebhookTriggerPanel from './WorkflowWebhookTriggerPanel.vue';
+import WorkflowNativeTriggerPanel from './WorkflowNativeTriggerPanel.vue';
 import WorkflowOfficialMessagePanel from './WorkflowOfficialMessagePanel.vue';
 import WorkflowMessageComposer from './WorkflowMessageComposer.vue';
 
@@ -49,6 +50,12 @@ const HINT_CLASS = 'mt-1 text-[0.6875rem] text-n-slate-10';
 const LINK_BUTTON_CLASS =
   'inline-flex items-center gap-1 text-xs font-medium text-n-brand hover:underline';
 const ROUTE_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
+const NATIVE_TRIGGER_TYPES = [
+  'incoming_message_trigger',
+  'conversation_created_trigger',
+  'widget_opened_trigger',
+  'conversation_reopened_trigger',
+];
 const OFFICIAL_MESSAGE_TYPES = [
   'send_whatsapp_buttons',
   'send_whatsapp_list',
@@ -302,6 +309,14 @@ const responseVariable = computed(
         :trigger="webhookTrigger"
         :inboxes="inboxes"
         @update:trigger="emit('updateWebhookTrigger', $event)"
+      />
+
+      <WorkflowNativeTriggerPanel
+        v-else-if="NATIVE_TRIGGER_TYPES.includes(node.type)"
+        :type="node.type"
+        :config="config"
+        :inboxes="inboxes"
+        @update-field="updateField"
       />
 
       <WorkflowMessageComposer

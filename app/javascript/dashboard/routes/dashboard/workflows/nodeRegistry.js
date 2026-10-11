@@ -114,6 +114,84 @@ export const WORKFLOW_NODES_REGISTRY = {
     summarize: () => '',
   },
 
+  incoming_message_trigger: {
+    type: 'incoming_message_trigger',
+    title: 'Mensagem recebida',
+    subtitle: 'Inicia quando o contato escreve na caixa escolhida',
+    category: 'triggers',
+    icon: 'i-lucide-message-circle',
+    badge: 'Gatilho',
+    isTrigger: true,
+    hasInput: false,
+    outputs: SINGLE_OUTPUT,
+    defaultConfig: {
+      custom_title: 'Mensagem recebida',
+      inbox_id: null,
+      occurrence: 'first',
+      keyword: '',
+    },
+    summarize: cfg =>
+      cfg.occurrence === 'every'
+        ? 'A cada mensagem do contato'
+        : 'Na primeira mensagem do contato',
+  },
+
+  conversation_created_trigger: {
+    type: 'conversation_created_trigger',
+    title: 'Conversa criada',
+    subtitle: 'Inicia quando uma conversa nova nasce na caixa',
+    category: 'triggers',
+    icon: 'i-lucide-message-square-plus',
+    badge: 'Gatilho',
+    isTrigger: true,
+    hasInput: false,
+    outputs: SINGLE_OUTPUT,
+    defaultConfig: {
+      custom_title: 'Conversa criada',
+      inbox_id: null,
+    },
+    summarize: () => 'Quando a conversa é criada',
+  },
+
+  widget_opened_trigger: {
+    type: 'widget_opened_trigger',
+    title: 'Widget aberto',
+    subtitle: 'Inicia quando o visitante abre o widget do site',
+    category: 'triggers',
+    icon: 'i-lucide-app-window',
+    badge: 'Gatilho',
+    isTrigger: true,
+    hasInput: false,
+    outputs: SINGLE_OUTPUT,
+    defaultConfig: {
+      custom_title: 'Widget aberto',
+      inbox_id: null,
+      frequency: 'once_per_contact',
+    },
+    summarize: cfg =>
+      cfg.frequency === 'every_open'
+        ? 'A cada abertura do widget'
+        : 'Uma vez por contato',
+  },
+
+  conversation_reopened_trigger: {
+    type: 'conversation_reopened_trigger',
+    title: 'Conversa reaberta',
+    subtitle: 'Inicia quando uma conversa resolvida ou adiada volta',
+    category: 'triggers',
+    icon: 'i-lucide-rotate-ccw',
+    badge: 'Gatilho',
+    isTrigger: true,
+    hasInput: false,
+    outputs: SINGLE_OUTPUT,
+    defaultConfig: {
+      custom_title: 'Conversa reaberta',
+      inbox_id: null,
+      from_statuses: ['resolved', 'snoozed'],
+    },
+    summarize: () => 'Quando a conversa é reaberta',
+  },
+
   send_message: {
     type: 'send_message',
     title: 'Enviar Mensagem',

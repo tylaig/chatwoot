@@ -105,7 +105,8 @@ class Api::V1::Accounts::WebhookDispatchTriggersController < Api::V1::Accounts::
           id: execution.id,
           status: execution.status,
           created_at: execution.created_at,
-          error_message: execution.error_message
+          error_message: execution.error_message,
+          payload: dispatch_payload(execution)
         }
       end
     )
@@ -126,7 +127,11 @@ class Api::V1::Accounts::WebhookDispatchTriggersController < Api::V1::Accounts::
       :payload_pinned,
       :template_name,
       :template_language,
-      field_mapping: [:phone_path, :name_path, { custom_attributes: [:attribute_key, :source_path] }],
+      field_mapping: [
+        :phone_path, :name_path, :email_path, :identifier_path, :labels_path,
+        { custom_attributes: [:attribute_key, :source_path] },
+        { conversation_attributes: [:attribute_key, :source_path] }
+      ],
       sample_payload: {}
     )
   end
@@ -152,30 +157,19 @@ class Api::V1::Accounts::WebhookDispatchTriggersController < Api::V1::Accounts::
 
   def mapping_preview(payload)
     mapping = @trigger.field_mapping.to_h
-    phone_path = mapping['phone_path'].presence || 'customer.phone'
-    name_path = mapping['name_path'].presence || 'customer.name'
-    phone = @trigger.extract_by_path(payload, phone_path)
     resolved_parameters = Array(mapping['parameters']).map do |param|
       param.to_h['type'] == 'static' ? param.to_h['value'] : @trigger.extract_by_path(payload, param.to_h['value'])
     end
-    attributes = Array(mapping['custom_attributes']).filter_map do |row|
-      source = row.to_h['source_path'].presence
-      key = row.to_h['attribute_key'].presence
-      next if source.blank? && key.blank?
-
-      { attribute_key: key, source_path: source, value: @trigger.extract_by_path(payload, source) }
-    end
-
-    {
-      phone: phone,
-      phone_path: phone_path,
-      name: @trigger.extract_by_path(payload, name_path),
-      name_path: name_path,
+    @trigger.mapping_report(payload).merge(
       template_name: @trigger.template_name,
-      resolved_parameters: resolved_parameters,
-      attributes: attributes,
-      valid: phone.present?
-    }
+      resolved_parameters: resolved_parameters
+    )
+  end
+
+  def dispatch_payload(execution)
+    context = execution.context.to_h
+    payload = context['payload'] || context.dig('webhook', 'payload')
+    payload.is_a?(Hash) ? payload : nil
   end
 
   def suggest_mapping_paths!(payload)
@@ -183,6 +177,9 @@ class Api::V1::Accounts::WebhookDispatchTriggersController < Api::V1::Accounts::
     paths = payload_leaf_paths(payload)
     mapping['phone_path'] = mapping['phone_path'].presence || paths.find { |path| phone_key?(path) }
     mapping['name_path'] = mapping['name_path'].presence || paths.find { |path| name_key?(path) }
+    mapping['email_path'] = mapping['email_path'].presence || paths.find { |path| email_key?(path) }
+    mapping['identifier_path'] = mapping['identifier_path'].presence || paths.find { |path| identifier_key?(path) }
+    mapping['labels_path'] = mapping['labels_path'].presence || paths.find { |path| label_key?(path) }
     @trigger.field_mapping = mapping
   end
 
@@ -192,6 +189,18 @@ class Api::V1::Accounts::WebhookDispatchTriggersController < Api::V1::Accounts::
 
   def name_key?(path)
     path.split('.').last.match?(/\A(name|full_name|nome|nome_completo)\z/i)
+  end
+
+  def email_key?(path)
+    path.split('.').last.match?(/\A(email|e-mail|mail)\z/i)
+  end
+
+  def identifier_key?(path)
+    path.split('.').last.match?(/\A(identifier|external_id|customer_id)\z/i)
+  end
+
+  def label_key?(path)
+    path.split('.').last.match?(/\A(labels|tags|etiquetas)\z/i)
   end
 
   def payload_leaf_paths(value, prefix = nil)

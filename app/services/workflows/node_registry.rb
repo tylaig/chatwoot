@@ -5,6 +5,10 @@ module Workflows
     EXECUTOR_MAPPING = {
       # Triggers
       'webhook_trigger' => Workflows::NodeExecutors::WebhookTriggerExecutor,
+      'incoming_message_trigger' => Workflows::NodeExecutors::WebhookTriggerExecutor,
+      'conversation_created_trigger' => Workflows::NodeExecutors::WebhookTriggerExecutor,
+      'widget_opened_trigger' => Workflows::NodeExecutors::WebhookTriggerExecutor,
+      'conversation_reopened_trigger' => Workflows::NodeExecutors::WebhookTriggerExecutor,
 
       # WhatsApp / Mensagens
       'send_whatsapp_message' => Workflows::NodeExecutors::SendWhatsappMessageExecutor,

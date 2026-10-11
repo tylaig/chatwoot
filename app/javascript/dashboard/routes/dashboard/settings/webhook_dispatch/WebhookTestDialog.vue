@@ -218,8 +218,29 @@ const openExecution = () => {
               {{ displayValue(result.name) }}
             </span>
           </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-medium text-n-slate-12">E-mail</span>
+            <span class="font-mono text-n-slate-12">
+              {{ displayValue(result.email) }}
+            </span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-medium text-n-slate-12">Identificador</span>
+            <span class="font-mono text-n-slate-12">
+              {{ displayValue(result.identifier) }}
+            </span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-medium text-n-slate-12">Etiquetas</span>
+            <span class="font-mono text-n-slate-12">
+              {{ displayValue((result.labels || []).join(', ')) }}
+            </span>
+          </div>
           <div
-            v-for="row in result.attributes || []"
+            v-for="row in [
+              ...(result.attributes || []),
+              ...(result.conversation_attributes || []),
+            ]"
             :key="`${row.attribute_key}-${row.source_path}`"
             class="flex items-center justify-between gap-2"
           >
@@ -231,11 +252,17 @@ const openExecution = () => {
             </span>
           </div>
           <p
-            v-if="result.valid === false"
+            v-for="warning in result.warnings || []"
+            :key="warning"
             class="text-[0.6875rem] text-n-ruby-11"
           >
-            O telefone não foi encontrado nesse JSON. Ajuste o caminho no painel
-            antes de executar.
+            {{ warning }}
+          </p>
+          <p
+            v-if="result.valid === false && !(result.warnings || []).length"
+            class="text-[0.6875rem] text-n-ruby-11"
+          >
+            Não foi possível identificar o contato nesse JSON.
           </p>
           <button
             v-if="result.workflow_execution_id"

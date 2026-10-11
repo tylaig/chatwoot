@@ -70,6 +70,34 @@ function mediaIssues(config) {
   return issues;
 }
 
+const nativeTriggerIssues = (type, config) => {
+  const issues = [];
+  if (!config.inbox_id) issues.push('Selecione a caixa de entrada.');
+  if (
+    type === 'incoming_message_trigger' &&
+    !['first', 'every'].includes(config.occurrence)
+  ) {
+    issues.push(
+      'Escolha se o fluxo começa na primeira mensagem ou em cada mensagem.'
+    );
+  }
+  if (
+    type === 'widget_opened_trigger' &&
+    !['once_per_contact', 'every_open'].includes(config.frequency)
+  ) {
+    issues.push(
+      'Escolha se o widget inicia o fluxo uma vez ou a cada abertura.'
+    );
+  }
+  if (type === 'conversation_reopened_trigger') {
+    const sources = config.from_statuses || [];
+    if (!sources.some(status => ['resolved', 'snoozed'].includes(status))) {
+      issues.push('Escolha resolvida, adiada ou as duas.');
+    }
+  }
+  return issues;
+};
+
 const configIssues = (type, config) => {
   switch (type) {
     case 'send_message': {
@@ -144,6 +172,11 @@ const configIssues = (type, config) => {
       }
       return issues;
     }
+    case 'incoming_message_trigger':
+    case 'conversation_created_trigger':
+    case 'widget_opened_trigger':
+    case 'conversation_reopened_trigger':
+      return nativeTriggerIssues(type, config);
     case 'set_variable':
       return VARIABLE_NAME_REGEX.test(config.variable_name || '')
         ? []

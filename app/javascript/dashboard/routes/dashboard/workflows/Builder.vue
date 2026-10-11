@@ -626,6 +626,32 @@ const handleInsertNode = nodeMeta => {
   showAddModal.value = false;
   commit();
 
+  if (nodeMeta.isTrigger) {
+    const current = nodes.value.find(
+      node => getNodeDefinition(node.data.type).isTrigger
+    );
+    if (current) {
+      nodes.value = nodes.value.map(node =>
+        node.id === current.id
+          ? {
+              ...node,
+              data: {
+                type: nodeMeta.type,
+                config: JSON.parse(
+                  JSON.stringify(nodeMeta.defaultConfig || {})
+                ),
+              },
+            }
+          : node
+      );
+      selectedNodeId.value = current.id;
+      connectingContext.value = null;
+      selectorAnchor.value = null;
+      scheduleSave();
+      return;
+    }
+  }
+
   const parent = connectingContext.value
     ? nodes.value.find(node => node.id === connectingContext.value.nodeId)
     : null;
@@ -1131,6 +1157,7 @@ const saveLabel = computed(
 
         <WorkflowNodeSelectorModal
           :show="showAddModal"
+          :allow-triggers="!connectingContext"
           :anchor="selectorAnchor"
           @close="showAddModal = false"
           @select="handleInsertNode"
