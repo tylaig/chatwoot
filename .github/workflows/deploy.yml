@@ -21,6 +21,8 @@ jobs:
     timeout-minutes: 60
     outputs:
       short_sha: ${{ steps.vars.outputs.short_sha }}
+      image_ref: ${{ steps.digest.outputs.image_ref }}
+      image_digest: ${{ steps.digest.outputs.image_digest }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -41,6 +43,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Docker Image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -53,49 +56,90 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Export immutable image digest
+        id: digest
+        env:
+          IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/chatwoot
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          test -n "$IMAGE_DIGEST"
+          echo "image_digest=$IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
+          echo "image_ref=${IMAGE_NAME}@${IMAGE_DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "Built ${IMAGE_NAME}@${IMAGE_DIGEST}"
+
   deploy:
-    name: Deploy to VPS via SSH
+    name: Deploy to production VPS (Docker Swarm)
     needs: build-and-push
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
+    environment: production
     steps:
-      - name: Check VPS Configuration
-        id: check_vps
+      - name: Checkout deploy helper
+        uses: actions/checkout@v4
+
+      - name: Validate required deployment secrets
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST_FINGERPRINT: ${{ secrets.VPS_HOST_FINGERPRINT }}
         run: |
-          if [ -z "$VPS_HOST" ]; then
-            echo "has_vps=false" >> "$GITHUB_OUTPUT"
-            echo "ℹ️ VPS_HOST não configurado nos Secrets do repositório. Deploy remoto ignorado."
-          else
-            echo "has_vps=true" >> "$GITHUB_OUTPUT"
-            echo "✅ VPS_HOST configurado. Prosseguindo com o deploy remoto..."
-          fi
+          set -euo pipefail
+          for name in VPS_HOST VPS_USER VPS_SSH_KEY VPS_HOST_FINGERPRINT; do
+            if [ -z "${!name}" ]; then
+              echo "Missing required secret: $name" >&2
+              exit 1
+            fi
+          done
 
-      - name: Execute remote deploy
-        if: steps.check_vps.outputs.has_vps == 'true'
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT || 22 }}
-          script_stop: true
-          script: |
-            set -euo pipefail
-            echo "🚀 Iniciando deploy da versão ${{ needs.build-and-push.outputs.short_sha }} na VPS..."
-            cd /opt/chatwoot
+      - name: Install SSH key and pin server host fingerprint
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT || 22 }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST_FINGERPRINT: ${{ secrets.VPS_HOST_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/chatwoot_deploy_key
+          chmod 600 ~/.ssh/chatwoot_deploy_key
+          ssh-keyscan -p "$VPS_PORT" -t ed25519,rsa "$VPS_HOST" > ~/.ssh/known_hosts.candidate 2>/dev/null
+          test -s ~/.ssh/known_hosts.candidate
+          actual="$(ssh-keygen -lf ~/.ssh/known_hosts.candidate -E sha256 | awk '{print $2}' | sort -u | paste -sd ',' -)"
+          case ",$actual," in
+            *,"$VPS_HOST_FINGERPRINT",*) ;;
+            *)
+              echo "VPS host fingerprint mismatch. Expected configured secret; saw: $actual" >&2
+              exit 1
+              ;;
+          esac
+          mv ~/.ssh/known_hosts.candidate ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
-            echo "📦 Baixando nova imagem..."
-            docker compose pull rails sidekiq
+      - name: Validate deploy helper syntax
+        run: bash -n scripts/deploy/production_swarm_deploy.sh
 
-            echo "🔄 Executando migrations e preparação do banco..."
-            docker compose run --rm rails bundle exec rails db:chatwoot_prepare
+      - name: Upload deploy helper
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT || 22 }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          set -euo pipefail
+          scp -P "$VPS_PORT" -i ~/.ssh/chatwoot_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            scripts/deploy/production_swarm_deploy.sh "${VPS_USER}@${VPS_HOST}:/opt/chatwoot-deploy/production_swarm_deploy.sh"
 
-            echo "⚡ Reiniciando containers..."
-            docker compose up -d --remove-orphans
-
-            echo "🧹 Limpando imagens antigas..."
-            docker image prune -f
-
-            echo "✅ Deploy concluído com sucesso!"
+      - name: Execute Swarm deploy
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT || 22 }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          IMAGE_REF: ${{ needs.build-and-push.outputs.image_ref }}
+          EXPECTED_DIGEST: ${{ needs.build-and-push.outputs.image_digest }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          ssh -p "$VPS_PORT" -i ~/.ssh/chatwoot_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "${VPS_USER}@${VPS_HOST}" \
+            "IMAGE_REF='${IMAGE_REF}' EXPECTED_DIGEST='${EXPECTED_DIGEST}' GITHUB_SHA='${GITHUB_SHA}' /opt/chatwoot-deploy/production_swarm_deploy.sh"
