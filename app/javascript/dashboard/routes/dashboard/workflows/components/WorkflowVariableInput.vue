@@ -30,9 +30,33 @@ const props = defineProps({
     default: 'template',
     validator: value => ['template', 'path'].includes(value),
   },
+  formatting: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['update:modelValue']);
+
+const MESSAGE_FORMATS = [
+  { id: 'bold', title: 'Negrito', icon: 'i-lucide-bold', wrap: ['*', '*'] },
+  { id: 'italic', title: 'Itálico', icon: 'i-lucide-italic', wrap: ['_', '_'] },
+  {
+    id: 'strike',
+    title: 'Tachado',
+    icon: 'i-lucide-strikethrough',
+    wrap: ['~', '~'],
+  },
+  {
+    id: 'mono',
+    title: 'Monoespaçado',
+    icon: 'i-lucide-code',
+    wrap: ['```', '```'],
+  },
+  { id: 'quote', title: 'Citação', icon: 'i-lucide-text-quote', prefix: '> ' },
+  { id: 'bullet', title: 'Lista', icon: 'i-lucide-list', prefix: '- ' },
+  { id: 'number', title: 'Lista numerada', icon: 'i-lucide-list-ordered' },
+];
 
 const FALLBACK_CATALOG = { groups: [], isValid: () => true };
 const catalog = inject(
@@ -61,12 +85,15 @@ const filteredGroups = computed(() => {
   return catalog.value.groups
     .map(group => ({
       ...group,
-      items: group.items.filter(
-        item =>
-          !term ||
+      items: group.items.filter(item => {
+        if (!item?.path) return false;
+        if (!term) return true;
+        const label = String(item.label || '');
+        return (
           item.path.toLowerCase().includes(term) ||
-          item.label.toLowerCase().includes(term)
-      ),
+          label.toLowerCase().includes(term)
+        );
+      }),
     }))
     .filter(group => group.items.length || (!term && group.emptyHint));
 });
@@ -117,7 +144,8 @@ const onInput = event => {
       if (!openedFromButton.value) closeMenu();
       return;
     }
-    const caret = field.value.selectionStart;
+    const caret = field.value?.selectionStart;
+    if (caret == null) return;
     query.value = text.value.slice(start + 2, caret).trim();
     menuOpen.value = true;
     activeIndex.value = 0;
@@ -180,6 +208,47 @@ const onKeydown = event => {
 
 const itemIndex = item => flatItems.value.indexOf(item);
 
+const placeCaret = (start, end) => {
+  nextTick(() => {
+    field.value?.focus();
+    field.value?.setSelectionRange(start, end);
+    autoResize();
+    syncScroll();
+  });
+};
+
+const applyFormat = format => {
+  const value = text.value;
+  const start = field.value?.selectionStart ?? value.length;
+  const end = field.value?.selectionEnd ?? start;
+
+  if (format.wrap) {
+    const [open, close] = format.wrap;
+    const inner = value.slice(start, end) || 'texto';
+    const next = `${value.slice(0, start)}${open}${inner}${close}${value.slice(end)}`;
+    emit('update:modelValue', next);
+    placeCaret(start + open.length, start + open.length + inner.length);
+    return;
+  }
+
+  const lineStart = value.lastIndexOf('\n', Math.max(start - 1, 0)) + 1;
+  const lineBreak = value.indexOf('\n', end);
+  const lineEnd = lineBreak === -1 ? value.length : lineBreak;
+  const prefixed = value
+    .slice(lineStart, lineEnd)
+    .split('\n')
+    .map((line, index) => {
+      const marker = format.id === 'number' ? `${index + 1}. ` : format.prefix;
+      return line.startsWith(marker) ? line : `${marker}${line}`;
+    })
+    .join('\n');
+  emit(
+    'update:modelValue',
+    `${value.slice(0, lineStart)}${prefixed}${value.slice(lineEnd)}`
+  );
+  placeCaret(lineStart + prefixed.length, lineStart + prefixed.length);
+};
+
 watch(text, () => nextTick(autoResize));
 onMounted(autoResize);
 </script>
@@ -187,6 +256,19 @@ onMounted(autoResize);
 <template>
   <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
   <OnClickOutside class="relative" @trigger="closeMenu">
+    <div v-if="formatting" class="mb-1.5 flex flex-wrap gap-1">
+      <button
+        v-for="format in MESSAGE_FORMATS"
+        :key="format.id"
+        type="button"
+        class="flex size-7 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
+        :title="format.title"
+        @mousedown.prevent
+        @click="applyFormat(format)"
+      >
+        <span class="size-3.5" :class="format.icon" />
+      </button>
+    </div>
     <div
       class="relative rounded-lg bg-n-alpha-black2 outline outline-1 transition-colors"
       :class="

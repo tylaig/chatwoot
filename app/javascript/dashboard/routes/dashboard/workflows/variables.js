@@ -118,20 +118,22 @@ export const buildVariableCatalog = ({
     ];
   });
 
+  const attributeItem = (attr, root) => {
+    const key = attr?.attribute_key || attr?.attributeKey;
+    if (!key) return null;
+    return {
+      path: `${root}.custom_attributes.${key}`,
+      label: attr.attribute_display_name || attr.attributeDisplayName || key,
+    };
+  };
   const contactItems = [
     ...CONTACT_FIELDS,
-    ...contactAttributes.map(attr => ({
-      path: `contact.custom_attributes.${attr.attribute_key}`,
-      label: attr.attribute_display_name || attr.attribute_key,
-    })),
-  ];
+    ...contactAttributes.map(attr => attributeItem(attr, 'contact')),
+  ].filter(Boolean);
   const conversationItems = [
     ...CONVERSATION_FIELDS,
-    ...conversationAttributes.map(attr => ({
-      path: `conversation.custom_attributes.${attr.attribute_key}`,
-      label: attr.attribute_display_name || attr.attribute_key,
-    })),
-  ];
+    ...conversationAttributes.map(attr => attributeItem(attr, 'conversation')),
+  ].filter(Boolean);
 
   const groups = [
     {

@@ -460,10 +460,10 @@ export const WORKFLOW_NODES_REGISTRY = {
 
   wait_for_reply: {
     type: 'wait_for_reply',
-    title: 'Aguardar Resposta',
-    subtitle: 'Espera o cliente responder',
+    title: 'Pergunta',
+    subtitle: 'Envia um texto e aguarda a resposta',
     category: 'time',
-    icon: 'i-lucide-hourglass',
+    icon: 'i-lucide-message-circle-question',
     badge: 'Tempo',
     hasInput: true,
     outputs: [
@@ -471,7 +471,8 @@ export const WORKFLOW_NODES_REGISTRY = {
       { id: 'TIMEOUT', label: 'Sem resposta', type: 'danger' },
     ],
     defaultConfig: {
-      custom_title: 'Aguardar Resposta',
+      custom_title: 'Pergunta',
+      message: '',
       timeout_hours: 24,
       ignore_bot_messages: true,
       ignore_private_notes: true,
@@ -479,8 +480,12 @@ export const WORKFLOW_NODES_REGISTRY = {
       save_reply_as: '',
     },
     summarize: cfg => {
-      const wait = `Tempo limite: ${cfg.timeout_hours || 24}h`;
-      return cfg.save_reply_as ? `${wait} · ${cfg.save_reply_as}` : wait;
+      const question = String(cfg.message || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return question
+        ? truncate(question, 48)
+        : `Aguarda ${cfg.timeout_hours || 24}h`;
     },
   },
 

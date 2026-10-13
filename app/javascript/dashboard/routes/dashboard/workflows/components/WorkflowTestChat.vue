@@ -92,7 +92,7 @@ const simulateTimeout = async () => {
 onMounted(async () => {
   try {
     const { data } = await WorkflowsAPI.getFlowTest(props.workflowId);
-    if (data.session) applySession(data.session);
+    if (data.session?.status === 'waiting') applySession(data.session);
     else await restart();
   } catch (error) {
     errorText.value = readError(error);
@@ -183,8 +183,11 @@ onMounted(async () => {
         </div>
       </template>
 
+      <p v-if="waiting" class="text-center text-[0.6875rem] text-n-slate-10">
+        Aguardando a resposta do contato
+      </p>
       <p
-        v-if="session?.status === 'completed'"
+        v-else-if="session?.status === 'completed'"
         class="text-center text-[0.6875rem] text-n-slate-10"
       >
         Fluxo encerrado
@@ -200,8 +203,8 @@ onMounted(async () => {
 
     <div class="shrink-0 border-t border-n-weak p-3 space-y-2">
       <p class="text-[0.6875rem] text-n-slate-10 leading-4">
-        Usa o rascunho salvo. Não envia WhatsApp e não aparece na caixa. Esperas
-        longas são puladas. Requisições HTTP saem de verdade.
+        Usa o rascunho salvo. Não envia WhatsApp e não aparece na caixa. Atrasos
+        são pulados. Aguardar resposta fica parado até você escrever.
       </p>
       <div v-if="choices.length" class="flex flex-wrap gap-1.5">
         <button

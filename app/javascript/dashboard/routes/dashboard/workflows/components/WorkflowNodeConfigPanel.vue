@@ -421,6 +421,7 @@ const responseVariable = computed(
           <label :class="LABEL_CLASS">Mensagem de texto</label>
           <WorkflowVariableInput
             :model-value="config.text"
+            formatting
             multiline
             :rows="3"
             placeholder="Olá {{ $contact.first_name }}!"
@@ -777,6 +778,21 @@ const responseVariable = computed(
       </template>
 
       <template v-else-if="node.type === 'wait_for_reply'">
+        <div>
+          <label :class="LABEL_CLASS">Pergunta</label>
+          <WorkflowVariableInput
+            :model-value="config.message || ''"
+            formatting
+            multiline
+            :rows="3"
+            placeholder="Qual é o número do seu pedido?"
+            @update:model-value="updateField('message', $event)"
+          />
+          <p :class="HINT_CLASS">
+            Esse texto é enviado na conversa. Depois o fluxo espera a resposta
+            do contato.
+          </p>
+        </div>
         <div>
           <label :class="LABEL_CLASS">Tempo limite (horas)</label>
           <input

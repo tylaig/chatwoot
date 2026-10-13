@@ -4,6 +4,9 @@ module Workflows
   module NodeExecutors
     class WaitForReplyExecutor < BaseExecutor
       def execute
+        question = deliver_question
+        return question if question.is_a?(Hash) && question[:status] == 'failed'
+
         timeout_hours = (config[:timeout_hours] || config['timeout_hours'] || config[:timeout] || config['timeout'] || 24).to_i
         timeout_minutes = (config[:timeout_minutes] || config['timeout_minutes']).to_i
         
@@ -35,6 +38,23 @@ module Workflows
           },
           next_nodes: []
         }
+      end
+
+      private
+
+      def deliver_question
+        text = config[:message].to_s
+        return if text.blank?
+
+        question_node = {
+          'id' => node['id'],
+          'type' => 'send_message',
+          'data' => {
+            'type' => 'send_message',
+            'config' => { 'message_content' => text }
+          }
+        }
+        SendWhatsappMessageExecutor.new(execution: execution, node: question_node, version: version).execute
       end
     end
   end

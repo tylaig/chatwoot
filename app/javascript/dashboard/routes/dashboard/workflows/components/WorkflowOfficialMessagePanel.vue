@@ -101,6 +101,7 @@ const addRow = () => {
         <label :class="LABEL_CLASS">Texto da mensagem</label>
         <WorkflowVariableInput
           :model-value="config.body"
+          formatting
           multiline
           :rows="3"
           placeholder="Como posso te ajudar?"
@@ -270,6 +271,7 @@ const addRow = () => {
         <label :class="LABEL_CLASS">Legenda</label>
         <WorkflowVariableInput
           :model-value="config.caption"
+          formatting
           multiline
           :rows="2"
           placeholder="Opcional"

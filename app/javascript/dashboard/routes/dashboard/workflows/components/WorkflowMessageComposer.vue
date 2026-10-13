@@ -168,6 +168,7 @@ const removeAttachment = index => {
       </label>
       <WorkflowVariableInput
         :model-value="content"
+        formatting
         multiline
         :rows="4"
         placeholder="Digite a mensagem. Use {{ para inserir variáveis."
