@@ -116,6 +116,14 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   end
 
   def handoff_conversation(conversation, reason)
+    # Se o cliente não respondeu a uma solicitação de esclarecimento da IA (ex: envio de e-mail/dados),
+    # não transferimos nem abrimos a conversa para a equipe humana.
+    # A conversa é adiada (snoozed) aguardando a resposta do cliente e só reabre quando ele enviar nova mensagem.
+    if awaiting_customer_reply?(conversation)
+      snooze_conversation_for_customer_reply(conversation, reason)
+      return
+    end
+
     handed_off = with_inference_activity_context(conversation, CAPTAIN_INFERENCE_HANDOFF_ACTIVITY_REASON) do
       perform_locked_transition(conversation) do
         conversation.bot_handoff!(dispatch_event: false)
@@ -134,6 +142,25 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
       at: Time.current
     )
     send_out_of_office_message_if_applicable(conversation.reload)
+  rescue ActiveRecord::RecordNotFound
+    nil
+  end
+
+  def awaiting_customer_reply?(conversation)
+    last_msg = conversation.messages.where(account_id: conversation.account_id).where.not(message_type: :activity).last
+    return false if last_msg.blank?
+
+    # Se a última mensagem partiu do assistente (IA) e não houve nova resposta do cliente
+    last_msg.outgoing? || last_msg.template?
+  end
+
+  def snooze_conversation_for_customer_reply(conversation, reason)
+    with_inference_activity_context(conversation, CAPTAIN_INFERENCE_HANDOFF_ACTIVITY_REASON) do
+      perform_locked_transition(conversation) do
+        conversation.snoozed!
+        create_private_note(conversation, "Aguardando resposta do cliente: #{reason}")
+      end
+    end
   rescue ActiveRecord::RecordNotFound
     nil
   end
