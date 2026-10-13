@@ -10,8 +10,12 @@ module Enterprise::Internal::CheckNewVersionsJob
   def update_plan_info
     return if @instance_info.blank?
 
-    update_installation_config(key: 'INSTALLATION_PRICING_PLAN', value: @instance_info['plan'])
-    update_installation_config(key: 'INSTALLATION_PRICING_PLAN_QUANTITY', value: @instance_info['plan_quantity'])
+    current_plan = InstallationConfig.find_by(name: 'INSTALLATION_PRICING_PLAN')&.value
+    plan_to_set = current_plan == 'enterprise' ? 'enterprise' : @instance_info['plan']
+    plan_qty = current_plan == 'enterprise' ? 10_000 : @instance_info['plan_quantity']
+
+    update_installation_config(key: 'INSTALLATION_PRICING_PLAN', value: plan_to_set)
+    update_installation_config(key: 'INSTALLATION_PRICING_PLAN_QUANTITY', value: plan_qty)
     update_installation_config(key: 'CHATWOOT_SUPPORT_WEBSITE_TOKEN', value: @instance_info['chatwoot_support_website_token'])
     update_installation_config(key: 'CHATWOOT_SUPPORT_IDENTIFIER_HASH', value: @instance_info['chatwoot_support_identifier_hash'])
     update_installation_config(key: 'CHATWOOT_SUPPORT_SCRIPT_URL', value: @instance_info['chatwoot_support_script_url'])
