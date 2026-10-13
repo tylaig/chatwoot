@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Central de Testes dos Widgets — Chatwoot</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #151d2e;
+      --border: #233048;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary-green: #6ab73d;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 980px;
+      width: 100%;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    header h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      color: var(--muted);
+      font-size: 1rem;
+    }
+    .preview-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(106, 183, 61, 0.15);
+      border: 1px solid var(--primary-green);
+      padding: 8px 16px;
+      border-radius: 999px;
+      color: #a3e635;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+    .color-dot {
+      width: 14px;
+      height: 14px;
+      background: var(--primary-green);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--primary-green);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+    .card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+    .card.active {
+      border-color: var(--primary-green);
+      box-shadow: 0 0 30px rgba(106, 183, 61, 0.25);
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      width: fit-content;
+      background: rgba(106, 183, 61, 0.15);
+      color: #a3e635;
+    }
+    .card h2 { font-size: 1.35rem; margin-bottom: 6px; }
+    .card .url { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; word-break: break-all; }
+    .token-box {
+      background: #090d16;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+      border: 1px solid #1e293b;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      color: #fff;
+    }
+    .btn-green {
+      background: var(--primary-green);
+      color: #0b1505;
+      font-weight: 700;
+    }
+    .btn-green:hover {
+      background: #78cc45;
+      transform: translateY(-1px);
+    }
+    .status-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .status-info h3 { font-size: 1.15rem; margin-bottom: 6px; color: #f8fafc; }
+    .status-info p { color: var(--muted); font-size: 0.9rem; max-width: 500px; line-height: 1.4; }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-outline:hover { background: #1e293b; border-color: #3b82f6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎮 Central de Homologação dos Widgets Chatwoot</h1>
+      <p>Todas as 3 lojas padronizadas com a nova cor verde oficial (#6ab73d), saudação e balão expandido.</p>
+      <div class="preview-pill">
+        <span class="color-dot"></span>
+        Cor Oficial Padronizada: #6ab73d &bull; Posição: Direita &bull; Balão Expandido
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Games Safari -->
+      <div class="card" id="card-safari">
+        <div>
+          <span class="badge">Inbox #41</span>
+          <h2>🦁 Games Safari</h2>
+          <p class="url">https://gamessafari.com/</p>
+          <div class="token-box">Token: yw4yiSAFTp8JwKLAgX7CvM2N</div>
+        </div>
+        <a href="?widget=safari" class="btn btn-green">Carregar Games Safari</a>
+      </div>
+
+      <!-- Barba Games -->
+      <div class="card" id="card-barba">
+        <div>
+          <span class="badge">Inbox #42</span>
+          <h2>🧔 Barba Games</h2>
+          <p class="url">https://barbagames.com/</p>
+          <div class="token-box">Token: Set22Gwcy6egnk1YW9yhZQnW</div>
+        </div>
+        <a href="?widget=barba" class="btn btn-green">Carregar Barba Games</a>
+      </div>
+
+      <!-- GameBox Brasil -->
+      <div class="card" id="card-gamebox">
+        <div>
+          <span class="badge">Inbox #43</span>
+          <h2>📦 GameBox Brasil</h2>
+          <p class="url">https://gameboxbrasil.com/</p>
+          <div class="token-box">Token: NzVivQHdsyp2QR3NtJRYfw5w</div>
+        </div>
+        <a href="?widget=gamebox" class="btn btn-green">Carregar GameBox Brasil</a>
+      </div>
+    </div>
+
+    <div class="status-panel">
+      <div class="status-info">
+        <h3 id="active-title">Carregando...</h3>
+        <p id="active-desc">O balão expandido exibirá o texto: <strong>"Estamos Online (11:00 às 22:00)"</strong> no canto inferior direito.</p>
+      </div>
+      <div class="actions">
+        <button class="btn btn-outline" onclick="if(window.$chatwoot) window.$chatwoot.toggle('open')">💬 Abrir Balão</button>
+        <button class="btn btn-outline" onclick="resetSession()">🔄 Nova Sessão (Limpar Cliente)</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WIDGETS = {
+      safari: {
+        name: 'Games Safari (Assistente Games Safari)',
+        token: 'yw4yiSAFTp8JwKLAgX7CvM2N',
+        cardId: 'card-safari'
+      },
+      barba: {
+        name: 'Barba Games (Assistente Barba Games)',
+        token: 'Set22Gwcy6egnk1YW9yhZQnW',
+        cardId: 'card-barba'
+      },
+      gamebox: {
+        name: 'GameBox Brasil (Assistente GameBox Brasil)',
+        token: 'NzVivQHdsyp2QR3NtJRYfw5w',
+        cardId: 'card-gamebox'
+      }
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const selectedKey = params.get('widget') || 'safari';
+    const current = WIDGETS[selectedKey] || WIDGETS.safari;
+
+    document.getElementById(current.cardId).classList.add('active');
+    document.getElementById('active-title').textContent = '🟢 Loja Ativa: ' + current.name;
+
+    function resetSession() {
+      localStorage.clear();
+      sessionStorage.clear();
+      document.cookie.split(";").forEach(function(c) {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+      if (window.$chatwoot && typeof window.$chatwoot.reset === 'function') {
+        window.$chatwoot.reset();
+      }
+      setTimeout(() => window.location.reload(), 300);
+    }
+
+    // Configuração oficial do Chatwoot SDK
+    window.chatwootSettings = {
+      hideMessageBubble: false,
+      position: 'right',
+      type: 'expanded_bubble',
+      launcherTitle: 'Estamos Online (11:00 às 22:00)',
+      showPopoutButton: true
+    };
+
+    (function(d,t) {
+      var BASE_URL="https://inbox.gamessafari.com";
+      var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+      g.src=BASE_URL+"/packs/js/sdk.js";
+      g.defer = true;
+      g.async = true;
+      s.parentNode.insertBefore(g,s);
+      g.onload=function(){
+        window.chatwootSDK.run({
+          websiteToken: current.token,
+          baseUrl: BASE_URL
+        });
+      }
+    })(document,"script");
+  </script>
+</body>
+</html>
