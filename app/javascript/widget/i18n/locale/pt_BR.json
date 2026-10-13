@@ -18,20 +18,20 @@
     }
   },
   "TEAM_AVAILABILITY": {
-    "ONLINE": "Estamos conectados",
-    "OFFLINE": "Estamos ausentes no momento",
-    "BACK_AS_SOON_AS_POSSIBLE": "Estaremos de volta em breve"
+    "ONLINE": "Atendimento Online com IA e Equipe Técnica",
+    "OFFLINE": "Assistente Virtual Online 24h (Equipe Humana das 11h às 22h)",
+    "BACK_AS_SOON_AS_POSSIBLE": "Equipe humana de volta em breve"
   },
   "REPLY_TIME": {
-    "IN_A_FEW_MINUTES": "Normalmente responde em alguns minutos",
-    "IN_A_FEW_HOURS": "Normalmente responde em algumas horas",
+    "IN_A_FEW_MINUTES": "IA responde na hora • Equipe técnica ativa",
+    "IN_A_FEW_HOURS": "IA responde na hora • Suporte humano ativo",
     "IN_A_DAY": "Normalmente responde em um dia",
-    "BACK_IN_HOURS": "Estaremos de volta em {n} hora | Estaremos de volta em {n} horas",
-    "BACK_IN_MINUTES": "Estaremos de volta em {time} minutos",
-    "BACK_AT_TIME": "Estaremos de volta em {time}",
-    "BACK_ON_DAY": "Estaremos de volta em {day}",
-    "BACK_TOMORROW": "Estaremos de volta amanhã",
-    "BACK_IN_SOME_TIME": "Estaremos disponíveis novamente em breve"
+    "BACK_IN_HOURS": "IA pronta agora • Equipe humana retorna em {n} hora | IA pronta agora • Equipe humana retorna em {n} horas",
+    "BACK_IN_MINUTES": "IA pronta agora • Equipe humana retorna em {time} minutos",
+    "BACK_AT_TIME": "IA pronta agora • Equipe humana retorna às {time}",
+    "BACK_ON_DAY": "IA pronta agora • Equipe humana retorna em {day}",
+    "BACK_TOMORROW": "IA pronta agora • Equipe humana retorna amanhã às 11:00",
+    "BACK_IN_SOME_TIME": "IA pronta agora • Equipe humana de volta em breve"
   },
   "DAY_NAMES": {
     "SUNDAY": "Domingo",
