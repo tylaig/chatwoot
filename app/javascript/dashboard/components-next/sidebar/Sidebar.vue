@@ -732,6 +732,13 @@ const menuItems = computed(() => {
       to: accountScopedRoute('webhook_dispatch_index'),
     },
     {
+      name: 'Evolution API',
+      label: 'Evolution API',
+      icon: 'i-lucide-smartphone',
+      activeOn: ['evolution_index'],
+      to: accountScopedRoute('evolution_index'),
+    },
+    {
       name: 'Campaigns',
       label: t('SIDEBAR.CAMPAIGNS'),
       icon: 'i-lucide-megaphone',

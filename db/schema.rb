@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_31_000000) do
+ActiveRecord::Schema[7.1].define(version: 2026_10_12_180000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1079,6 +1079,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_31_000000) do
     t.index ["account_id"], name: "index_data_imports_on_account_id"
     t.index ["initiated_by_id"], name: "index_data_imports_on_initiated_by_id"
     t.index ["source_provider"], name: "index_data_imports_on_source_provider"
+  end
+
+  create_table "evolution_connections", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "base_url", null: false
+    t.text "api_key"
+    t.string "version"
+    t.string "client_name"
+    t.string "status", default: "disconnected", null: false
+    t.integer "instance_count", default: 0, null: false
+    t.datetime "last_checked_at"
+    t.text "last_error"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_evolution_connections_on_account_id", unique: true
   end
 
   create_table "email_templates", force: :cascade do |t|

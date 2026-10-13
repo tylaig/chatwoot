@@ -101,6 +101,7 @@ class Account < ApplicationRecord
   has_many :twitter_profiles, dependent: :destroy_async, class_name: '::Channel::TwitterProfile'
   has_many :users, through: :account_users
   has_many :web_widgets, dependent: :destroy_async, class_name: '::Channel::WebWidget'
+  has_one :evolution_connection, dependent: :destroy_async
   has_many :webhooks, dependent: :destroy_async
   has_many :webhook_dispatch_triggers, dependent: :destroy_async
   has_many :whatsapp_templates, dependent: :destroy_async

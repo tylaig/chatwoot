@@ -474,6 +474,20 @@ Rails.application.routes.draw do
               post :reject
             end
           end
+          resource :evolution_connection, only: [:show, :update] do
+            post :check
+          end
+          resources :evolution_instances, only: [:index, :create, :destroy], param: :name,
+                                           constraints: { name: %r{[^/]+} } do
+            member do
+              get :connect
+              get :connection_state
+              delete :logout
+              put :restart
+              get :webhook
+              post :webhook, action: :update_webhook
+            end
+          end
           resources :workflows do
             collection do
               post :test_http
