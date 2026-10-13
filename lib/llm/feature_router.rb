@@ -1,7 +1,7 @@
 module Llm::FeatureRouter
   class UnknownFeatureError < StandardError; end
 
-  CAPTAIN_V2_ASSISTANT_MODEL = 'gpt-5.2'.freeze
+  CAPTAIN_V2_ASSISTANT_MODEL = 'gpt-5.5'.freeze
 
   class << self
     def resolve(feature:, account: nil)
@@ -51,7 +51,7 @@ module Llm::FeatureRouter
       return unless feature_key == 'assistant'
       return unless account&.feature_enabled?('captain_integration_v2')
 
-      CAPTAIN_V2_ASSISTANT_MODEL
+      InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_MODEL')&.value.presence || CAPTAIN_V2_ASSISTANT_MODEL
     end
   end
 end

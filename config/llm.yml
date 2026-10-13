@@ -31,6 +31,10 @@ models:
     provider: openai
     display_name: 'GPT-5 Nano'
     credit_multiplier: 1
+  gpt-5.5:
+    provider: openai
+    display_name: 'GPT-5.5'
+    credit_multiplier: 3
   gpt-5.2:
     provider: openai
     display_name: 'GPT-5.2'
@@ -102,6 +106,7 @@ features:
         gpt-4.1,
         gpt-5.1,
         gpt-5.2,
+        gpt-5.5,
         claude-haiku-4.5,
         claude-sonnet-4.5,
         gemini-3-flash,
