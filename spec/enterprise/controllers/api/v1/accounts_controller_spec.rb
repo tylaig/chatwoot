@@ -87,14 +87,14 @@ RSpec.describe 'Enterprise Accounts API', type: :request do
       expect(response.parsed_body['latest_chatwoot_version']).to be_nil
     end
 
-    it 'exposes the latest chatwoot version on self-hosted enterprise' do
+    it 'hides the chatwoot update version on self-hosted enterprise' do
       allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(false)
 
       get "/api/v1/accounts/#{account.id}",
           headers: admin.create_new_auth_token,
           as: :json
 
-      expect(response.parsed_body['latest_chatwoot_version']).to eq('4.16.1')
+      expect(response.parsed_body['latest_chatwoot_version']).to be_nil
     end
   end
 end

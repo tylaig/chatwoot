@@ -199,14 +199,14 @@ RSpec.describe 'Accounts API', type: :request do
         expect(response.body).to include(account.locale)
       end
 
-      it 'exposes the latest chatwoot version' do
+      it 'does not expose a chatwoot update version' do
         Redis::Alfred.set(Redis::Alfred::LATEST_CHATWOOT_VERSION, '4.16.1')
 
         get "/api/v1/accounts/#{account.id}",
             headers: admin.create_new_auth_token,
             as: :json
 
-        expect(response.parsed_body['latest_chatwoot_version']).to eq('4.16.1')
+        expect(response.parsed_body['latest_chatwoot_version']).to be_nil
       end
     end
 

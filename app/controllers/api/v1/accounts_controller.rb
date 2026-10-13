@@ -71,7 +71,7 @@ class Api::V1::AccountsController < Api::BaseController
   private
 
   def latest_chatwoot_version
-    Redis::Alfred.get(Redis::Alfred::LATEST_CHATWOOT_VERSION)
+    nil
   end
 
   def enqueue_branding_enrichment
