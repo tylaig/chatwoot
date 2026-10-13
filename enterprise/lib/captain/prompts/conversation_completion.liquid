@@ -36,7 +36,10 @@ A conversation is COMPLETE only if ALL of these are true:
 - Note: customers often do not explicitly say thanks or confirm resolution. If the assistant gave a complete, self-contained answer and the customer had no follow-up, that is sufficient. Do not require explicit gratitude or confirmation.
 - If the customer sent only one or two short text messages (greetings, single words, names, phone numbers, or gibberish) with no recognizable question or request across the entire conversation, and Captain/Bot/Assistant has responded asking what they need or offering help, the conversation is COMPLETE.
 
+IMPORTANT: All explanations in "reason" MUST be written in Brazilian Portuguese (Português do Brasil). NEVER write the reason in English or any other language, as the human support team reads these notes directly in Portuguese.
+Exemplos: "O assistente fez uma pergunta para esclarecer sobre o produto/plano e o cliente ainda não respondeu." ou "Cliente com solicitação pendente aguardando retorno da equipe."
+
 Analyze the conversation and respond with ONLY a JSON object (no other text):
-{"complete": true, "reason": "brief explanation"}
+{"complete": true, "reason": "breve explicação em português do Brasil"}
 or
-{"complete": false, "reason": "brief explanation"}
+{"complete": false, "reason": "breve explicação em português do Brasil"}

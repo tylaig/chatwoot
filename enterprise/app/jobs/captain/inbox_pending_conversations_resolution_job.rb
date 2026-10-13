@@ -1,6 +1,6 @@
 class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
-  CAPTAIN_INFERENCE_RESOLVE_ACTIVITY_REASON = 'no outstanding questions'.freeze
-  CAPTAIN_INFERENCE_HANDOFF_ACTIVITY_REASON = 'pending clarification from customer'.freeze
+  CAPTAIN_INFERENCE_RESOLVE_ACTIVITY_REASON = 'sem dúvidas pendentes'.freeze
+  CAPTAIN_INFERENCE_HANDOFF_ACTIVITY_REASON = 'aguardando resposta do cliente'.freeze
   queue_as :low
 
   def perform(inbox)
@@ -97,7 +97,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     resolved = with_inference_activity_context(conversation, CAPTAIN_INFERENCE_RESOLVE_ACTIVITY_REASON) do
       perform_locked_transition(conversation) do
         conversation.resolved!
-        create_private_note(conversation, "Auto-resolved: #{reason}")
+        create_private_note(conversation, "Resolução automática: #{reason}")
         create_resolution_message(conversation)
       end
     end
@@ -119,7 +119,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     handed_off = with_inference_activity_context(conversation, CAPTAIN_INFERENCE_HANDOFF_ACTIVITY_REASON) do
       perform_locked_transition(conversation) do
         conversation.bot_handoff!(dispatch_event: false)
-        create_private_note(conversation, "Auto-handoff: #{reason}")
+        create_private_note(conversation, "Transferência automática: #{reason}")
         create_handoff_message(conversation)
       end
     end
