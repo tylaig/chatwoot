@@ -409,8 +409,8 @@ pt:
       attachment_link_title: 'Conversa (#%{conversation_id}) com %{name}'
     notion:
       name: 'Noção'
-      short_description: 'Integrar bases de dados, documentos e páginas diretamente com o Captain.'
-      description: 'Conecte o seu workspace Notion para permitir que o Captain aceda e gere respostas inteligentes utilizando o conteúdo das suas base de dados, documentos e páginas para fornecer mais apoio contextual ao cliente.'
+      short_description: 'Integrar bases de dados, documentos e páginas diretamente com o Assistente IA.'
+      description: 'Conecte o seu workspace Notion para permitir que o Assistente IA aceda e gere respostas inteligentes utilizando o conteúdo das suas base de dados, documentos e páginas para fornecer mais apoio contextual ao cliente.'
     shopify:
       name: 'Shopify'
       short_description: 'Aceder a detalhes do pedido e dados de clientes da sua loja Shopify.'
@@ -423,9 +423,9 @@ pt:
     copilot_message_required: A mensagem é obrigatória
     copilot_error: 'Please connect an assistant to this inbox to use Copilot'
     copilot_limit: 'You are out of Copilot credits. You can buy more credits from the billing section.'
-    upgrade: 'Faça upgrade do seu plano para ativar o Captain AI'
-    disabled: 'Captain AI está desativado para esta conta.'
-    api_key_missing: 'A chave API do Captain AI não está configurada.'
+    upgrade: 'Faça upgrade do seu plano para ativar o Assistente IA'
+    disabled: 'O Assistente IA está desativado para esta conta.'
+    api_key_missing: 'A chave API do Assistente IA não está configurada.'
     copilot:
       using_tool: 'A usar a ferramenta %{function_name}'
       completed_tool_call: 'Chamada da ferramenta %{function_name} concluída'
@@ -576,7 +576,7 @@ pt:
     analytics:
       invalid_configuration: 'Invalid analytics configuration'
     articles:
-      captain_not_available: 'Translation requires Captain to be enabled for this account'
+      captain_not_available: 'A tradução exige que o Assistente IA esteja ativado nesta conta'
       locale_not_available: 'Locale not available in this portal'
       category_not_found: 'Category not found in this portal'
       no_articles_found: 'No articles found to process'

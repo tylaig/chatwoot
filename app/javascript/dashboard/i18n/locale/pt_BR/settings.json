@@ -324,7 +324,7 @@
     "ACTIVE": "Ativo",
     "COMPANIES": "Empresas",
     "ALL_COMPANIES": "Todas as empresas",
-    "CAPTAIN": "Capitão",
+    "CAPTAIN": "Assistente IA",
     "CALLS": "Chamadas",
     "CAPTAIN_ASSISTANTS": "Assistentes",
     "CAPTAIN_OVERVIEW": "Visão geral",
@@ -413,7 +413,7 @@
     },
     "DOCS": "Ler documentos",
     "SECURITY": "Segurança",
-    "CAPTAIN_AI": "Capitão",
+    "CAPTAIN_AI": "Assistente IA",
     "CONVERSATION_WORKFLOW": "Fluxo de Conversa"
   },
   "DATA_IMPORTS": {
@@ -528,11 +528,11 @@
     }
   },
   "CAPTAIN_SETTINGS": {
-    "TITLE": "Configurações do Capitão",
-    "DESCRIPTION": "Configure seus modelos e recursos de IA para o Capitão. O Capitão utiliza um modelo de cobrança baseado em créditos; você será cobrado em créditos por cada ação que o Capitão realizar, dependendo do modelo selecionado.",
-    "LOADING": "Carregando configurações do Capitão...",
-    "LINK_TEXT": "Saiba mais sobre os Créditos do Capitão",
-    "NOT_ENABLED": "O Capitão não está habilitado para a sua conta. Atualize seu plano para acessar os recursos do Capitão.",
+    "TITLE": "Configurações do Assistente IA",
+    "DESCRIPTION": "Configure seus modelos e recursos de IA para o Assistente IA. O Assistente IA utiliza um modelo de cobrança baseado em créditos; você será cobrado em créditos por cada ação que o Assistente IA realizar, dependendo do modelo selecionado.",
+    "LOADING": "Carregando configurações do Assistente IA...",
+    "LINK_TEXT": "Saiba mais sobre os Créditos do Assistente IA",
+    "NOT_ENABLED": "O Assistente IA não está habilitado para a sua conta. Atualize seu plano para acessar os recursos do Assistente IA.",
     "MODEL_CONFIG": {
       "TITLE": "Configuração do Modelo",
       "DESCRIPTION": "Selecione modelos de IA para diferentes recursos.",
@@ -573,8 +573,8 @@
       }
     },
     "API": {
-      "SUCCESS": "Configurações do Capitão atualizadas com sucesso.",
-      "ERROR": "Falha ao atualizar as configurações do Capitão. Por favor, tente novamente."
+      "SUCCESS": "Configurações do Assistente IA atualizadas com sucesso.",
+      "ERROR": "Falha ao atualizar as configurações do Assistente IA. Por favor, tente novamente."
     }
   },
   "BILLING_SETTINGS": {
@@ -604,12 +604,12 @@
       "BUTTON_TXT": "Ir para o portal de cobrança"
     },
     "CAPTAIN": {
-      "TITLE": "Capitão",
-      "DESCRIPTION": "Gerenciar uso e créditos para o Captain AI.",
+      "TITLE": "Assistente IA",
+      "DESCRIPTION": "Gerenciar uso e créditos para o Assistente IA.",
       "BUTTON_TXT": "Comprar mais créditos",
       "DOCUMENTS": "Documentos",
       "RESPONSES": "Respostas",
-      "UPGRADE": "O Captain não está disponível no plano gratuito, faça o upgrade para ter acesso aos assistentes, Copilot e muito mais.",
+      "UPGRADE": "O Assistente IA não está disponível no plano gratuito, faça o upgrade para ter acesso aos assistentes, Copilot e muito mais.",
       "REFRESH_CREDITS": "Atualizar"
     },
     "CHAT_WITH_US": {
@@ -621,7 +621,7 @@
     "TOPUP": {
       "BUY_CREDITS": "Comprar mais créditos",
       "MODAL_TITLE": "Comprar Créditos de IA",
-      "MODAL_DESCRIPTION": "Comprar créditos adicionais para o Capitão IA.",
+      "MODAL_DESCRIPTION": "Comprar créditos adicionais para o Assistente IA.",
       "CREDITS": "CRÉDITOS",
       "ONE_TIME": "único",
       "POPULAR": "Mais populares",

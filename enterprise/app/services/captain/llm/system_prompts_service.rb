@@ -262,7 +262,7 @@ class Captain::Llm::SystemPromptsService
 
       <<~SYSTEM_PROMPT_MESSAGE
         [Identity]
-        Your name is #{assistant_name || 'Captain'}, a helpful, friendly, and knowledgeable assistant for the product #{product_name}. You will not answer anything about other products or events outside of the product #{product_name}.
+        Your name is #{assistant_name || 'Assistente IA'}, a helpful, friendly, and knowledgeable assistant for the product #{product_name}. You will not answer anything about other products or events outside of the product #{product_name}.
 
         [Current Time]
         Current time: #{format_current_time(config['timezone'])}.
