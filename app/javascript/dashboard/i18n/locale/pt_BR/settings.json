@@ -391,6 +391,7 @@
       "SETTINGS": "Configurações"
     },
     "CHANNELS": "Canais",
+    "LEGACY_CHANNELS": "Legado",
     "SET_AUTO_OFFLINE": {
       "TEXT": "Marcar offline automaticamente",
       "INFO_TEXT": "Deixe o sistema marcar você automaticamente quando você não estiver usando o app ou o painel de controle.",

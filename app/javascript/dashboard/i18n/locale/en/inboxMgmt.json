@@ -1125,6 +1125,8 @@
       "ENABLE_CONTINUITY_VIA_EMAIL_DISABLED_TEXT": "This feature is available on a paid plan. Upgrade to enable conversation continuity via email.",
       "LOCK_TO_SINGLE_CONVERSATION": "Conversation Routing",
       "LOCK_TO_SINGLE_CONVERSATION_SUB_TEXT": "Configure conversation creation for existing contacts",
+      "LEGACY_INBOX": "Legacy inbox",
+      "LEGACY_INBOX_SUB_TEXT": "Hide this inbox from the main channel list. If no other active inbox uses the same number, its Meta webhook is removed. The number stays registered and old conversations remain under Legacy.",
       "INBOX_UPDATE_TITLE": "Inbox Settings",
       "INBOX_UPDATE_SUB_TEXT": "Update your inbox settings",
       "AUTO_ASSIGNMENT_SUB_TEXT": "Enable or disable the automatic assignment of new conversations to the agents added to this inbox.",

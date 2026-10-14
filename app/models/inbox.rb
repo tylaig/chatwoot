@@ -17,6 +17,7 @@
 #  greeting_enabled              :boolean          default(FALSE)
 #  greeting_message              :string
 #  lock_to_single_conversation   :boolean          default(FALSE), not null
+#  legacy                        :boolean          default(FALSE), not null
 #  name                          :string           not null
 #  out_of_office_message         :string
 #  sender_name_type              :integer          default("friendly"), not null
@@ -85,6 +86,7 @@ class Inbox < ApplicationRecord
 
   after_create_commit :dispatch_create_event
   after_update_commit :dispatch_update_event
+  after_update_commit :sync_legacy_whatsapp_webhook, if: :saved_change_to_legacy?
   after_destroy_commit :invalidate_filtered_unread_counts_after_destroy
 
   scope :order_by_name, -> { order('lower(name) ASC') }
@@ -251,6 +253,12 @@ class Inbox < ApplicationRecord
     return if ENV['ENABLE_INBOX_EVENTS'].blank?
 
     Rails.configuration.dispatcher.dispatch(INBOX_UPDATED, Time.zone.now, inbox: self, changed_attributes: previous_changes)
+  end
+
+  def sync_legacy_whatsapp_webhook
+    return unless channel.is_a?(Channel::Whatsapp)
+
+    Whatsapp::LegacyWebhookService.new(channel).perform(legacy: legacy)
   end
 
   def ensure_valid_max_assignment_limit

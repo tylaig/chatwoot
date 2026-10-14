@@ -105,6 +105,7 @@ export default {
       senderNameType: 'friendly',
       businessName: '',
       locktoSingleConversation: false,
+      legacyInbox: false,
       allowMessagesAfterResolved: true,
       continuityViaEmail: true,
       selectedInboxName: '',
@@ -570,6 +571,7 @@ export default {
       this.selectedFeatureFlags = this.inbox.selected_feature_flags || [];
       this.replyTime = this.inbox.reply_time;
       this.locktoSingleConversation = this.inbox.lock_to_single_conversation;
+      this.legacyInbox = Boolean(this.inbox.legacy);
       this.selectedPortalSlug = this.inbox.help_center
         ? this.inbox.help_center.slug
         : '';
@@ -701,6 +703,7 @@ export default {
               )?.id || null
             : null,
           lock_to_single_conversation: this.locktoSingleConversation,
+          legacy: this.legacyInbox,
           sender_name_type: this.senderNameType,
           business_name: this.businessName || null,
           channel: {
@@ -1014,6 +1017,14 @@ export default {
                 />
               </template>
             </SettingsFieldSection>
+
+            <SettingsToggleSection
+              v-model="legacyInbox"
+              :header="$t('INBOX_MGMT.SETTINGS_POPUP.LEGACY_INBOX')"
+              :description="
+                $t('INBOX_MGMT.SETTINGS_POPUP.LEGACY_INBOX_SUB_TEXT')
+              "
+            />
 
             <SettingsFieldSection
               v-if="isAWebWidgetInbox || isAnEmailChannel"

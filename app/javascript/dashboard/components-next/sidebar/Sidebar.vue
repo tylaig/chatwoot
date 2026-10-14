@@ -311,13 +311,35 @@ const sortedTeams = computed(() =>
   })
 );
 
-const sortedInboxes = computed(() =>
-  sortSidebarItems(inboxes.value, {
+const sortInboxes = items =>
+  sortSidebarItems(items, {
     sortBy: getSortForSection(SIDEBAR_SORT_SECTIONS.CHANNELS),
     labelKey: inbox => inbox.name,
     unreadCountKey: inbox => getInboxUnreadCount.value(inbox.id),
-  })
+  });
+
+const sortedInboxes = computed(() =>
+  sortInboxes((inboxes.value || []).filter(inbox => !inbox.legacy))
 );
+
+const sortedLegacyInboxes = computed(() =>
+  sortInboxes((inboxes.value || []).filter(inbox => inbox.legacy))
+);
+
+const inboxMenuItem = inbox => ({
+  name: `${inbox.name}-${inbox.id}`,
+  label: inbox.name,
+  badgeCount: getInboxUnreadCount.value(inbox.id),
+  icon: h(ChannelIcon, { inbox, class: 'size-[16px]' }),
+  to: accountScopedRoute('inbox_dashboard', { inbox_id: inbox.id }),
+  component: leafProps =>
+    h(ChannelLeaf, {
+      label: leafProps.label,
+      active: leafProps.active,
+      inbox,
+      badgeCount: leafProps.badgeCount,
+    }),
+});
 
 const sortedLabels = computed(() =>
   sortSidebarItems(labels.value, {
@@ -462,21 +484,21 @@ const menuItems = computed(() => {
           ...buildSortConfig(SIDEBAR_SORT_SECTIONS.CHANNELS),
           collapsible: true,
           showTreeLine: true,
-          children: sortedInboxes.value.map(inbox => ({
-            name: `${inbox.name}-${inbox.id}`,
-            label: inbox.name,
-            badgeCount: getInboxUnreadCount.value(inbox.id),
-            icon: h(ChannelIcon, { inbox, class: 'size-[16px]' }),
-            to: accountScopedRoute('inbox_dashboard', { inbox_id: inbox.id }),
-            component: leafProps =>
-              h(ChannelLeaf, {
-                label: leafProps.label,
-                active: leafProps.active,
-                inbox,
-                badgeCount: leafProps.badgeCount,
-              }),
-          })),
+          children: sortedInboxes.value.map(inboxMenuItem),
         },
+        ...(sortedLegacyInboxes.value.length
+          ? [
+              {
+                name: 'LegacyChannels',
+                label: t('SIDEBAR.LEGACY_CHANNELS'),
+                icon: 'i-lucide-archive',
+                collapsible: true,
+                defaultCollapsed: true,
+                showTreeLine: true,
+                children: sortedLegacyInboxes.value.map(inboxMenuItem),
+              },
+            ]
+          : []),
         {
           name: 'Labels',
           label: t('SIDEBAR.LABELS'),

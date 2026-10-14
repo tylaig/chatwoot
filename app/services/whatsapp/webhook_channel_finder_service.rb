@@ -12,11 +12,11 @@ class Whatsapp::WebhookChannelFinderService
   def perform
     return if digits.blank?
 
-    candidates = [
-      Channel::Whatsapp.find_by(phone_number: "+#{digits}"),
-      channel_by_normalized_number
+    channels = [
+      *active_channels("+#{digits}"),
+      *active_channels_for_normalized_number
     ]
-    candidates.compact.find { |channel| channel.provider_config['phone_number_id'] == @phone_number_id }
+    channels.uniq(&:id).find { |channel| channel.provider_config['phone_number_id'] == @phone_number_id }
   end
 
   private
@@ -25,11 +25,15 @@ class Whatsapp::WebhookChannelFinderService
     @digits ||= @display_phone_number.to_s.gsub(/[^0-9]/, '')
   end
 
-  def channel_by_normalized_number
+  def active_channels(number)
+    Channel::Whatsapp.joins(:inbox).where(phone_number: number, inboxes: { legacy: false }).order(updated_at: :desc)
+  end
+
+  def active_channels_for_normalized_number
     normalizer = Whatsapp::PhoneNumberNormalizationService::NORMALIZERS
                  .lazy.map(&:new).find { |n| n.handles_country?(digits) }
-    return unless normalizer
+    return [] unless normalizer
 
-    Channel::Whatsapp.find_by(phone_number: "+#{normalizer.normalize(digits)}")
+    active_channels("+#{normalizer.normalize(digits)}")
   end
 end

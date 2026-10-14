@@ -20,6 +20,7 @@ const props = defineProps({
   sortOptions: { type: Array, default: () => [] },
   activeSort: { type: String, default: '' },
   collapsible: { type: Boolean, default: false },
+  defaultCollapsed: { type: Boolean, default: false },
   showTreeLine: { type: Boolean, default: false },
   endTreeLine: { type: Boolean, default: false },
 });
@@ -45,9 +46,14 @@ const minimizedSections = ref(getMinimizedSections());
 const storageKey = computed(() =>
   accountId.value ? `${accountId.value}:${props.name}` : props.name
 );
-const isSubGroupExpanded = computed(
-  () => !props.collapsible || !minimizedSections.value[storageKey.value]
-);
+const isSubGroupExpanded = computed(() => {
+  if (!props.collapsible) return true;
+
+  const stored = minimizedSections.value[storageKey.value];
+  if (stored === true) return false;
+  if (stored === false) return true;
+  return !props.defaultCollapsed;
+});
 const hasActiveChild = computed(() =>
   props.children.some(child => child.name === props.activeChild?.name)
 );
@@ -84,6 +90,8 @@ const toggleSubGroup = () => {
 
   if (isSubGroupExpanded.value) {
     LocalStorage.updateJsonStore(minimizedSectionsKey, storageKey.value, true);
+  } else if (props.defaultCollapsed) {
+    LocalStorage.updateJsonStore(minimizedSectionsKey, storageKey.value, false);
   } else {
     LocalStorage.deleteFromJsonStore(minimizedSectionsKey, storageKey.value);
   }
@@ -96,7 +104,11 @@ const expandSubGroupOnActiveChild = () => {
     return;
   }
 
-  LocalStorage.deleteFromJsonStore(minimizedSectionsKey, storageKey.value);
+  if (props.defaultCollapsed) {
+    LocalStorage.updateJsonStore(minimizedSectionsKey, storageKey.value, false);
+  } else {
+    LocalStorage.deleteFromJsonStore(minimizedSectionsKey, storageKey.value);
+  }
   minimizedSections.value = getMinimizedSections();
 };
 
