@@ -123,6 +123,33 @@ module Evolution
       request(:post, "webhook/set/#{encode(name)}", { enabled: enabled, url: url, events: events, base64: false })
     end
 
+    def set_chatwoot(name, account_id:, token:, url:, inbox_name:, import_messages:, organization:)
+      request(
+        :post,
+        "chatwoot/set/#{encode(name)}",
+        {
+          enabled: true,
+          accountId: account_id.to_s,
+          token: token,
+          url: url,
+          signMsg: false,
+          reopenConversation: true,
+          conversationPending: false,
+          nameInbox: inbox_name,
+          mergeBrazilContacts: true,
+          importContacts: true,
+          importMessages: import_messages,
+          daysLimitImportMessages: import_messages ? 7 : 1,
+          signDelimiter: "\n",
+          autoCreate: true,
+          organization: organization.to_s,
+          logo: '',
+          ignoreJids: []
+        },
+        read_timeout: 25
+      )
+    end
+
     private
 
     def server_info
@@ -187,12 +214,12 @@ module Evolution
       }
     end
 
-    def request(method, path, body = nil)
+    def request(method, path, body = nil, read_timeout: TIMEOUT)
       uri = URI.parse(path.present? ? "#{@base_url}/#{path}" : @base_url)
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = uri.scheme == 'https'
       http.open_timeout = TIMEOUT
-      http.read_timeout = TIMEOUT
+      http.read_timeout = read_timeout
       http_request = Net::HTTP.const_get(method.to_s.capitalize).new(uri)
       http_request['apikey'] = @api_key if @api_key.present?
       http_request['Accept'] = 'application/json'
@@ -202,7 +229,7 @@ module Evolution
       end
 
       response = http.request(http_request)
-      parsed = parse_body(response.body.to_s)
+      parsed = parse_body(response.body.to_s, response)
       return parsed if response.is_a?(Net::HTTPSuccess)
 
       raise Error.new(failure_message(parsed, response.code), response.code.to_i)
@@ -216,10 +243,14 @@ module Evolution
       raise Error, 'A conexão TLS com a Evolution API falhou.'
     end
 
-    def parse_body(raw)
+    def parse_body(raw, response)
       raise Error, 'A resposta da Evolution API passou do tamanho esperado.' if raw.bytesize > BODY_LIMIT
       return {} if raw.blank?
-      return JSON.parse(raw) if raw.lstrip.start_with?('{', '[')
+
+      stripped = raw.lstrip
+      return nil if stripped == 'null'
+      return JSON.parse(raw) if stripped.start_with?('{', '[')
+      return {} unless response.is_a?(Net::HTTPSuccess)
 
       raise Error, 'A URL respondeu, mas não é o JSON da Evolution API.'
     rescue JSON::ParserError

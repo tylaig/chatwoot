@@ -61,4 +61,10 @@ export default {
       payload
     );
   },
+  connectChatwoot(name, payload) {
+    return axios.post(
+      `${root()}/evolution_instances/${encodeURIComponent(name)}/chatwoot`,
+      payload
+    );
+  },
 };

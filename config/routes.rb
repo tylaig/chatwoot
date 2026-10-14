@@ -486,6 +486,7 @@ Rails.application.routes.draw do
               put :restart
               get :webhook
               post :webhook, action: :update_webhook
+              post :chatwoot, action: :connect_chatwoot
             end
           end
           resources :workflows do

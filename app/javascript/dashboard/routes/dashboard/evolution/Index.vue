@@ -1,8 +1,11 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useAlert } from 'dashboard/composables';
+import { useStore } from 'dashboard/composables/store';
 import EvolutionAPI from 'dashboard/api/evolution';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+
+const store = useStore();
 
 const INPUT_CLASS =
   'reset-base w-full h-9 m-0 px-3 text-sm rounded-lg bg-n-alpha-black2 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12 placeholder:text-n-slate-10';
@@ -43,7 +46,11 @@ const instances = ref([]);
 const loadingInstances = ref(false);
 const instanceName = ref('');
 const instanceNumber = ref('');
+const createInbox = ref(false);
+const importMessages = ref(false);
 const creating = ref(false);
+const chatwootTarget = ref('');
+const connectingChatwoot = ref(false);
 const qr = ref(null);
 const webhook = ref(null);
 const webhookEvents = ref([]);
@@ -56,6 +63,7 @@ const createDialog = ref(null);
 const connectDialog = ref(null);
 const webhookDialog = ref(null);
 const deleteDialog = ref(null);
+const chatwootDialog = ref(null);
 let pollTimer = null;
 
 const connected = computed(() => connection.value.status === 'connected');
@@ -110,20 +118,36 @@ const applyConnection = data => {
   versionNote.value = payload.version ? `Versão ${payload.version}` : '';
 };
 
-const loadInstances = async () => {
+const loadInstances = async ({ silent = false } = {}) => {
   if (!connected.value) {
     instances.value = [];
     return;
   }
-  loadingInstances.value = true;
+  if (!silent && !instances.value.length) loadingInstances.value = true;
   try {
     const { data } = await EvolutionAPI.getInstances();
-    instances.value = data.instances || [];
+    if (Array.isArray(data.instances)) instances.value = data.instances;
   } catch (error) {
     useAlert(readError(error));
   } finally {
     loadingInstances.value = false;
   }
+};
+
+const rememberInstance = name => {
+  if (instances.value.some(item => item.name === name)) return;
+
+  instances.value = [
+    {
+      name,
+      status: 'close',
+      owner: '',
+      profile_name: '',
+      profile_picture: '',
+      integration: 'WHATSAPP-BAILEYS',
+    },
+    ...instances.value,
+  ];
 };
 
 const loadConnection = async () => {
@@ -183,17 +207,42 @@ const syncVersion = async () => {
   }
 };
 
+const linkChatwoot = async name => {
+  const { data } = await EvolutionAPI.connectChatwoot(name, {
+    import_messages: importMessages.value,
+  });
+  await store.dispatch('inboxes/get');
+  useAlert(
+    data?.inbox_name
+      ? `Caixa ${data.inbox_name} criada no Chatwoot.`
+      : 'Caixa de entrada criada no Chatwoot.'
+  );
+};
+
 const createInstance = async () => {
   creating.value = true;
+  const name = instanceName.value.trim();
+  const shouldLink = createInbox.value;
   try {
-    await EvolutionAPI.createInstance({
-      name: instanceName.value.trim(),
+    const { data } = await EvolutionAPI.createInstance({
+      name,
       number: instanceNumber.value.trim(),
+      connect_chatwoot: shouldLink,
+      import_messages: importMessages.value,
     });
     instanceName.value = '';
     instanceNumber.value = '';
+    createInbox.value = false;
+    importMessages.value = false;
     createDialog.value?.close();
-    await loadInstances();
+    rememberInstance(name);
+    await loadInstances({ silent: true });
+    rememberInstance(name);
+    if (data?.chatwoot_error) useAlert(data.chatwoot_error);
+    else if (shouldLink) {
+      await store.dispatch('inboxes/get');
+      useAlert(`Caixa ${name} criada no Chatwoot.`);
+    }
     return true;
   } catch (error) {
     useAlert(readError(error));
@@ -256,15 +305,45 @@ const askDelete = name => {
 
 const confirmDelete = async () => {
   deleting.value = true;
+  const name = deleteTarget.value;
   try {
-    await EvolutionAPI.deleteInstance(deleteTarget.value);
+    await EvolutionAPI.deleteInstance(name);
+    instances.value = instances.value.filter(item => item.name !== name);
     deleteDialog.value?.close();
     deleteTarget.value = '';
-    await loadInstances();
+    await loadInstances({ silent: true });
+    if (instances.value.some(item => item.name === name)) {
+      await new Promise(resolve => {
+        setTimeout(resolve, 1200);
+      });
+      await loadInstances({ silent: true });
+      instances.value = instances.value.filter(item => item.name !== name);
+    }
   } catch (error) {
     useAlert(readError(error));
   } finally {
     deleting.value = false;
+  }
+};
+
+const askChatwoot = name => {
+  openMenu.value = '';
+  chatwootTarget.value = name;
+  importMessages.value = false;
+  chatwootDialog.value?.open();
+};
+
+const confirmChatwoot = async () => {
+  connectingChatwoot.value = true;
+  try {
+    await linkChatwoot(chatwootTarget.value);
+    chatwootDialog.value?.close();
+    chatwootTarget.value = '';
+    importMessages.value = false;
+  } catch (error) {
+    useAlert(readError(error));
+  } finally {
+    connectingChatwoot.value = false;
   }
 };
 
@@ -502,6 +581,13 @@ onUnmounted(stopPoll);
                 </button>
                 <button
                   type="button"
+                  class="px-3 py-2 text-sm text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2"
+                  @click="askChatwoot(item.name)"
+                >
+                  Conectar ao Chatwoot
+                </button>
+                <button
+                  type="button"
                   class="px-3 py-2 text-sm text-start rounded-lg text-n-ruby-11 hover:bg-n-alpha-2"
                   @click="askDelete(item.name)"
                 >
@@ -589,7 +675,44 @@ onUnmounted(stopPoll);
             placeholder="5511999999999"
           />
         </label>
+        <label class="flex items-start gap-2 text-sm text-n-slate-12">
+          <input v-model="createInbox" type="checkbox" class="mt-1" />
+          <span>
+            Criar a caixa de entrada no Chatwoot
+            <span class="block mt-1 text-xs text-n-slate-11">
+              A Evolution cria uma caixa do tipo API e passa a entregar as
+              mensagens nela.
+            </span>
+          </span>
+        </label>
+        <label
+          v-if="createInbox"
+          class="flex items-start gap-2 text-sm text-n-slate-12"
+        >
+          <input v-model="importMessages" type="checkbox" class="mt-1" />
+          <span>Importar as mensagens dos últimos 7 dias</span>
+        </label>
       </div>
+    </Dialog>
+
+    <Dialog
+      ref="chatwootDialog"
+      type="edit"
+      width="md"
+      :title="
+        chatwootTarget
+          ? `Conectar ${chatwootTarget} ao Chatwoot`
+          : 'Conectar ao Chatwoot'
+      "
+      description="Cria a caixa de entrada desta instância e liga o recebimento das mensagens."
+      confirm-button-label="Criar caixa"
+      :is-loading="connectingChatwoot"
+      @confirm="confirmChatwoot"
+    >
+      <label class="flex items-start gap-2 text-sm text-n-slate-12">
+        <input v-model="importMessages" type="checkbox" class="mt-1" />
+        <span>Importar as mensagens dos últimos 7 dias</span>
+      </label>
     </Dialog>
 
     <Dialog
