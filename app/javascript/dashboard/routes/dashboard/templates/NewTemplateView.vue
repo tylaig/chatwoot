@@ -31,6 +31,7 @@ const form = ref({
   footer: '',
   validity_hours: 24,
   buttons: [],
+  inbox_id: null,
 });
 
 const isVariableMenuOpen = ref(false);
@@ -161,7 +162,19 @@ const headerOptions = [
 const bodyLength = computed(() => form.value.body.length);
 const footerLength = computed(() => (form.value.footer || '').length);
 
-const isStep1Valid = computed(() => !!form.value.category);
+const officialInboxes = computed(() =>
+  (inboxes.value || []).filter(
+    inbox =>
+      inbox.channel_type === 'Channel::Whatsapp' &&
+      inbox.provider === 'whatsapp_cloud'
+  )
+);
+
+const isStep1Valid = computed(
+  () =>
+    !!form.value.category &&
+    officialInboxes.value.some(inbox => inbox.id === form.value.inbox_id)
+);
 const variableRows = computed(() =>
   templateVariables(
     form.value.header_type,
@@ -192,12 +205,6 @@ const metaSubmitHint = computed(
     ''
 );
 
-const whatsappInboxes = computed(() =>
-  (inboxes.value || []).filter(
-    inbox => inbox.channel_type === 'Channel::Whatsapp'
-  )
-);
-
 const isStep2Valid = computed(() => {
   const nameClean = form.value.name.trim();
   const hasValidName = /^[a-z0-9_]+$/.test(nameClean);
@@ -206,6 +213,10 @@ const isStep2Valid = computed(() => {
 
 const selectCategory = id => {
   form.value.category = id;
+};
+
+const selectInbox = id => {
+  form.value.inbox_id = id;
 };
 
 const goToStep2 = () => {
@@ -335,6 +346,10 @@ const removeButton = index => {
 };
 
 const submitTemplate = async (status = 'PENDING') => {
+  if (!officialInboxes.value.some(inbox => inbox.id === form.value.inbox_id)) {
+    useAlert('Selecione a caixa da API oficial do WhatsApp.');
+    return;
+  }
   if (!/^[a-z0-9_]+$/.test(form.value.name.trim())) {
     useAlert(
       'O nome do template só pode ter letras minúsculas, números e underline.'
@@ -516,6 +531,66 @@ onMounted(() => {
         <!-- ETAPA 1: SELECIONAR CATEGORIA -->
         <div v-if="currentStep === 1" class="space-y-6">
           <div>
+            <h2 class="text-xl font-semibold text-n-slate-12">
+              Caixa de entrada
+            </h2>
+            <p class="mt-1 text-sm text-n-slate-11">
+              O modelo é enviado pela API oficial do WhatsApp. Escolha o número
+              da Meta que vai usar este template.
+            </p>
+          </div>
+
+          <div
+            v-if="!officialInboxes.length"
+            class="rounded-2xl border border-dashed border-n-weak p-5 text-sm text-n-slate-11"
+          >
+            Nenhuma caixa da API oficial do WhatsApp está conectada. Conecte o
+            número da Meta antes de criar o modelo.
+          </div>
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+              v-for="inbox in officialInboxes"
+              :key="inbox.id"
+              class="relative flex cursor-pointer items-start gap-4 rounded-2xl border bg-n-solid-1 p-5 transition-colors"
+              :class="
+                form.inbox_id === inbox.id
+                  ? 'border-n-brand'
+                  : 'border-n-weak hover:bg-n-alpha-1'
+              "
+              @click="selectInbox(inbox.id)"
+            >
+              <div
+                class="flex items-center justify-center size-10 rounded-xl bg-n-brand/10 text-n-brand shrink-0"
+              >
+                <span class="i-lucide-smartphone size-5" />
+              </div>
+              <div class="flex-1 pr-6">
+                <span class="font-medium text-n-slate-12">{{
+                  inbox.name
+                }}</span>
+                <p class="mt-1.5 text-xs leading-relaxed text-n-slate-11">
+                  {{ inbox.phone_number || 'API oficial do WhatsApp' }}
+                </p>
+              </div>
+              <div class="absolute top-5 right-5">
+                <div
+                  class="flex size-5 items-center justify-center rounded-full border-2 transition-colors"
+                  :class="
+                    form.inbox_id === inbox.id
+                      ? 'border-n-brand bg-n-brand'
+                      : 'border-n-weak bg-n-solid-1'
+                  "
+                >
+                  <div
+                    v-if="form.inbox_id === inbox.id"
+                    class="w-2 h-2 rounded-full bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
             <h2 class="text-xl font-semibold text-n-slate-12">Categoria</h2>
             <p class="mt-1 text-sm text-n-slate-11">
               Escolha o tipo de modelo que melhor se adapta à sua mensagem.
@@ -630,14 +705,6 @@ onMounted(() => {
                 <p class="mt-1 text-xs text-n-slate-11">
                   O texto segue as regras da Meta: variáveis com exemplo, sem
                   variável no início ou no fim, e botões de até 25 caracteres.
-                </p>
-                <p
-                  v-if="!whatsappInboxes.length"
-                  class="text-xs text-n-amber-11 mt-2"
-                >
-                  Nenhuma inbox WhatsApp Cloud conectada. Você pode salvar o
-                  template para o fluxo. O envio à Meta fica disponível depois
-                  de conectar o número.
                 </p>
               </div>
 

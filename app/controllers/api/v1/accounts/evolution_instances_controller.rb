@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 class Api::V1::Accounts::EvolutionInstancesController < Api::V1::Accounts::BaseController
+  # Evolution aceita nomes como "API OFICIAL"; só bloqueia vazio, barra e controle.
+  INSTANCE_NAME = /\A[\p{L}\p{N}](?:[\p{L}\p{N} ._+\-]*[\p{L}\p{N}])?\z/
+
   before_action :check_admin_authorization?
   before_action :client
   before_action :validate_name, only: [:destroy, :connect, :connection_state, :logout, :restart, :webhook, :update_webhook]
@@ -13,8 +16,9 @@ class Api::V1::Accounts::EvolutionInstancesController < Api::V1::Accounts::BaseC
 
   def create
     name = params[:name].to_s.strip
-    unless name.match?(/\A[a-zA-Z0-9_-]+\z/)
-      return render json: { error: 'O nome da instância usa letras, números, _ ou -.' }, status: :unprocessable_entity
+    unless acceptable_instance_name?(name)
+      return render json: { error: 'O nome precisa começar e terminar com letra ou número.' },
+                    status: :unprocessable_entity
     end
 
     payload = @client.create_instance(name: name, number: params[:number].to_s.strip)
@@ -89,8 +93,13 @@ class Api::V1::Accounts::EvolutionInstancesController < Api::V1::Accounts::BaseC
   end
 
   def validate_name
-    return if params[:name].to_s.match?(/\A[a-zA-Z0-9_-]+\z/)
+    return if acceptable_instance_name?(params[:name])
 
     render json: { error: 'Nome de instância inválido.' }, status: :unprocessable_entity
+  end
+
+  def acceptable_instance_name?(name)
+    value = name.to_s
+    value.length <= 100 && value.match?(INSTANCE_NAME)
   end
 end

@@ -114,7 +114,7 @@ class Api::V1::Accounts::WebhookDispatchTriggersController < Api::V1::Accounts::
 
   def recent_dispatches_by_workflow(workflow_ids)
     workflow_ids.compact.index_with do |workflow_id|
-      WorkflowExecution.where(workflow_id: workflow_id).order(created_at: :desc).limit(3).to_a
+      WorkflowExecution.where(workflow_id: workflow_id).order(created_at: :desc).limit(8).to_a
     end
   end
 

@@ -108,8 +108,22 @@ class Api::V1::Accounts::WhatsappTemplatesController < Api::V1::Accounts::BaseCo
 
   def assign_template(record)
     record.assign_attributes(template_params)
+    return false unless official_inbox?(record)
+
     apply_stored_header_url(record)
     true
+  end
+
+  def official_inbox?(record)
+    inbox = Current.account.inboxes.find_by(id: record.inbox_id)
+    channel = inbox&.channel
+    if channel.is_a?(Channel::Whatsapp) && channel.provider == 'whatsapp_cloud'
+      record.inbox = inbox
+      return true
+    end
+
+    render json: { error: 'Selecione uma caixa da API oficial do WhatsApp.' }, status: :unprocessable_entity
+    false
   end
 
   def apply_stored_header_url(record)

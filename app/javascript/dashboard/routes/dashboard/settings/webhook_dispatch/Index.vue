@@ -19,7 +19,15 @@ export default {
       mappingError: '',
       mappingSaveId: 0,
       showModal: false,
+      showDetails: false,
       showTestModal: false,
+      confirmingDelete: false,
+      copiedCurl: false,
+      detailName: '',
+      detailInboxId: '',
+      inboxMenuOpen: false,
+      savingDetails: false,
+      detailError: '',
       editingId: null,
       copiedToken: null,
       selectedTrigger: null,
@@ -102,15 +110,13 @@ export default {
         const matched = this.triggers.find(trigger => trigger.id === wanted);
         if (matched) {
           this.selectedTrigger = matched;
-        } else if (this.triggers.length && !this.selectedTrigger) {
-          this.selectedTrigger = this.triggers[0];
+          this.showDetails = true;
         } else if (this.selectedTrigger) {
           this.selectedTrigger =
             this.triggers.find(
               trigger => trigger.id === this.selectedTrigger.id
-            ) ||
-            this.triggers[0] ||
-            null;
+            ) || null;
+          if (!this.selectedTrigger) this.showDetails = false;
         }
       } catch {
         this.triggers = [];
@@ -139,7 +145,47 @@ export default {
         this.copiedToken = null;
       }, 2000);
     },
-    async openModal(trigger = null) {
+    copyCurl() {
+      if (!this.curlText) return;
+      navigator.clipboard.writeText(this.curlText);
+      this.copiedCurl = true;
+      setTimeout(() => {
+        this.copiedCurl = false;
+      }, 2000);
+    },
+    inboxName(inboxId) {
+      return (
+        this.inboxes.find(inbox => inbox.id === inboxId)?.name ||
+        'Caixa não encontrada'
+      );
+    },
+    dispatchStatusLabel(status) {
+      return (
+        {
+          running: 'Em execução',
+          waiting: 'Aguardando',
+          completed: 'Concluída',
+          failed: 'Falhou',
+          cancelled: 'Cancelada',
+          paused: 'Pausada',
+        }[status] || status
+      );
+    },
+    openDetails(trigger) {
+      this.selectedTrigger = trigger;
+      this.detailName = trigger.name || '';
+      this.detailInboxId = trigger.inbox_id || '';
+      this.detailError = '';
+      this.inboxMenuOpen = false;
+      this.confirmingDelete = false;
+      this.showDetails = true;
+    },
+    closeDetails() {
+      this.showDetails = false;
+      this.confirmingDelete = false;
+      this.inboxMenuOpen = false;
+    },
+    async openModal() {
       this.formError = '';
       try {
         const response = await WorkflowsAPI.getWorkflows();
@@ -147,27 +193,58 @@ export default {
       } catch (err) {
         this.workflows = [];
       }
-      const defaultInbox = this.inboxes[0]?.id || '';
-      if (trigger) {
-        this.editingId = trigger.id;
-        this.form = {
-          name: trigger.name,
-          inbox_id: trigger.inbox_id || defaultInbox,
-          active: trigger.active !== false,
-          workflowMode: 'existing',
-          workflow_id: trigger.workflow?.id || '',
-        };
-      } else {
-        this.editingId = null;
-        this.form = {
-          name: '',
-          inbox_id: defaultInbox,
-          active: true,
-          workflowMode: 'new',
-          workflow_id: '',
-        };
-      }
+      this.editingId = null;
+      this.form = {
+        name: '',
+        inbox_id: this.inboxes[0]?.id || '',
+        active: true,
+        workflowMode: 'new',
+        workflow_id: '',
+      };
       this.showModal = true;
+    },
+    async selectInbox(inboxId) {
+      this.detailInboxId = inboxId;
+      this.inboxMenuOpen = false;
+      await this.saveDetails();
+    },
+    async saveDetails() {
+      const current = this.selectedTrigger;
+      if (!current || this.savingDetails) return;
+      const name = this.detailName.trim();
+      if (!name) {
+        this.detailError = 'Informe o nome do webhook.';
+        return;
+      }
+      if (!this.detailInboxId) {
+        this.detailError = 'Selecione a caixa de entrada.';
+        return;
+      }
+      if (
+        name === current.name &&
+        String(this.detailInboxId) === String(current.inbox_id)
+      ) {
+        this.detailError = '';
+        return;
+      }
+      this.savingDetails = true;
+      this.detailError = '';
+      try {
+        const response = await WebhookDispatchApi.updateTrigger(current.id, {
+          name,
+          inbox_id: this.detailInboxId,
+        });
+        this.applyTrigger(response.data);
+        this.detailName = response.data.name || name;
+        this.detailInboxId = response.data.inbox_id || this.detailInboxId;
+      } catch (err) {
+        const message = err.response?.data?.error;
+        this.detailError = Array.isArray(message)
+          ? message.join(' ')
+          : 'Não foi possível salvar o webhook.';
+      } finally {
+        this.savingDetails = false;
+      }
     },
     openWorkflow(workflow) {
       if (!workflow?.id) return;
@@ -299,16 +376,15 @@ export default {
       }
     },
     async deleteTrigger(id) {
-      if (
-        !window.confirm('Deseja realmente excluir este gatilho de webhook?')
-      ) {
-        return;
-      }
       try {
         await WebhookDispatchApi.deleteTrigger(id);
+        this.showDetails = false;
+        this.confirmingDelete = false;
+        this.selectedTrigger = null;
         await this.fetchTriggers();
       } catch {
-        this.formError = 'Não foi possível excluir o webhook.';
+        this.mappingError = 'Não foi possível excluir o webhook.';
+        this.confirmingDelete = false;
       }
     },
     openTestModal(trigger) {
@@ -327,16 +403,17 @@ export default {
 <template>
   <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text, vue/html-closing-bracket-newline -->
   <div
-    class="flex flex-1 w-full h-full min-h-0 min-w-0 bg-n-background text-n-slate-12 overflow-x-auto overflow-y-hidden"
+    class="flex flex-1 w-full h-full min-h-0 min-w-0 bg-n-background text-n-slate-12"
   >
-    <div class="flex flex-1 flex-col min-w-[52rem] border-e border-n-weak">
+    <div class="flex flex-1 flex-col min-w-0">
       <header
         class="px-6 py-5 border-b border-n-weak bg-n-solid-1 flex items-center justify-between gap-4"
       >
         <div>
           <h1 class="text-xl font-semibold text-n-slate-12">Webhooks</h1>
           <p class="text-sm text-n-slate-11 mt-0.5">
-            Endpoints HTTP para receber eventos e iniciar workflows.
+            Endpoints HTTP para receber eventos e iniciar workflows. Abra um
+            webhook para ver o endereço, o mapeamento e as requisições.
           </p>
         </div>
 
@@ -350,281 +427,420 @@ export default {
         </button>
       </header>
 
-      <div class="flex flex-1 flex-col min-h-0 overflow-auto px-6 pb-4">
-        <div class="rounded-2xl border border-n-weak bg-n-solid-1">
-          <table class="w-full text-start text-sm">
-            <thead>
-              <tr
-                class="border-b border-n-weak text-[0.6875rem] font-semibold text-n-slate-11 uppercase tracking-wide"
+      <div class="flex flex-1 flex-col min-h-0 overflow-auto px-6 pb-6">
+        <div class="flex flex-col gap-6">
+          <div
+            class="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1fr)_6.5rem_5.5rem] gap-4 px-4 text-[0.6875rem] font-semibold uppercase tracking-wide text-n-slate-11"
+          >
+            <span>Nome do Gatilho</span>
+            <span>Endpoint URL</span>
+            <span>Workflow Associado</span>
+            <span>Status</span>
+            <span class="text-end">Ações</span>
+          </div>
+
+          <p v-if="loading && !triggers.length" class="text-sm text-n-slate-11">
+            Carregando webhooks…
+          </p>
+          <div
+            v-else-if="!triggers.length"
+            class="flex flex-col items-start gap-3 p-6 border border-dashed rounded-2xl border-n-weak"
+          >
+            <p class="text-sm text-n-slate-11">Nenhum webhook nesta conta.</p>
+            <button
+              type="button"
+              class="h-9 px-3 text-sm font-medium rounded-lg bg-n-brand text-white"
+              @click="openModal()"
+            >
+              Novo webhook
+            </button>
+          </div>
+
+          <article
+            v-for="trigger in triggers"
+            :key="trigger.id"
+            class="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1fr)_6.5rem_5.5rem] items-center gap-4 px-4 py-3 rounded-xl border border-n-weak bg-n-solid-1 cursor-pointer hover:bg-n-alpha-1"
+            :class="
+              showDetails && selectedTrigger?.id === trigger.id
+                ? 'bg-n-brand/5'
+                : ''
+            "
+            @click="openDetails(trigger)"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <div
+                class="flex items-center justify-center rounded-lg size-8 shrink-0 bg-n-amber-9/15 text-n-amber-11"
               >
-                <th class="py-3 px-4">Nome do Gatilho</th>
-                <th class="py-3 px-4">Endpoint URL</th>
-                <th class="py-3 px-4">Workflow Associado</th>
-                <th class="py-3 px-4">Status</th>
-                <th class="py-3 px-4 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-n-weak">
-              <tr
-                v-for="trigger in triggers"
-                :key="trigger.id"
-                class="hover:bg-n-alpha-1 transition-colors cursor-pointer"
+                <span class="i-lucide-webhook size-4" />
+              </div>
+              <p class="font-medium truncate text-n-slate-12">
+                {{ trigger.name }}
+              </p>
+            </div>
+
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="font-mono text-[11px] truncate text-n-slate-11">
+                {{ getWebhookUrl(trigger.token) }}
+              </span>
+              <button
+                type="button"
+                class="text-xs shrink-0 text-n-slate-11 hover:text-n-slate-12"
+                title="Copiar URL"
+                @click.stop="copyUrl(getWebhookUrl(trigger.token))"
+              >
+                <span
+                  class="size-3.5"
+                  :class="
+                    copiedToken === trigger.token
+                      ? 'i-lucide-check'
+                      : 'i-lucide-copy'
+                  "
+                />
+              </button>
+            </div>
+
+            <div class="min-w-0 font-medium text-n-brand">
+              <button
+                v-if="trigger.workflow"
+                type="button"
+                class="flex items-center gap-1.5 max-w-full text-start hover:underline"
+                @click.stop="openWorkflow(trigger.workflow)"
+              >
+                <span class="i-lucide-workflow size-3.5 shrink-0" />
+                <span class="truncate">{{ trigger.workflow.name }}</span>
+              </button>
+              <span v-else class="font-normal text-n-slate-11">
+                Nenhum fluxo vinculado
+              </span>
+            </div>
+
+            <span
+              class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium w-fit"
+              :class="
+                trigger.active !== false
+                  ? 'bg-green-500/15 text-green-700 dark:text-green-300'
+                  : 'bg-n-alpha-2 text-n-slate-11'
+              "
+            >
+              <span
+                class="size-1.5 rounded-full"
                 :class="
-                  selectedTrigger?.id === trigger.id ? 'bg-n-brand/5' : ''
+                  trigger.active !== false ? 'bg-green-500' : 'bg-n-slate-8'
                 "
-                @click="selectedTrigger = trigger"
+              />
+              {{ trigger.active !== false ? 'Ativo' : 'Inativo' }}
+            </span>
+
+            <div class="flex justify-end">
+              <button
+                type="button"
+                class="px-2.5 py-1 text-xs font-medium rounded-lg border border-n-weak text-n-slate-12 hover:bg-n-alpha-2"
+                @click.stop="openTestModal(trigger)"
               >
-                <!-- NOME -->
-                <td class="py-3 px-4">
-                  <div class="flex items-center gap-3 min-w-0">
-                    <div
-                      class="size-9 rounded-xl flex items-center justify-center shrink-0 bg-n-amber-9/15 text-n-amber-11"
-                    >
-                      <span class="i-lucide-webhook size-4" />
-                    </div>
-                    <div class="min-w-0">
-                      <p class="font-medium text-n-slate-12 truncate">
-                        {{ trigger.name }}
-                      </p>
-                      <p class="text-xs text-n-slate-11 truncate">
-                        {{
-                          trigger.workflow
-                            ? 'Ligado ao fluxo'
-                            : 'Sem fluxo vinculado'
-                        }}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-
-                <!-- URL -->
-                <td class="py-3.5 px-4">
-                  <div class="flex items-center gap-2 max-w-[280px]">
-                    <span
-                      class="font-mono text-[11px] text-n-slate-11 truncate"
-                    >
-                      {{ getWebhookUrl(trigger.token) }}
-                    </span>
-                    <button
-                      type="button"
-                      class="text-xs text-n-slate-11 hover:text-n-slate-12 shrink-0"
-                      title="Copiar URL"
-                      @click.stop="copyUrl(getWebhookUrl(trigger.token))"
-                    >
-                      <span
-                        class="size-3.5"
-                        :class="
-                          copiedToken === trigger.token
-                            ? 'i-lucide-check'
-                            : 'i-lucide-copy'
-                        "
-                      />
-                    </button>
-                  </div>
-                </td>
-
-                <!-- WORKFLOW -->
-                <td class="py-3.5 px-4 font-medium text-n-brand">
-                  <button
-                    v-if="trigger.workflow"
-                    type="button"
-                    class="flex items-center gap-1.5 text-start hover:underline"
-                    @click.stop="openWorkflow(trigger.workflow)"
-                  >
-                    <span class="i-lucide-workflow size-3.5 shrink-0" />
-                    <span class="truncate">{{ trigger.workflow.name }}</span>
-                  </button>
-                  <span v-else class="text-n-slate-11">
-                    Nenhum fluxo vinculado
-                  </span>
-                </td>
-
-                <!-- STATUS -->
-                <td class="py-3.5 px-4">
-                  <span
-                    class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium"
-                    :class="
-                      trigger.active !== false
-                        ? 'bg-green-500/15 text-green-700 dark:text-green-300'
-                        : 'bg-n-alpha-2 text-n-slate-11'
-                    "
-                  >
-                    <span
-                      class="size-1.5 rounded-full"
-                      :class="
-                        trigger.active !== false
-                          ? 'bg-green-500'
-                          : 'bg-n-slate-8'
-                      "
-                    />
-                    {{ trigger.active !== false ? 'Ativo' : 'Inativo' }}
-                  </span>
-                </td>
-
-                <!-- AÇÕES -->
-                <td class="py-3.5 px-4 text-right space-x-2">
-                  <button
-                    type="button"
-                    class="px-2.5 py-1 rounded-lg border border-n-weak text-n-slate-12 hover:bg-n-alpha-2 text-xs font-medium"
-                    @click.stop="openTestModal(trigger)"
-                  >
-                    Testar
-                  </button>
-                  <button
-                    type="button"
-                    class="px-2.5 py-1 rounded-lg border border-n-weak text-n-slate-12 hover:bg-n-alpha-2 text-xs font-medium"
-                    @click.stop="openModal(trigger)"
-                  >
-                    Editar
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                Testar
+              </button>
+            </div>
+          </article>
         </div>
       </div>
     </div>
 
-    <!-- COLUNA DIREITA: DETALHES TÉCNICOS & LOGS DO WEBHOOK SELECIONADO -->
     <div
-      v-if="selectedTrigger"
-      class="w-[24rem] shrink-0 bg-n-solid-1 flex flex-col min-h-0 overflow-y-auto"
+      v-if="showDetails && selectedTrigger"
+      class="fixed inset-0 z-40 flex items-center justify-center bg-n-alpha-black1 p-4 backdrop-blur-[4px]"
+      @click.self="closeDetails"
     >
-      <div class="px-5 py-5 space-y-5">
+      <div
+        class="flex w-full max-w-5xl max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-n-weak bg-n-solid-1 shadow-xl"
+      >
         <div
-          class="flex items-center gap-3 min-w-0 pb-4 border-b border-n-weak"
+          class="flex items-start justify-between gap-4 px-6 py-5 border-b border-n-weak"
         >
-          <div
-            class="size-10 rounded-xl flex items-center justify-center shrink-0 bg-n-amber-9/15 text-n-amber-11"
-          >
-            <span class="i-lucide-webhook size-5" />
-          </div>
-          <div class="min-w-0">
-            <h3 class="text-base font-semibold text-n-slate-12 truncate">
-              {{ selectedTrigger.name }}
-            </h3>
-            <p class="text-xs text-n-slate-11 font-mono truncate">
-              Token: {{ selectedTrigger.token }}
-            </p>
-          </div>
-        </div>
-
-        <!-- ENDPOINT CURL COMPLETO -->
-        <div class="space-y-2">
-          <label class="block text-xs font-semibold text-n-slate-12"
-            >Endpoint externo</label
-          >
-          <div
-            class="p-3 rounded-xl bg-n-alpha-1 border border-n-weak space-y-2 font-mono text-[10px] text-n-slate-11"
-          >
-            <p class="whitespace-pre-wrap break-all">{{ curlText }}</p>
-          </div>
-        </div>
-
-        <!-- MAPEAMENTO DE CAMPOS -->
-        <div
-          class="p-3.5 rounded-xl bg-n-alpha-1 border border-n-weak space-y-2 text-xs"
-        >
-          <div class="flex items-center justify-between gap-2">
-            <h4 class="font-semibold text-n-slate-12">Mapeamento do payload</h4>
-            <button
-              v-if="selectedTrigger.payload_pinned"
-              type="button"
-              class="inline-flex items-center gap-1 text-[0.6875rem] font-medium text-n-amber-11"
-              @click="togglePinned"
+          <div class="flex items-start gap-3 min-w-0">
+            <div
+              class="flex items-center justify-center rounded-xl size-11 shrink-0 bg-n-amber-9/15 text-n-amber-11"
             >
-              <span class="i-lucide-pin size-3" />
-              Desafixar
-            </button>
-          </div>
-          <WebhookFieldMapping
-            :mapping="selectedTrigger.field_mapping || {}"
-            :fields="payloadFields"
-            :payload="activePayload"
-            :contact-attributes="contactAttributeOptions"
-            :conversation-attributes="conversationAttributeOptions"
-            @update-field="updateMappingField"
-            @update-contact-rows="saveAttributeRows"
-            @update-conversation-rows="saveConversationRows"
-          />
-          <p v-if="mappingError" class="text-[0.6875rem] text-n-ruby-11">
-            {{ mappingError }}
-          </p>
-        </div>
-
-        <!-- ÚLTIMAS REQUESTS RECEBIDAS -->
-        <div class="space-y-2">
-          <h4 class="text-xs font-semibold text-n-slate-12">
-            Últimas requisições
-          </h4>
-          <p
-            v-if="!selectedTrigger.recent_dispatches?.length"
-            class="p-3 rounded-xl bg-n-alpha-1 border border-n-weak text-[11px] text-n-slate-11"
-          >
-            Nenhum disparo registrado.
-          </p>
-          <div
-            v-for="dispatch in selectedTrigger.recent_dispatches"
-            :key="dispatch.id"
-            class="p-3 rounded-xl bg-n-alpha-1 border border-n-weak space-y-1"
-          >
-            <div class="flex items-center justify-between text-[11px]">
-              <span
-                class="font-bold"
-                :class="
-                  dispatch.status === 'failed'
-                    ? 'text-n-ruby-11'
-                    : 'text-green-700 dark:text-green-300'
-                "
-              >
-                {{ dispatch.status }}
-              </span>
-              <span class="text-n-slate-10 font-mono text-[10px]">{{
-                formatStamp(dispatch.created_at)
-              }}</span>
+              <span class="i-lucide-webhook size-5" />
             </div>
-            <p
-              v-if="dispatch.error_message"
-              class="text-[10px] text-n-ruby-11 truncate"
-            >
-              {{ dispatch.error_message }}
-            </p>
-            <button
-              v-if="dispatch.payload"
-              type="button"
-              class="text-[0.6875rem] font-medium text-n-brand hover:underline"
-              @click="useDispatchPayload(dispatch)"
-            >
-              Usar no mapeamento
-            </button>
+            <div class="flex flex-col flex-1 min-w-0 gap-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <input
+                  v-model="detailName"
+                  type="text"
+                  class="reset-base m-0 h-9 min-w-0 flex-1 px-3 text-sm font-medium rounded-lg bg-n-alpha-1 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12"
+                  @blur="saveDetails"
+                  @keydown.enter="$event.target.blur()"
+                />
+                <span
+                  class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                  :class="
+                    selectedTrigger.active !== false
+                      ? 'bg-n-teal-3 text-n-teal-11'
+                      : 'bg-n-slate-3 text-n-slate-11'
+                  "
+                >
+                  {{ selectedTrigger.active !== false ? 'Ativo' : 'Inativo' }}
+                </span>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <div class="relative">
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-2 h-8 px-3 text-sm rounded-lg text-n-slate-12 outline outline-1 outline-n-weak hover:bg-n-alpha-2"
+                    @click.stop="inboxMenuOpen = !inboxMenuOpen"
+                  >
+                    {{ inboxName(detailInboxId) }}
+                    <span class="i-lucide-chevron-down size-3.5" />
+                  </button>
+                  <div
+                    v-if="inboxMenuOpen"
+                    class="absolute z-40 flex flex-col w-64 p-1 mt-1 border rounded-xl shadow-lg start-0 bg-n-solid-2 border-n-weak"
+                  >
+                    <button
+                      v-for="inbox in inboxes"
+                      :key="inbox.id"
+                      type="button"
+                      class="px-3 py-2 text-sm text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2"
+                      @click="selectInbox(inbox.id)"
+                    >
+                      {{ inbox.name }}
+                    </button>
+                  </div>
+                </div>
+                <p class="text-sm text-n-slate-11">
+                  <span v-if="selectedTrigger.workflow">
+                    {{ selectedTrigger.workflow.name }}
+                  </span>
+                  <span v-else>Sem fluxo vinculado</span>
+                  <span v-if="savingDetails"> · Salvando…</span>
+                </p>
+              </div>
+              <p v-if="detailError" class="text-xs text-n-ruby-11">
+                {{ detailError }}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="flex items-center justify-center rounded-lg size-8 text-n-slate-11 hover:bg-n-alpha-2"
+            @click="closeDetails"
+          >
+            <span class="i-lucide-x size-4" />
+          </button>
+        </div>
+
+        <div class="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+          <div class="grid gap-5 lg:grid-cols-2">
+            <div class="flex flex-col gap-4">
+              <section class="p-4 border rounded-2xl border-n-weak">
+                <p
+                  class="text-xs font-medium tracking-wide uppercase text-n-slate-10"
+                >
+                  Endpoint
+                </p>
+                <div
+                  class="flex items-center gap-2 mt-2 h-10 px-3 rounded-xl bg-n-alpha-1 outline outline-1 outline-n-weak"
+                >
+                  <span class="text-[0.625rem] font-bold text-n-amber-11">
+                    POST
+                  </span>
+                  <span
+                    class="flex-1 min-w-0 font-mono text-xs truncate text-n-slate-12"
+                  >
+                    {{ getWebhookUrl(selectedTrigger.token) }}
+                  </span>
+                  <button
+                    type="button"
+                    class="text-n-slate-11 hover:text-n-slate-12"
+                    @click="copyUrl(getWebhookUrl(selectedTrigger.token))"
+                  >
+                    <span
+                      class="size-4"
+                      :class="
+                        copiedToken === selectedTrigger.token
+                          ? 'i-lucide-check'
+                          : 'i-lucide-copy'
+                      "
+                    />
+                  </button>
+                </div>
+                <p class="mt-2 text-xs text-n-slate-11">
+                  Envie um JSON para este endereço. O fluxo usa o mapeamento
+                  abaixo para achar o contato.
+                </p>
+              </section>
+
+              <section class="p-4 border rounded-2xl border-n-weak">
+                <div class="flex items-center justify-between gap-2">
+                  <p
+                    class="text-xs font-medium tracking-wide uppercase text-n-slate-10"
+                  >
+                    Exemplo cURL
+                  </p>
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-1 text-xs font-medium text-n-slate-11 hover:text-n-slate-12"
+                    @click="copyCurl"
+                  >
+                    <span
+                      class="size-3.5"
+                      :class="copiedCurl ? 'i-lucide-check' : 'i-lucide-copy'"
+                    />
+                    {{ copiedCurl ? 'Copiado' : 'Copiar' }}
+                  </button>
+                </div>
+                <pre
+                  class="mt-2 p-3 overflow-auto font-mono text-xs whitespace-pre-wrap break-all rounded-xl bg-n-alpha-1 text-n-slate-11 max-h-40"
+                  >{{ curlText }}</pre
+                >
+              </section>
+
+              <section class="p-4 border rounded-2xl border-n-weak">
+                <p
+                  class="text-xs font-medium tracking-wide uppercase text-n-slate-10"
+                >
+                  Últimas requisições
+                </p>
+                <p
+                  v-if="!selectedTrigger.recent_dispatches?.length"
+                  class="mt-3 text-sm text-n-slate-11"
+                >
+                  Nenhum disparo registrado neste fluxo.
+                </p>
+                <ul v-else class="flex flex-col gap-2 mt-3">
+                  <li
+                    v-for="dispatch in selectedTrigger.recent_dispatches"
+                    :key="dispatch.id"
+                    class="p-3 rounded-xl bg-n-alpha-1"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <span
+                        class="text-xs font-medium"
+                        :class="
+                          dispatch.status === 'failed'
+                            ? 'text-n-ruby-11'
+                            : dispatch.status === 'completed'
+                              ? 'text-n-teal-11'
+                              : 'text-n-slate-12'
+                        "
+                      >
+                        {{ dispatchStatusLabel(dispatch.status) }}
+                      </span>
+                      <span class="text-xs text-n-slate-10">
+                        {{ formatStamp(dispatch.created_at) }}
+                      </span>
+                    </div>
+                    <p
+                      v-if="dispatch.error_message"
+                      class="mt-1 text-xs break-words text-n-ruby-11"
+                    >
+                      {{ dispatch.error_message }}
+                    </p>
+                    <button
+                      v-if="dispatch.payload"
+                      type="button"
+                      class="mt-2 text-xs font-medium text-n-brand hover:underline"
+                      @click="useDispatchPayload(dispatch)"
+                    >
+                      Usar este JSON no mapeamento
+                    </button>
+                  </li>
+                </ul>
+              </section>
+            </div>
+
+            <section class="p-4 border rounded-2xl border-n-weak">
+              <div class="flex items-center justify-between gap-2">
+                <p
+                  class="text-xs font-medium tracking-wide uppercase text-n-slate-10"
+                >
+                  Mapeamento
+                </p>
+                <button
+                  v-if="selectedTrigger.payload_pinned"
+                  type="button"
+                  class="inline-flex items-center gap-1 text-xs font-medium text-n-amber-11"
+                  @click="togglePinned"
+                >
+                  <span class="i-lucide-pin size-3" />
+                  Exemplo fixado
+                </button>
+              </div>
+              <p
+                v-if="payloadFields.length"
+                class="mt-2 mb-3 text-xs text-n-slate-11"
+              >
+                {{ payloadFields.length }} campos no exemplo atual.
+              </p>
+              <WebhookFieldMapping
+                :mapping="selectedTrigger.field_mapping || {}"
+                :fields="payloadFields"
+                :payload="activePayload"
+                :contact-attributes="contactAttributeOptions"
+                :conversation-attributes="conversationAttributeOptions"
+                @update-field="updateMappingField"
+                @update-contact-rows="saveAttributeRows"
+                @update-conversation-rows="saveConversationRows"
+              />
+              <p v-if="mappingError" class="mt-2 text-xs text-n-ruby-11">
+                {{ mappingError }}
+              </p>
+            </section>
           </div>
         </div>
-      </div>
 
-      <!-- BOTÃO TESTAR OU EXCLUIR -->
-      <div class="px-5 py-4 border-t border-n-weak flex items-center gap-2">
-        <button
-          v-if="selectedTrigger.workflow"
-          type="button"
-          class="flex-1 h-9 px-3 rounded-xl border border-n-weak text-n-slate-12 hover:bg-n-alpha-2 text-sm font-medium"
-          @click="openWorkflow(selectedTrigger.workflow)"
+        <div
+          class="flex flex-wrap items-center justify-between gap-2 px-6 py-4 border-t border-n-weak"
         >
-          Abrir fluxo
-        </button>
-        <button
-          type="button"
-          class="flex-1 h-9 px-3 rounded-xl bg-n-brand text-white text-sm font-semibold hover:opacity-90"
-          @click="openTestModal(selectedTrigger)"
-        >
-          Testar disparo
-        </button>
-        <button
-          type="button"
-          class="py-2 px-3 rounded-xl border border-n-ruby-9/30 text-n-ruby-11 hover:bg-n-ruby-9/10 text-xs font-semibold"
-          @click="deleteTrigger(selectedTrigger.id)"
-        >
-          Excluir
-        </button>
+          <div
+            v-if="confirmingDelete"
+            class="flex flex-wrap items-center gap-2"
+          >
+            <p class="text-sm text-n-slate-12">
+              Excluir {{ selectedTrigger.name }}?
+            </p>
+            <button
+              type="button"
+              class="h-9 px-3 text-sm rounded-lg text-n-slate-11 hover:bg-n-alpha-2"
+              @click="confirmingDelete = false"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="h-9 px-3 text-sm font-medium rounded-lg bg-n-ruby-9 text-white"
+              @click="deleteTrigger(selectedTrigger.id)"
+            >
+              Excluir
+            </button>
+          </div>
+          <template v-else>
+            <button
+              type="button"
+              class="h-9 px-3 text-sm font-medium rounded-lg text-n-ruby-11 outline outline-1 outline-n-ruby-7 hover:bg-n-ruby-3"
+              @click="confirmingDelete = true"
+            >
+              Excluir
+            </button>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-if="selectedTrigger.workflow"
+                type="button"
+                class="h-9 px-3 text-sm font-medium rounded-lg text-n-slate-12 outline outline-1 outline-n-weak hover:bg-n-alpha-2"
+                @click="openWorkflow(selectedTrigger.workflow)"
+              >
+                Abrir fluxo
+              </button>
+              <button
+                type="button"
+                class="h-9 px-3 text-sm font-semibold rounded-lg bg-n-brand text-white"
+                @click="openTestModal(selectedTrigger)"
+              >
+                Testar disparo
+              </button>
+            </div>
+          </template>
+        </div>
       </div>
     </div>
 
@@ -645,9 +861,7 @@ export default {
         @submit.prevent="saveTrigger"
       >
         <div>
-          <h2 class="text-base font-semibold text-n-slate-12">
-            {{ editingId ? 'Editar webhook' : 'Novo webhook' }}
-          </h2>
+          <h2 class="text-base font-semibold text-n-slate-12">Novo webhook</h2>
           <p class="mt-1 text-xs text-n-slate-11">
             O endereço criado aqui é o mesmo gatilho usado dentro do fluxo.
           </p>

@@ -182,6 +182,7 @@ module Evolution
         status: (merged['connectionStatus'] || merged['status'] || merged['state']).to_s,
         owner: owner,
         profile_name: merged['profileName'].to_s,
+        profile_picture: (merged['profilePicUrl'] || merged['profilePictureUrl']).to_s,
         integration: (merged['integration'] || nested['integration']).to_s
       }
     end
