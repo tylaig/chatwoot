@@ -117,7 +117,7 @@ class Api::V1::Accounts::WhatsappTemplatesController < Api::V1::Accounts::BaseCo
   def official_inbox?(record)
     inbox = Current.account.inboxes.find_by(id: record.inbox_id)
     channel = inbox&.channel
-    if channel.is_a?(Channel::Whatsapp) && channel.provider == 'whatsapp_cloud'
+    if channel.is_a?(Channel::Whatsapp) && channel.provider == 'whatsapp_cloud' && !inbox.legacy
       record.inbox = inbox
       return true
     end

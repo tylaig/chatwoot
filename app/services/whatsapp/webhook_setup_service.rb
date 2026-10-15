@@ -83,7 +83,7 @@ class Whatsapp::WebhookSetupService
 
   # Subscribe to `calls` only when voice calling is enabled on the inbox
   def subscribed_fields
-    fields = %w[messages smb_message_echoes]
+    fields = %w[messages smb_message_echoes message_template_status_update]
     fields << 'calls' if calls_enabled_on_waba?
     fields
   end

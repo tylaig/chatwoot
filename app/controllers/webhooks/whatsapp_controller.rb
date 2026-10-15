@@ -10,13 +10,25 @@ class Webhooks::WhatsappController < ActionController::API
       return
     end
 
-    return head :ok if tracking_events_only?
+    Whatsapp::TemplateStatusService.new(
+      phone_number: params[:phone_number],
+      payload: params.to_unsafe_hash
+    ).perform
+
+    return head :ok if tracking_events_only? || template_status_only?
 
     Webhooks::WhatsappEventsJob.perform_later(params.to_unsafe_hash)
     head :ok
   end
 
   private
+
+  def template_status_only?
+    return false unless params[:object] == 'whatsapp_business_account'
+
+    changes = params.fetch(:entry, []).flat_map { |entry| entry.fetch(:changes, []) }
+    changes.present? && changes.all? { |change| change[:field] == 'message_template_status_update' }
+  end
 
   def tracking_events_only?
     return false unless params[:object] == 'whatsapp_business_account'

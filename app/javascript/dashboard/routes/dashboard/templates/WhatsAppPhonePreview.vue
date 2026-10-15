@@ -8,11 +8,11 @@ const props = defineProps({
   },
   contactName: {
     type: String,
-    default: 'Games Safari Oficial',
+    default: 'WhatsApp',
   },
   avatarUrl: {
     type: String,
-    default: 'https://gamessafari.com/cdn/shop/files/logo_png_sem_controle.png',
+    default: '',
   },
   sampleVariables: {
     type: Object,
@@ -65,6 +65,14 @@ const escapeHtml = value =>
   value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 const headerContent = computed(() => props.template.header_content || '');
+
+const avatarInitials = computed(() => {
+  const parts = String(props.contactName || 'WhatsApp')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2);
+  return parts.map(part => part.charAt(0).toUpperCase()).join('') || 'WA';
+});
 
 const renderText = value => {
   let text = escapeHtml(value || '');
@@ -168,10 +176,17 @@ const buttons = computed(() => {
 
           <div class="relative shrink-0">
             <img
+              v-if="avatarUrl"
               :src="avatarUrl"
-              alt="Avatar"
-              class="w-9 h-9 rounded-full object-cover bg-white border border-white/20 p-0.5"
+              alt=""
+              class="w-9 h-9 rounded-full object-cover bg-white border border-white/20"
             />
+            <div
+              v-else
+              class="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-xs font-semibold"
+            >
+              {{ avatarInitials }}
+            </div>
           </div>
 
           <div class="flex-1 min-w-0">
@@ -235,7 +250,7 @@ const buttons = computed(() => {
         >
           <!-- WhatsApp Message Bubble -->
           <div
-            class="relative max-w-[92%] self-start bg-white dark:bg-[#1f2c34] text-slate-900 dark:text-slate-100 rounded-2xl rounded-tl-sm p-3 shadow-sm border border-black/5"
+            class="relative max-w-[92%] self-start rounded-2xl rounded-tl-sm bg-white p-3 text-slate-900 shadow-sm dark:bg-[#1f2c34] dark:text-slate-100"
           >
             <!-- Header section -->
             <div

@@ -111,7 +111,7 @@ RSpec.describe 'Webhooks::WhatsappController', type: :request do
         end
       end
 
-      %w[messages smb_message_echoes calls].each do |field|
+      %w[messages smb_message_echoes calls message_template_status_update].each do |field|
         it "preserves #{field} events in mixed payloads" do
           entries.first[:changes] << { field: field, value: {} }
           post_whatsapp_webhook('/webhooks/whatsapp/123221321', body)

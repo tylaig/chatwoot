@@ -1,5 +1,13 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUpdate, watch, nextTick } from 'vue';
+import {
+  ref,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  onBeforeUpdate,
+  watch,
+  nextTick,
+} from 'vue';
 import { OnClickOutside } from '@vueuse/components';
 import { useRoute, useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
@@ -12,6 +20,10 @@ const route = useRoute();
 const router = useRouter();
 const store = useStore();
 const inboxes = useMapGetter('inboxes/getInboxes');
+const contactAttributes = useMapGetter('attributes/getContactAttributes');
+const conversationAttributes = useMapGetter(
+  'attributes/getConversationAttributes'
+);
 
 const templateId = computed(() => route.params.templateId);
 const isEditing = computed(() => Boolean(templateId.value));
@@ -35,7 +47,12 @@ const form = ref({
 });
 
 const isVariableMenuOpen = ref(false);
+const variableButtonRef = ref(null);
+const variableMenuRef = ref(null);
+const variableMenuStyle = ref({});
+const variableListMaxHeight = ref('16rem');
 const variableSearch = ref('');
+const variableSources = ref({});
 const textareaRef = ref(null);
 const headerTextRef = ref(null);
 const footerTextRef = ref(null);
@@ -77,46 +94,83 @@ onBeforeUpdate(() => {
   sampleFieldEls.value = [];
 });
 
-const systemVariables = [
-  {
-    key: 'nome_completo',
-    label: 'nome-completo',
-    desc: 'Nome completo do contato',
-  },
-  { key: 'primeiro_nome', label: 'primeiro-nome', desc: 'Primeiro nome' },
-  { key: 'sobrenome', label: 'sobrenome', desc: 'Sobrenome' },
-  { key: 'telefone', label: 'telefone', desc: 'Número de telefone' },
-  { key: 'ddd', label: 'ddd', desc: 'DDD / código de área' },
-  {
-    key: 'nome_indicador',
-    label: 'nome-indicador',
-    desc: 'Nome do indicador / vendedor',
-  },
-  {
-    key: 'link_pedido',
-    label: 'link-pedido',
-    desc: 'URL de rastreamento / pedido',
-  },
-  { key: 'valor_total', label: 'valor-total', desc: 'Valor total do pedido' },
-  {
-    key: 'codigo_rastreio',
-    label: 'codigo-rastreio',
-    desc: 'Código de rastreamento',
-  },
-  {
-    key: 'nome_produto',
-    label: 'nome-produto',
-    desc: 'Nome do jogo / produto',
-  },
+const CONTACT_FIELDS = [
+  { path: 'contact.name', label: 'Nome completo' },
+  { path: 'contact.first_name', label: 'Primeiro nome' },
+  { path: 'contact.last_name', label: 'Sobrenome' },
+  { path: 'contact.phone_number', label: 'Telefone' },
+  { path: 'contact.email', label: 'E-mail' },
 ];
 
-const filteredVariables = computed(() => {
-  const q = variableSearch.value.toLowerCase().trim();
-  if (!q) return systemVariables;
-  return systemVariables.filter(
-    v => v.label.toLowerCase().includes(q) || v.desc.toLowerCase().includes(q)
-  );
+const CONVERSATION_FIELDS = [
+  { path: 'conversation.id', label: 'ID da conversa' },
+  { path: 'conversation.status', label: 'Status da conversa' },
+];
+
+const STANDARD_TOKENS = {
+  'contact.name': 'nome',
+  'contact.first_name': 'primeiro_nome',
+  'contact.last_name': 'sobrenome',
+  'contact.phone_number': 'telefone',
+  'contact.email': 'email',
+  'conversation.id': 'conversa_id',
+  'conversation.status': 'status',
+};
+
+const attributeItems = (records, root) =>
+  (records || [])
+    .map(attr => {
+      const key = attr.attributeKey || attr.attribute_key;
+      if (!key) return null;
+      return {
+        path: `${root}.custom_attributes.${key}`,
+        label: attr.attributeDisplayName || attr.attribute_display_name || key,
+      };
+    })
+    .filter(Boolean);
+
+const variableGroups = computed(() => [
+  {
+    id: 'contact',
+    label: 'Contato',
+    items: [
+      ...CONTACT_FIELDS,
+      ...attributeItems(contactAttributes.value, 'contact'),
+    ],
+  },
+  {
+    id: 'conversation',
+    label: 'Conversa',
+    items: [
+      ...CONVERSATION_FIELDS,
+      ...attributeItems(conversationAttributes.value, 'conversation'),
+    ],
+  },
+]);
+
+const filteredVariableGroups = computed(() => {
+  const query = variableSearch.value.toLowerCase().trim();
+  return variableGroups.value
+    .map(group => ({
+      ...group,
+      items: query
+        ? group.items.filter(
+            item =>
+              item.label.toLowerCase().includes(query) ||
+              item.path.toLowerCase().includes(query)
+          )
+        : group.items,
+    }))
+    .filter(group => group.items.length);
 });
+
+const sourceLabel = path => {
+  if (!path || !String(path).includes('.')) return '';
+  const match = variableGroups.value
+    .flatMap(group => group.items)
+    .find(item => item.path === path);
+  return match?.label || String(path).split('.').pop();
+};
 
 const categories = [
   {
@@ -166,9 +220,17 @@ const officialInboxes = computed(() =>
   (inboxes.value || []).filter(
     inbox =>
       inbox.channel_type === 'Channel::Whatsapp' &&
-      inbox.provider === 'whatsapp_cloud'
+      inbox.provider === 'whatsapp_cloud' &&
+      !inbox.legacy
   )
 );
+
+const selectedInbox = computed(() =>
+  officialInboxes.value.find(inbox => inbox.id === form.value.inbox_id)
+);
+
+const previewName = computed(() => selectedInbox.value?.name || 'WhatsApp');
+const previewAvatar = computed(() => selectedInbox.value?.avatar_url || '');
 
 const isStep1Valid = computed(
   () =>
@@ -181,7 +243,10 @@ const variableRows = computed(() =>
     form.value.header_content,
     form.value.body,
     sampleValues.value
-  )
+  ).map(row => ({
+    ...row,
+    name: variableSources.value[row.key] || row.key,
+  }))
 );
 
 const templatePayload = computed(() => ({
@@ -294,9 +359,68 @@ const applyFormat = wrapper => {
   }, 50);
 };
 
-const insertVariable = varKey => {
+const metaTokenFor = path => {
+  const preferred = STANDARD_TOKENS[path] || String(path).split('.').pop();
+  let token = preferred
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '')
+    .replace(/^[^a-z]+/, '');
+  if (!token) token = 'campo';
+  token = token.slice(0, 20);
+  const used = new Set(
+    [...form.value.body.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)].map(
+      match => match[1]
+    )
+  );
+  if (!used.has(token) || variableSources.value[token] === path) return token;
+
+  let suffix = 2;
+  let candidate = `${token.slice(0, 18)}${suffix}`.slice(0, 20);
+  while (used.has(candidate) && variableSources.value[candidate] !== path) {
+    suffix += 1;
+    candidate = `${token.slice(0, 18)}${suffix}`.slice(0, 20);
+  }
+  return candidate;
+};
+
+const placeVariableMenu = () => {
+  const button = variableButtonRef.value;
+  if (!button) return;
+
+  const rect = button.getBoundingClientRect();
+  const width = 288;
+  const margin = 8;
+  const left = Math.max(
+    margin,
+    Math.min(rect.left, window.innerWidth - width - margin)
+  );
+  const spaceAbove = rect.top - margin;
+  const spaceBelow = window.innerHeight - rect.bottom - margin;
+  const openUp = spaceAbove > spaceBelow;
+  const room = openUp ? spaceAbove : spaceBelow;
+
+  variableListMaxHeight.value = `${Math.max(140, room - 88)}px`;
+  variableMenuStyle.value = openUp
+    ? {
+        left: `${left}px`,
+        bottom: `${window.innerHeight - rect.top + margin}px`,
+      }
+    : {
+        left: `${left}px`,
+        top: `${rect.bottom + margin}px`,
+      };
+};
+
+const toggleVariableMenu = () => {
+  isVariableMenuOpen.value = !isVariableMenuOpen.value;
+  if (isVariableMenuOpen.value) nextTick(placeVariableMenu);
+};
+
+const insertVariable = item => {
+  const token = metaTokenFor(item.path);
+  variableSources.value = { ...variableSources.value, [token]: item.path };
   const textarea = textareaRef.value;
-  const placeholder = `{{${varKey}}}`;
+  const placeholder = `{{${token}}}`;
 
   if (!textarea) {
     form.value.body += placeholder;
@@ -420,12 +544,15 @@ const loadTemplate = async () => {
       inbox_id: tpl.inbox_id,
     };
     const samples = {};
+    const sources = {};
     (tpl.variables || []).forEach(item => {
       const key = String(item.key || '').replace(/[{}]/g, '');
       if (!key) return;
       samples[`${item.component || 'body'}:${key}`] = item.sample_value || '';
+      if (String(item.name || '').includes('.')) sources[key] = item.name;
     });
     sampleValues.value = samples;
+    variableSources.value = sources;
     currentStep.value = 2;
   } catch (err) {
     useAlert('Não foi possível abrir o template.');
@@ -446,8 +573,24 @@ watch(
   () => nextTick(resizeContentFields)
 );
 
+watch(isVariableMenuOpen, open => {
+  if (open) {
+    window.addEventListener('scroll', placeVariableMenu, true);
+    window.addEventListener('resize', placeVariableMenu);
+    return;
+  }
+  window.removeEventListener('scroll', placeVariableMenu, true);
+  window.removeEventListener('resize', placeVariableMenu);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', placeVariableMenu, true);
+  window.removeEventListener('resize', placeVariableMenu);
+});
+
 onMounted(() => {
   store.dispatch('inboxes/get');
+  store.dispatch('attributes/get');
   loadTemplate();
 });
 </script>
@@ -560,9 +703,15 @@ onMounted(() => {
               @click="selectInbox(inbox.id)"
             >
               <div
-                class="flex items-center justify-center size-10 rounded-xl bg-n-brand/10 text-n-brand shrink-0"
+                class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-n-brand/10 text-n-brand"
               >
-                <span class="i-lucide-smartphone size-5" />
+                <img
+                  v-if="inbox.avatar_url"
+                  :src="inbox.avatar_url"
+                  alt=""
+                  class="size-full object-cover"
+                />
+                <span v-else class="i-lucide-smartphone size-5" />
               </div>
               <div class="flex-1 pr-6">
                 <span class="font-medium text-n-slate-12">{{
@@ -886,7 +1035,7 @@ onMounted(() => {
                 </div>
 
                 <div
-                  class="overflow-hidden rounded-lg bg-n-solid-1 outline outline-1 outline-n-weak focus-within:outline-n-brand"
+                  class="rounded-lg bg-n-solid-1 outline outline-1 outline-n-weak focus-within:outline-n-brand"
                 >
                   <textarea
                     ref="textareaRef"
@@ -928,14 +1077,15 @@ onMounted(() => {
                       </button>
 
                       <OnClickOutside
-                        class="relative"
+                        :options="{ ignore: [variableMenuRef] }"
                         @trigger="isVariableMenuOpen = false"
                       >
                         <button
+                          ref="variableButtonRef"
                           type="button"
                           title="Inserir Campos do Sistema / Variáveis"
                           class="px-2.5 h-8 rounded-lg flex items-center gap-1.5 text-xs font-semibold text-n-brand bg-n-brand/10 hover:bg-n-brand/20 transition-colors"
-                          @click="isVariableMenuOpen = !isVariableMenuOpen"
+                          @click="toggleVariableMenu"
                         >
                           <span class="font-mono text-sm font-bold leading-none"
                             >{ }</span
@@ -943,54 +1093,77 @@ onMounted(() => {
                           <span class="text-[11px]">Variável</span>
                         </button>
 
-                        <div
-                          v-if="isVariableMenuOpen"
-                          class="absolute bottom-10 start-0 w-72 rounded-xl bg-n-solid-2 shadow-xl border border-n-weak p-2 z-50"
-                        >
-                          <div class="p-1 border-b border-n-weak mb-2">
-                            <p class="text-xs font-semibold text-n-slate-12">
-                              Campos do Sistema
-                            </p>
-                            <div class="relative mt-1.5">
-                              <span
-                                class="i-lucide-search size-3.5 absolute start-2.5 top-1/2 -translate-y-1/2 text-n-slate-10"
-                              />
-                              <input
-                                v-model="variableSearch"
-                                type="text"
-                                placeholder="Buscar campos..."
-                                class="reset-base w-full m-0 h-8 ps-8 pe-2.5 py-0 text-xs rounded-lg bg-n-alpha-black2 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12 placeholder:text-n-slate-10"
-                              />
+                        <Teleport to="body">
+                          <div
+                            v-if="isVariableMenuOpen"
+                            ref="variableMenuRef"
+                            class="fixed z-[80] w-72 rounded-xl border border-n-weak bg-n-solid-2 p-2 shadow-xl"
+                            :style="variableMenuStyle"
+                          >
+                            <div class="p-1 border-b border-n-weak mb-2">
+                              <p class="text-xs font-semibold text-n-slate-12">
+                                Contato e conversa
+                              </p>
+                              <div class="relative mt-1.5">
+                                <span
+                                  class="i-lucide-search size-3.5 absolute start-2.5 top-1/2 -translate-y-1/2 text-n-slate-10"
+                                />
+                                <input
+                                  v-model="variableSearch"
+                                  type="text"
+                                  placeholder="Buscar campos..."
+                                  class="reset-base w-full m-0 h-8 ps-8 pe-2.5 py-0 text-xs rounded-lg bg-n-alpha-black2 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12 placeholder:text-n-slate-10"
+                                />
+                              </div>
+                            </div>
+
+                            <div
+                              class="overflow-y-auto space-y-2"
+                              :style="{ maxHeight: variableListMaxHeight }"
+                            >
+                              <p
+                                v-if="!filteredVariableGroups.length"
+                                class="px-2 py-3 text-xs text-n-slate-11"
+                              >
+                                Nenhum campo encontrado.
+                              </p>
+                              <div
+                                v-for="group in filteredVariableGroups"
+                                :key="group.id"
+                              >
+                                <p
+                                  class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-n-slate-10"
+                                >
+                                  {{ group.label }}
+                                </p>
+                                <button
+                                  v-for="item in group.items"
+                                  :key="item.path"
+                                  type="button"
+                                  class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left hover:bg-n-alpha-2 transition-colors"
+                                  @click="insertVariable(item)"
+                                >
+                                  <span
+                                    class="font-mono text-sm font-bold leading-none text-n-iris-11 shrink-0"
+                                    >{ }</span
+                                  >
+                                  <span class="min-w-0">
+                                    <span
+                                      class="block text-xs font-medium text-n-slate-12 truncate"
+                                    >
+                                      {{ item.label }}
+                                    </span>
+                                    <span
+                                      class="block text-[10px] text-n-slate-11 truncate"
+                                    >
+                                      {{ item.path }}
+                                    </span>
+                                  </span>
+                                </button>
+                              </div>
                             </div>
                           </div>
-
-                          <div class="max-h-48 overflow-y-auto space-y-0.5">
-                            <button
-                              v-for="v in filteredVariables"
-                              :key="v.key"
-                              type="button"
-                              class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left hover:bg-n-alpha-2 transition-colors"
-                              @click="insertVariable(v.key)"
-                            >
-                              <span
-                                class="font-mono text-sm font-bold leading-none text-n-iris-11 shrink-0"
-                                >{ }</span
-                              >
-                              <span class="min-w-0">
-                                <span
-                                  class="block text-xs font-medium text-n-slate-12 truncate"
-                                >
-                                  {{ v.label }}
-                                </span>
-                                <span
-                                  class="block text-[10px] text-n-slate-11 truncate"
-                                >
-                                  {{ v.desc }}
-                                </span>
-                              </span>
-                            </button>
-                          </div>
-                        </div>
+                        </Teleport>
                       </OnClickOutside>
                     </div>
                   </div>
@@ -1013,13 +1186,21 @@ onMounted(() => {
                   class="flex flex-col sm:flex-row sm:items-center gap-2"
                 >
                   <span
-                    class="inline-flex items-center gap-1 w-40 shrink-0 font-mono text-xs text-n-slate-11"
+                    class="inline-flex items-center gap-1 w-44 shrink-0 font-mono text-xs text-n-slate-11"
                   >
                     <span
                       class="font-mono text-sm font-bold leading-none text-n-iris-11"
                       >{ }</span
                     >
-                    {{ row.key }}
+                    <span class="min-w-0 truncate">
+                      {{ row.key }}
+                      <span
+                        v-if="sourceLabel(row.name)"
+                        class="block font-sans text-[10px] text-n-slate-10 truncate"
+                      >
+                        {{ sourceLabel(row.name) }}
+                      </span>
+                    </span>
                   </span>
                   <textarea
                     :ref="
@@ -1176,8 +1357,8 @@ onMounted(() => {
             <WhatsAppPhonePreview
               :template="form"
               :sample-variables="previewSamples"
-              contact-name="Games Safari Oficial"
-              avatar-url="https://gamessafari.com/cdn/shop/files/logo_png_sem_controle.png"
+              :contact-name="previewName"
+              :avatar-url="previewAvatar"
             />
           </div>
         </div>

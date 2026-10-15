@@ -711,6 +711,15 @@ const handleInsertNode = nodeMeta => {
 };
 
 // ---------- Templates ----------
+const templateParamsFrom = tpl => {
+  const params = {};
+  (tpl.variables || []).forEach(item => {
+    const source = String(item.name || '');
+    if (source.includes('.')) params[item.key] = `{{ $${source} }}`;
+  });
+  return params;
+};
+
 const handleSelectTemplate = tpl => {
   showTemplatePicker.value = false;
   if (!selectedNode.value) return;
@@ -719,7 +728,7 @@ const handleSelectTemplate = tpl => {
     template_name: tpl.name,
     template_language: tpl.language || 'pt_BR',
     template_category: tpl.category || 'MARKETING',
-    template_params: {},
+    template_params: templateParamsFrom(tpl),
   });
 };
 
