@@ -19,11 +19,51 @@ class Whatsapp::TemplateProcessorService
   end
 
   def find_template
-    channel.message_templates.find do |t|
-      t['name'] == template_params['name'] &&
-        t['language']&.downcase == template_params['language']&.downcase &&
-        t['status']&.downcase == 'approved'
+    cached = Array(channel.message_templates).find do |item|
+      item['name'] == template_params['name'] &&
+        item['language'].to_s.casecmp(template_params['language'].to_s).zero? &&
+        item['status'].to_s.casecmp('approved').zero?
     end
+    return with_parameter_format(cached) if cached
+
+    record = account_template
+    return if record.blank?
+
+    with_parameter_format(template_from_record(record))
+  end
+
+  def account_template
+    account = channel.inbox&.account
+    return if account.blank?
+
+    scope = account.whatsapp_templates.approved.where(name: template_params['name'])
+    language = template_params['language'].to_s
+    scope.find_by(language: language) || scope.where('LOWER(language) = ?', language.downcase).first
+  end
+
+  def template_from_record(record)
+    components = []
+    if record.header_type == 'TEXT' && record.header_content.present?
+      components << { 'type' => 'HEADER', 'format' => 'TEXT', 'text' => record.header_content }
+    elsif %w[IMAGE VIDEO DOCUMENT].include?(record.header_type)
+      components << { 'type' => 'HEADER', 'format' => record.header_type }
+    end
+    components << { 'type' => 'BODY', 'text' => record.body }
+    {
+      'name' => record.name,
+      'language' => record.language,
+      'status' => 'APPROVED',
+      'components' => components
+    }
+  end
+
+  def with_parameter_format(template)
+    return template if template['parameter_format'].present?
+
+    body = Array(template['components']).find { |component| component['type'] == 'BODY' }&.[]('text')
+    tokens = body.to_s.scan(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/).flatten
+    format = tokens.any? { |token| token.match?(/\A[a-z]/) } ? 'NAMED' : 'POSITIONAL'
+    template.merge('parameter_format' => format)
   end
 
   def processed_templates_params

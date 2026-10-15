@@ -167,14 +167,51 @@ const templatePlaceholders = computed(() => {
   ];
 });
 
-const templatePreview = computed(() => {
-  const body = selectedTemplate.value?.body || '';
-  const params = config.value.template_params || {};
-  return body.replace(
-    /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
-    (match, key) => params[key] || match
+const sampleForPlaceholder = key => {
+  const variable = (selectedTemplate.value?.variables || []).find(
+    item => String(item.key) === key
   );
+  return String(variable?.sample_value || '').trim();
+};
+
+const previewParts = text => {
+  const value = text || '';
+  const parts = [];
+  let lastIndex = 0;
+  Array.from(value.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)).forEach(
+    match => {
+      if (match.index > lastIndex) {
+        parts.push({
+          type: 'text',
+          text: value.slice(lastIndex, match.index),
+        });
+      }
+      const sample = sampleForPlaceholder(match[1]);
+      parts.push({ type: 'sample', text: sample || match[1] });
+      lastIndex = match.index + match[0].length;
+    }
+  );
+  if (lastIndex < value.length) {
+    parts.push({ type: 'text', text: value.slice(lastIndex) });
+  }
+  return parts;
+};
+
+const templatePreviewHeader = computed(() => {
+  const template = selectedTemplate.value;
+  if (!template || template.header_type !== 'TEXT') return [];
+  return previewParts(template.header_content);
 });
+
+const templatePreviewBody = computed(() =>
+  previewParts(selectedTemplate.value?.body || '')
+);
+
+const templatePreviewFooter = computed(() =>
+  previewParts(selectedTemplate.value?.footer || '')
+);
+
+const hasTemplatePreview = computed(() => templatePreviewBody.value.length > 0);
 
 const placeholderLabel = key => `{{${key}}}`;
 
@@ -487,35 +524,80 @@ const responseVariable = computed(
             Nenhum template selecionado
           </button>
 
-          <div v-if="templatePlaceholders.length" class="space-y-2">
+          <div v-if="templatePlaceholders.length" class="space-y-3">
             <p class="text-xs font-medium text-n-slate-12">
               Variáveis do template
             </p>
             <div
               v-for="key in templatePlaceholders"
               :key="key"
-              class="flex items-center gap-2"
+              class="space-y-1"
             >
-              <span class="w-12 shrink-0 font-mono text-xs text-n-slate-10">{{
+              <span class="font-mono text-[0.6875rem] text-n-slate-10">{{
                 placeholderLabel(key)
               }}</span>
-              <div class="flex-1 min-w-0">
-                <WorkflowVariableInput
-                  :model-value="(config.template_params || {})[key]"
-                  placeholder="{{ $contact.first_name }}"
-                  @update:model-value="updateTemplateParam(key, $event)"
-                />
-              </div>
+              <WorkflowVariableInput
+                :model-value="(config.template_params || {})[key]"
+                placeholder="{{ $contact.first_name }}"
+                @update:model-value="updateTemplateParam(key, $event)"
+              />
             </div>
           </div>
 
-          <div v-if="templatePreview" class="space-y-1.5">
+          <div v-if="hasTemplatePreview" class="space-y-1.5">
             <p class="text-xs font-medium text-n-slate-12">Pré-visualização</p>
             <div
-              class="p-3 rounded-xl bg-[#E1F8DC] dark:bg-[#1E2C22] text-xs text-slate-900 dark:text-slate-100 whitespace-pre-line leading-relaxed"
+              class="rounded-2xl rounded-tl-sm bg-[#E1F8DC] px-3 py-2.5 text-sm leading-relaxed text-slate-900 dark:bg-[#1E2C22] dark:text-slate-100"
             >
-              {{ templatePreview }}
+              <p v-if="templatePreviewHeader.length" class="mb-1 font-semibold">
+                <template
+                  v-for="(part, index) in templatePreviewHeader"
+                  :key="`header-${index}`"
+                >
+                  <span
+                    v-if="part.type === 'sample'"
+                    class="rounded bg-white/80 px-1 dark:bg-white/10"
+                    >{{ part.text }}</span
+                  >
+                  <span v-else class="whitespace-pre-line">{{
+                    part.text
+                  }}</span>
+                </template>
+              </p>
+              <p>
+                <template
+                  v-for="(part, index) in templatePreviewBody"
+                  :key="`body-${index}`"
+                >
+                  <span
+                    v-if="part.type === 'sample'"
+                    class="rounded bg-white/80 px-1 font-medium dark:bg-white/10"
+                    >{{ part.text }}</span
+                  >
+                  <span v-else class="whitespace-pre-line">{{
+                    part.text
+                  }}</span>
+                </template>
+              </p>
+              <p
+                v-if="templatePreviewFooter.length"
+                class="mt-1 text-[0.6875rem] text-slate-600 dark:text-slate-300"
+              >
+                <template
+                  v-for="(part, index) in templatePreviewFooter"
+                  :key="`footer-${index}`"
+                >
+                  <span v-if="part.type === 'sample'">{{ part.text }}</span>
+                  <span v-else class="whitespace-pre-line">{{
+                    part.text
+                  }}</span>
+                </template>
+              </p>
             </div>
+            <p class="text-[0.6875rem] text-n-slate-10">
+              Exemplo com os valores de amostra do template. No disparo, o
+              webhook preenche os campos ligados acima.
+            </p>
           </div>
         </div>
       </template>
