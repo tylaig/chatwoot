@@ -69,10 +69,14 @@ class Whatsapp::WebhookTriggerDispatchService
     contact_inbox = ContactInbox.find_by(contact_id: contact.id, inbox_id: inbox.id)
     return contact_inbox if contact_inbox.present?
 
+    source_id = inbox.channel_type == 'Channel::Whatsapp' ? phone.to_s.delete_prefix('+').gsub(/\D/, '') : phone
+    existing_by_source = ContactInbox.find_by(inbox_id: inbox.id, source_id: source_id)
+    return existing_by_source if existing_by_source.present?
+
     ContactInbox.create!(
       contact_id: contact.id,
       inbox_id: inbox.id,
-      source_id: phone
+      source_id: source_id
     )
   end
 

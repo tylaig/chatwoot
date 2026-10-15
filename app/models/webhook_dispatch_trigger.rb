@@ -60,7 +60,7 @@ class WebhookDispatchTrigger < ApplicationRecord
         workflow_version: workflow.active_version,
         contact: contact,
         conversation: conversation,
-        inbox: inbox,
+        inbox: prepared[:inbox] || inbox,
         trigger_type: 'webhook',
         idempotency_key: idemp_key,
         status: 'running',
@@ -122,7 +122,7 @@ class WebhookDispatchTrigger < ApplicationRecord
       workflow_version: version,
       contact: contact,
       conversation: conversation,
-      inbox: inbox,
+      inbox: prepared[:inbox] || inbox,
       trigger_type: 'webhook_test',
       idempotency_key: "whk_test_#{id}_#{SecureRandom.hex(4)}",
       status: 'running',
@@ -215,22 +215,43 @@ class WebhookDispatchTrigger < ApplicationRecord
   end
 
   def prepare_dispatch(payload)
+    target_inbox = effective_inbox
     identity = mapped_identity(payload)
-    error = identity_error(identity)
+    error = identity_error(identity, target_inbox)
     return { error: error } if error
 
     contact = resolve_contact!(identity)
     apply_attribute_rows!(contact, field_mapping.to_h['custom_attributes'], :contact_attribute, payload)
-    contact_inbox = find_or_create_contact_inbox(contact, inbox, contact_source_id(identity))
-    conversation = find_or_create_conversation(account, inbox, contact, contact_inbox)
+    contact_inbox = find_or_create_contact_inbox(contact, target_inbox, contact_source_id(identity, target_inbox))
+    conversation = find_or_create_conversation(account, target_inbox, contact, contact_inbox)
     apply_attribute_rows!(conversation, field_mapping.to_h['conversation_attributes'], :conversation_attribute, payload)
     apply_labels!(conversation, payload)
-    { contact: contact, conversation: conversation, phone: identity[:phone], name: identity[:name] }
+    { contact: contact, conversation: conversation, inbox: target_inbox, phone: identity[:phone], name: identity[:name] }
+  end
+
+  def effective_inbox
+    node_inbox = workflow_node_inbox
+    node_inbox || inbox
+  end
+
+  def workflow_node_inbox
+    return if workflow.blank?
+
+    version = workflow.active_version || workflow.versions.drafts.order(updated_at: :desc).first
+    return if version.blank?
+
+    inbox_id = Array(version.nodes).filter_map do |node|
+      node.dig('data', 'config', 'inbox_id').presence || node.dig('config', 'inbox_id').presence
+    end.first
+    return if inbox_id.blank?
+
+    account.inboxes.find_by(id: inbox_id)
   end
 
   def mapped_identity(payload)
     mapping = field_mapping.to_h
     raw_phone = scalar_value(extract_by_path(payload, mapping['phone_path']))
+    raw_phone = fallback_phone_from_payload(payload) if raw_phone.blank?
     {
       phone: raw_phone.present? ? normalize_phone_number(raw_phone) : nil,
       name: scalar_value(extract_by_path(payload, mapping['name_path'])),
@@ -239,15 +260,23 @@ class WebhookDispatchTrigger < ApplicationRecord
     }
   end
 
-  def identity_error(identity)
+  def fallback_phone_from_payload(payload)
+    %w[phone customer.phone shipping_address.phone billing_address.phone cliente.whatsapp cliente.telefone].each do |path|
+      val = scalar_value(extract_by_path(payload, path))
+      return val if val.present?
+    end
+    nil
+  end
+
+  def identity_error(identity, target_inbox = inbox)
     return 'Mapeie telefone, e-mail ou identificador para achar o contato.' if identity.values_at(:phone, :email, :identifier).all?(&:blank?)
-    return 'Esta caixa exige o telefone do contato.' if identity[:phone].blank? && phone_required_inbox?
+    return 'Esta caixa exige o telefone do contato.' if identity[:phone].blank? && phone_required_inbox?(target_inbox)
 
     nil
   end
 
-  def phone_required_inbox?
-    inbox&.channel_type.in?(%w[Channel::Whatsapp Channel::TwilioSms])
+  def phone_required_inbox?(target_inbox = inbox)
+    target_inbox&.channel_type.in?(%w[Channel::Whatsapp Channel::TwilioSms])
   end
 
   def resolve_contact!(identity)
@@ -275,8 +304,31 @@ class WebhookDispatchTrigger < ApplicationRecord
     contact.reload
   end
 
-  def contact_source_id(identity)
-    identity[:phone].presence || identity[:email].presence || identity[:identifier].presence
+  def contact_source_id(identity, target_inbox = inbox)
+    raw = identity[:phone].presence || identity[:email].presence || identity[:identifier].presence
+    format_source_id_for_inbox(target_inbox, raw)
+  end
+
+  def format_source_id_for_inbox(target_inbox, raw_source_id)
+    return raw_source_id if raw_source_id.blank? || target_inbox.blank?
+
+    case target_inbox.channel_type
+    when 'Channel::Whatsapp'
+      str = raw_source_id.to_s.delete_prefix('whatsapp:').strip
+      return str if str.match?(RegexHelper::WHATSAPP_BSUID_REGEX)
+
+      str.gsub(/\D/, '')
+    when 'Channel::TwilioSms'
+      if target_inbox.channel.try(:medium) == 'whatsapp'
+        str = raw_source_id.to_s.delete_prefix('whatsapp:').strip
+        str = "+#{str.gsub(/\D/, '')}" unless str.start_with?('+') || str.match?(RegexHelper::WHATSAPP_BSUID_REGEX)
+        "whatsapp:#{str}"
+      else
+        "+#{raw_source_id.to_s.gsub(/\D/, '')}"
+      end
+    else
+      raw_source_id.to_s
+    end
   end
 
   def apply_attribute_rows!(record, rows, model_name, payload)
@@ -385,14 +437,24 @@ class WebhookDispatchTrigger < ApplicationRecord
     "+#{raw}"
   end
 
-  def find_or_create_contact_inbox(contact, inbox, phone)
-    contact_inbox = ContactInbox.find_by(contact_id: contact.id, inbox_id: inbox.id)
-    return contact_inbox if contact_inbox.present?
+  def find_or_create_contact_inbox(contact, target_inbox, source_id)
+    formatted_source_id = format_source_id_for_inbox(target_inbox, source_id)
+    contact_inbox = ContactInbox.find_by(contact_id: contact.id, inbox_id: target_inbox.id)
+    if contact_inbox.present?
+      if target_inbox.channel_type == 'Channel::Whatsapp' && !RegexHelper::WHATSAPP_CHANNEL_REGEX.match?(contact_inbox.source_id.to_s) &&
+         RegexHelper::WHATSAPP_CHANNEL_REGEX.match?(formatted_source_id.to_s)
+        contact_inbox.update_columns(source_id: formatted_source_id) # rubocop:disable Rails/SkipsModelValidations
+      end
+      return contact_inbox
+    end
+
+    existing_by_source = ContactInbox.find_by(inbox_id: target_inbox.id, source_id: formatted_source_id)
+    return existing_by_source if existing_by_source.present?
 
     ContactInbox.create!(
       contact_id: contact.id,
-      inbox_id: inbox.id,
-      source_id: phone
+      inbox_id: target_inbox.id,
+      source_id: formatted_source_id
     )
   end
 

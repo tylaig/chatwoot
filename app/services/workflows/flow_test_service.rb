@@ -100,7 +100,8 @@ module Workflows
     end
 
     def source_id_for(inbox)
-      return '+5511900000000' if %w[Channel::Whatsapp Channel::TwilioSms].include?(inbox.channel_type)
+      return '5511900000000' if inbox.channel_type == 'Channel::Whatsapp'
+      return '+5511900000000' if inbox.channel_type == 'Channel::TwilioSms'
 
       "workflow-test-#{@workflow.id}"
     end

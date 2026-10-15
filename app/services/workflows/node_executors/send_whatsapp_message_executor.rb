@@ -6,7 +6,7 @@ module Workflows
       def execute
         return preview_template if test_execution? && template_delivery?
 
-        conversation = execution.conversation
+        conversation = target_conversation
         if conversation.blank?
           return { status: 'failed', error: 'Conversation não encontrada no contexto de execução.' }
         end
@@ -79,6 +79,43 @@ module Workflows
 
       private
 
+      def target_conversation
+        base_conv = execution.conversation
+        return nil if base_conv.blank?
+
+        target_inbox_id = (config[:inbox_id] || config['inbox_id']).to_i
+        return base_conv if target_inbox_id <= 0 || base_conv.inbox_id == target_inbox_id
+
+        target_inbox = execution.account.inboxes.find_by(id: target_inbox_id)
+        return base_conv if target_inbox.blank?
+
+        contact = execution.contact || base_conv.contact
+        raw_source = contact.phone_number.presence || contact.email.presence || contact.identifier.presence
+        formatted_source = if target_inbox.channel_type == 'Channel::Whatsapp'
+                             raw_source.to_s.delete_prefix('whatsapp:').gsub(/\D/, '')
+                           else
+                             raw_source.to_s
+                           end
+
+        contact_inbox = ContactInbox.find_by(contact_id: contact.id, inbox_id: target_inbox.id) ||
+                        ContactInbox.find_by(inbox_id: target_inbox.id, source_id: formatted_source) ||
+                        ContactInbox.create!(contact_id: contact.id, inbox_id: target_inbox.id, source_id: formatted_source)
+
+        conv = target_inbox.conversations.where(contact_id: contact.id).last
+        if conv.blank? || conv.resolved?
+          conv = Conversation.create!(
+            account_id: execution.account_id,
+            inbox_id: target_inbox.id,
+            contact_id: contact.id,
+            contact_inbox_id: contact_inbox.id,
+            status: :open
+          )
+        end
+
+        execution.update_columns(inbox_id: target_inbox.id, conversation_id: conv.id) # rubocop:disable Rails/SkipsModelValidations
+        conv
+      end
+
       def find_existing_execution_message(conversation)
         conversation.messages
                     .where(account_id: execution.account_id)
@@ -96,11 +133,11 @@ module Workflows
       end
 
       def whatsapp_session_channel?
-        execution.conversation&.inbox&.channel_type.in?(%w[Channel::Whatsapp Channel::TwilioSms])
+        target_conversation&.inbox&.channel_type.in?(%w[Channel::Whatsapp Channel::TwilioSms])
       end
 
       def send_freeform_message
-        conversation = execution.conversation
+        conversation = target_conversation
         content_raw = config[:message_content] || config['message_content'] || config[:content] || config['content'] || config[:text] || config['text'] || ''
         content = resolve_vars(content_raw)
         files = stored_attachments
@@ -121,18 +158,18 @@ module Workflows
       end
 
       def send_template(template_name, template_params_config)
-        conversation = execution.conversation
+        conversation = target_conversation
         processed_body = {}
 
         if template_params_config.is_a?(Array)
           template_params_config.each_with_index do |param, index|
             val = param.is_a?(Hash) ? (param['value'] || param[:value]) : param
-            processed_body[(index + 1).to_s] = resolve_vars(val.to_s)
+            processed_body[(index + 1).to_s] = resolve_template_param(val.to_s, (index + 1).to_s, template_name, conversation)
           end
         elsif template_params_config.is_a?(Hash)
           template_params_config.each do |k, v|
             val = v.is_a?(Hash) ? (v['value'] || v[:value]) : v
-            processed_body[k.to_s] = resolve_vars(val.to_s)
+            processed_body[k.to_s] = resolve_template_param(val.to_s, k.to_s, template_name, conversation)
           end
         end
 
@@ -202,10 +239,10 @@ module Workflows
       def split_media_delivery?
         return false if private_message?
 
-        channel_type = execution.conversation.inbox.channel_type
+        channel_type = target_conversation.inbox.channel_type
         return true if %w[Channel::Whatsapp Channel::Instagram Channel::Tiktok].include?(channel_type)
 
-        channel_type == 'Channel::TwilioSms' && execution.conversation.inbox.channel.try(:medium) == 'whatsapp'
+        channel_type == 'Channel::TwilioSms' && target_conversation.inbox.channel.try(:medium) == 'whatsapp'
       end
 
       def create_chatwoot_message(conversation, content, files)
@@ -268,6 +305,78 @@ module Workflows
         return { status: 'failed', error: 'Selecione um template aprovado.' } if template_name.blank?
 
         send_template(template_name, config[:template_params] || config['template_params'])
+      end
+
+      def resolve_template_param(raw_expr, param_key, template_name, conversation)
+        resolved = resolve_vars(raw_expr).to_s.strip
+        return resolved if resolved.present?
+
+        fallback = payload_fallback_for_param(param_key, conversation)
+        return fallback if fallback.present?
+
+        template_sample_value(template_name, param_key, conversation)
+      end
+
+      def payload_fallback_for_param(param_key, conversation)
+        pl = (execution.context.to_h['payload'] || execution.context.to_h.dig('webhook', 'payload') || {}).with_indifferent_access
+        return '' if pl.blank?
+
+        case param_key.to_s
+        when 'primeiro_nome'
+          pl.dig(:customer, :first_name).presence || pl.dig(:cliente, :nome)&.to_s&.split&.first.presence || execution.contact&.name&.to_s&.split&.first
+        when 'numero_do_pedido', 'numero_pedido'
+          pl[:name].presence || (pl[:order_number].present? ? "##{pl[:order_number]}" : nil) || pl.dig(:pedido, :numero)&.to_s
+        when 'email'
+          pl[:email].presence || pl[:contact_email].presence || pl.dig(:customer, :email).presence || pl.dig(:cliente, :email).presence || execution.contact&.email
+        when 'nome_da_loja', 'nome_da_loja2'
+          infer_store_name(pl, conversation)
+        when 'site_da_loja'
+          host = infer_store_host(pl, conversation)
+          host.present? ? "https://#{host}" : nil
+        when 'link_area_login'
+          host = infer_store_host(pl, conversation)
+          host.present? ? "https://#{host}/account/login" : pl[:order_status_url].presence
+        when 'link_concluir_compra'
+          pl[:abandoned_checkout_url].presence || pl[:order_status_url].presence
+        else
+          nil
+        end.to_s.strip
+      end
+
+      def infer_store_host(pl, conversation)
+        url = pl[:order_status_url].to_s.presence || pl[:abandoned_checkout_url].to_s.presence || pl[:landing_site].to_s.presence
+        if url.present? && (uri = URI.parse(url) rescue nil) && uri&.host.present?
+          return uri.host
+        end
+
+        vendor = Array(pl[:line_items]).first&.dig('vendor').to_s.presence
+        return vendor if vendor.present? && vendor.include?('.')
+
+        inbox_name = conversation&.inbox&.name.to_s.downcase
+        return 'barbagames.com' if inbox_name.include?('barba')
+        return 'gamessafari.com.br' if inbox_name.include?('safari')
+
+        nil
+      end
+
+      def infer_store_name(pl, conversation)
+        host = infer_store_host(pl, conversation).to_s.downcase
+        inbox_name = conversation&.inbox&.name.to_s.downcase
+        return 'Barba Games' if host.include?('barba') || inbox_name.include?('barba')
+        return 'Games Safari' if host.include?('safari') || inbox_name.include?('safari')
+        return 'GameBox Brasil' if host.include?('gamebox') || inbox_name.include?('gamebox')
+        return 'Games GL' if host.include?('gamesgl') || inbox_name.include?('games gl')
+
+        conversation&.inbox&.name&.sub(/\s*WhatsApp\z/i, '')&.strip
+      end
+
+      def template_sample_value(template_name, param_key, conversation)
+        scope = execution.account.whatsapp_templates.where(name: template_name)
+        tpl = scope.find_by(inbox_id: conversation&.inbox_id) || scope.first
+        return '' if tpl.blank?
+
+        var = Array(tpl.variables).find { |v| v.to_h['key'].to_s == param_key.to_s }
+        var.to_h['sample_value'].to_s.strip
       end
 
       def dispatch_to_channel(message)
