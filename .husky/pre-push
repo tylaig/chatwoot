@@ -2,3 +2,9 @@
 . "$(dirname "$0")/_/husky.sh"
 
 sh bin/validate_push
+
+# Trigger background auto-deploy when pushing to main (only deploys outside 11:00-22:00 BRT)
+current_branch="$(git rev-parse --abbrev-ref HEAD)"
+if [ "$current_branch" = "main" ] && [ -x "/home/tylaig/.local/bin/chatwoot-auto-deploy.sh" ]; then
+  nohup bash -c 'sleep 5 && /home/tylaig/.local/bin/chatwoot-auto-deploy.sh >> /tmp/chatwoot-auto-deploy.log 2>&1' >/dev/null 2>&1 &
+fi

@@ -5,6 +5,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Forçar deploy mesmo dentro do horário de atendimento (11h-22h BRT)'
+        required: false
+        default: 'false'
+        type: boolean
 
 permissions:
   contents: read
@@ -75,6 +81,19 @@ jobs:
     timeout-minutes: 45
     environment: production
     steps:
+      - name: Block deploy during support hours (11:00 - 21:59 BRT)
+        env:
+          FORCE_DEPLOY: ${{ github.event.inputs.force_deploy || 'false' }}
+        run: |
+          set -euo pipefail
+          hour_brt="$(TZ=America/Sao_Paulo date +%H)"
+          now_brt="$(TZ=America/Sao_Paulo date '+%Y-%m-%d %H:%M:%S %Z')"
+          echo "Current time in Brasília: ${now_brt} (hour=${hour_brt})"
+          if [ "$FORCE_DEPLOY" != "true" ] && [ "$hour_brt" -ge 11 ] && [ "$hour_brt" -lt 22 ]; then
+            echo "::error::Deploy bloqueado durante o horário de atendimento (11:00 às 22:00 BRT). A imagem Docker já foi compilada e salva no GHCR. Rode o deploy após as 22:00 BRT." >&2
+            exit 1
+          fi
+
       - name: Checkout deploy helper
         uses: actions/checkout@v4
 
