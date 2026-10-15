@@ -2,17 +2,19 @@ class Captain::Tools::FaqLookupTool < Captain::Tools::BasePublicTool
   description 'Search FAQ responses using semantic similarity to find relevant answers'
   param :query, type: 'string', desc: 'The question or topic to search for in the FAQ database'
 
+  STOPWORDS = %w[
+    de da do das dos em no na nos nas um uma uns umas para por com sem sob sobre
+    que qual quais como onde quando quem porque porquê pois mas porem contudo
+    todavia entretanto ou e nem se ao aos as os o a é são foi foram ser estar
+    ter haver fazer poder dever querer saber ver dar dizer falar pedir precisar
+    ajuda dúvida duvida cliente loja compra pedido meu minha meus minhas nao não
+    ta tá to tô pro pra ai aí la lá
+  ].freeze
+
   def perform(tool_context, query:)
     log_tool_usage('searching', { query: query })
 
-    # Use existing vector search on approved responses with fallback
-    begin
-      responses = @assistant.responses.approved.where('question ILIKE :q OR answer ILIKE :q', q: "%#{query}%").includes(:documentable).limit(5).to_a
-      responses = @assistant.responses.approved.search(query).includes(:documentable).to_a if responses.empty?
-    rescue StandardError => e
-      Rails.logger.warn("[Captain] FAQ lookup fallback: #{e.message}")
-      responses = @assistant.responses.approved.where('question ILIKE :q OR answer ILIKE :q', q: "%#{query}%").includes(:documentable).limit(5).to_a
-    end
+    responses = hybrid_search(query)
     record_retrieved_sources(tool_context, responses)
 
     if responses.empty?
@@ -25,6 +27,47 @@ class Captain::Tools::FaqLookupTool < Captain::Tools::BasePublicTool
   end
 
   private
+
+  def hybrid_search(query)
+    results = []
+
+    # 1. Exact substring match
+    exact = @assistant.responses.approved
+                      .where('question ILIKE :q OR answer ILIKE :q', q: "%#{query}%")
+                      .includes(:documentable).limit(3).to_a
+    results.concat(exact)
+
+    # 2. PostgreSQL Full-Text Search in Portuguese
+    fts_matches = @assistant.responses.approved
+                            .where("to_tsvector('portuguese', coalesce(question,'') || ' ' || coalesce(answer,'')) @@ plainto_tsquery('portuguese', :q)", q: query)
+                            .includes(:documentable).limit(3).to_a
+    results.concat(fts_matches)
+
+    # 3. Keyword scoring in Portuguese (question weighted 3x, answer 1x)
+    keywords = query.to_s.downcase.scan(/[[:alnum:]]{3,}/) - STOPWORDS
+    if keywords.any?
+      conditions = keywords.first(6).map do |kw|
+        ActiveRecord::Base.sanitize_sql_array(
+          ['(CASE WHEN question ILIKE ? THEN 3 ELSE 0 END + CASE WHEN answer ILIKE ? THEN 1 ELSE 0 END)', "%#{kw}%", "%#{kw}%"]
+        )
+      end.join(' + ')
+      kw_matches = @assistant.responses.approved
+                             .where(keywords.first(6).map { 'question ILIKE ? OR answer ILIKE ?' }.join(' OR '), *keywords.first(6).flat_map { |kw| ["%#{kw}%", "%#{kw}%"] })
+                             .order(Arel.sql("(#{conditions}) DESC"))
+                             .includes(:documentable).limit(3).to_a
+      results.concat(kw_matches)
+    end
+
+    # 4. Vector semantic search (via local multilingual embedding service)
+    begin
+      vec_matches = @assistant.responses.approved.search(query).includes(:documentable).limit(4).to_a
+      results.concat(vec_matches)
+    rescue StandardError => e
+      Rails.logger.warn("[Captain] FAQ vector lookup fallback: #{e.message}")
+    end
+
+    results.uniq(&:id).first(6)
+  end
 
   def safe_to_run_after_new_customer_message?
     true
