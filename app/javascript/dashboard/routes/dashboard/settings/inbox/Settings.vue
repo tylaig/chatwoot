@@ -1292,6 +1292,18 @@ export default {
                       {{ $t('INBOX_MGMT.FEATURES.USE_INBOX_AVATAR_FOR_BOT') }}
                     </label>
                   </div>
+                  <div class="flex gap-2 py-0.5">
+                    <input
+                      id="browser_push_notifications"
+                      v-model="selectedFeatureFlags"
+                      type="checkbox"
+                      value="browser_push_notifications"
+                      @input="handleFeatureFlag"
+                    />
+                    <label for="browser_push_notifications">
+                      {{ $t('INBOX_MGMT.FEATURES.BROWSER_PUSH_NOTIFICATIONS') }}
+                    </label>
+                  </div>
                 </div>
               </SettingsFieldSection>
             </SettingsAccordion>

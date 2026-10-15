@@ -182,7 +182,53 @@ export const IFrameHelper = {
         IFrameHelper.sendMessage('set-user', window.$chatwoot.user);
       }
 
+      window.$chatwoot.channelConfig = message.config.channelConfig || {};
+      window.$chatwoot.browserPushEnabled =
+        window.chatwootSettings?.browserPushNotifications !== false &&
+        (!Array.isArray(window.$chatwoot.channelConfig.enabledFeatures) ||
+          window.$chatwoot.channelConfig.enabledFeatures.includes(
+            'browser_push_notifications'
+          ));
+
       window.playAudioAlert = () => {};
+
+      if (
+        window.$chatwoot.browserPushEnabled &&
+        !window.$chatwoot.pushInitialized
+      ) {
+        window.$chatwoot.pushInitialized = true;
+        const requestPushPermission = () => {
+          try {
+            if (
+              'Notification' in window &&
+              Notification.permission === 'default'
+            ) {
+              Notification.requestPermission().catch(() => {});
+            }
+          } catch {
+            // ignore
+          }
+        };
+        ['click', 'keydown', 'touchstart'].forEach(ev => {
+          document.addEventListener(ev, requestPushPermission, {
+            once: true,
+            passive: true,
+          });
+        });
+        const stopTitleFlash = () => {
+          if (window.$chatwoot.titleTimer) {
+            clearInterval(window.$chatwoot.titleTimer);
+            window.$chatwoot.titleTimer = null;
+            if (window.$chatwoot.origTitle) {
+              document.title = window.$chatwoot.origTitle;
+            }
+          }
+        };
+        window.addEventListener('focus', stopTitleFlash);
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) stopTitleFlash();
+        });
+      }
 
       initOnEvents.forEach(e => {
         document.addEventListener(e, IFrameHelper.setupAudioListeners, false);
@@ -201,6 +247,67 @@ export const IFrameHelper = {
     },
     onEvent({ eventIdentifier: eventName, data }) {
       dispatchWindowEvent({ eventName, data });
+      try {
+        if (
+          eventName === 'chatwoot:on-message' &&
+          data &&
+          data.message_type === 1 &&
+          window.$chatwoot &&
+          window.$chatwoot.browserPushEnabled !== false
+        ) {
+          const cfg = window.$chatwoot.channelConfig || {};
+          const senderName =
+            (data.sender && (data.sender.available_name || data.sender.name)) ||
+            cfg.websiteName ||
+            'Suporte';
+          const rawContent = (data.content || 'Nova mensagem recebida')
+            .replace(/<[^>]*>?/gm, '')
+            .trim();
+          const bodyText =
+            rawContent.length > 140
+              ? `${rawContent.slice(0, 137)}...`
+              : rawContent;
+
+          if (document.hidden || !window.$chatwoot.isOpen) {
+            if (!window.$chatwoot.titleTimer) {
+              window.$chatwoot.origTitle = document.title;
+              let flash = false;
+              window.$chatwoot.titleTimer = setInterval(() => {
+                document.title = flash
+                  ? window.$chatwoot.origTitle
+                  : `🔔 (1) Nova mensagem - ${senderName}`;
+                flash = !flash;
+              }, 1200);
+            }
+          }
+
+          if (
+            'Notification' in window &&
+            Notification.permission === 'granted' &&
+            (document.hidden ||
+              !document.hasFocus() ||
+              !window.$chatwoot.isOpen)
+          ) {
+            const notif = new Notification(senderName, {
+              body: bodyText || 'Você recebeu uma nova mensagem',
+              icon: cfg.avatarUrl || '/favicon-32x32.png',
+              tag: `cw-msg-${data.conversation_id || 'active'}`,
+              renotify: true,
+            });
+            notif.onclick = () => {
+              try {
+                window.focus();
+                if (window.$chatwoot) window.$chatwoot.toggle('open');
+                notif.close();
+              } catch {
+                // ignore
+              }
+            };
+          }
+        }
+      } catch {
+        // ignore
+      }
     },
     setBubbleLabel(message) {
       setBubbleText(window.$chatwoot.launcherTitle || message.label);

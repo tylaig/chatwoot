@@ -23,6 +23,11 @@ export default {
     hasEndConversationEnabled() {
       return this.channelConfig.enabledFeatures.includes('end_conversation');
     },
+    hasBrowserPushNotificationsEnabled() {
+      return this.channelConfig.enabledFeatures.includes(
+        'browser_push_notifications'
+      );
+    },
     preChatFormEnabled() {
       return window.chatwootWebChannel.preChatFormEnabled;
     },

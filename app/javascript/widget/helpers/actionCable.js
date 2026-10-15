@@ -70,7 +70,12 @@ class ActionCableConnector extends BaseActionCableConnector {
       eventIdentifier: CHATWOOT_ON_MESSAGE,
       data,
     });
-    if (data.sender_type === 'User') {
+    if (
+      data.sender_type === 'User' ||
+      data.sender_type === 'Captain::Assistant' ||
+      data.sender_type === 'AgentBot' ||
+      data.message_type === 1
+    ) {
       playNewMessageNotificationInWidget();
     }
   };

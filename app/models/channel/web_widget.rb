@@ -5,7 +5,7 @@
 #  id                    :integer          not null, primary key
 #  allowed_domains       :text             default("")
 #  continuity_via_email  :boolean          default(TRUE), not null
-#  feature_flags         :integer          default(7), not null
+#  feature_flags         :integer          default(39), not null
 #  hmac_mandatory        :boolean          default(FALSE)
 #  hmac_token            :string
 #  pre_chat_form_enabled :boolean          default(FALSE)
@@ -52,10 +52,17 @@ class Channel::WebWidget < ApplicationRecord
             3 => :end_conversation,
             4 => :use_inbox_avatar_for_bot,
             5 => :allow_mobile_webview,
+            6 => :browser_push_notifications,
             :column => 'feature_flags',
             :check_for_column => false
 
+  before_create :enable_default_browser_push_notifications
+
   enum reply_time: { in_a_few_minutes: 0, in_a_few_hours: 1, in_a_day: 2 }
+
+  def enable_default_browser_push_notifications
+    self.browser_push_notifications = true if feature_flags == 7
+  end
 
   def name
     'Website'

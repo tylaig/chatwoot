@@ -979,7 +979,8 @@
       "DISPLAY_FILE_PICKER": "Exibir seletor de arquivos no widget",
       "DISPLAY_EMOJI_PICKER": "Exibir seletor de emoji no widget",
       "ALLOW_END_CONVERSATION": "Permitir que usuários terminem a conversa a partir do widget",
-      "USE_INBOX_AVATAR_FOR_BOT": "Use o nome da caixa de entrada e avatar do bot"
+      "USE_INBOX_AVATAR_FOR_BOT": "Use o nome da caixa de entrada e avatar do bot",
+      "BROWSER_PUSH_NOTIFICATIONS": "Ativar notificações push do navegador e alerta em qualquer página"
     },
     "SETTINGS_POPUP": {
       "MESSENGER_HEADING": "Código Menssageiro <scripit>",
