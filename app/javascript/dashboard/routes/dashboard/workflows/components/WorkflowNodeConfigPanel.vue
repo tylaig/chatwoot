@@ -98,6 +98,23 @@ const DELIVERY_MODES = [
 ];
 
 const inboxes = useMapGetter('inboxes/getInboxes');
+const webhookDialogOpen = ref(false);
+const webhookUrl = computed(() =>
+  props.webhookTrigger?.path
+    ? `${window.location.origin}${props.webhookTrigger.path}`
+    : ''
+);
+const webhookInboxName = computed(() => {
+  const inboxId = props.webhookTrigger?.inbox_id;
+  return inboxes.value.find(inbox => inbox.id === inboxId)?.name || '';
+});
+
+watch(
+  () => props.node?.id,
+  () => {
+    webhookDialogOpen.value = false;
+  }
+);
 const agents = useMapGetter('agents/getAgents');
 const teams = useMapGetter('teams/getTeams');
 const labels = useMapGetter('labels/getLabels');
@@ -380,13 +397,32 @@ const responseVariable = computed(
         />
       </div>
 
-      <WorkflowWebhookTriggerPanel
-        v-if="node.type === 'webhook_trigger'"
-        :workflow-id="workflowId"
-        :trigger="webhookTrigger"
-        :inboxes="inboxes"
-        @update:trigger="emit('updateWebhookTrigger', $event)"
-      />
+      <div v-if="node.type === 'webhook_trigger'" class="space-y-3">
+        <div class="p-3 rounded-xl border border-n-weak space-y-2">
+          <p class="text-xs font-medium text-n-slate-12">Webhook do fluxo</p>
+          <p
+            v-if="webhookUrl"
+            class="font-mono text-[0.6875rem] text-n-slate-11 break-all"
+          >
+            POST {{ webhookUrl }}
+          </p>
+          <p v-else class="text-xs text-n-slate-11">
+            A URL, a caixa de entrada e o mapeamento dos campos ficam na
+            configuração do webhook.
+          </p>
+          <p v-if="webhookInboxName" class="text-xs text-n-slate-11">
+            Caixa: {{ webhookInboxName }}
+          </p>
+        </div>
+        <button
+          type="button"
+          class="w-full h-9 rounded-lg bg-n-brand text-white text-sm font-medium hover:opacity-90 flex items-center justify-center gap-2"
+          @click="webhookDialogOpen = true"
+        >
+          <span class="i-lucide-webhook size-4" />
+          Configurar webhook
+        </button>
+      </div>
 
       <WorkflowNativeTriggerPanel
         v-else-if="NATIVE_TRIGGER_TYPES.includes(node.type)"
@@ -1635,5 +1671,51 @@ const responseVariable = computed(
       </button>
     </div>
   </aside>
-  <div v-else />
+  <Teleport v-if="node?.type === 'webhook_trigger'" to="body">
+    <div
+      v-if="webhookDialogOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-n-alpha-black1 p-4 backdrop-blur-[4px]"
+      @click.self="webhookDialogOpen = false"
+    >
+      <div
+        class="flex w-full max-w-3xl max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-n-weak bg-n-solid-1 shadow-xl"
+      >
+        <div
+          class="flex items-start justify-between gap-4 px-6 py-5 border-b border-n-weak"
+        >
+          <div class="flex items-start gap-3 min-w-0">
+            <div
+              class="flex items-center justify-center rounded-xl size-11 shrink-0 bg-n-amber-9/15 text-n-amber-11"
+            >
+              <span class="i-lucide-webhook size-5" />
+            </div>
+            <div class="min-w-0">
+              <h2 class="text-base font-semibold text-n-slate-12">
+                Configurar webhook
+              </h2>
+              <p class="mt-1 text-xs text-n-slate-11">
+                URL, caixa de entrada, exemplo recebido e mapeamento dos campos.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="flex items-center justify-center rounded-lg size-8 text-n-slate-11 hover:bg-n-alpha-2 shrink-0"
+            @click="webhookDialogOpen = false"
+          >
+            <span class="i-lucide-x size-4" />
+          </button>
+        </div>
+        <div class="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+          <WorkflowWebhookTriggerPanel
+            :workflow-id="workflowId"
+            :trigger="webhookTrigger"
+            :inboxes="inboxes"
+            @update:trigger="emit('updateWebhookTrigger', $event)"
+          />
+        </div>
+      </div>
+    </div>
+  </Teleport>
+  <div v-if="!node" />
 </template>

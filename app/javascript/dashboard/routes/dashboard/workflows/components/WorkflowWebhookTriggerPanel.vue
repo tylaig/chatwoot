@@ -126,7 +126,10 @@ const saveTrigger = async attrs => {
   } catch (error) {
     if (requestId !== saveRequestId) return null;
     useAlert(
-      error.response?.data?.error?.join(' ') || 'Erro ao salvar o webhook.'
+      error.response?.status === 404
+        ? 'Este fluxo não existe mais. Volte para a lista e abra um fluxo salvo.'
+        : error.response?.data?.error?.join?.(' ') ||
+            'Erro ao salvar o webhook.'
     );
     return null;
   } finally {

@@ -51,6 +51,7 @@ const importMessages = ref(false);
 const creating = ref(false);
 const chatwootTarget = ref('');
 const connectingChatwoot = ref(false);
+const chatwootError = ref('');
 const qr = ref(null);
 const webhook = ref(null);
 const webhookEvents = ref([]);
@@ -330,18 +331,20 @@ const askChatwoot = name => {
   openMenu.value = '';
   chatwootTarget.value = name;
   importMessages.value = false;
+  chatwootError.value = '';
   chatwootDialog.value?.open();
 };
 
 const confirmChatwoot = async () => {
   connectingChatwoot.value = true;
+  chatwootError.value = '';
   try {
     await linkChatwoot(chatwootTarget.value);
     chatwootDialog.value?.close();
     chatwootTarget.value = '';
     importMessages.value = false;
   } catch (error) {
-    useAlert(readError(error));
+    chatwootError.value = readError(error);
   } finally {
     connectingChatwoot.value = false;
   }
@@ -713,6 +716,9 @@ onUnmounted(stopPoll);
         <input v-model="importMessages" type="checkbox" class="mt-1" />
         <span>Importar as mensagens dos últimos 7 dias</span>
       </label>
+      <p v-if="chatwootError" class="text-sm text-n-ruby-11">
+        {{ chatwootError }}
+      </p>
     </Dialog>
 
     <Dialog

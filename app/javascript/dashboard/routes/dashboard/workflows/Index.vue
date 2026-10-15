@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { OnClickOutside } from '@vueuse/components';
 import { useAlert } from 'dashboard/composables';
@@ -73,6 +73,8 @@ const isLoading = ref(true);
 const page = ref(1);
 
 const selectedWorkflow = ref(null);
+const drawerOpen = ref(false);
+const isWideLayout = ref(false);
 const drawerTab = ref('overview');
 const executions = ref([]);
 const isLoadingExecutions = ref(false);
@@ -105,7 +107,35 @@ const fetchWorkflows = async () => {
   }
 };
 
-onMounted(fetchWorkflows);
+let wideLayoutQuery;
+
+const syncWideLayout = () => {
+  isWideLayout.value = wideLayoutQuery?.matches || false;
+};
+
+const selectWorkflow = wf => {
+  selectedWorkflow.value = wf;
+  drawerOpen.value = true;
+};
+
+const closeDrawer = () => {
+  drawerOpen.value = false;
+};
+
+const showDrawer = computed(
+  () => selectedWorkflow.value && (isWideLayout.value || drawerOpen.value)
+);
+
+onMounted(() => {
+  wideLayoutQuery = window.matchMedia('(min-width: 1280px)');
+  syncWideLayout();
+  wideLayoutQuery.addEventListener('change', syncWideLayout);
+  fetchWorkflows();
+});
+
+onBeforeUnmount(() => {
+  wideLayoutQuery?.removeEventListener('change', syncWideLayout);
+});
 
 const handleTabChange = tab => {
   currentTab.value = tab;
@@ -250,6 +280,16 @@ const formatStamp = value => {
   }).format(new Date(value));
 };
 
+const formatStampCompact = value => {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+};
+
 const executionTotal = wf =>
   Number(wf.execution_stats?.total || 0).toLocaleString('pt-BR');
 
@@ -311,13 +351,13 @@ const statusTabs = computed(() => [
 <template>
   <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
   <div
-    class="flex flex-1 w-full h-full min-h-0 min-w-0 bg-n-background text-n-slate-12 overflow-x-auto overflow-y-hidden"
+    class="flex flex-1 w-full h-full min-h-0 min-w-0 bg-n-background text-n-slate-12 overflow-hidden"
   >
-    <div class="flex flex-1 flex-col min-w-[46rem] border-e border-n-weak">
+    <div class="flex flex-1 flex-col min-w-0 min-h-0">
       <header
-        class="px-6 py-5 border-b border-n-weak bg-n-solid-1 flex items-center justify-between gap-4"
+        class="px-6 py-5 border-b border-n-weak bg-n-solid-1 flex flex-wrap items-center justify-between gap-4"
       >
-        <div>
+        <div class="min-w-0">
           <h1 class="text-xl font-semibold text-n-slate-12">Workflows</h1>
           <p class="text-sm text-n-slate-11 mt-0.5">
             Automatize conversas com fluxos visuais e ações integradas.
@@ -334,7 +374,7 @@ const statusTabs = computed(() => [
       </header>
 
       <div
-        class="flex items-center gap-6 px-6 pt-3 border-b border-n-weak text-sm"
+        class="flex items-center gap-6 px-6 pt-3 border-b border-n-weak text-sm overflow-x-auto"
       >
         <button
           v-for="tab in statusTabs"
@@ -357,8 +397,8 @@ const statusTabs = computed(() => [
         </button>
       </div>
 
-      <div class="px-6 py-4 flex items-center gap-3">
-        <div class="relative flex-1">
+      <div class="px-6 py-4 flex flex-wrap items-center gap-3">
+        <div class="relative flex-1 min-w-[12rem]">
           <span
             class="i-lucide-search size-4 absolute start-3 top-1/2 -translate-y-1/2 text-n-slate-10"
           />
@@ -376,18 +416,18 @@ const statusTabs = computed(() => [
         </select>
       </div>
 
-      <div class="flex flex-1 flex-col min-h-0 overflow-auto px-6 pb-4">
-        <div class="rounded-2xl border border-n-weak bg-n-solid-1">
-          <table class="w-full text-start text-sm">
+      <div class="flex flex-1 flex-col min-h-0 min-w-0 overflow-auto px-6 pb-4">
+        <div class="min-w-0 rounded-2xl border border-n-weak bg-n-solid-1">
+          <table class="w-full table-fixed text-start text-sm">
             <thead>
               <tr
                 class="border-b border-n-weak text-[0.6875rem] font-semibold text-n-slate-11 uppercase tracking-wide"
               >
                 <th class="py-3 px-4 text-start">Nome</th>
-                <th class="py-3 px-4 text-start">Status</th>
-                <th class="py-3 px-4 text-start">Atualizado</th>
-                <th class="py-3 px-4 text-start">Execuções</th>
-                <th class="py-3 px-4" />
+                <th class="py-3 px-4 w-28 text-start">Status</th>
+                <th class="py-3 px-4 w-28 text-start">Atualizado</th>
+                <th class="py-3 px-4 w-24 text-start">Execuções</th>
+                <th class="py-3 px-4 w-12" />
               </tr>
             </thead>
             <tbody class="divide-y divide-n-weak">
@@ -400,10 +440,10 @@ const statusTabs = computed(() => [
                     ? 'bg-n-brand/5'
                     : 'hover:bg-n-alpha-1'
                 "
-                @click="selectedWorkflow = wf"
+                @click="selectWorkflow(wf)"
                 @dblclick="openBuilder(wf)"
               >
-                <td class="py-3 px-4">
+                <td class="py-3 px-4 max-w-0">
                   <div class="flex items-center gap-3 min-w-0">
                     <div
                       class="size-9 rounded-xl flex items-center justify-center shrink-0 bg-n-amber-9/15 text-n-amber-11"
@@ -414,7 +454,7 @@ const statusTabs = computed(() => [
                       <p class="font-medium text-n-slate-12 truncate">
                         {{ wf.name }}
                       </p>
-                      <p class="text-xs text-n-slate-11 truncate max-w-[20rem]">
+                      <p class="text-xs text-n-slate-11 truncate">
                         {{ wf.description || 'Sem descrição' }}
                       </p>
                     </div>
@@ -432,14 +472,14 @@ const statusTabs = computed(() => [
                     {{ statusMeta(wf.status).label }}
                   </span>
                 </td>
-                <td class="py-3 px-4 text-xs text-n-slate-11">
-                  {{ formatStamp(wf.updated_at) }}
+                <td class="py-3 px-4 text-xs text-n-slate-11 whitespace-nowrap">
+                  {{ formatStampCompact(wf.updated_at) }}
                 </td>
                 <td class="py-3 px-4">
                   <p class="text-sm text-n-slate-12">
                     {{ executionTotal(wf) }}
                   </p>
-                  <p class="text-xs text-n-slate-11">
+                  <p class="text-xs text-n-slate-11 truncate">
                     {{ successRate(wf) }}% sucesso
                   </p>
                 </td>
@@ -533,7 +573,7 @@ const statusTabs = computed(() => [
       </div>
 
       <div
-        class="shrink-0 px-6 py-3 border-t border-n-weak flex items-center justify-between text-xs text-n-slate-11"
+        class="shrink-0 px-6 py-3 border-t border-n-weak flex flex-wrap items-center justify-between gap-2 text-xs text-n-slate-11"
       >
         <span
           >Mostrando {{ pageStart }}–{{ pageEnd }} de
@@ -563,9 +603,19 @@ const statusTabs = computed(() => [
       </div>
     </div>
 
+    <div
+      v-if="showDrawer && !isWideLayout"
+      class="fixed inset-0 z-30 bg-n-alpha-black1"
+      @click="closeDrawer"
+    />
     <aside
-      v-if="selectedWorkflow"
-      class="w-[24rem] shrink-0 bg-n-solid-1 flex flex-col min-h-0"
+      v-if="showDrawer"
+      class="bg-n-solid-1 border-s border-n-weak flex flex-col min-h-0"
+      :class="
+        isWideLayout
+          ? 'w-[24rem] shrink-0'
+          : 'fixed inset-y-0 end-0 z-40 w-[min(24rem,100%)] shadow-2xl'
+      "
     >
       <div class="px-5 pt-5 pb-4 border-b border-n-weak">
         <div class="flex items-start justify-between gap-3">
@@ -601,6 +651,15 @@ const statusTabs = computed(() => [
             />
             {{ statusMeta(selectedWorkflow.status).label }}
           </span>
+          <button
+            v-if="!isWideLayout"
+            type="button"
+            class="flex items-center justify-center size-8 rounded-lg text-n-slate-11 hover:bg-n-alpha-2 shrink-0"
+            title="Fechar"
+            @click="closeDrawer"
+          >
+            <span class="i-lucide-x size-4" />
+          </button>
         </div>
         <div class="flex gap-1 mt-4 p-0.5 rounded-lg bg-n-alpha-1">
           <button

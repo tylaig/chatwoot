@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { OnClickOutside } from '@vueuse/components';
 import { useAlert } from 'dashboard/composables';
@@ -23,6 +23,8 @@ const selectedLanguage = ref('ALL');
 const selectedCategory = ref('ALL');
 const selectedStatus = ref('ALL');
 const previewTemplate = ref(null);
+const drawerOpen = ref(false);
+const isWideLayout = ref(false);
 const activeDrawerTab = ref('details');
 const openMenuId = ref(null);
 const page = ref(1);
@@ -76,8 +78,21 @@ const syncTemplates = async () => {
   }
 };
 
+let wideLayoutQuery;
+
+const syncWideLayout = () => {
+  isWideLayout.value = wideLayoutQuery?.matches || false;
+};
+
 onMounted(() => {
+  wideLayoutQuery = window.matchMedia('(min-width: 1280px)');
+  syncWideLayout();
+  wideLayoutQuery.addEventListener('change', syncWideLayout);
   fetchTemplates();
+});
+
+onBeforeUnmount(() => {
+  wideLayoutQuery?.removeEventListener('change', syncWideLayout);
 });
 
 const filteredTemplates = computed(() => {
@@ -165,8 +180,13 @@ const categoryLabel = category => {
 
 const handleSelectTemplate = tpl => {
   previewTemplate.value = tpl;
+  drawerOpen.value = true;
   contentTab.value = 'visual';
   activeDrawerTab.value = 'details';
+};
+
+const closeDrawer = () => {
+  drawerOpen.value = false;
 };
 
 const openEditor = tpl => {
@@ -187,6 +207,21 @@ const formatStamp = value => {
     minute: '2-digit',
   }).format(new Date(value));
 };
+
+const formatStampCompact = value => {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+};
+
+const showDrawer = computed(
+  () => previewTemplate.value && (isWideLayout.value || drawerOpen.value)
+);
 
 const previewBody = computed(() =>
   previewTemplateText(previewTemplate.value?.body || defaultPreviewBody)
@@ -266,13 +301,13 @@ const removeTemplate = async tpl => {
 <template>
   <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text, vue/html-closing-bracket-newline -->
   <div
-    class="flex flex-1 w-full h-full min-h-0 min-w-0 bg-n-background text-n-slate-12 overflow-x-auto overflow-y-hidden"
+    class="flex flex-1 w-full h-full min-h-0 min-w-0 bg-n-background text-n-slate-12 overflow-hidden"
   >
-    <div class="flex flex-1 flex-col min-w-[52rem] border-e border-n-weak">
+    <div class="flex flex-1 flex-col min-w-0 min-h-0">
       <header
-        class="px-6 py-5 border-b border-n-weak bg-n-solid-1 flex items-center justify-between gap-4"
+        class="px-6 py-5 border-b border-n-weak bg-n-solid-1 flex flex-wrap items-center justify-between gap-4"
       >
-        <div>
+        <div class="min-w-0">
           <h1 class="text-xl font-semibold text-n-slate-12">Templates</h1>
           <p class="text-sm text-n-slate-11 mt-0.5">
             Gerencie modelos de mensagens aprovados pela Meta para usar nos seus
@@ -280,7 +315,7 @@ const removeTemplate = async tpl => {
           </p>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <button
             type="button"
             class="h-10 px-3.5 rounded-xl border border-n-weak bg-n-solid-1 hover:bg-n-alpha-2 text-sm font-medium text-n-slate-12 transition-colors flex items-center gap-1.5 disabled:opacity-60"
@@ -306,8 +341,8 @@ const removeTemplate = async tpl => {
       </header>
 
       <!-- BARRA DE PESQUISA E FILTROS HORIZONTAIS (ESTILO REFERENCE PACK) -->
-      <div class="px-6 py-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div class="relative flex-1 w-full">
+      <div class="px-6 py-4 flex flex-wrap items-center gap-3">
+        <div class="relative flex-1 min-w-[12rem]">
           <span
             class="i-lucide-search size-4 absolute start-3 top-1/2 -translate-y-1/2 text-n-slate-10"
           />
@@ -319,7 +354,7 @@ const removeTemplate = async tpl => {
           />
         </div>
 
-        <div class="flex items-center gap-3 w-full md:w-auto">
+        <div class="flex flex-wrap items-center gap-3">
           <div class="flex items-center gap-2">
             <span class="text-xs text-n-slate-11">Inbox</span>
             <select
@@ -373,19 +408,19 @@ const removeTemplate = async tpl => {
       </div>
 
       <!-- TABELA DE TEMPLATES -->
-      <div class="flex flex-1 flex-col min-h-0 overflow-auto px-6 pb-4">
-        <div class="rounded-2xl border border-n-weak bg-n-solid-1">
-          <table class="w-full text-left border-collapse text-sm">
+      <div class="flex flex-1 flex-col min-h-0 min-w-0 overflow-auto px-6 pb-4">
+        <div class="min-w-0 rounded-2xl border border-n-weak bg-n-solid-1">
+          <table class="w-full table-fixed text-left border-collapse text-sm">
             <thead>
               <tr
                 class="border-b border-n-weak text-[0.6875rem] font-semibold text-n-slate-11 uppercase tracking-wide"
               >
                 <th class="py-3 px-4">Nome do Template</th>
-                <th class="py-3 px-4">Categoria</th>
-                <th class="py-3 px-4">Idioma</th>
-                <th class="py-3 px-4">Status</th>
-                <th class="py-3 px-4">Última Atualização</th>
-                <th class="py-3 px-4 text-right">Ações</th>
+                <th class="py-3 px-4 w-28">Categoria</th>
+                <th class="py-3 px-4 w-20">Idioma</th>
+                <th class="py-3 px-4 w-28">Status</th>
+                <th class="py-3 px-4 w-36">Última Atualização</th>
+                <th class="py-3 px-4 w-14 text-right">Ações</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-n-weak">
@@ -396,7 +431,7 @@ const removeTemplate = async tpl => {
                 :class="previewTemplate?.id === tpl.id ? 'bg-n-brand/5' : ''"
                 @click="handleSelectTemplate(tpl)"
               >
-                <td class="py-3 px-4">
+                <td class="py-3 px-4 max-w-0">
                   <div class="flex items-center gap-3 min-w-0">
                     <div
                       class="size-9 rounded-xl bg-n-brand/10 text-n-brand flex items-center justify-center shrink-0"
@@ -407,9 +442,7 @@ const removeTemplate = async tpl => {
                       <p class="font-medium text-n-slate-12 truncate">
                         {{ tpl.name }}
                       </p>
-                      <p
-                        class="text-xs text-n-slate-11 font-normal truncate max-w-[20rem]"
-                      >
+                      <p class="text-xs text-n-slate-11 font-normal truncate">
                         {{ tpl.body }}
                       </p>
                     </div>
@@ -454,8 +487,8 @@ const removeTemplate = async tpl => {
                   </span>
                 </td>
 
-                <td class="py-3 px-4 text-xs text-n-slate-11">
-                  {{ formatStamp(tpl.updated_at || tpl.created_at) }}
+                <td class="py-3 px-4 text-xs text-n-slate-11 whitespace-nowrap">
+                  {{ formatStampCompact(tpl.updated_at || tpl.created_at) }}
                 </td>
 
                 <td class="py-3 px-4 text-end" @click.stop>
@@ -511,7 +544,7 @@ const removeTemplate = async tpl => {
         </div>
       </div>
       <div
-        class="shrink-0 px-6 py-3 border-t border-n-weak flex items-center justify-between text-xs text-n-slate-11"
+        class="shrink-0 px-6 py-3 border-t border-n-weak flex flex-wrap items-center justify-between gap-2 text-xs text-n-slate-11"
       >
         <span>
           Mostrando {{ pageStart }}–{{ pageEnd }} de
@@ -540,12 +573,22 @@ const removeTemplate = async tpl => {
     </div>
 
     <div
-      v-if="previewTemplate"
-      class="w-[24rem] shrink-0 bg-n-solid-1 border-s border-n-weak flex flex-col min-h-0 overflow-y-auto"
+      v-if="showDrawer && !isWideLayout"
+      class="fixed inset-0 z-30 bg-n-alpha-black1"
+      @click="closeDrawer"
+    />
+    <div
+      v-if="showDrawer"
+      class="bg-n-solid-1 border-s border-n-weak flex flex-col min-h-0 overflow-y-auto"
+      :class="
+        isWideLayout
+          ? 'w-[24rem] shrink-0'
+          : 'fixed inset-y-0 end-0 z-40 w-[min(24rem,100%)] shadow-2xl'
+      "
     >
       <div class="px-5 py-5 space-y-5">
         <div
-          class="flex items-center justify-between pb-4 border-b border-n-weak"
+          class="flex items-center justify-between gap-3 pb-4 border-b border-n-weak"
         >
           <div class="flex items-center gap-3 min-w-0">
             <div
@@ -589,6 +632,15 @@ const removeTemplate = async tpl => {
               </div>
             </div>
           </div>
+          <button
+            v-if="!isWideLayout"
+            type="button"
+            class="flex items-center justify-center size-8 rounded-lg text-n-slate-11 hover:bg-n-alpha-2 shrink-0"
+            title="Fechar"
+            @click="closeDrawer"
+          >
+            <span class="i-lucide-x size-4" />
+          </button>
         </div>
 
         <div class="flex border-b border-n-weak text-xs">
@@ -626,7 +678,7 @@ const removeTemplate = async tpl => {
           <div class="grid grid-cols-2 gap-2 text-[11px] text-n-slate-11">
             <div>
               <span class="text-n-slate-10 block">Nome</span>
-              <span class="font-medium text-n-slate-12">{{
+              <span class="font-medium text-n-slate-12 break-all">{{
                 previewTemplate.name
               }}</span>
             </div>
@@ -638,7 +690,7 @@ const removeTemplate = async tpl => {
             </div>
             <div>
               <span class="text-n-slate-10 block">Idioma</span>
-              <span class="text-n-slate-12">{{
+              <span class="text-n-slate-12 break-words">{{
                 languageLabel(previewTemplate.language)
               }}</span>
             </div>

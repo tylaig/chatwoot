@@ -276,7 +276,9 @@ const persist = async () => {
   } catch (error) {
     saveState.value = 'error';
     useAlert(
-      error.response?.data?.error?.join(' ') || 'Erro ao salvar o fluxo.'
+      error.response?.status === 404
+        ? 'Este fluxo não existe mais. Volte para a lista e abra um fluxo salvo.'
+        : error.response?.data?.error?.join?.(' ') || 'Erro ao salvar o fluxo.'
     );
   }
 };
