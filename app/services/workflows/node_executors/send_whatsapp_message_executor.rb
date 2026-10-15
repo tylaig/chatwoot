@@ -84,7 +84,10 @@ module Workflows
         return nil if base_conv.blank?
 
         target_inbox_id = (config[:inbox_id] || config['inbox_id']).to_i
-        return base_conv if target_inbox_id <= 0 || base_conv.inbox_id == target_inbox_id
+        if target_inbox_id <= 0 || base_conv.inbox_id == target_inbox_id
+          base_conv.open! if !test_execution? && base_conv.pending?
+          return base_conv
+        end
 
         target_inbox = execution.account.inboxes.find_by(id: target_inbox_id)
         return base_conv if target_inbox.blank?
@@ -111,6 +114,7 @@ module Workflows
             status: :open
           )
         end
+        conv.open! if !test_execution? && conv.pending?
 
         execution.update_columns(inbox_id: target_inbox.id, conversation_id: conv.id) # rubocop:disable Rails/SkipsModelValidations
         conv
@@ -182,18 +186,22 @@ module Workflows
           }
         }
 
+        rendered_content = render_template_message_content(template_name, processed_body, conversation)
+
         message = conversation.messages.create!(
           account_id: execution.account_id,
           inbox_id: conversation.inbox_id,
           message_type: :outgoing,
           status: :sent,
-          content: "Template: #{template_name}",
+          content: rendered_content,
           additional_attributes: {
             template_params: template_payload,
             workflow_execution_id: execution.id,
             workflow_node_id: node['id']
           }
         )
+
+        conversation.open! if !test_execution? && conversation.pending?
 
         dispatch_to_channel(message)
 
@@ -377,6 +385,23 @@ module Workflows
 
         var = Array(tpl.variables).find { |v| v.to_h['key'].to_s == param_key.to_s }
         var.to_h['sample_value'].to_s.strip
+      end
+
+      def render_template_message_content(template_name, processed_body, conversation)
+        scope = execution.account.whatsapp_templates.where(name: template_name)
+        tpl = scope.find_by(inbox_id: conversation&.inbox_id) || scope.first
+        body_text = tpl&.body.to_s
+        if body_text.blank? && conversation&.inbox&.channel.respond_to?(:message_templates)
+          cached = Array(conversation.inbox.channel.message_templates).find { |item| item['name'] == template_name }
+          body_text = Array(cached&.dig('components')).find { |c| c['type'] == 'BODY' }&.dig('text').to_s
+        end
+        return "Template: #{template_name}" if body_text.blank?
+
+        rendered = body_text.dup
+        processed_body.to_h.each do |k, v|
+          rendered.gsub!(/\{\{\s*#{Regexp.escape(k.to_s)}\s*\}\}/, v.to_s)
+        end
+        rendered
       end
 
       def dispatch_to_channel(message)

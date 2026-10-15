@@ -471,7 +471,14 @@ class WebhookDispatchTrigger < ApplicationRecord
       )
     end
 
+    ensure_conversation_open!(conversation)
     conversation
+  end
+
+  def ensure_conversation_open!(conversation)
+    return if conversation.open?
+
+    conversation.open!
   end
 
   def build_template_parameters(payload)

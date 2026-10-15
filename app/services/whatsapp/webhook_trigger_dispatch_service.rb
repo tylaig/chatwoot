@@ -16,13 +16,14 @@ class Whatsapp::WebhookTriggerDispatchService
     # Attach labels if provided
     attach_labels(conversation, account) if labels.present?
 
-    # Create message with template payload
+      #Create message with template payload
+    rendered_content = render_template_content(trigger.template_name, template_params, inbox)
     message = conversation.messages.create!(
       account_id: account.id,
       inbox_id: inbox.id,
       message_type: :outgoing,
       status: :sent,
-      content: "Template: #{trigger.template_name}",
+      content: rendered_content,
       additional_attributes: {
         template_params: template_params,
         webhook_trigger_id: trigger.id
@@ -93,7 +94,26 @@ class Whatsapp::WebhookTriggerDispatchService
       )
     end
 
+    conversation.open! unless conversation.open?
     conversation
+  end
+
+  def render_template_content(template_name, tpl_params, inbox)
+    scope = inbox.account.whatsapp_templates.where(name: template_name)
+    tpl = scope.find_by(inbox_id: inbox.id) || scope.first
+    body_text = tpl&.body.to_s
+    if body_text.blank? && inbox.channel.respond_to?(:message_templates)
+      cached = Array(inbox.channel.message_templates).find { |item| item['name'] == template_name }
+      body_text = Array(cached&.dig('components')).find { |c| c['type'] == 'BODY' }&.dig('text').to_s
+    end
+    return "Template: #{template_name}" if body_text.blank?
+
+    body_vars = tpl_params.to_h.dig(:processed_params, :body) || tpl_params.to_h.dig('processed_params', 'body') || {}
+    rendered = body_text.dup
+    body_vars.each do |k, v|
+      rendered.gsub!(/\{\{\s*#{Regexp.escape(k.to_s)}\s*\}\}/, v.to_s)
+    end
+    rendered
   end
 
   def attach_labels(conversation, account)
