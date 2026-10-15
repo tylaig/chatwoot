@@ -171,9 +171,16 @@ const addRoute = () => {
   });
 };
 
-const selectedTemplate = computed(() =>
-  props.availableTemplates.find(tpl => tpl.name === config.value.template_name)
-);
+const selectedTemplate = computed(() => {
+  const name = config.value.template_name;
+  const inboxId = config.value.inbox_id;
+  return props.availableTemplates.find(tpl => {
+    if (tpl.name !== name) return false;
+    if (inboxId === null || inboxId === undefined || inboxId === '')
+      return true;
+    return Number(tpl.inbox_id) === Number(inboxId);
+  });
+});
 
 const templatePlaceholders = computed(() => {
   const body = selectedTemplate.value?.body || '';
@@ -339,7 +346,7 @@ const responseVariable = computed(
   <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text, vue/no-root-v-if -->
   <aside
     v-if="node"
-    class="w-[24rem] shrink-0 border-s border-n-weak bg-n-solid-1 flex flex-col h-full overflow-hidden z-20 shadow-2xl"
+    class="flex h-full w-[24rem] max-w-full min-w-0 shrink-0 flex-col overflow-hidden border-s border-n-weak bg-n-solid-1 z-20 shadow-2xl"
   >
     <div
       class="px-4 py-3 border-b border-n-weak flex items-center justify-between gap-3"
@@ -370,7 +377,9 @@ const responseVariable = computed(
       </button>
     </div>
 
-    <div class="flex-1 overflow-y-auto p-4 space-y-5">
+    <div
+      class="min-h-0 min-w-0 w-full flex-1 space-y-5 overflow-x-hidden overflow-y-auto p-4"
+    >
       <div
         v-if="issues.length"
         class="p-3 rounded-xl bg-n-ruby-9/10 border border-n-ruby-8/40 space-y-1"
@@ -449,7 +458,10 @@ const responseVariable = computed(
           )
         "
       >
-        <div v-if="node.type === 'send_whatsapp_message'">
+        <div
+          v-if="node.type === 'send_whatsapp_message'"
+          class="w-full min-w-0"
+        >
           <label :class="LABEL_CLASS">Modo de envio</label>
           <div class="space-y-1.5">
             <button
@@ -490,6 +502,7 @@ const responseVariable = computed(
             node.type === 'send_whatsapp_message' &&
             config.delivery_mode !== 'outside_24h'
           "
+          class="w-full min-w-0"
         >
           <label :class="LABEL_CLASS">Mensagem de texto</label>
           <WorkflowVariableInput
@@ -502,7 +515,7 @@ const responseVariable = computed(
           />
         </div>
 
-        <div v-if="showTemplateSelector" class="space-y-3">
+        <div v-if="showTemplateSelector" class="w-full min-w-0 space-y-3">
           <div class="flex items-center justify-between">
             <label class="text-xs font-medium text-n-slate-12">
               Template aprovado
@@ -527,11 +540,12 @@ const responseVariable = computed(
           </div>
           <div
             v-if="config.template_name"
-            class="flex items-center gap-2 px-3 py-2 rounded-lg bg-n-alpha-1"
+            class="flex min-w-0 items-center gap-2 rounded-lg bg-n-alpha-1 px-3 py-2"
           >
-            <span class="flex-1 font-mono text-xs text-n-slate-12 truncate">{{
-              config.template_name
-            }}</span>
+            <span
+              class="min-w-0 flex-1 truncate font-mono text-xs text-n-slate-12"
+              >{{ config.template_name }}</span
+            >
             <span
               class="px-1.5 py-0.5 rounded-md text-[0.625rem] font-semibold"
               :class="
@@ -560,20 +574,27 @@ const responseVariable = computed(
             Nenhum template selecionado
           </button>
 
-          <div v-if="templatePlaceholders.length" class="space-y-3">
+          <div
+            v-if="templatePlaceholders.length"
+            class="w-full min-w-0 space-y-3"
+          >
             <p class="text-xs font-medium text-n-slate-12">
               Variáveis do template
             </p>
             <div
               v-for="key in templatePlaceholders"
               :key="key"
-              class="space-y-1"
+              class="w-full min-w-0 space-y-1"
             >
-              <span class="font-mono text-[0.6875rem] text-n-slate-10">{{
-                placeholderLabel(key)
-              }}</span>
+              <span
+                class="block break-all font-mono text-[0.6875rem] leading-5 text-n-slate-10"
+              >
+                {{ placeholderLabel(key) }}
+              </span>
               <WorkflowVariableInput
                 :model-value="(config.template_params || {})[key]"
+                multiline
+                :rows="1"
                 placeholder="{{ $contact.first_name }}"
                 @update:model-value="updateTemplateParam(key, $event)"
               />
@@ -583,7 +604,7 @@ const responseVariable = computed(
           <div v-if="hasTemplatePreview" class="space-y-1.5">
             <p class="text-xs font-medium text-n-slate-12">Pré-visualização</p>
             <div
-              class="rounded-2xl rounded-tl-sm bg-[#E1F8DC] px-3 py-2.5 text-sm leading-relaxed text-slate-900 dark:bg-[#1E2C22] dark:text-slate-100"
+              class="min-w-0 break-words rounded-2xl rounded-tl-sm bg-[#E1F8DC] px-3 py-2.5 text-sm leading-relaxed text-slate-900 dark:bg-[#1E2C22] dark:text-slate-100"
             >
               <p v-if="templatePreviewHeader.length" class="mb-1 font-semibold">
                 <template

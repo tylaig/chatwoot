@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import {
   previewTemplateText,
   templateButtons,
@@ -18,21 +18,44 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  inboxes: {
+    type: Array,
+    default: () => [],
+  },
+  initialInboxId: {
+    type: [Number, String],
+    default: null,
+  },
 });
 
 const emit = defineEmits(['close', 'select']);
 
 const searchQuery = ref('');
-const selectedInbox = ref('ALL');
 const selectedLanguage = ref('pt_BR');
 const selectedCategory = ref('ALL');
 const selectedStatus = ref('APPROVED');
 const activeTemplate = ref(null);
-const defaultModalPreviewBody =
-  'Olá {{1}}! 👋\nBem-vindo à Games Safari!\n\nAqui você encontra os melhores jogos e ofertas exclusivas. Qualquer dúvida, é só nos chamar por aqui. 🚀';
+const selectedInboxId = ref(null);
+
+const hasOfficialInboxes = computed(() => props.inboxes.length > 0);
+
+const resolveInitialInboxId = () => {
+  const fromNode = props.inboxes.find(
+    inbox => Number(inbox.id) === Number(props.initialInboxId)
+  );
+  if (fromNode) return fromNode.id;
+  if (props.inboxes.length === 1) return props.inboxes[0].id;
+  return null;
+};
+
+const belongsToInbox = tpl =>
+  Number(tpl.inbox_id) === Number(selectedInboxId.value);
 
 const filteredTemplates = computed(() => {
+  if (!selectedInboxId.value) return [];
+
   return props.templates.filter(tpl => {
+    if (!belongsToInbox(tpl)) return false;
     const matchesSearch =
       !searchQuery.value ||
       tpl.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -47,6 +70,43 @@ const filteredTemplates = computed(() => {
       selectedStatus.value === 'ALL' || tpl.status === selectedStatus.value;
     return matchesSearch && matchesCat && matchesLang && matchesStatus;
   });
+});
+
+const syncActiveTemplate = () => {
+  activeTemplate.value =
+    props.templates.find(
+      tpl => tpl.name === props.selectedTemplateName && belongsToInbox(tpl)
+    ) || null;
+};
+
+watch(
+  () => props.show,
+  open => {
+    if (!open) {
+      activeTemplate.value = null;
+      return;
+    }
+    selectedInboxId.value = resolveInitialInboxId();
+    syncActiveTemplate();
+  }
+);
+
+watch(
+  () => props.inboxes.map(inbox => inbox.id).join(','),
+  () => {
+    if (!props.show) return;
+    const stillValid = props.inboxes.some(
+      inbox => Number(inbox.id) === Number(selectedInboxId.value)
+    );
+    if (stillValid) return;
+    selectedInboxId.value = resolveInitialInboxId();
+    syncActiveTemplate();
+  }
+);
+
+watch(selectedInboxId, () => {
+  if (!props.show || !activeTemplate.value) return;
+  if (!belongsToInbox(activeTemplate.value)) activeTemplate.value = null;
 });
 
 const selectActive = tpl => {
@@ -122,25 +182,37 @@ const handleConfirm = () => {
           </div>
 
           <!-- FILTROS (INBOX, IDIOMA, CATEGORIA, STATUS) -->
-          <div class="grid grid-cols-4 gap-2">
-            <div>
-              <label class="block text-[10px] text-n-slate-11 mb-1"
-                >Inbox</label
+          <div class="flex flex-wrap items-start gap-2">
+            <div class="flex w-full min-w-0 flex-col gap-1">
+              <label class="text-[10px] text-n-slate-11">Inbox</label>
+              <p
+                v-if="inboxes.length <= 1"
+                class="max-w-full break-words rounded-lg border border-n-weak bg-n-alpha-1 px-2 py-1.5 text-xs text-n-slate-12"
               >
-              <select
-                v-model="selectedInbox"
-                class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-n-blue-9"
-              >
-                <option value="ALL">Suporte - WhatsApp</option>
-              </select>
+                {{ inboxes[0]?.name || 'Nenhuma caixa oficial' }}
+              </p>
+              <div v-else class="flex flex-wrap gap-1.5">
+                <button
+                  v-for="inbox in inboxes"
+                  :key="inbox.id"
+                  type="button"
+                  class="max-w-full break-words rounded-lg border px-2 py-1.5 text-start text-xs"
+                  :class="
+                    Number(selectedInboxId) === Number(inbox.id)
+                      ? 'border-n-blue-9 bg-n-blue-9/10 text-n-slate-12'
+                      : 'border-n-weak bg-n-alpha-1 text-n-slate-12'
+                  "
+                  @click="selectedInboxId = inbox.id"
+                >
+                  {{ inbox.name }}
+                </button>
+              </div>
             </div>
-            <div>
-              <label class="block text-[10px] text-n-slate-11 mb-1"
-                >Idioma</label
-              >
+            <div class="flex max-w-full shrink-0 flex-col gap-1">
+              <label class="text-[10px] text-n-slate-11">Idioma</label>
               <select
                 v-model="selectedLanguage"
-                class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-n-blue-9"
+                class="w-max max-w-full rounded-lg border border-n-weak bg-n-alpha-1 px-2 py-1.5 text-xs text-n-slate-12 focus:border-n-blue-9 focus:outline-none"
               >
                 <option value="ALL">Todos</option>
                 <option value="pt_BR">Português (Brasil)</option>
@@ -148,13 +220,11 @@ const handleConfirm = () => {
                 <option value="es">Espanhol</option>
               </select>
             </div>
-            <div>
-              <label class="block text-[10px] text-n-slate-11 mb-1"
-                >Categoria</label
-              >
+            <div class="flex max-w-full shrink-0 flex-col gap-1">
+              <label class="text-[10px] text-n-slate-11">Categoria</label>
               <select
                 v-model="selectedCategory"
-                class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-n-blue-9"
+                class="w-max max-w-full rounded-lg border border-n-weak bg-n-alpha-1 px-2 py-1.5 text-xs text-n-slate-12 focus:border-n-blue-9 focus:outline-none"
               >
                 <option value="ALL">Todas</option>
                 <option value="MARKETING">Marketing</option>
@@ -162,13 +232,11 @@ const handleConfirm = () => {
                 <option value="AUTHENTICATION">Authentication</option>
               </select>
             </div>
-            <div>
-              <label class="block text-[10px] text-n-slate-11 mb-1"
-                >Status</label
-              >
+            <div class="flex max-w-full shrink-0 flex-col gap-1">
+              <label class="text-[10px] text-n-slate-11">Status</label>
               <select
                 v-model="selectedStatus"
-                class="w-full px-2 py-1.5 text-xs rounded-lg bg-n-alpha-1 border border-n-weak text-n-slate-12 focus:outline-none focus:border-n-blue-9"
+                class="w-max max-w-full rounded-lg border border-n-weak bg-n-alpha-1 px-2 py-1.5 text-xs text-n-slate-12 focus:border-n-blue-9 focus:outline-none"
               >
                 <option value="ALL">Todos</option>
                 <option value="APPROVED">Approved</option>
@@ -234,7 +302,20 @@ const handleConfirm = () => {
             </div>
 
             <div
-              v-if="!filteredTemplates.length"
+              v-if="!hasOfficialInboxes"
+              class="px-4 py-12 text-center text-xs leading-relaxed text-n-slate-11"
+            >
+              Nenhuma caixa da API oficial do WhatsApp está conectada nesta
+              conta.
+            </div>
+            <div
+              v-else-if="!selectedInboxId"
+              class="px-4 py-12 text-center text-xs leading-relaxed text-n-slate-11"
+            >
+              Selecione a caixa oficial para ver os templates.
+            </div>
+            <div
+              v-else-if="!filteredTemplates.length"
               class="py-12 text-center text-xs text-n-slate-9"
             >
               Nenhum template encontrado com os filtros atuais.
@@ -255,13 +336,15 @@ const handleConfirm = () => {
 
             <!-- BALÃO WHATSAPP -->
             <div
-              class="p-4 rounded-2xl bg-[#E1F8DC] dark:bg-[#1E2C22] border border-[#C5E8BF] dark:border-[#2D4533] text-slate-900 dark:text-slate-100 text-xs shadow-sm space-y-2 relative"
+              class="relative space-y-2 rounded-2xl border border-[#C5E8BF] bg-[#E1F8DC] p-4 text-xs text-slate-900 shadow-sm dark:border-[#2D4533] dark:bg-[#1E2C22] dark:text-slate-100"
             >
-              <p class="whitespace-pre-line leading-relaxed font-sans">
+              <p
+                class="break-words whitespace-pre-line font-sans leading-relaxed"
+              >
                 {{
-                  previewTemplateText(
-                    activeTemplate?.body || defaultModalPreviewBody
-                  )
+                  activeTemplate
+                    ? previewTemplateText(activeTemplate.body)
+                    : 'Selecione um template para visualizar a mensagem.'
                 }}
               </p>
               <div class="text-[10px] text-n-slate-11 text-right">12:30</div>
@@ -287,30 +370,39 @@ const handleConfirm = () => {
               <h5 class="text-xs font-bold text-n-slate-12">
                 Informações do Template
               </h5>
-              <div class="grid grid-cols-2 gap-2 text-[11px]">
-                <div>
+              <div class="flex flex-col gap-3 text-[11px]">
+                <div class="min-w-0">
                   <span class="text-n-slate-9">Nome:</span>
-                  <p class="font-bold text-n-slate-12">
-                    {{ activeTemplate?.name || 'boas_vindas_novo_cliente' }}
+                  <p class="break-all font-bold text-n-slate-12">
+                    {{ activeTemplate?.name || '—' }}
                   </p>
                 </div>
-                <div>
+                <div class="min-w-0">
                   <span class="text-n-slate-9">Categoria:</span>
-                  <p class="font-semibold text-n-slate-11">
-                    {{ activeTemplate?.category || 'Marketing' }}
+                  <p class="break-words font-semibold text-n-slate-11">
+                    {{ activeTemplate?.category || '—' }}
                   </p>
                 </div>
-                <div>
-                  <span class="text-n-slate-9">Idioma:</span>
-                  <p class="font-semibold text-n-slate-11">
-                    {{ activeTemplate?.language || 'pt_BR' }}
-                  </p>
-                </div>
-                <div>
-                  <span class="text-n-slate-9">Status:</span>
-                  <p class="font-bold text-green-600 dark:text-green-400">
-                    {{ activeTemplate?.status || 'Approved' }}
-                  </p>
+                <div class="flex flex-wrap gap-x-6 gap-y-3">
+                  <div class="min-w-0">
+                    <span class="text-n-slate-9">Idioma:</span>
+                    <p class="break-words font-semibold text-n-slate-11">
+                      {{ activeTemplate?.language || '—' }}
+                    </p>
+                  </div>
+                  <div class="min-w-0">
+                    <span class="text-n-slate-9">Status:</span>
+                    <p
+                      class="break-words font-bold"
+                      :class="
+                        activeTemplate
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-n-slate-11'
+                      "
+                    >
+                      {{ activeTemplate?.status || '—' }}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

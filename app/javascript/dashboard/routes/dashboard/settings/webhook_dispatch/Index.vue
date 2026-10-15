@@ -405,7 +405,9 @@ export default {
   <div
     class="flex flex-1 w-full h-full min-h-0 min-w-0 bg-n-background text-n-slate-12"
   >
-    <div class="flex flex-1 flex-col min-w-0">
+    <div
+      class="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden"
+    >
       <header
         class="px-6 py-5 border-b border-n-weak bg-n-solid-1 flex items-center justify-between gap-4"
       >
@@ -427,10 +429,10 @@ export default {
         </button>
       </header>
 
-      <div class="flex flex-1 flex-col min-h-0 overflow-auto px-6 pb-6">
-        <div class="flex flex-col gap-6">
+      <div class="flex min-h-0 flex-1 flex-col overflow-auto px-6 pb-6">
+        <div class="flex w-full min-h-full flex-col gap-3">
           <div
-            class="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1fr)_6.5rem_5.5rem] gap-4 px-4 text-[0.6875rem] font-semibold uppercase tracking-wide text-n-slate-11"
+            class="hidden sm:grid grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)_minmax(10rem,14rem)_6rem_5.5rem] gap-3 px-4 text-[0.6875rem] font-semibold uppercase tracking-wide text-n-slate-11"
           >
             <span>Nome do Gatilho</span>
             <span>Endpoint URL</span>
@@ -459,7 +461,7 @@ export default {
           <article
             v-for="trigger in triggers"
             :key="trigger.id"
-            class="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1fr)_6.5rem_5.5rem] items-center gap-4 px-4 py-3 rounded-xl border border-n-weak bg-n-solid-1 cursor-pointer hover:bg-n-alpha-1"
+            class="grid grid-cols-1 sm:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)_minmax(10rem,14rem)_6rem_5.5rem] items-center gap-2 sm:gap-3 px-4 py-2.5 rounded-xl border border-n-weak bg-n-solid-1 cursor-pointer hover:bg-n-alpha-1"
             :class="
               showDetails && selectedTrigger?.id === trigger.id
                 ? 'bg-n-brand/5'

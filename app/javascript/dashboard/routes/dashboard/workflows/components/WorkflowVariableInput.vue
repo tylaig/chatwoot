@@ -255,7 +255,10 @@ onMounted(autoResize);
 
 <template>
   <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
-  <OnClickOutside class="relative" @trigger="closeMenu">
+  <OnClickOutside
+    class="relative block w-full min-w-0 max-w-full"
+    @trigger="closeMenu"
+  >
     <div v-if="formatting" class="mb-1.5 flex flex-wrap gap-1">
       <button
         v-for="format in MESSAGE_FORMATS"
@@ -270,7 +273,7 @@ onMounted(autoResize);
       </button>
     </div>
     <div
-      class="relative rounded-lg bg-n-alpha-black2 outline outline-1 transition-colors"
+      class="relative w-full min-w-0 max-w-full overflow-hidden rounded-lg bg-n-alpha-black2 outline outline-1 transition-colors"
       :class="
         invalidList.length
           ? 'outline-n-ruby-8'
@@ -308,7 +311,7 @@ onMounted(autoResize);
         :rows="rows"
         :placeholder="placeholder"
         spellcheck="false"
-        class="relative block w-full m-0 h-auto min-h-0 resize-none overflow-hidden bg-transparent border-0 outline-none text-transparent caret-n-slate-12 placeholder:text-n-slate-10 selection:bg-n-iris-5 selection:text-transparent"
+        class="relative m-0 block h-auto w-full min-h-0 min-w-0 max-w-full resize-none overflow-hidden border-0 bg-transparent outline-none text-transparent caret-n-slate-12 placeholder:text-n-slate-10 selection:bg-n-iris-5 selection:text-transparent"
         :class="sharedTextClass"
         @input="onInput"
         @keydown="onKeydown"
@@ -321,7 +324,7 @@ onMounted(autoResize);
         type="text"
         :placeholder="placeholder"
         spellcheck="false"
-        class="reset-base relative block w-full h-11 m-0 bg-transparent border-0 outline-none text-transparent caret-n-slate-12 placeholder:text-n-slate-10 selection:bg-n-iris-5 selection:text-transparent"
+        class="reset-base relative block h-11 m-0 w-full min-w-0 max-w-full overflow-x-auto bg-transparent border-0 outline-none text-transparent caret-n-slate-12 placeholder:text-n-slate-10 selection:bg-n-iris-5 selection:text-transparent"
         :class="sharedTextClass"
         @input="onInput"
         @keydown="onKeydown"

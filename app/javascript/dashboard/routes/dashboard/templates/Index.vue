@@ -408,8 +408,10 @@ const removeTemplate = async tpl => {
       </div>
 
       <!-- TABELA DE TEMPLATES -->
-      <div class="flex flex-1 flex-col min-h-0 min-w-0 overflow-auto px-6 pb-4">
-        <div class="min-w-0 rounded-2xl border border-n-weak bg-n-solid-1">
+      <div class="flex flex-1 flex-col min-h-0 min-w-0 px-6 pb-4">
+        <div
+          class="min-h-0 min-w-0 flex-1 overflow-auto rounded-2xl border border-n-weak bg-n-solid-1"
+        >
           <table class="w-full table-fixed text-left border-collapse text-sm">
             <thead>
               <tr

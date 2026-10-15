@@ -122,6 +122,27 @@ const selectedNode = computed(
   () => nodes.value.find(node => node.id === selectedNodeId.value) || null
 );
 
+const inboxes = useMapGetter('inboxes/getInboxes');
+
+const isOfficialWhatsappInbox = inbox =>
+  inbox?.channel_type === 'Channel::Whatsapp' &&
+  inbox?.provider === 'whatsapp_cloud' &&
+  !inbox.legacy;
+
+const officialInboxes = computed(() =>
+  (inboxes.value || []).filter(isOfficialWhatsappInbox)
+);
+
+const nodeInboxId = computed(() => {
+  const type = selectedNode.value?.data?.type;
+  if (!['send_whatsapp_message', 'send_whatsapp_template'].includes(type)) {
+    return null;
+  }
+  const inboxId = selectedNode.value?.data?.config?.inbox_id;
+  if (inboxId === null || inboxId === undefined || inboxId === '') return null;
+  return Number(inboxId);
+});
+
 const statusMeta = computed(
   () => STATUS_LABELS[workflow.value?.status] || STATUS_LABELS.draft
 );
@@ -376,9 +397,13 @@ const fetchTemplates = async () => {
 onMounted(() => {
   fetchWorkflow();
   fetchTemplates();
-  ['agents/get', 'teams/get', 'labels/get', 'attributes/get'].forEach(action =>
-    store.dispatch(action)
-  );
+  [
+    'inboxes/get',
+    'agents/get',
+    'teams/get',
+    'labels/get',
+    'attributes/get',
+  ].forEach(action => store.dispatch(action));
 });
 
 watch(workflowId, fetchWorkflow);
@@ -727,6 +752,7 @@ const handleSelectTemplate = tpl => {
   if (!selectedNode.value) return;
   handleUpdateNodeConfig({
     ...selectedNode.value.data.config,
+    inbox_id: tpl.inbox_id || null,
     template_name: tpl.name,
     template_language: tpl.language || 'pt_BR',
     template_category: tpl.category || 'MARKETING',
@@ -1346,6 +1372,8 @@ const saveLabel = computed(
     <WorkflowTemplatePickerModal
       :show="showTemplatePicker"
       :templates="availableTemplates"
+      :inboxes="officialInboxes"
+      :initial-inbox-id="nodeInboxId"
       :selected-template-name="selectedNode?.data?.config?.template_name"
       @close="showTemplatePicker = false"
       @select="handleSelectTemplate"

@@ -416,8 +416,10 @@ const statusTabs = computed(() => [
         </select>
       </div>
 
-      <div class="flex flex-1 flex-col min-h-0 min-w-0 overflow-auto px-6 pb-4">
-        <div class="min-w-0 rounded-2xl border border-n-weak bg-n-solid-1">
+      <div class="flex flex-1 flex-col min-h-0 min-w-0 px-6 pb-4">
+        <div
+          class="min-h-0 min-w-0 flex-1 overflow-auto rounded-2xl border border-n-weak bg-n-solid-1"
+        >
           <table class="w-full table-fixed text-start text-sm">
             <thead>
               <tr
@@ -729,8 +731,8 @@ const statusTabs = computed(() => [
             <p
               class="flex items-center gap-1.5 text-xs font-medium text-n-slate-12"
             >
-              <span class="i-lucide-webhook size-3.5 text-n-amber-11" /> Gatilho
-              webhook
+              <span class="i-lucide-webhook size-3.5 text-n-amber-11" />
+              Gatilho webhook
             </p>
             <div
               v-if="selectedWorkflow.webhook_path"
