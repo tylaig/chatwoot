@@ -57,6 +57,8 @@ class Whatsapp::ImportTemplatesService
 
   def cloud_channels
     @account.inboxes.includes(:channel).filter_map do |inbox|
+      next if inbox.legacy
+
       channel = inbox.channel
       channel if cloud?(channel)
     end

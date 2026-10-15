@@ -14,7 +14,7 @@ class Api::V1::Accounts::WhatsappTemplatesController < Api::V1::Accounts::BaseCo
   end
 
   def index
-    @templates = Current.account.whatsapp_templates.with_attached_header_media.order(created_at: :desc)
+    @templates = visible_templates.with_attached_header_media.order(created_at: :desc)
     
     stats = {
       total: @templates.count,
@@ -83,7 +83,11 @@ class Api::V1::Accounts::WhatsappTemplatesController < Api::V1::Accounts::BaseCo
   private
 
   def fetch_template
-    @template = Current.account.whatsapp_templates.find(params[:id])
+    @template = visible_templates.find(params[:id])
+  end
+
+  def visible_templates
+    Current.account.whatsapp_templates.left_joins(:inbox).where('inboxes.id IS NULL OR inboxes.legacy = FALSE')
   end
 
   def meta_valid?(template, require_examples:)

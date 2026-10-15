@@ -429,7 +429,7 @@ export default {
         </button>
       </header>
 
-      <div class="flex min-h-0 flex-1 flex-col overflow-auto px-6 pb-6">
+      <div class="flex min-h-0 flex-1 flex-col overflow-auto px-6 pb-6 pt-6">
         <div class="flex w-full min-h-full flex-col gap-3">
           <div
             class="hidden sm:grid grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)_minmax(10rem,14rem)_6rem_5.5rem] gap-3 px-4 text-[0.6875rem] font-semibold uppercase tracking-wide text-n-slate-11"
