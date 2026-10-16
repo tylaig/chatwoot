@@ -99,6 +99,22 @@ export default {
     return {
       avatarFile: null,
       avatarUrl: '',
+      inboxColor: '',
+      inboxBadgeLabel: '',
+      chatBackgroundOpacity: 22,
+      chatBackgroundFile: null,
+      chatBackgroundUrl: '',
+      removeChatBackgroundImage: false,
+      inboxColorPresets: [
+        '#EAB308',
+        '#22C55E',
+        '#3B82F6',
+        '#A855F7',
+        '#F97316',
+        '#EF4444',
+        '#06B6D4',
+        '#EC4899',
+      ],
       greetingEnabled: true,
       greetingMessage: '',
       emailCollectEnabled: false,
@@ -555,6 +571,13 @@ export default {
       if (!this.inbox || !this.inbox.id) return;
 
       this.avatarUrl = this.inbox.avatar_url;
+      this.inboxColor = this.inbox.inbox_color || '';
+      this.inboxBadgeLabel = this.inbox.inbox_badge_label || '';
+      this.chatBackgroundOpacity =
+        Number(this.inbox.chat_background_opacity) || 22;
+      this.chatBackgroundUrl = this.inbox.chat_background_url || '';
+      this.chatBackgroundFile = null;
+      this.removeChatBackgroundImage = false;
       this.selectedInboxName = this.inbox.name;
       this.webhookUrl = this.inbox.webhook_url;
       this.greetingEnabled = this.inbox.greeting_enabled || false;
@@ -706,6 +729,10 @@ export default {
           legacy: this.legacyInbox,
           sender_name_type: this.senderNameType,
           business_name: this.businessName || null,
+          inbox_color: this.inboxColor || '',
+          inbox_badge_label: this.inboxBadgeLabel?.trim() || '',
+          chat_background_opacity: Number(this.chatBackgroundOpacity) || 22,
+          remove_chat_background_image: this.removeChatBackgroundImage,
           channel: {
             widget_color: this.inbox.widget_color,
             website_url: this.channelWebsiteUrl,
@@ -721,6 +748,9 @@ export default {
         if (this.avatarFile) {
           payload.avatar = this.avatarFile;
         }
+        if (this.chatBackgroundFile) {
+          payload.chat_background_image = this.chatBackgroundFile;
+        }
         await this.$store.dispatch('inboxes/updateInbox', payload);
         useAlert(this.$t('INBOX_MGMT.EDIT.API.SUCCESS_MESSAGE'));
         this.showBusinessNameInput = false;
@@ -731,6 +761,21 @@ export default {
     handleImageUpload({ file, url }) {
       this.avatarFile = file;
       this.avatarUrl = url;
+    },
+    handleChatBackgroundUpload(event) {
+      const file = event?.target?.files?.[0];
+      if (!file) return;
+      this.chatBackgroundFile = file;
+      this.chatBackgroundUrl = URL.createObjectURL(file);
+      this.removeChatBackgroundImage = false;
+    },
+    handleChatBackgroundRemove() {
+      this.chatBackgroundFile = null;
+      this.chatBackgroundUrl = '';
+      this.removeChatBackgroundImage = true;
+      if (this.$refs.chatBackgroundInput) {
+        this.$refs.chatBackgroundInput.value = '';
+      }
     },
     async handleAvatarDelete() {
       try {
@@ -1381,6 +1426,181 @@ export default {
                   isContinuityDisabled ? 'cursor-not-allowed opacity-50' : ''
                 "
               />
+            </SettingsAccordion>
+
+            <SettingsAccordion
+              title="Identidade Visual da Caixa na Conversa"
+              class="mt-6"
+            >
+              <SettingsFieldSection
+                label="Cor da Caixa (Barra Lateral e Tag)"
+                help-text="Define a barra colorida lateral e a pílula de identificação no topo das conversas desta caixa."
+              >
+                <div class="flex flex-col gap-3">
+                  <div class="flex flex-wrap items-center gap-3">
+                    <input
+                      v-model="inboxColor"
+                      type="color"
+                      class="h-10 w-14 rounded-lg border border-n-weak cursor-pointer bg-transparent p-0.5"
+                    />
+                    <woot-input
+                      v-model="inboxColor"
+                      class="[&>input]:!mb-0 w-36"
+                      placeholder="#EAB308"
+                    />
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <button
+                        v-for="preset in inboxColorPresets"
+                        :key="preset"
+                        type="button"
+                        class="size-6 rounded-md border border-n-weak transition-transform hover:scale-110"
+                        :class="{
+                          'ring-2 ring-offset-1 ring-n-brand':
+                            inboxColor.toUpperCase() === preset,
+                        }"
+                        :style="{ backgroundColor: preset }"
+                        :title="preset"
+                        @click="inboxColor = preset"
+                      />
+                    </div>
+                    <button
+                      v-if="inboxColor"
+                      type="button"
+                      class="text-xs text-n-slate-11 hover:text-n-ruby-11 underline ml-1"
+                      @click="inboxColor = ''"
+                    >
+                      Limpar cor
+                    </button>
+                  </div>
+                </div>
+              </SettingsFieldSection>
+
+              <SettingsFieldSection
+                label="Texto da Tag no Topo da Conversa"
+                help-text="Ex: BARBA GAMES ou GAMES SAFARI. Se deixar em branco, usará o nome da caixa em maiúsculas quando uma cor estiver ativa."
+              >
+                <woot-input
+                  v-model="inboxBadgeLabel"
+                  class="[&>input]:!mb-0"
+                  :placeholder="(selectedInboxName || 'GAMES SAFARI').toUpperCase()"
+                />
+              </SettingsFieldSection>
+
+              <SettingsFieldSection
+                label="Logo / Imagem de Fundo do Chat (Marca d'água)"
+                help-text="Aparece centralizada no fundo da conversa aberta com opacidade suave (recomendado PNG transparente)."
+              >
+                <div class="flex flex-col gap-3">
+                  <div class="flex flex-wrap items-center gap-3">
+                    <input
+                      ref="chatBackgroundInput"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      class="text-xs text-n-slate-11 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-n-alpha-2 file:text-n-slate-12 hover:file:bg-n-alpha-3 cursor-pointer"
+                      @change="handleChatBackgroundUpload"
+                    />
+                    <button
+                      v-if="chatBackgroundUrl"
+                      type="button"
+                      class="text-xs text-n-ruby-11 hover:underline font-medium"
+                      @click="handleChatBackgroundRemove"
+                    >
+                      Remover imagem de fundo
+                    </button>
+                  </div>
+
+                  <div class="flex items-center gap-3 max-w-md">
+                    <span class="text-xs text-n-slate-11 whitespace-nowrap">
+                      Opacidade da Logo: {{ chatBackgroundOpacity }}%
+                    </span>
+                    <input
+                      v-model.number="chatBackgroundOpacity"
+                      type="range"
+                      min="5"
+                      max="60"
+                      step="1"
+                      class="w-full cursor-pointer"
+                    />
+                  </div>
+
+                  <div
+                    class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 p-3 rounded-xl border border-n-weak bg-n-solid-2"
+                  >
+                    <div class="flex flex-col gap-1.5">
+                      <span class="text-xs font-medium text-n-slate-11">
+                        Prévia na Lista de Conversas:
+                      </span>
+                      <div
+                        class="relative flex items-start gap-2.5 p-3 rounded-lg bg-n-surface-1 border border-n-weak overflow-hidden"
+                      >
+                        <span
+                          v-if="inboxColor"
+                          class="absolute inset-y-0.5 left-0 w-1 rounded-r-sm"
+                          :style="{ backgroundColor: inboxColor }"
+                        />
+                        <div
+                          class="size-8 rounded-lg bg-n-alpha-2 flex items-center justify-center text-xs font-bold text-n-slate-11 mt-3 ml-1"
+                        >
+                          SC
+                        </div>
+                        <div class="flex flex-col min-w-0 flex-1">
+                          <div>
+                            <span
+                              class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-[11px] font-bold uppercase tracking-wide leading-4"
+                              :style="
+                                inboxColor
+                                  ? {
+                                      backgroundColor: `${inboxColor}33`,
+                                      color: inboxColor,
+                                      border: `1px solid ${inboxColor}59`,
+                                    }
+                                  : {}
+                              "
+                            >
+                              {{
+                                (
+                                  inboxBadgeLabel ||
+                                  selectedInboxName ||
+                                  'NOME DA CAIXA'
+                                ).toUpperCase()
+                              }}
+                            </span>
+                          </div>
+                          <span class="text-sm font-semibold text-n-slate-12 mt-0.5">
+                            Cliente Exemplo
+                          </span>
+                          <span class="text-xs text-n-slate-11 truncate">
+                            Olá, preciso de ajuda com meu pedido...
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                      <span class="text-xs font-medium text-n-slate-11">
+                        Prévia do Fundo do Chat:
+                      </span>
+                      <div
+                        class="relative h-24 rounded-lg bg-n-surface-1 border border-n-weak flex items-center justify-center overflow-hidden p-3"
+                      >
+                        <img
+                          v-if="chatBackgroundUrl"
+                          :src="chatBackgroundUrl"
+                          alt="Preview fundo"
+                          class="max-h-16 max-w-[75%] object-contain pointer-events-none"
+                          :style="{ opacity: (chatBackgroundOpacity || 22) / 100 }"
+                        />
+                        <span
+                          v-else
+                          class="text-xs text-n-slate-10 italic"
+                        >
+                          Nenhuma imagem de fundo selecionada
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </SettingsFieldSection>
             </SettingsAccordion>
 
             <div class="w-full flex justify-end items-center py-4 mt-2">

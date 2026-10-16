@@ -20,6 +20,10 @@ json.lock_to_single_conversation resource.lock_to_single_conversation
 json.legacy resource.legacy
 json.sender_name_type resource.sender_name_type
 json.business_name resource.business_name
+json.inbox_color resource.inbox_color
+json.inbox_badge_label resource.inbox_badge_label
+json.chat_background_opacity resource.chat_background_opacity
+json.chat_background_url resource.try(:chat_background_url)
 
 if resource.portal.present?
   json.help_center do

@@ -47,6 +47,12 @@ const voiceCallData = computed(() => {
 });
 
 const unreadCount = computed(() => props.chat.unread_count);
+const inboxColor = computed(() => props.inbox?.inbox_color || '');
+const shouldShowInboxBadge = computed(
+  () =>
+    (!props.isInboxView && props.showInboxName) ||
+    Boolean(props.inbox?.inbox_color || props.inbox?.inbox_badge_label)
+);
 
 const slaCardLabel = useTemplateRef('slaCardLabel');
 
@@ -82,6 +88,11 @@ const selectedModel = computed({
     @click="$emit('click', $event)"
     @contextmenu="$emit('contextmenu', $event)"
   >
+    <span
+      v-if="inboxColor"
+      class="absolute inset-y-0.5 ltr:left-0 rtl:right-0 w-1 rounded-r-sm pointer-events-none z-10"
+      :style="{ backgroundColor: inboxColor }"
+    />
     <!-- LEFT SECTION -->
     <div class="flex items-center gap-2 min-w-0 flex-1">
       <div class="flex items-center justify-center flex-shrink-0" @click.stop>
@@ -120,12 +131,12 @@ const selectedModel = computed({
 
       <div class="w-px h-3 bg-n-slate-6 flex-shrink-0" />
 
-      <div v-if="!isInboxView && showInboxName" class="w-20 flex-shrink-0">
-        <InboxName v-if="showInboxName" :inbox="inbox" class="min-w-0" />
+      <div v-if="shouldShowInboxBadge" class="w-28 flex-shrink-0">
+        <InboxName :inbox="inbox" class="min-w-0" />
       </div>
 
       <div
-        v-if="!isInboxView && showInboxName"
+        v-if="shouldShowInboxBadge"
         class="w-px h-3 bg-n-slate-6 flex-shrink-0"
       />
 

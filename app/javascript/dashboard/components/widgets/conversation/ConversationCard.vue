@@ -50,9 +50,16 @@ const voiceCallData = computed(() => {
   };
 });
 
+const inboxColor = computed(() => props.inbox?.inbox_color || '');
+const shouldShowInboxBadge = computed(
+  () =>
+    props.showInboxName ||
+    Boolean(props.inbox?.inbox_color || props.inbox?.inbox_badge_label)
+);
+
 const showMetaSection = computed(() => {
   return (
-    props.showInboxName ||
+    shouldShowInboxBadge.value ||
     (props.showAssignee && props.assignee.name) ||
     props.chat.priority
   );
@@ -120,6 +127,11 @@ watch(
     @click="$emit('click', $event)"
     @contextmenu="$emit('contextmenu', $event)"
   >
+    <span
+      v-if="inboxColor"
+      class="absolute inset-y-0.5 ltr:left-0 rtl:right-0 w-1 rounded-r-sm pointer-events-none z-10"
+      :style="{ backgroundColor: inboxColor }"
+    />
     <div
       class="relative"
       @mouseenter="onThumbnailHover"
@@ -131,7 +143,7 @@ watch(
         :src="currentContact.thumbnail"
         :size="32"
         :status="currentContact.availability_status"
-        :class="!showInboxName ? 'mt-4' : 'mt-8'"
+        :class="!shouldShowInboxBadge ? 'mt-4' : 'mt-8'"
         hide-offline-status
       >
         <template #overlay="{ size }">
@@ -155,11 +167,15 @@ watch(
           'mx-2': compact,
         }"
       >
-        <InboxName v-if="showInboxName" :inbox="inbox" class="flex-1 min-w-0" />
+        <InboxName
+          v-if="shouldShowInboxBadge"
+          :inbox="inbox"
+          class="flex-1 min-w-0"
+        />
         <div
           class="flex items-baseline gap-2 flex-shrink-0"
           :class="{
-            'flex-1 justify-between': !showInboxName,
+            'flex-1 justify-between': !shouldShowInboxBadge,
           }"
         >
           <span

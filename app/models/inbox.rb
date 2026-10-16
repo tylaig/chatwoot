@@ -49,6 +49,10 @@ class Inbox < ApplicationRecord
   include InboxBrandedEmailLayoutable
   include InboxBotStatus
 
+  has_one_attached :chat_background_image
+  validate :acceptable_chat_background_image, if: -> { chat_background_image.changed? }
+  store_accessor :auto_assignment_config, :inbox_color, :inbox_badge_label, :chat_background_opacity
+
   # Not allowing characters:
   validates :name, presence: true
   validates :account_id, presence: true
@@ -209,6 +213,18 @@ class Inbox < ApplicationRecord
     account.feature_enabled?('assignment_v2')
   end
 
+  def auto_assignment_config=(value)
+    existing = (self[:auto_assignment_config] || {}).deep_stringify_keys
+    incoming = (value || {}).to_h.deep_stringify_keys
+    super(existing.merge(incoming))
+  end
+
+  def chat_background_url
+    return url_for(chat_background_image) if chat_background_image.attached?
+
+    ''
+  end
+
   # Callers (Reauthorizable) only invoke this on a real transition, so the previous
   # value is always the inverse of the new boolean value.
   def dispatch_reauthorization_event(reauthorization_required)
@@ -283,6 +299,15 @@ class Inbox < ApplicationRecord
 
   def check_channel_type?
     ['Channel::Email', 'Channel::Api', 'Channel::WebWidget'].include?(channel_type)
+  end
+
+  def acceptable_chat_background_image
+    return unless chat_background_image.attached?
+
+    errors.add(:chat_background_image, 'is too big') if chat_background_image.byte_size > 15.megabytes
+    return if Avatarable::ALLOWED_AVATAR_CONTENT_TYPES.include?(chat_background_image.content_type)
+
+    errors.add(:chat_background_image, 'filetype not supported')
   end
 end
 
