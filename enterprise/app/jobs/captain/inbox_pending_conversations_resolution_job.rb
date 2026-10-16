@@ -202,6 +202,8 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   end
 
   def create_handoff_message(conversation)
+    return if out_of_office_message_applicable?(conversation)
+
     handoff_message = captain_assistant.config['handoff_message']
     return if handoff_message.blank?
 
@@ -213,5 +215,10 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
       content: handoff_message,
       preserve_waiting_since: true
     )
+  end
+
+  def out_of_office_message_applicable?(conversation)
+    inbox = conversation.inbox
+    conversation.campaign.blank? && inbox.out_of_office? && inbox.out_of_office_message.present?
   end
 end

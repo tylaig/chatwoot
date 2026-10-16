@@ -167,10 +167,16 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
   end
 
   def create_handoff_message(preserve_waiting_since: false)
+    return if out_of_office_message_applicable?
+
     @handoff_message = create_outgoing_message(
       @assistant.config['handoff_message'].presence || I18n.t('conversations.captain.handoff'),
       preserve_waiting_since: preserve_waiting_since
     )
+  end
+
+  def out_of_office_message_applicable?
+    @conversation.campaign.blank? && @inbox.out_of_office? && @inbox.out_of_office_message.present?
   end
 
   # Capture runs outside the delivery transaction and never raises (the service
