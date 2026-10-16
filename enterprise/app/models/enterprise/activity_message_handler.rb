@@ -18,6 +18,7 @@ module Enterprise::ActivityMessageHandler
   def captain_activity_key
     return captain_resolved_activity_key if resolved?
     return captain_open_activity_key if open?
+    return captain_snoozed_activity_key if snoozed?
   end
 
   def captain_resolved_activity_key
@@ -31,5 +32,11 @@ module Enterprise::ActivityMessageHandler
     return 'conversations.activity.captain.open_with_reason' if captain_status_reason.present?
 
     'conversations.activity.captain.open'
+  end
+
+  def captain_snoozed_activity_key
+    return 'conversations.activity.captain.snoozed_with_reason' if captain_status_reason.present?
+
+    'conversations.activity.captain.snoozed'
   end
 end

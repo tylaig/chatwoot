@@ -1,6 +1,7 @@
 class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   CAPTAIN_INFERENCE_RESOLVE_ACTIVITY_REASON = 'sem dúvidas pendentes'.freeze
   CAPTAIN_INFERENCE_HANDOFF_ACTIVITY_REASON = 'aguardando resposta do cliente'.freeze
+  CAPTAIN_INACTIVITY_SNOOZE_KEY = 'captain_awaiting_reply_snoozed_at'.freeze
   queue_as :low
 
   def perform(inbox)
@@ -14,6 +15,8 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     else
       perform_time_based(inbox)
     end
+
+    resolve_expired_snoozed_conversations(inbox)
   ensure
     Current.reset
   end
@@ -41,11 +44,21 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
       evaluation = evaluate_conversation(conversation, inbox)
       next unless still_resolvable_after_evaluation?(conversation)
 
-      if evaluation[:complete]
+      if evaluation[:complete] || evaluation[:status] == 'complete'
         resolve_conversation(conversation, inbox, evaluation[:reason])
+      elsif evaluation[:status] == 'awaiting_customer_reply'
+        snooze_conversation_for_customer_reply(conversation, evaluation[:reason])
       else
         handoff_conversation(conversation, evaluation[:reason])
       end
+    end
+  end
+
+  def resolve_expired_snoozed_conversations(inbox)
+    Current.executed_by = captain_assistant
+
+    resolvable_snoozed_conversations(inbox).each do |conversation|
+      resolve_snoozed_conversation_for_inactivity(conversation)
     end
   end
 
@@ -59,6 +72,18 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   def resolvable_pending_conversations(inbox)
     inbox.conversations.pending
          .where('last_activity_at < ?', inactivity_cutoff_time)
+         .limit(Limits::BULK_ACTIONS_LIMIT)
+  end
+
+  def resolvable_snoozed_conversations(inbox)
+    inbox.conversations.snoozed
+         .where(snoozed_until: nil)
+         .where('last_activity_at < ?', inactivity_cutoff_time)
+         .where(
+           "assignee_agent_bot_id = :assistant_id OR (additional_attributes ->> :snooze_key) IS NOT NULL",
+           assistant_id: captain_assistant.id,
+           snooze_key: CAPTAIN_INACTIVITY_SNOOZE_KEY
+         )
          .limit(Limits::BULK_ACTIONS_LIMIT)
   end
 
@@ -99,6 +124,25 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
         conversation.resolved!
         create_private_note(conversation, "Resolução automática: #{reason}")
         create_resolution_message(conversation)
+      end
+    end
+    record_inference_resolution(conversation) if resolved
+  rescue ActiveRecord::RecordNotFound
+    nil
+  end
+
+  def resolve_snoozed_conversation_for_inactivity(conversation)
+    reason = 'Cliente não respondeu à solicitação de dados dentro do prazo de espera (inatividade após adiamento).'
+    resolved = with_inference_activity_context(conversation, CAPTAIN_INFERENCE_RESOLVE_ACTIVITY_REASON) do
+      conversation.with_lock do
+        conversation.reload
+        next false unless conversation.snoozed? && conversation.snoozed_until.nil? && inactive_for_initial_action?(conversation)
+
+        updated_attrs = (conversation.additional_attributes || {}).except(CAPTAIN_INACTIVITY_SNOOZE_KEY)
+        conversation.update!(status: :resolved, additional_attributes: updated_attrs)
+        create_private_note(conversation, "Resolução automática por inatividade: #{reason}")
+        create_resolution_message(conversation)
+        true
       end
     end
     record_inference_resolution(conversation) if resolved
@@ -157,8 +201,14 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   def snooze_conversation_for_customer_reply(conversation, reason)
     with_inference_activity_context(conversation, CAPTAIN_INFERENCE_HANDOFF_ACTIVITY_REASON) do
       perform_locked_transition(conversation) do
+        updated_attrs = (conversation.additional_attributes || {}).merge(
+          CAPTAIN_INACTIVITY_SNOOZE_KEY => Time.current.iso8601
+        )
+        conversation.ai_assignee = captain_assistant if conversation.assignee_id.blank?
+        conversation.additional_attributes = updated_attrs
+        conversation.snoozed_until = nil
         conversation.snoozed!
-        create_private_note(conversation, "Aguardando resposta do cliente: #{reason}")
+        create_private_note(conversation, "Aguardando resposta do cliente (adiada): #{reason}")
       end
     end
   rescue ActiveRecord::RecordNotFound

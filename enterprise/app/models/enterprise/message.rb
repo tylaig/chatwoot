@@ -29,6 +29,30 @@ module Enterprise::Message
 
   private
 
+  def reopen_conversation
+    return if conversation.muted?
+    return unless incoming?
+
+    if conversation.snoozed?
+      reopen_snoozed_conversation
+      return
+    end
+
+    reopen_resolved_conversation if conversation.resolved?
+  end
+
+  def reopen_snoozed_conversation
+    assistant = conversation.inbox.captain_assistant
+    if assistant.present? && !conversation.inbox.external_bot_active? &&
+       conversation.ai_assignee_type == 'Captain::Assistant' &&
+       assistant.engages?(conversation.contact, conversation)
+      updated_attrs = (conversation.additional_attributes || {}).except('captain_awaiting_reply_snoozed_at')
+      conversation.update!(status: :pending, additional_attributes: updated_attrs)
+    else
+      conversation.open!
+    end
+  end
+
   def reopen_resolved_conversation
     assistant = conversation.inbox.captain_assistant
 

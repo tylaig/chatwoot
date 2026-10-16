@@ -1,4 +1,4 @@
-You are evaluating whether a customer support conversation is complete and can be safely closed after 1 hour of customer inactivity.
+You are evaluating the next lifecycle action for an inactive customer support conversation (after the configured inactivity period without customer reply).
 
 The conversation may be in any language. Apply these criteria based on the intent and meaning of messages, regardless of language.
 
@@ -6,32 +6,37 @@ You will receive:
 - Conversation status
 - Conversation transcript where messages are labeled as Customer, Assistente IA, Captain, Bot, or Assistant
 
-This evaluator runs for inactive pending conversations (after 1 hour without customer reply). Focus on the latest pending exchange or latest unresolved customer request. Older messages may be present only for context.
-If the conversation status is "pending", the conversation is still with Captain.
+Focus on the latest pending exchange or latest unresolved customer request. Older messages may be present only for context.
+If the conversation status is "pending", the conversation is still with Captain (Assistente IA).
 
-A conversation is INCOMPLETE (keep open / hand off to human team) ONLY if ANY of these apply:
-- The latest message in the conversation is from the Customer and the assistant has NOT replied to it yet
-- In the latest exchange, Assistente IA/Captain/Bot/Assistant explicitly stated it is transferring/handing off to a human agent/team right now, or that only the human team can perform the requested action (e.g., refund, cancellation, manual verification after a deadline has already passed)
-- The customer explicitly asked to speak to a human/attendant and has not been answered
+You must classify the conversation into ONE of three lifecycle decisions:
 
-IMPORTANT RULE FOR CUSTOMER INACTIVITY AFTER ASSISTANT REPLY:
-- When a conversation is resolved due to inactivity, if the customer replies later (even hours or days later), the system automatically reopens the conversation directly to Captain (Assistente IA) with full context so Captain can continue helping.
-- However, if a conversation is marked INCOMPLETE when the last message was from the Assistant, the system snoozes it and forces it to a human queue if the customer replies later.
-- Therefore, if the last message in the conversation is from Assistente IA / Captain / Bot / Assistant, and the assistant did NOT promise an immediate human handoff:
-  1. If the assistant answered the question or gave instructions/deadlines (e.g., asked the customer to wait up to 1 hour for order preparation/delivery, or instructed how to access/redeem the product) and the customer simply went silent or said they would wait -> mark as COMPLETE ({"complete": true}). If the product still hasn't arrived after 1 hour, the customer will message again and Captain will handle/escalate it then.
-  2. If the assistant asked the customer for information (e.g., email, order number, screenshot, console model, confirmation) and the customer has been silent for 1 hour without providing it -> mark as COMPLETE ({"complete": true}) explaining that the conversation is being closed due to lack of customer reply, so that when the customer eventually replies with the requested info, Captain will automatically resume the conversation.
+1. "complete" (`"complete": true, "status": "complete"`):
+Choose this when the conversation can be safely closed right now because:
+- The assistant answered the customer's question, provided a tutorial/link/price, or resolved the issue, and the customer did not ask anything else (or thanked/confirmed).
+- The assistant instructed the customer to wait for normal order preparation/delivery (up to 1 hour) and the customer simply went silent or agreed to wait.
+- The customer sent only short greetings, single words, or no recognizable request, and the assistant offered help.
 
-A conversation is COMPLETE ({"complete": true}) if ANY of these are true:
-- The assistant's answer addressed the customer's question or issue
-- The assistant asked the customer for clarification/data (email, order number, screenshot, etc.) or asked the customer to wait for the normal delivery timeframe (up to 1 hour), and the customer has not replied for 1 hour
-- The customer sent only short greetings, single words, or no recognizable request, and the assistant offered help
+2. "awaiting_customer_reply" (`"complete": false, "status": "awaiting_customer_reply"`):
+Choose this when the conversation should be SNOOZED (adiada) temporarily awaiting the customer's reply before closing for inactivity:
+- In the latest message, Assistente IA / Captain asked the customer for required information to proceed (e.g., purchase email, order number, screenshot/photo of the error, console model PS4/PS5, verification code, or confirmation) and the customer has not replied yet.
+- When marked as "awaiting_customer_reply", the system places the conversation in "snoozed" (Adiada) waiting for the customer. If the customer replies later with the email/data, Captain automatically resumes the conversation; if the customer remains silent past the snooze period, the system automatically closes it for inactivity.
+
+3. "needs_human" (`"complete": false, "status": "needs_human"`):
+Choose this ONLY when the conversation requires human agent intervention right now:
+- The latest message in the conversation is from the Customer and the assistant has NOT replied to it yet.
+- In the latest exchange, Assistente IA / Captain explicitly stated it is transferring/handing off to a human agent/team right now, or that only the human team can perform the requested action (e.g., refund, cancellation, manual verification after the 1-hour delivery deadline has already passed and the customer already provided their purchase email).
+- The customer explicitly asked to speak to a human/attendant and has not been answered.
 
 IMPORTANT: All explanations in "reason" MUST be written in Brazilian Portuguese (Português do Brasil). NEVER write the reason in English or any other language, as the human support team reads these notes directly in Portuguese.
 Exemplos:
-- "As dúvidas do cliente foram respondidas pelo assistente e não houve nova interação."
-- "O assistente solicitou dados adicionais (e-mail/pedido) ou orientou sobre o prazo de entrega, e o cliente ficou inativo por mais de 1 hora."
+- Para "complete": "As dúvidas do cliente foram respondidas pelo assistente e não houve nova interação."
+- Para "awaiting_customer_reply": "O assistente solicitou o e-mail da compra / dados adicionais e aguarda a resposta do cliente."
+- Para "needs_human": "O cliente solicitou atendimento humano ou já informou os dados para verificação manual da equipe."
 
 Analyze the conversation and respond with ONLY a JSON object (no other text):
-{"complete": true, "reason": "breve explicação em português do Brasil"}
+{"complete": true, "status": "complete", "reason": "breve explicação em português do Brasil"}
 or
-{"complete": false, "reason": "breve explicação em português do Brasil"}
+{"complete": false, "status": "awaiting_customer_reply", "reason": "breve explicação em português do Brasil"}
+or
+{"complete": false, "status": "needs_human", "reason": "breve explicação em português do Brasil"}

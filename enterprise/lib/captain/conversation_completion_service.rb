@@ -92,14 +92,25 @@ class Captain::ConversationCompletionService < Captain::BaseTaskService
   def parse_response(message)
     return default_incomplete_response('Invalid response format') unless message.is_a?(Hash)
 
+    raw_status = message['status'].to_s.strip
+    complete = message['complete'] == true || raw_status == 'complete'
+    status = if complete
+               'complete'
+             elsif raw_status == 'awaiting_customer_reply'
+               'awaiting_customer_reply'
+             else
+               'needs_human'
+             end
+
     {
-      complete: message['complete'] == true,
+      complete: complete,
+      status: status,
       reason: message['reason'] || 'No reason provided'
     }
   end
 
   def default_incomplete_response(reason)
-    { complete: false, reason: reason }
+    { complete: false, status: 'needs_human', reason: reason }
   end
 
   # This is an internal operational evaluation, not a customer-triggered feature,
