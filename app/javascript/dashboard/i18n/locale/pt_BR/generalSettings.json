@@ -104,6 +104,14 @@
           "ERROR": "Falha ao atualizar configuração de transcrição de áudio"
         }
       },
+      "HIDE_INBOXES_FOR_AGENTS": {
+        "TITLE": "Modo Caixa de Entrada Global (Ocultar Canais para Atendentes)",
+        "NOTE": "Quando ativado, oculta a lista individual de caixas de entrada na barra lateral e nos filtros para atendentes comuns, mantendo apenas a visão unificada 'Todas as Conversas'. Administradores continuam visualizando todas as caixas normalmente.",
+        "API": {
+          "SUCCESS": "Configuração de caixa de entrada global atualizada com sucesso",
+          "ERROR": "Falha ao atualizar configuração de caixa de entrada global"
+        }
+      },
       "AUTO_RESOLVE_DURATION": {
         "LABEL": "Tempo de inatividade para resolução",
         "HELP": "Tempo de inatividade após o qual a conversa deve ser encerrada automaticamente",

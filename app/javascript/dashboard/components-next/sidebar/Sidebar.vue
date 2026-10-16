@@ -2,6 +2,7 @@
 import { h, ref, computed, onMounted, watch } from 'vue';
 import { provideSidebarContext, useSidebarResize } from './provider';
 import { useAccount } from 'dashboard/composables/useAccount';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useConfig } from 'dashboard/composables/useConfig';
 import { useKbd } from 'dashboard/composables/utils/useKbd';
 import { useMapGetter } from 'dashboard/composables/store';
@@ -44,9 +45,16 @@ const emit = defineEmits([
   'closeMobileSidebar',
 ]);
 
-const { accountScopedRoute, isOnChatwootCloud } = useAccount();
+const { accountScopedRoute, currentAccount, isOnChatwootCloud } = useAccount();
+const { isAdmin } = useAdmin();
 const { isEnterprise } = useConfig();
 const store = useStore();
+
+const hideInboxesForCurrentUser = computed(() => {
+  return (
+    !isAdmin.value && !!currentAccount.value?.settings?.hide_inboxes_for_agents
+  );
+});
 
 // Calls run on the enterprise-only API (cloud runs enterprise); hide the entry
 // on community so it doesn't lead to a dashboard/CTA the backend can't serve.
@@ -476,27 +484,31 @@ const menuItems = computed(() => {
             to: accountScopedRoute('team_conversations', { teamId: team.id }),
           })),
         },
-        {
-          name: 'Channels',
-          label: t('SIDEBAR.CHANNELS'),
-          icon: 'i-lucide-mailbox',
-          activeOn: ['conversation_through_inbox'],
-          ...buildSortConfig(SIDEBAR_SORT_SECTIONS.CHANNELS),
-          collapsible: true,
-          showTreeLine: true,
-          children: sortedInboxes.value.map(inboxMenuItem),
-        },
-        ...(sortedLegacyInboxes.value.length
+        ...(!hideInboxesForCurrentUser.value
           ? [
               {
-                name: 'LegacyChannels',
-                label: t('SIDEBAR.LEGACY_CHANNELS'),
-                icon: 'i-lucide-archive',
+                name: 'Channels',
+                label: t('SIDEBAR.CHANNELS'),
+                icon: 'i-lucide-mailbox',
+                activeOn: ['conversation_through_inbox'],
+                ...buildSortConfig(SIDEBAR_SORT_SECTIONS.CHANNELS),
                 collapsible: true,
-                defaultCollapsed: true,
                 showTreeLine: true,
-                children: sortedLegacyInboxes.value.map(inboxMenuItem),
+                children: sortedInboxes.value.map(inboxMenuItem),
               },
+              ...(sortedLegacyInboxes.value.length
+                ? [
+                    {
+                      name: 'LegacyChannels',
+                      label: t('SIDEBAR.LEGACY_CHANNELS'),
+                      icon: 'i-lucide-archive',
+                      collapsible: true,
+                      defaultCollapsed: true,
+                      showTreeLine: true,
+                      children: sortedLegacyInboxes.value.map(inboxMenuItem),
+                    },
+                  ]
+                : []),
             ]
           : []),
         {

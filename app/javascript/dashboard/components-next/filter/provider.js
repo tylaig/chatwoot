@@ -2,6 +2,8 @@ import { computed, h } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useOperators } from './operators';
 import { useMapGetter } from 'dashboard/composables/store.js';
+import { useAccount } from 'dashboard/composables/useAccount';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useChannelIcon } from 'next/icon/provider';
 import { createContactSearcher } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper';
 import EmojiIcon from 'dashboard/components-next/emoji-icon-picker/EmojiIcon.vue';
@@ -62,6 +64,13 @@ export function useConversationFilterContext() {
   const inboxes = useMapGetter('inboxes/getInboxes');
   const teams = useMapGetter('teams/getTeams');
   const campaigns = useMapGetter('campaigns/getAllCampaigns');
+  const { currentAccount } = useAccount();
+  const { isAdmin } = useAdmin();
+  const hideInboxesForCurrentUser = computed(
+    () =>
+      !isAdmin.value &&
+      !!currentAccount.value?.settings?.hide_inboxes_for_agents
+  );
 
   const {
     equalityOperators,
@@ -158,22 +167,26 @@ export function useConversationFilterContext() {
       filterOperators: presenceOperators.value,
       attributeModel: 'standard',
     },
-    {
-      attributeKey: CONVERSATION_ATTRIBUTES.INBOX_ID,
-      value: CONVERSATION_ATTRIBUTES.INBOX_ID,
-      attributeName: t('FILTER.ATTRIBUTES.INBOX_NAME'),
-      label: t('FILTER.ATTRIBUTES.INBOX_NAME'),
-      inputType: 'searchSelect',
-      options: inboxes.value.map(inbox => {
-        return {
-          ...inbox,
-          icon: useChannelIcon(inbox).value,
-        };
-      }),
-      dataType: 'text',
-      filterOperators: presenceOperators.value,
-      attributeModel: 'standard',
-    },
+    ...(!hideInboxesForCurrentUser.value
+      ? [
+          {
+            attributeKey: CONVERSATION_ATTRIBUTES.INBOX_ID,
+            value: CONVERSATION_ATTRIBUTES.INBOX_ID,
+            attributeName: t('FILTER.ATTRIBUTES.INBOX_NAME'),
+            label: t('FILTER.ATTRIBUTES.INBOX_NAME'),
+            inputType: 'searchSelect',
+            options: inboxes.value.map(inbox => {
+              return {
+                ...inbox,
+                icon: useChannelIcon(inbox).value,
+              };
+            }),
+            dataType: 'text',
+            filterOperators: presenceOperators.value,
+            attributeModel: 'standard',
+          },
+        ]
+      : []),
     {
       attributeKey: CONVERSATION_ATTRIBUTES.TEAM_ID,
       value: CONVERSATION_ATTRIBUTES.TEAM_ID,

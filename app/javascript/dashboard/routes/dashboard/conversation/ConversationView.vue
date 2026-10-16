@@ -2,6 +2,7 @@
 import { mapGetters } from 'vuex';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAccount } from 'dashboard/composables/useAccount';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 import ChatList from '../../../components/ChatList.vue';
 import ConversationBox from '../../../components/widgets/conversation/ConversationBox.vue';
 import wootConstants from 'dashboard/constants/globals';
@@ -56,13 +57,17 @@ export default {
   setup() {
     const { uiSettings, updateUISettings, isOnExpandedLayout } =
       useUISettings();
-    const { accountId } = useAccount();
+    const { accountId, currentAccount, accountScopedRoute } = useAccount();
+    const { isAdmin } = useAdmin();
 
     return {
       uiSettings,
       updateUISettings,
       isOnExpandedLayout,
       accountId,
+      currentAccount,
+      accountScopedRoute,
+      isAdmin,
     };
   },
   data() {
@@ -121,6 +126,20 @@ export default {
       this.fetchConversationIfUnavailable();
     },
     initialize() {
+      if (
+        this.inboxId &&
+        !this.isAdmin &&
+        this.currentAccount?.settings?.hide_inboxes_for_agents
+      ) {
+        this.$router.replace(
+          this.conversationId
+            ? this.accountScopedRoute('inbox_conversation', {
+                conversation_id: this.conversationId,
+              })
+            : this.accountScopedRoute('home')
+        );
+        return;
+      }
       this.$store.dispatch('setActiveInbox', this.inboxId);
       this.setActiveChat();
     },

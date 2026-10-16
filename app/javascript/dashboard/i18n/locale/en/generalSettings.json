@@ -104,6 +104,14 @@
           "ERROR": "Failed to update audio transcription setting"
         }
       },
+      "HIDE_INBOXES_FOR_AGENTS": {
+        "TITLE": "Global Inbox Mode (Hide Channels for Agents)",
+        "NOTE": "When enabled, hides individual inboxes in the sidebar and filters for regular agents so they work exclusively in the unified 'All Conversations' view. Administrators continue to see all inboxes.",
+        "API": {
+          "SUCCESS": "Global inbox setting updated successfully",
+          "ERROR": "Failed to update global inbox setting"
+        }
+      },
       "AUTO_RESOLVE_DURATION": {
         "LABEL": "Inactivity duration for resolution",
         "HELP": "Duration after a conversation should auto resolve if there is no activity",
