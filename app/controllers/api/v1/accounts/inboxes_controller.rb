@@ -10,7 +10,7 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
 
   def index
     @inboxes = policy_scope(Current.account.inboxes)
-               .includes(:channel, :portal, :working_hours, { avatar_attachment: :blob })
+               .includes(:channel, :portal, :working_hours, { avatar_attachment: :blob }, { chat_background_image_attachment: :blob })
                .order_by_name
   end
 
@@ -54,6 +54,9 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
 
       inbox_params = permitted_params.except(:channel, :csat_config)
       inbox_params[:csat_config] = format_csat_config(permitted_params[:csat_config]) if permitted_params[:csat_config].present?
+      if ActiveModel::Type::Boolean.new.cast(params[:remove_chat_background_image]) && @inbox.chat_background_image.attached?
+        @inbox.chat_background_image.attachment.destroy!
+      end
       @inbox.update!(inbox_params)
       update_inbox_working_hours
       update_channel if channel_update_required?
@@ -191,6 +194,7 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
     [:name, :avatar, :greeting_enabled, :greeting_message, :enable_email_collect, :csat_survey_enabled,
      :enable_auto_assignment, :working_hours_enabled, :out_of_office_message, :timezone, :allow_messages_after_resolved,
      :lock_to_single_conversation, :legacy, :portal_id, :sender_name_type, :business_name,
+     :inbox_color, :inbox_badge_label, :chat_background_opacity, :chat_background_image,
      { csat_config: [:display_type, :message, :button_text, :language,
                      { survey_rules: [:operator, { values: [] }],
                        template: [:name, :template_id, :friendly_name, :content_sid, :approval_sid, :created_at, :language, :status] }] }]
