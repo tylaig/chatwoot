@@ -594,6 +594,34 @@ class Shopify::MultiStoreOrderFinderService
               'fulfillment_status' => 'fulfilled'
             }
           ]
+        },
+        {
+          'id' => 902_103,
+          'name' => '#BG-41988',
+          'email' => contact_email.presence || 'lucas.oliveira@gmail.com',
+          'phone' => contact_phone.presence || '+5511997123456',
+          'customer' => {
+            'id' => 701,
+            'name' => contact_name.presence || 'Lucas Oliveira'
+          },
+          'created_at' => (now - 14.hours).iso8601,
+          'updated_at' => (now - 13.hours).iso8601,
+          'total_price' => '129.90',
+          'currency' => 'BRL',
+          'financial_status' => 'paid',
+          'fulfillment_status' => 'fulfilled',
+          'tags' => 'entregue, multi-pedido, xbox-ps5',
+          'line_items' => [
+            {
+              'id' => 13,
+              'title' => 'Call of Duty: Black Ops 6 - Cross-Gen Bundle (Xbox / PS5)',
+              'variant_title' => 'Licença Completa Cross-Gen',
+              'sku' => 'BG-COD-BO6',
+              'quantity' => 1,
+              'price' => '129.90',
+              'fulfillment_status' => 'fulfilled'
+            }
+          ]
         }
       ]
     elsif ref.include?('gamebox') || store_name.downcase.include?('gamebox')
@@ -770,6 +798,62 @@ class Shopify::MultiStoreOrderFinderService
               'quantity' => 1,
               'price' => '69.90',
               'fulfillment_status' => 'fulfilled'
+            }
+          ]
+        },
+        {
+          'id' => 901_003,
+          'name' => '#31588',
+          'email' => contact_email.presence || 'matheus.ferreira@gamessafari.com',
+          'phone' => contact_phone.presence || '+5511998765432',
+          'customer' => {
+            'id' => 601,
+            'name' => contact_name.presence || 'Matheus Ferreira'
+          },
+          'created_at' => (now - 6.hours).iso8601,
+          'updated_at' => (now - 5.hours).iso8601,
+          'total_price' => '139.80',
+          'currency' => 'BRL',
+          'financial_status' => 'paid',
+          'fulfillment_status' => 'fulfilled',
+          'tags' => 'entregue, fc-coins, recorrente',
+          'line_items' => [
+            {
+              'id' => 3,
+              'title' => '100 mil FC Coins - EA SPORTS FC 27 (Xbox / PS5 / PC)',
+              'variant_title' => 'Transferência Segura Comfort Trade',
+              'sku' => 'GS-FCCOINS-100K',
+              'quantity' => 2,
+              'price' => '69.90',
+              'fulfillment_status' => 'fulfilled'
+            }
+          ]
+        },
+        {
+          'id' => 901_004,
+          'name' => '#31204',
+          'email' => contact_email.presence || 'matheus.ferreira@gamessafari.com',
+          'phone' => contact_phone.presence || '+5511998765432',
+          'customer' => {
+            'id' => 601,
+            'name' => contact_name.presence || 'Matheus Ferreira'
+          },
+          'created_at' => (now - 4.days).iso8601,
+          'updated_at' => (now - 4.days).iso8601,
+          'total_price' => '59.90',
+          'currency' => 'BRL',
+          'financial_status' => 'pending',
+          'fulfillment_status' => 'unfulfilled',
+          'tags' => 'gamepass, boleto-pendente',
+          'line_items' => [
+            {
+              'id' => 4,
+              'title' => 'Assinatura Xbox Game Pass Ultimate - Acesso Completo',
+              'variant_title' => 'Licença Mensal Renovável',
+              'sku' => 'GS-GAMEPASS-ULT',
+              'quantity' => 1,
+              'price' => '59.90',
+              'fulfillment_status' => nil
             }
           ]
         }
