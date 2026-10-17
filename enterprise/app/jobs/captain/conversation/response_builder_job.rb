@@ -16,6 +16,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
     @responding_to_message_id = responding_to_message_id if captain_v2_enabled?
 
     return log_non_pending unless conversation_pending?
+    return reopen_already_handed_off_conversation if already_handed_off_in_current_cycle?
 
     Current.executed_by = @assistant
 
@@ -168,11 +169,43 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
 
   def create_handoff_message(preserve_waiting_since: false)
     return if out_of_office_message_applicable?
+    return if handoff_message_already_sent_in_current_cycle?
 
     @handoff_message = create_outgoing_message(
-      @assistant.config['handoff_message'].presence || I18n.t('conversations.captain.handoff'),
+      configured_handoff_message,
       preserve_waiting_since: preserve_waiting_since
     )
+  end
+
+  def configured_handoff_message
+    @assistant.config['handoff_message'].presence || I18n.t('conversations.captain.handoff')
+  end
+
+  def last_resolution_activity_at
+    @conversation.messages.activity
+                 .where("content ILIKE '%resolv%'")
+                 .maximum(:created_at)
+  end
+
+  def handoff_message_already_sent_in_current_cycle?
+    scope = @conversation.messages.outgoing.where(private: false, sender: @assistant, content: configured_handoff_message)
+    cutoff = last_resolution_activity_at
+    scope = scope.where('created_at > ?', cutoff) if cutoff.present?
+    scope.exists?
+  end
+
+  def already_handed_off_in_current_cycle?
+    return false if @conversation.assignee_id.blank?
+
+    handoff_message_already_sent_in_current_cycle?
+  end
+
+  def reopen_already_handed_off_conversation
+    Rails.logger.info(
+      "[CAPTAIN][ResponseBuilderJob] Reopening already handed-off conversation=#{@conversation.display_id} " \
+      "for assignee_id=#{@conversation.assignee_id} without duplicate bot handoff"
+    )
+    @conversation.open! if @conversation.pending?
   end
 
   def out_of_office_message_applicable?
