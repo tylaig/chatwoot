@@ -504,7 +504,9 @@ class Shopify::MultiStoreOrderFinderService
         (target_email.present? && order['email'].to_s.downcase == target_email) ||
           (target_digits.length >= 8 && order['phone'].to_s.gsub(/\D/, '').include?(target_digits))
       end
-      return matched_for_contact.presence || catalog.first(1)
+      return matched_for_contact if matched_for_contact.any?
+
+      return []
     end
 
     return catalog if @query.blank?
@@ -532,9 +534,6 @@ class Shopify::MultiStoreOrderFinderService
   def build_mock_orders_for_hook(hook)
     ref = hook.reference_id.to_s.downcase
     store_name = hook.settings&.dig('store_name').to_s
-    contact_email = @contact&.email
-    contact_phone = @contact&.phone_number
-    contact_name = @contact&.name
     now = Time.current
 
     if ref.include?('barba') || store_name.downcase.include?('barba')
@@ -542,11 +541,11 @@ class Shopify::MultiStoreOrderFinderService
         {
           'id' => 902_101,
           'name' => '#BG-41820',
-          'email' => contact_email.presence || 'lucas.oliveira@gmail.com',
-          'phone' => contact_phone.presence || '+5511997123456',
+          'email' => 'lucas.oliveira@gmail.com',
+          'phone' => '+5511997123456',
           'customer' => {
             'id' => 701,
-            'name' => contact_name.presence || 'Lucas Oliveira'
+            'name' => 'Lucas Oliveira'
           },
           'created_at' => (now - 18.minutes).iso8601,
           'updated_at' => (now - 5.minutes).iso8601,
@@ -570,11 +569,11 @@ class Shopify::MultiStoreOrderFinderService
         {
           'id' => 902_102,
           'name' => '#BG-41509',
-          'email' => contact_email.presence || 'rafael.mendes@hotmail.com',
-          'phone' => contact_phone.presence || '+5521988451230',
+          'email' => 'rafael.mendes@hotmail.com',
+          'phone' => '+5521988451230',
           'customer' => {
             'id' => 702,
-            'name' => contact_name.presence || 'Rafael Mendes'
+            'name' => 'Rafael Mendes'
           },
           'created_at' => (now - 3.days).iso8601,
           'updated_at' => (now - 3.days).iso8601,
@@ -598,11 +597,11 @@ class Shopify::MultiStoreOrderFinderService
         {
           'id' => 902_103,
           'name' => '#BG-41988',
-          'email' => contact_email.presence || 'lucas.oliveira@gmail.com',
-          'phone' => contact_phone.presence || '+5511997123456',
+          'email' => 'matheus.ferreira@gamessafari.com',
+          'phone' => '+5511998765432',
           'customer' => {
-            'id' => 701,
-            'name' => contact_name.presence || 'Lucas Oliveira'
+            'id' => 601,
+            'name' => 'Matheus Ferreira'
           },
           'created_at' => (now - 14.hours).iso8601,
           'updated_at' => (now - 13.hours).iso8601,
@@ -629,11 +628,11 @@ class Shopify::MultiStoreOrderFinderService
         {
           'id' => 903_201,
           'name' => '#GBX-88210',
-          'email' => contact_email.presence || 'gabriel.costa@uol.com.br',
-          'phone' => contact_phone.presence || '+5531991239876',
+          'email' => 'gabriel.costa@uol.com.br',
+          'phone' => '+5531991239876',
           'customer' => {
             'id' => 801,
-            'name' => contact_name.presence || 'Gabriel Costa'
+            'name' => 'Gabriel Costa'
           },
           'created_at' => (now - 34.minutes).iso8601,
           'updated_at' => (now - 10.minutes).iso8601,
@@ -657,11 +656,11 @@ class Shopify::MultiStoreOrderFinderService
         {
           'id' => 903_202,
           'name' => '#GBX-87904',
-          'email' => contact_email.presence || 'amanda.silva@gmail.com',
-          'phone' => contact_phone.presence || '+5541996543210',
+          'email' => 'amanda.silva@gmail.com',
+          'phone' => '+5541996543210',
           'customer' => {
             'id' => 802,
-            'name' => contact_name.presence || 'Amanda Silva'
+            'name' => 'Amanda Silva'
           },
           'created_at' => (now - 5.days).iso8601,
           'updated_at' => (now - 5.days).iso8601,
@@ -688,11 +687,11 @@ class Shopify::MultiStoreOrderFinderService
         {
           'id' => 904_301,
           'name' => '#GGL-19402',
-          'email' => contact_email.presence || 'pedro.almeida@gmail.com',
-          'phone' => contact_phone.presence || '+5551993456789',
+          'email' => 'pedro.almeida@gmail.com',
+          'phone' => '+5551993456789',
           'customer' => {
             'id' => 901,
-            'name' => contact_name.presence || 'Pedro Almeida'
+            'name' => 'Pedro Almeida'
           },
           'created_at' => (now - 95.minutes).iso8601,
           'updated_at' => (now - 65.minutes).iso8601,
@@ -716,11 +715,11 @@ class Shopify::MultiStoreOrderFinderService
         {
           'id' => 904_302,
           'name' => '#GGL-19115',
-          'email' => contact_email.presence || 'thiago.rocha@outlook.com',
-          'phone' => contact_phone.presence || '+5581994561234',
+          'email' => 'thiago.rocha@outlook.com',
+          'phone' => '+5581994561234',
           'customer' => {
             'id' => 902,
-            'name' => contact_name.presence || 'Thiago Rocha'
+            'name' => 'Thiago Rocha'
           },
           'created_at' => (now - 7.days).iso8601,
           'updated_at' => (now - 7.days).iso8601,
@@ -748,11 +747,11 @@ class Shopify::MultiStoreOrderFinderService
         {
           'id' => 901_001,
           'name' => '#31652',
-          'email' => contact_email.presence || 'matheus.ferreira@gamessafari.com',
-          'phone' => contact_phone.presence || '+5511998765432',
+          'email' => 'matheus.ferreira@gamessafari.com',
+          'phone' => '+5511998765432',
           'customer' => {
             'id' => 601,
-            'name' => contact_name.presence || 'Matheus Ferreira'
+            'name' => 'Matheus Ferreira'
           },
           'created_at' => (now - 24.minutes).iso8601,
           'updated_at' => (now - 12.minutes).iso8601,
@@ -776,11 +775,11 @@ class Shopify::MultiStoreOrderFinderService
         {
           'id' => 901_002,
           'name' => '#31410',
-          'email' => contact_email.presence || 'bruno.santos@gmail.com',
-          'phone' => contact_phone.presence || '+5511987651234',
+          'email' => 'bruno.santos@gmail.com',
+          'phone' => '+5511987651234',
           'customer' => {
             'id' => 602,
-            'name' => contact_name.presence || 'Bruno Santos'
+            'name' => 'Bruno Santos'
           },
           'created_at' => (now - 2.days).iso8601,
           'updated_at' => (now - 2.days).iso8601,
@@ -804,11 +803,11 @@ class Shopify::MultiStoreOrderFinderService
         {
           'id' => 901_003,
           'name' => '#31588',
-          'email' => contact_email.presence || 'matheus.ferreira@gamessafari.com',
-          'phone' => contact_phone.presence || '+5511998765432',
+          'email' => 'matheus.ferreira@gamessafari.com',
+          'phone' => '+5511998765432',
           'customer' => {
             'id' => 601,
-            'name' => contact_name.presence || 'Matheus Ferreira'
+            'name' => 'Matheus Ferreira'
           },
           'created_at' => (now - 6.hours).iso8601,
           'updated_at' => (now - 5.hours).iso8601,
@@ -832,11 +831,11 @@ class Shopify::MultiStoreOrderFinderService
         {
           'id' => 901_004,
           'name' => '#31204',
-          'email' => contact_email.presence || 'matheus.ferreira@gamessafari.com',
-          'phone' => contact_phone.presence || '+5511998765432',
+          'email' => 'matheus.ferreira@gamessafari.com',
+          'phone' => '+5511998765432',
           'customer' => {
             'id' => 601,
-            'name' => contact_name.presence || 'Matheus Ferreira'
+            'name' => 'Matheus Ferreira'
           },
           'created_at' => (now - 4.days).iso8601,
           'updated_at' => (now - 4.days).iso8601,
