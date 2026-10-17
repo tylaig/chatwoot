@@ -209,12 +209,17 @@ export const IFrameHelper = {
             // ignore
           }
         };
+        window.$chatwoot.requestPushPermission = requestPushPermission;
         ['click', 'keydown', 'touchstart'].forEach(ev => {
           document.addEventListener(ev, requestPushPermission, {
-            once: true,
             passive: true,
           });
         });
+        if (bubbleHolder) {
+          bubbleHolder.addEventListener('click', requestPushPermission, {
+            passive: true,
+          });
+        }
         const stopTitleFlash = () => {
           if (window.$chatwoot.titleTimer) {
             clearInterval(window.$chatwoot.titleTimer);
@@ -248,10 +253,16 @@ export const IFrameHelper = {
     onEvent({ eventIdentifier: eventName, data }) {
       dispatchWindowEvent({ eventName, data });
       try {
+        const isAgentOrOutgoingMessage =
+          data &&
+          (data.message_type === 1 ||
+            data.message_type === 'outgoing' ||
+            data.sender_type === 'User' ||
+            data.sender_type === 'Captain::Assistant' ||
+            data.sender_type === 'AgentBot');
         if (
           eventName === 'chatwoot:on-message' &&
-          data &&
-          data.message_type === 1 &&
+          isAgentOrOutgoingMessage &&
           window.$chatwoot &&
           window.$chatwoot.browserPushEnabled !== false
         ) {
@@ -260,7 +271,12 @@ export const IFrameHelper = {
             (data.sender && (data.sender.available_name || data.sender.name)) ||
             cfg.websiteName ||
             'Suporte';
-          const rawContent = (data.content || 'Nova mensagem recebida')
+          const hasAttachment =
+            Array.isArray(data.attachments) && data.attachments.length > 0;
+          const fallbackContent = hasAttachment
+            ? '📎 Anexo recebido no chat'
+            : 'Nova mensagem recebida';
+          const rawContent = (data.content || fallbackContent)
             .replace(/<[^>]*>?/gm, '')
             .trim();
           const bodyText =
@@ -281,28 +297,36 @@ export const IFrameHelper = {
             }
           }
 
-          if (
-            'Notification' in window &&
-            Notification.permission === 'granted' &&
-            (document.hidden ||
-              !document.hasFocus() ||
-              !window.$chatwoot.isOpen)
-          ) {
-            const notif = new Notification(senderName, {
-              body: bodyText || 'Você recebeu uma nova mensagem',
-              icon: cfg.avatarUrl || '/favicon-32x32.png',
-              tag: `cw-msg-${data.conversation_id || 'active'}`,
-              renotify: true,
-            });
-            notif.onclick = () => {
-              try {
-                window.focus();
-                if (window.$chatwoot) window.$chatwoot.toggle('open');
-                notif.close();
-              } catch {
-                // ignore
+          if ('Notification' in window) {
+            if (
+              Notification.permission === 'default' &&
+              window.$chatwoot.requestPushPermission
+            ) {
+              window.$chatwoot.requestPushPermission();
+            }
+            if (Notification.permission === 'granted') {
+              const notifOptions = {
+                body: bodyText || 'Você recebeu uma nova mensagem',
+                tag: `cw-msg-${data.conversation_id || Date.now()}`,
+                renotify: true,
+              };
+              if (
+                cfg.avatarUrl &&
+                /^https?:\/\//i.test(String(cfg.avatarUrl))
+              ) {
+                notifOptions.icon = cfg.avatarUrl;
               }
-            };
+              const notif = new Notification(senderName, notifOptions);
+              notif.onclick = () => {
+                try {
+                  window.focus();
+                  if (window.$chatwoot) window.$chatwoot.toggle('open');
+                  notif.close();
+                } catch {
+                  // ignore
+                }
+              };
+            }
           }
         }
       } catch {
@@ -351,6 +375,9 @@ export const IFrameHelper = {
     },
 
     onBubbleToggle: isOpen => {
+      if (window.$chatwoot?.requestPushPermission) {
+        window.$chatwoot.requestPushPermission();
+      }
       IFrameHelper.sendMessage('toggle-open', { isOpen });
       if (isOpen) {
         IFrameHelper.pushEvent('webwidget.triggered');
