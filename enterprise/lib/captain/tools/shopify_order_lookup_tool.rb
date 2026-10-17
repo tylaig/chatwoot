@@ -67,7 +67,8 @@ class Captain::Tools::ShopifyOrderLookupTool < Captain::Tools::BasePublicTool
     orders.each do |order|
       items_summary = Array(order['line_items']).map do |item|
         variant = item['variant_title'].present? ? " (#{item['variant_title']})" : ''
-        "#{item['quantity']}x #{item['title']}#{variant}"
+        sku = item['sku'].present? ? " [SKU: #{item['sku']}]" : ''
+        "#{item['quantity']}x #{item['title']}#{variant}#{sku}"
       end.join(', ')
 
       elapsed = if order['minutes_since_created'].present?
@@ -76,15 +77,21 @@ class Captain::Tools::ShopifyOrderLookupTool < Captain::Tools::BasePublicTool
                   'unknown'
                 end
 
+      tracking_summary = Array(order['fulfillments']).map do |f|
+        "#{f['tracking_company'] || 'Digital'}: #{f['tracking_number'] || 'N/A'}"
+      end.join('; ')
+
       lines << <<~ORDER.strip
         - Store: #{order['store_name']} (#{order['shop_domain']})
           Order: #{order['name']} (ID: #{order['id']})
-          Customer Email: #{order['email']}
+          Customer: #{order['customer_name']} | Email: #{order['email']} | Phone: #{order['phone'].presence || 'N/A'}
           Created At: #{order['created_at']} (Elapsed: #{elapsed})
-          Financial Status: #{order['financial_status']}
-          Fulfillment Status: #{order['fulfillment_status']}
-          Total: #{order['total_price']} #{order['currency']}
+          Financial Status (Payment): #{order['financial_status']} (Method: #{order['payment_method'].presence || order['gateway'].presence || 'PIX / Card'})
+          Fulfillment Status (Delivery): #{order['fulfillment_status']}
+          Total: #{order['total_price']} #{order['currency']} (Subtotal: #{order['subtotal_price']} | Discounts: #{order['total_discounts']})
           Items: #{items_summary.presence || 'N/A'}
+          Tracking / Fulfillments: #{tracking_summary.presence || 'Pending / Digital Automatic'}
+          Note: #{order['note'].presence || 'none'}
           Tags: #{order['tags'].presence || 'none'}
           Admin URL: #{order['admin_url']}
       ORDER
