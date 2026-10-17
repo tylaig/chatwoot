@@ -31,7 +31,7 @@ class Captain::Tools::ShopifyOrderLookupTool < Captain::Tools::BasePublicTool
     end
 
     log_tool_usage('orders_found', { query: search_query, count: orders.size })
-    format_orders(orders.first(8))
+    format_orders(orders.first(20))
   rescue StandardError => e
     ChatwootExceptionTracker.new(e, account: @assistant.account).capture_exception
     failure_result("Failed to lookup Shopify orders: #{e.message}", tool_context.state)

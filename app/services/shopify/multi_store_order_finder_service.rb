@@ -487,7 +487,7 @@ class Shopify::MultiStoreOrderFinderService
     end
 
     if raw_orders.empty? && @contact.blank? && @query.blank?
-      res = shopify_get(hook, 'orders.json', status: 'any', limit: 25, fields: ORDER_FIELDS)
+      res = shopify_get(hook, 'orders.json', status: 'any', limit: 100, fields: ORDER_FIELDS)
       raw_orders.concat(res['orders'] || [])
     end
 
@@ -855,6 +855,62 @@ class Shopify::MultiStoreOrderFinderService
               'fulfillment_status' => nil
             }
           ]
+        },
+        {
+          'id' => 890_412,
+          'name' => '#24890',
+          'email' => 'matheus.ferreira@gamessafari.com',
+          'phone' => '+5511998765432',
+          'customer' => {
+            'id' => 601,
+            'name' => 'Matheus Ferreira'
+          },
+          'created_at' => (now - 75.days).iso8601,
+          'updated_at' => (now - 75.days).iso8601,
+          'total_price' => '189.90',
+          'currency' => 'BRL',
+          'financial_status' => 'paid',
+          'fulfillment_status' => 'fulfilled',
+          'tags' => 'pedido-antigo, entregue, fc-26',
+          'line_items' => [
+            {
+              'id' => 5,
+              'title' => 'EA SPORTS FC 26 Standard Edition - Xbox / PC (Histórico)',
+              'variant_title' => 'Mídia Digital Completa',
+              'sku' => 'GS-FC26-STD',
+              'quantity' => 1,
+              'price' => '189.90',
+              'fulfillment_status' => 'fulfilled'
+            }
+          ]
+        },
+        {
+          'id' => 871_105,
+          'name' => '#18340',
+          'email' => 'matheus.ferreira@gamessafari.com',
+          'phone' => '+5511998765432',
+          'customer' => {
+            'id' => 601,
+            'name' => 'Matheus Ferreira'
+          },
+          'created_at' => (now - 210.days).iso8601,
+          'updated_at' => (now - 210.days).iso8601,
+          'total_price' => '179.90',
+          'currency' => 'BRL',
+          'financial_status' => 'paid',
+          'fulfillment_status' => 'fulfilled',
+          'tags' => 'pedido-antigo, entregue, gamepass-anual',
+          'line_items' => [
+            {
+              'id' => 6,
+              'title' => 'Assinatura Xbox Game Pass Ultimate - 12 Meses (Compra Antiga)',
+              'variant_title' => 'Código 25 Dígitos Entregue',
+              'sku' => 'GS-GAMEPASS-12M-OLD',
+              'quantity' => 1,
+              'price' => '179.90',
+              'fulfillment_status' => 'fulfilled'
+            }
+          ]
         }
       ]
     end
@@ -941,12 +997,24 @@ class Shopify::MultiStoreOrderFinderService
   end
 
   def fetch_orders_by_customer(hook, customer_id)
+    # Using customers/:id/orders.json with status=any fetches full customer history including older/archived orders
+    res_customer_endpoint = shopify_get(
+      hook,
+      "customers/#{customer_id}/orders.json",
+      status: 'any',
+      limit: 100,
+      fields: ORDER_FIELDS
+    )
+    orders = res_customer_endpoint['orders'] || []
+    return orders if orders.any?
+
     res = shopify_get(
       hook,
       'orders.json',
       customer_id: customer_id,
       status: 'any',
-      limit: 15,
+      limit: 100,
+      created_at_min: '2018-01-01T00:00:00-00:00',
       fields: ORDER_FIELDS
     )
     res['orders'] || []
@@ -958,7 +1026,8 @@ class Shopify::MultiStoreOrderFinderService
       'orders.json',
       name: order_name,
       status: 'any',
-      limit: 10,
+      limit: 50,
+      created_at_min: '2018-01-01T00:00:00-00:00',
       fields: ORDER_FIELDS
     )
     orders = res['orders'] || []
@@ -970,7 +1039,8 @@ class Shopify::MultiStoreOrderFinderService
       'orders.json',
       name: clean_name,
       status: 'any',
-      limit: 10,
+      limit: 50,
+      created_at_min: '2018-01-01T00:00:00-00:00',
       fields: ORDER_FIELDS
     )
     res_alt['orders'] || []
@@ -982,7 +1052,8 @@ class Shopify::MultiStoreOrderFinderService
       'orders.json',
       email: email,
       status: 'any',
-      limit: 15,
+      limit: 100,
+      created_at_min: '2018-01-01T00:00:00-00:00',
       fields: ORDER_FIELDS
     )
     res['orders'] || []
