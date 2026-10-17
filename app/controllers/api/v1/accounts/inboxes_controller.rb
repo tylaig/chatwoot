@@ -63,6 +63,8 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
     end
 
     return unless continue_update
+
+    @inbox.account.update_cache_key('inbox')
   end
 
   def agent_bot

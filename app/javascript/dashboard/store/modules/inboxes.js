@@ -248,7 +248,10 @@ export const actions = {
   // - createWebsiteChannel
   // - createTwilioChannel
   // - createFBChannel
-  updateInbox: async ({ commit }, { id, formData = true, ...inboxParams }) => {
+  updateInbox: async (
+    { commit, dispatch },
+    { id, formData = true, ...inboxParams }
+  ) => {
     commit(types.default.SET_INBOXES_UI_FLAG, { isUpdating: true });
     try {
       const response = await InboxesAPI.update(
@@ -257,6 +260,7 @@ export const actions = {
       );
       commit(types.default.EDIT_INBOXES, response.data);
       commit(types.default.SET_INBOXES_UI_FLAG, { isUpdating: false });
+      dispatch('revalidate', { newKey: String(Date.now()) });
     } catch (error) {
       commit(types.default.SET_INBOXES_UI_FLAG, { isUpdating: false });
       throwErrorMessage(error);
