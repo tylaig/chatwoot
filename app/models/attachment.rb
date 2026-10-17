@@ -41,6 +41,7 @@ class Attachment < ApplicationRecord
   belongs_to :account
   belongs_to :message
   has_one_attached :file
+  before_save :normalize_raw_image_attachment
   before_save :set_extension
   validate :acceptable_file
   validates :external_url, length: { maximum: Limits::URL_LENGTH_LIMIT }
@@ -181,6 +182,41 @@ class Attachment < ApplicationRecord
     return if extension.present?
 
     self.extension = File.extname(file.filename.to_s).delete_prefix('.').presence
+  end
+
+  def normalize_raw_image_attachment
+    return unless file.attached?
+
+    ctype = file.blob&.content_type.to_s.downcase
+    fname = file.filename.to_s.downcase
+    return unless ctype.include?('tiff') || ctype.include?('dng') || fname.end_with?('.dng', '.tif', '.tiff')
+
+    file.blob.open do |tmp|
+      data = File.binread(tmp.path)
+      jpegs = []
+      pos = 0
+      while (start_idx = data.index("\xFF\xD8\xFF".b, pos))
+        end_idx = data.index("\xFF\xD9".b, start_idx + 3)
+        break unless end_idx
+
+        jpg_bytes = data[start_idx..(end_idx + 1)]
+        jpegs << jpg_bytes if jpg_bytes.bytesize > 10_000
+        pos = end_idx + 2
+      end
+
+      best_jpg = jpegs.max_by(&:bytesize)
+      return unless best_jpg && best_jpg.bytesize > 15_000
+
+      self.file_type = :image
+      self.extension = 'jpeg'
+      file.attach(
+        io: StringIO.new(best_jpg),
+        filename: file.filename.to_s.sub(/\.(dng|tiff|tif)\z/i, '.jpeg'),
+        content_type: 'image/jpeg'
+      )
+    end
+  rescue StandardError => e
+    Rails.logger.warn("[Attachment#normalize_raw_image_attachment] Failed for attachment #{id}: #{e.message}")
   end
 
   def should_validate_file?
