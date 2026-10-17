@@ -131,13 +131,36 @@ watch(
 );
 </script>
 
+<!-- eslint-disable @intlify/vue-i18n/no-raw-text, vue/no-bare-strings-in-template -->
 <template>
   <div class="px-4 py-2 text-n-slate-12 flex flex-col gap-3">
+    <!-- Resumo automático do e-mail/telefone do usuário na conversa -->
+    <div
+      v-if="contact?.email || contact?.phone_number"
+      class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-n-alpha-1 border border-n-weak text-[11px]"
+    >
+      <div class="flex items-center gap-1.5 min-w-0">
+        <span class="i-lucide-mail size-3.5 text-n-brand shrink-0" />
+        <span class="text-n-slate-11 truncate">
+          Pedidos vinculados a:
+          <strong class="text-n-slate-12 font-medium">
+            {{ contact.email || contact.phone_number }}
+          </strong>
+        </span>
+      </div>
+      <span
+        v-if="orders.length"
+        class="px-1.5 py-0.5 rounded-full bg-n-brand/10 text-n-brand font-semibold text-[10px] shrink-0"
+      >
+        {{ orders.length }} recente(s)
+      </span>
+    </div>
+
     <form class="flex flex-col gap-2" @submit.prevent="handleSearchSubmit">
       <div v-if="hooks.length > 1" class="flex items-center gap-1.5">
         <select
           v-model="selectedHookId"
-          class="w-full text-xs px-2.5 py-1.5 rounded border border-n-weak bg-n-alpha-1 text-n-slate-12 focus:outline-none focus:border-n-brand"
+          class="reset-base no-margin w-full h-8 text-xs px-2.5 py-1 rounded-lg border border-n-weak bg-n-solid-2 text-n-slate-12 focus:outline-none focus:border-n-brand"
           @change="handleStoreFilterChange"
         >
           <option value="">
@@ -152,24 +175,29 @@ watch(
       </div>
 
       <div class="flex items-center gap-1.5">
-        <input
-          v-model="searchQuery"
-          type="text"
-          :placeholder="$t('CONVERSATION_SIDEBAR.SHOPIFY.SEARCH_PLACEHOLDER')"
-          class="flex-1 min-w-0 text-xs px-2.5 py-1.5 rounded border border-n-weak bg-n-alpha-1 text-n-slate-12 focus:outline-none focus:border-n-brand"
-        />
-        <button
-          v-if="searchQuery"
-          type="button"
-          :aria-label="$t('CONVERSATION_SIDEBAR.SHOPIFY.CLEAR_BUTTON')"
-          class="text-xs px-2 py-1.5 rounded bg-n-solid-3 text-n-slate-11 hover:text-n-slate-12 flex items-center justify-center"
-          @click="clearSearch"
+        <div
+          class="flex items-center gap-1.5 flex-1 h-8 px-2.5 rounded-lg border border-n-weak bg-n-solid-2 focus-within:border-n-brand transition-colors"
         >
-          <i class="i-lucide-x text-xs" />
-        </button>
+          <span class="i-lucide-search size-3.5 text-n-slate-10 shrink-0" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            :placeholder="$t('CONVERSATION_SIDEBAR.SHOPIFY.SEARCH_PLACEHOLDER')"
+            class="reset-base no-margin flex-1 min-w-0 h-full bg-transparent border-0 outline-none focus:outline-none text-xs text-n-slate-12 placeholder:text-n-slate-10"
+          />
+          <button
+            v-if="searchQuery"
+            type="button"
+            :aria-label="$t('CONVERSATION_SIDEBAR.SHOPIFY.CLEAR_BUTTON')"
+            class="flex items-center justify-center size-4 rounded text-n-slate-10 hover:text-n-slate-12 !p-0 shrink-0"
+            @click="clearSearch"
+          >
+            <i class="i-lucide-x text-xs" />
+          </button>
+        </div>
         <button
           type="submit"
-          class="text-xs px-2.5 py-1.5 rounded bg-n-brand text-white font-medium hover:opacity-90"
+          class="h-8 text-xs px-3 rounded-lg bg-n-brand text-white font-medium hover:opacity-90 shrink-0"
         >
           {{ $t('CONVERSATION_SIDEBAR.SHOPIFY.SEARCH_BUTTON') }}
         </button>

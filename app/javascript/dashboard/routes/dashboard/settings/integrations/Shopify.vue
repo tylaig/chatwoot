@@ -305,7 +305,7 @@ onMounted(() => {
 <template>
   <SettingsLayout
     :is-loading="!integrationLoaded || uiFlags.isCreatingShopify"
-    class="max-w-6xl mx-auto"
+    class="w-full max-w-none"
   >
     <template #header>
       <BaseSettingsHeader

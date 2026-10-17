@@ -227,7 +227,7 @@ onMounted(async () => {
     <header
       class="sticky top-0 z-20 px-6 border-b border-n-weak bg-n-surface-1"
     >
-      <div class="w-full max-w-[78rem] mx-auto">
+      <div class="w-full">
         <div
           class="flex items-start lg:items-center justify-between w-full py-4 lg:py-0 lg:h-20 gap-4 flex-col lg:flex-row"
         >
@@ -430,27 +430,29 @@ onMounted(async () => {
           </div>
 
           <!-- Direita: Busca Global + Botão Configurações -->
-          <div class="flex items-center gap-2 w-full lg:w-auto">
+          <div class="flex items-center gap-2.5 w-full lg:w-auto">
             <form
-              class="flex items-center gap-1.5 flex-1 lg:w-96"
+              class="flex items-center gap-2 flex-1 lg:w-[26rem]"
               @submit.prevent="handleSearchSubmit"
             >
-              <div class="relative flex-1">
+              <div
+                class="flex items-center gap-2 flex-1 h-9 px-3 rounded-lg border border-n-weak bg-n-solid-2 focus-within:border-n-brand focus-within:ring-1 focus-within:ring-n-brand transition-colors"
+              >
+                <span class="i-lucide-search size-4 text-n-slate-10 shrink-0" />
                 <input
                   v-model="searchQuery"
                   type="text"
                   placeholder="Buscar por #pedido, cliente, e-mail, telefone ou SKU..."
-                  class="w-full h-9 pl-8 pr-7 text-xs rounded-lg border border-n-weak bg-n-solid-2 text-n-slate-12 placeholder:text-n-slate-10 focus:outline-none focus:border-n-brand"
-                />
-                <span
-                  class="i-lucide-search size-3.5 text-n-slate-10 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                  class="reset-base no-margin w-full h-full bg-transparent border-0 outline-none focus:outline-none focus:ring-0 text-xs text-n-slate-12 placeholder:text-n-slate-10"
                 />
                 <button
                   v-if="searchQuery"
                   type="button"
-                  class="i-lucide-x size-3.5 text-n-slate-10 hover:text-n-slate-12 absolute right-2 top-1/2 -translate-y-1/2"
+                  class="flex items-center justify-center size-5 rounded hover:bg-n-alpha-2 text-n-slate-10 hover:text-n-slate-12 shrink-0 !p-0"
                   @click="clearSearch"
-                />
+                >
+                  <span class="i-lucide-x size-3.5" />
+                </button>
               </div>
               <Button type="submit" size="sm" label="Buscar" />
             </form>
@@ -549,7 +551,7 @@ onMounted(async () => {
 
     <!-- Conteúdo Principal -->
     <main class="flex-1 overflow-y-auto px-6 py-6">
-      <div class="w-full max-w-[78rem] mx-auto">
+      <div class="w-full">
         <!-- Caso não haja lojas acessíveis -->
         <div
           v-if="!accessibleHooks.length"
@@ -596,7 +598,7 @@ onMounted(async () => {
 
           <div
             v-else
-            class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+            class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4"
           >
             <div
               v-for="order in orders"
@@ -799,7 +801,7 @@ onMounted(async () => {
 
           <div
             v-else
-            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4"
           >
             <div
               v-for="product in products"

@@ -4,6 +4,7 @@ import wootConstants from 'dashboard/constants/globals';
 
 export const DEFAULT_CONVERSATION_SIDEBAR_ITEMS_ORDER = Object.freeze([
   { name: 'conversation_actions' },
+  { name: 'shopify_orders' },
   { name: 'macros' },
   { name: 'conversation_info' },
   { name: 'contact_attributes' },
@@ -12,7 +13,6 @@ export const DEFAULT_CONVERSATION_SIDEBAR_ITEMS_ORDER = Object.freeze([
   { name: 'previous_conversation' },
   { name: 'conversation_participants' },
   { name: 'linear_issues' },
-  { name: 'shopify_orders' },
 ]);
 
 export const DEFAULT_CONTACT_SIDEBAR_ITEMS_ORDER = Object.freeze([
@@ -166,7 +166,15 @@ export function useUISettings() {
     isOnExpandedLayout,
     conversationSidebarItemsOrder: useConversationSidebarItemsOrder(uiSettings),
     contactSidebarItemsOrder: useContactSidebarItemsOrder(uiSettings),
-    isContactSidebarItemOpen: key => !!uiSettings.value[key],
+    isContactSidebarItemOpen: key => {
+      if (
+        key === 'is_shopify_orders_open' &&
+        uiSettings.value[key] === undefined
+      ) {
+        return true;
+      }
+      return !!uiSettings.value[key];
+    },
     toggleSidebarUIState: key =>
       toggleSidebarUIState(key, uiSettings, updateUISettings),
     setSignatureFlagForInbox: (channelType, value) =>

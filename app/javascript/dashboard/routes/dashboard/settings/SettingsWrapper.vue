@@ -16,13 +16,18 @@ const route = useRoute();
 const routeKey = computed(() =>
   route.meta.reuseOnQueryChange ? route.path : route.fullPath
 );
+
+const isFullWidthRoute = computed(() => Boolean(route.meta.fullWidth));
 </script>
 
 <template>
   <div
     class="flex flex-col w-full h-full m-0 pb-8 pt-4 px-6 overflow-auto bg-n-surface-1"
   >
-    <div class="flex items-start w-full max-w-5xl mx-auto">
+    <div
+      class="flex items-start w-full mx-auto"
+      :class="isFullWidthRoute ? 'max-w-none' : 'max-w-5xl'"
+    >
       <router-view v-slot="{ Component }">
         <keep-alive v-if="keepAlive">
           <component :is="Component" :key="routeKey" />

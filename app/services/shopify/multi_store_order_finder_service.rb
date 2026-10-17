@@ -424,6 +424,17 @@ class Shopify::MultiStoreOrderFinderService
 
   def filter_mock_orders_for_hook(hook)
     catalog = build_mock_orders_for_hook(hook)
+
+    if @query.blank? && @contact.present? && (@contact.email.present? || @contact.phone_number.present?)
+      target_email = @contact.email.to_s.strip.downcase
+      target_digits = @contact.phone_number.to_s.gsub(/\D/, '')
+      matched_for_contact = catalog.select do |order|
+        (target_email.present? && order['email'].to_s.downcase == target_email) ||
+          (target_digits.length >= 8 && order['phone'].to_s.gsub(/\D/, '').include?(target_digits))
+      end
+      return matched_for_contact.presence || catalog.first(1)
+    end
+
     return catalog if @query.blank?
 
     q = @query.downcase.strip

@@ -85,6 +85,7 @@ export default {
           meta: {
             featureFlag: FEATURE_FLAGS.INTEGRATIONS,
             permissions: ['administrator'],
+            fullWidth: true,
           },
           props: route => ({ error: route.query.error }),
         },
