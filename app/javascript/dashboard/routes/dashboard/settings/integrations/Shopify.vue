@@ -1048,8 +1048,8 @@ onMounted(() => {
             </div>
             <p class="text-xs text-n-slate-11">
               Selecione os agentes específicos que poderão ver e consultar esta
-              loja na tela de Pedidos Shopify. (Se nenhum for marcado, todos os
-              agentes terão acesso).
+              loja na tela Shopify. (Se nenhum for marcado, todos os agentes
+              terão acesso).
             </p>
             <div
               class="max-h-40 overflow-y-auto rounded-lg border border-n-weak p-2 flex flex-col gap-1 bg-n-alpha-1"

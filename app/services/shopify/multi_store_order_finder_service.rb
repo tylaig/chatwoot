@@ -124,19 +124,38 @@ class Shopify::MultiStoreOrderFinderService
     end
 
     Array(response.parsed_response['products']).map do |prod|
-      first_variant = Array(prod['variants']).first || {}
-      first_image = Array(prod['images']).first || {}
+      variants_list = Array(prod['variants']).map do |v|
+        {
+          'id' => v['id'],
+          'title' => v['title'],
+          'price' => v['price'] || '0.00',
+          'compare_at_price' => v['compare_at_price'],
+          'sku' => v['sku'],
+          'inventory_quantity' => v['inventory_quantity'] || 99
+        }
+      end
+      first_variant = variants_list.first || {}
+      images_list = Array(prod['images']).map { |img| img['src'] }.compact
+      first_image_src = images_list.first || '/dashboard/images/integrations/shopify.png'
       {
         'id' => prod['id'],
         'title' => prod['title'],
         'handle' => prod['handle'],
+        'vendor' => prod['vendor'].presence || (hook.settings&.dig('store_name').presence || 'Shopify Store'),
+        'description' => prod['body_html'].to_s.gsub(/<[^>]*>/, '').strip.presence || 'Produto digital oficial com entrega automática via e-mail e WhatsApp após confirmação do pagamento.',
         'status' => prod['status'] || 'active',
-        'product_type' => prod['product_type'],
+        'product_type' => prod['product_type'].presence || 'Mídia Digital',
         'price' => first_variant['price'] || '0.00',
+        'compare_at_price' => first_variant['compare_at_price'] || format('%.2f', (first_variant['price'].to_f * 1.25)),
         'sku' => first_variant['sku'],
         'inventory_quantity' => first_variant['inventory_quantity'] || 99,
-        'image_url' => first_image['src'],
+        'image_url' => first_image_src,
+        'images' => images_list.presence || [first_image_src],
+        'variants' => variants_list,
         'store_name' => hook.settings&.dig('store_name').presence || hook.reference_id,
+        'shop_domain' => hook.reference_id,
+        'admin_url' => "https://#{hook.reference_id}/admin/products/#{prod['id']}",
+        'storefront_url' => "https://#{hook.reference_id}/products/#{prod['handle']}",
         'hook_id' => hook.id
       }
     end
@@ -146,174 +165,227 @@ class Shopify::MultiStoreOrderFinderService
     ref = hook.reference_id.to_s.downcase
     store_name = hook.settings&.dig('store_name').presence || hook.reference_id
 
-    if ref.include?('barba') || store_name.downcase.include?('barba')
-      [
-        {
-          'id' => 501_001,
-          'title' => 'EA SPORTS FC 27 - Xbox Series X|S & Xbox One (Mídia Digital)',
-          'handle' => 'ea-sports-fc-27-xbox',
-          'status' => 'active',
-          'product_type' => 'Jogos Xbox',
-          'price' => '214.50',
-          'sku' => 'BG-EAFC27-XBOX',
-          'inventory_quantity' => 145,
-          'image_url' => 'https://barbagames.com/cdn/shop/files/fc27-xbox.png',
-          'store_name' => store_name,
-          'hook_id' => hook.id
-        },
-        {
-          'id' => 501_002,
-          'title' => 'GTA VI Standard Edition - PS5 Digital (Pré-Venda)',
-          'handle' => 'gta-vi-ps5-digital',
-          'status' => 'active',
-          'product_type' => 'Jogos PS5',
-          'price' => '149.90',
-          'sku' => 'BG-GTA6-PS5',
-          'inventory_quantity' => 88,
-          'image_url' => 'https://barbagames.com/cdn/shop/files/gta6-ps5.png',
-          'store_name' => store_name,
-          'hook_id' => hook.id
-        },
-        {
-          'id' => 501_003,
-          'title' => 'Call of Duty: Black Ops 6 - Cross-Gen Bundle (Xbox / PS5)',
-          'handle' => 'cod-bo6-bundle',
-          'status' => 'active',
-          'product_type' => 'Jogos Ação',
-          'price' => '129.90',
-          'sku' => 'BG-COD-BO6',
-          'inventory_quantity' => 64,
-          'image_url' => 'https://barbagames.com/cdn/shop/files/bo6.png',
-          'store_name' => store_name,
-          'hook_id' => hook.id
-        }
-      ]
-    elsif ref.include?('gamebox') || store_name.downcase.include?('gamebox')
-      [
-        {
-          'id' => 502_001,
-          'title' => 'Assinatura Xbox Game Pass Ultimate - 12 Meses',
-          'handle' => 'xbox-game-pass-ultimate-12m',
-          'status' => 'active',
-          'product_type' => 'Assinaturas',
-          'price' => '179.90',
-          'sku' => 'GBX-GPU-12M',
-          'inventory_quantity' => 310,
-          'image_url' => 'https://gameboxbrasil.com/cdn/shop/files/IMG_3468_ed6eda99-80d9-46d6-9340-d06f3d6410e9.png',
-          'store_name' => store_name,
-          'hook_id' => hook.id
-        },
-        {
-          'id' => 502_002,
-          'title' => 'Forza Horizon 5 Premium Edition - Xbox / PC',
-          'handle' => 'forza-horizon-5-premium',
-          'status' => 'active',
-          'product_type' => 'Corrida',
-          'price' => '89.90',
-          'sku' => 'GBX-FH5-PREM',
-          'inventory_quantity' => 92,
-          'image_url' => 'https://gameboxbrasil.com/cdn/shop/files/fh5.png',
-          'store_name' => store_name,
-          'hook_id' => hook.id
-        },
-        {
-          'id' => 502_003,
-          'title' => 'Gift Card Xbox Live R$ 100 - Código 25 Dígitos',
-          'handle' => 'gift-card-xbox-100',
-          'status' => 'active',
-          'product_type' => 'Gift Cards',
-          'price' => '94.90',
-          'sku' => 'GBX-GIFT-100',
-          'inventory_quantity' => 500,
-          'image_url' => 'https://gameboxbrasil.com/cdn/shop/files/gift100.png',
-          'store_name' => store_name,
-          'hook_id' => hook.id
-        }
-      ]
-    elsif ref.include?('gamesgl') || store_name.downcase.include?('gl')
-      [
-        {
-          'id' => 503_001,
-          'title' => 'EA SPORTS FC 27 - PC Steam Offline (Modo Carreira)',
-          'handle' => 'ea-sports-fc-27-steam-offline',
-          'status' => 'active',
-          'product_type' => 'PC Steam',
-          'price' => '49.90',
-          'sku' => 'GGL-FC27-STEAM-OFF',
-          'inventory_quantity' => 420,
-          'image_url' => 'https://gamesgl.com/cdn/shop/files/Untitled_design_16.png',
-          'store_name' => store_name,
-          'hook_id' => hook.id
-        },
-        {
-          'id' => 503_002,
-          'title' => 'Black Myth: Wukong - PC Steam Deluxe Edition',
-          'handle' => 'black-myth-wukong-pc',
-          'status' => 'active',
-          'product_type' => 'PC Steam',
-          'price' => '119.90',
-          'sku' => 'GGL-WUKONG-PC',
-          'inventory_quantity' => 115,
-          'image_url' => 'https://gamesgl.com/cdn/shop/files/wukong.png',
-          'store_name' => store_name,
-          'hook_id' => hook.id
-        },
-        {
-          'id' => 503_003,
-          'title' => 'Elden Ring: Shadow of the Erdtree - PC Steam',
-          'handle' => 'elden-ring-sote-pc',
-          'status' => 'active',
-          'product_type' => 'PC Steam',
-          'price' => '79.90',
-          'sku' => 'GGL-ELDEN-PC',
-          'inventory_quantity' => 75,
-          'image_url' => 'https://gamesgl.com/cdn/shop/files/eldenring.png',
-          'store_name' => store_name,
-          'hook_id' => hook.id
-        }
-      ]
-    else
-      [
-        {
-          'id' => 500_001,
-          'title' => 'EA SPORTS FC 27 - Steam Online + 500 mil FC Coins Ultimate Team',
-          'handle' => 'ea-sports-fc-27-steam-online',
-          'status' => 'active',
-          'product_type' => 'EA FC 27',
-          'price' => '230.00',
-          'sku' => 'GS-FC27-ULT-500K',
-          'inventory_quantity' => 250,
-          'image_url' => 'https://gamessafari.com/products/gamepassultimate',
-          'store_name' => store_name,
-          'hook_id' => hook.id
-        },
-        {
-          'id' => 500_002,
-          'title' => '100 mil FC Coins - EA SPORTS FC 27 (Xbox / PS5 / PC)',
-          'handle' => 'fc-coin-100-mil-ultimate-team',
-          'status' => 'active',
-          'product_type' => 'FC Coins',
-          'price' => '69.90',
-          'sku' => 'GS-FCCOINS-100K',
-          'inventory_quantity' => 999,
-          'image_url' => 'https://gamessafari.com.br/products/fc-coin-100-mil-ultimate-team-ea-xbox-playstation-fifa-coins-ea-fc-27',
-          'store_name' => store_name,
-          'hook_id' => hook.id
-        },
-        {
-          'id' => 500_003,
-          'title' => 'Assinatura Xbox Game Pass Ultimate - Acesso Completo',
-          'handle' => 'gamepassultimate',
-          'status' => 'active',
-          'product_type' => 'Assinaturas',
-          'price' => '59.90',
-          'sku' => 'GS-GAMEPASS-ULT',
-          'inventory_quantity' => 180,
-          'image_url' => 'https://gamessafari.com/products/assinatura-gam',
-          'store_name' => store_name,
-          'hook_id' => hook.id
-        }
-      ]
+    raw_items =
+      if ref.include?('barba') || store_name.downcase.include?('barba')
+        [
+          {
+            'id' => 501_001,
+            'title' => 'EA SPORTS FC 27 - Xbox Series X|S & Xbox One (Mídia Digital)',
+            'handle' => 'ea-sports-fc-27-xbox',
+            'status' => 'active',
+            'product_type' => 'Jogos Xbox',
+            'price' => '214.50',
+            'compare_at_price' => '299.90',
+            'sku' => 'BG-EAFC27-XBOX',
+            'inventory_quantity' => 145,
+            'image_url' => '/dashboard/images/integrations/shopify.png',
+            'description' => 'Licença oficial EA SPORTS FC 27 para Xbox Series X|S e Xbox One. Inclui modo Ultimate Team, Carreira e suporte a Cross-Play com envio imediato após confirmação.',
+            'store_name' => store_name,
+            'hook_id' => hook.id
+          },
+          {
+            'id' => 501_002,
+            'title' => 'GTA VI Standard Edition - PS5 Digital (Pré-Venda)',
+            'handle' => 'gta-vi-ps5-digital',
+            'status' => 'active',
+            'product_type' => 'Jogos PS5',
+            'price' => '149.90',
+            'compare_at_price' => '249.90',
+            'sku' => 'BG-GTA6-PS5',
+            'inventory_quantity' => 88,
+            'image_url' => '/dashboard/images/integrations/shopify.png',
+            'description' => 'Reserva oficial de Grand Theft Auto VI para PlayStation 5 (Mídia Digital Primária). Bônus de pré-venda inclusos e garantia vitalícia.',
+            'store_name' => store_name,
+            'hook_id' => hook.id
+          },
+          {
+            'id' => 501_003,
+            'title' => 'Call of Duty: Black Ops 6 - Cross-Gen Bundle (Xbox / PS5)',
+            'handle' => 'cod-bo6-bundle',
+            'status' => 'active',
+            'product_type' => 'Jogos Ação',
+            'price' => '129.90',
+            'compare_at_price' => '189.90',
+            'sku' => 'BG-COD-BO6',
+            'inventory_quantity' => 64,
+            'image_url' => '/dashboard/images/integrations/shopify.png',
+            'description' => 'Pacote Multi-Geração Call of Duty: Black Ops 6 com campanha completa, Multiplayer e modo Zombies. Ativação guiada com suporte 7 dias por semana.',
+            'store_name' => store_name,
+            'hook_id' => hook.id
+          }
+        ]
+      elsif ref.include?('gamebox') || store_name.downcase.include?('gamebox')
+        [
+          {
+            'id' => 502_001,
+            'title' => 'Assinatura Xbox Game Pass Ultimate - 12 Meses',
+            'handle' => 'xbox-game-pass-ultimate-12m',
+            'status' => 'active',
+            'product_type' => 'Assinaturas',
+            'price' => '179.90',
+            'compare_at_price' => '259.90',
+            'sku' => 'GBX-GPU-12M',
+            'inventory_quantity' => 310,
+            'image_url' => 'https://gameboxbrasil.com/cdn/shop/files/IMG_3468_ed6eda99-80d9-46d6-9340-d06f3d6410e9.png',
+            'description' => '12 meses completos de Xbox Game Pass Ultimate: centenas de jogos no Console, PC e Xbox Cloud Gaming, além de EA Play e Xbox Live Gold inclusos.',
+            'store_name' => store_name,
+            'hook_id' => hook.id
+          },
+          {
+            'id' => 502_002,
+            'title' => 'Forza Horizon 5 Premium Edition - Xbox / PC',
+            'handle' => 'forza-horizon-5-premium',
+            'status' => 'active',
+            'product_type' => 'Corrida',
+            'price' => '89.90',
+            'compare_at_price' => '139.90',
+            'sku' => 'GBX-FH5-PREM',
+            'inventory_quantity' => 92,
+            'image_url' => '/dashboard/images/integrations/shopify.png',
+            'description' => 'Edição Suprema com Passe de Carros, Assinatura VIP, Pacote de Boas-Vindas e expansões Hot Wheels + Rally Adventure.',
+            'store_name' => store_name,
+            'hook_id' => hook.id
+          },
+          {
+            'id' => 502_003,
+            'title' => 'Gift Card Xbox Live R$ 100 - Código 25 Dígitos',
+            'handle' => 'gift-card-xbox-100',
+            'status' => 'active',
+            'product_type' => 'Gift Cards',
+            'price' => '94.90',
+            'compare_at_price' => '100.00',
+            'sku' => 'GBX-GIFT-100',
+            'inventory_quantity' => 500,
+            'image_url' => '/dashboard/images/integrations/shopify.png',
+            'description' => 'Código digital oficial de 25 dígitos para resgate imediato na Microsoft Store Brasil (redeem.microsoft.com).',
+            'store_name' => store_name,
+            'hook_id' => hook.id
+          }
+        ]
+      elsif ref.include?('gamesgl') || store_name.downcase.include?('gl')
+        [
+          {
+            'id' => 503_001,
+            'title' => 'EA SPORTS FC 27 - PC Steam Offline (Modo Carreira)',
+            'handle' => 'ea-sports-fc-27-steam-offline',
+            'status' => 'active',
+            'product_type' => 'PC Steam',
+            'price' => '49.90',
+            'compare_at_price' => '89.90',
+            'sku' => 'GGL-FC27-STEAM-OFF',
+            'inventory_quantity' => 420,
+            'image_url' => 'https://gamesgl.com/cdn/shop/files/Untitled_design_16.png',
+            'description' => 'Acesso completo ao Modo Carreira Manager e Jogador do EA SPORTS FC 27 via Steam PC com atualizações de elencos.',
+            'store_name' => store_name,
+            'hook_id' => hook.id
+          },
+          {
+            'id' => 503_002,
+            'title' => 'Black Myth: Wukong - PC Steam Deluxe Edition',
+            'handle' => 'black-myth-wukong-pc',
+            'status' => 'active',
+            'product_type' => 'PC Steam',
+            'price' => '119.90',
+            'compare_at_price' => '179.90',
+            'sku' => 'GGL-WUKONG-PC',
+            'inventory_quantity' => 115,
+            'image_url' => '/dashboard/images/integrations/shopify.png',
+            'description' => 'RPG de ação aclamado inspirado na mitologia chinesa. Edição Deluxe para PC Steam com armas e armaduras bônus.',
+            'store_name' => store_name,
+            'hook_id' => hook.id
+          },
+          {
+            'id' => 503_003,
+            'title' => 'Elden Ring: Shadow of the Erdtree - PC Steam',
+            'handle' => 'elden-ring-sote-pc',
+            'status' => 'active',
+            'product_type' => 'PC Steam',
+            'price' => '79.90',
+            'compare_at_price' => '129.90',
+            'sku' => 'GGL-ELDEN-PC',
+            'inventory_quantity' => 75,
+            'image_url' => '/dashboard/images/integrations/shopify.png',
+            'description' => 'Jogo base Elden Ring + expansão completa Shadow of the Erdtree para PC via Steam.',
+            'store_name' => store_name,
+            'hook_id' => hook.id
+          }
+        ]
+      else
+        [
+          {
+            'id' => 500_001,
+            'title' => 'EA SPORTS FC 27 - Steam Online + 500 mil FC Coins Ultimate Team',
+            'handle' => 'ea-sports-fc-27-steam-online',
+            'status' => 'active',
+            'product_type' => 'EA FC 27',
+            'price' => '230.00',
+            'compare_at_price' => '349.90',
+            'sku' => 'GS-FC27-ULT-500K',
+            'inventory_quantity' => 250,
+            'image_url' => '/dashboard/images/integrations/shopify.png',
+            'description' => 'Edição Online Completa para Steam com acesso total ao Ultimate Team + pacote bônus de 500.000 FC Coins entregue com segurança.',
+            'store_name' => store_name,
+            'hook_id' => hook.id
+          },
+          {
+            'id' => 500_002,
+            'title' => '100 mil FC Coins - EA SPORTS FC 27 (Xbox / PS5 / PC)',
+            'handle' => 'fc-coin-100-mil-ultimate-team',
+            'status' => 'active',
+            'product_type' => 'FC Coins',
+            'price' => '69.90',
+            'compare_at_price' => '99.90',
+            'sku' => 'GS-FCCOINS-100K',
+            'inventory_quantity' => 999,
+            'image_url' => '/dashboard/images/integrations/shopify.png',
+            'description' => 'Recarga rápida de 100.000 FC Coins para montar seu elenco no Ultimate Team com método seguro anti-ban.',
+            'store_name' => store_name,
+            'hook_id' => hook.id
+          },
+          {
+            'id' => 500_003,
+            'title' => 'Assinatura Xbox Game Pass Ultimate - Acesso Completo',
+            'handle' => 'gamepassultimate',
+            'status' => 'active',
+            'product_type' => 'Assinaturas',
+            'price' => '59.90',
+            'compare_at_price' => '89.90',
+            'sku' => 'GS-GAMEPASS-ULT',
+            'inventory_quantity' => 180,
+            'image_url' => '/dashboard/images/integrations/shopify.png',
+            'description' => 'Assinatura completa Xbox Game Pass Ultimate compatível com Xbox One, Series X|S, PC Windows e Cloud Gaming.',
+            'store_name' => store_name,
+            'hook_id' => hook.id
+          }
+        ]
+      end
+
+    raw_items.map do |item|
+      item.merge(
+        'vendor' => store_name,
+        'shop_domain' => hook.reference_id,
+        'admin_url' => "https://#{hook.reference_id}/admin/products/#{item['id']}",
+        'storefront_url' => "https://#{hook.reference_id}/products/#{item['handle']}",
+        'images' => [item['image_url']],
+        'variants' => [
+          {
+            'id' => "#{item['id']}-1",
+            'title' => 'Licença Primária Digital (Envio Imediato)',
+            'price' => item['price'],
+            'compare_at_price' => item['compare_at_price'],
+            'sku' => item['sku'],
+            'inventory_quantity' => item['inventory_quantity']
+          },
+          {
+            'id' => "#{item['id']}-2",
+            'title' => 'Edição VIP + Suporte Prioritário WhatsApp',
+            'price' => format('%.2f', item['price'].to_f + 30.0),
+            'compare_at_price' => format('%.2f', item['compare_at_price'].to_f + 40.0),
+            'sku' => "#{item['sku']}-VIP",
+            'inventory_quantity' => 50
+          }
+        ]
+      )
     end
   end
 
@@ -866,6 +938,7 @@ class Shopify::MultiStoreOrderFinderService
         'sku' => item['sku'],
         'quantity' => item['quantity'],
         'price' => item['price'],
+        'image_url' => item['image_url'].presence || '/dashboard/images/integrations/shopify.png',
         'fulfillment_status' => item['fulfillment_status']
       }
     end
