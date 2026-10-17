@@ -6,7 +6,7 @@ class Shopify::CallbacksController < ApplicationController
 
     @response = oauth_client.auth_code.get_token(
       params[:code],
-      redirect_uri: '/shopify/callback'
+      redirect_uri: "#{ENV.fetch('FRONTEND_URL', 'https://inbox.gamessafari.com')}/shopify/callback"
     )
 
     handle_response
