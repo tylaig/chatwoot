@@ -30,6 +30,7 @@ import {
 import WhatsappTemplates from './WhatsappTemplates/Modal.vue';
 import ContentTemplates from './ContentTemplates/ContentTemplatesModal.vue';
 import { MESSAGE_MAX_LENGTH } from 'shared/helpers/MessageTypeHelper';
+import { isComposing } from 'shared/helpers/KeyboardHelpers';
 import inboxMixin, { INBOX_FEATURES } from 'shared/mixins/inboxMixin';
 import { trimContent, debounce, getRecipients } from '@chatwoot/utils';
 import wootConstants from 'dashboard/constants/globals';
@@ -119,6 +120,7 @@ export default {
       },
       Enter: {
         action: e => {
+          if (isComposing(e)) return;
           if (proxy.isAValidEvent('enter')) {
             proxy.onSendReply();
             e.preventDefault();
@@ -127,7 +129,8 @@ export default {
         allowOnFocusedInput: true,
       },
       '$mod+Enter': {
-        action: () => {
+        action: e => {
+          if (isComposing(e)) return;
           if (copilot.isActive.value && proxy.isFocused) {
             proxy.onSubmitCopilotReply();
           } else if (proxy.isAValidEvent('cmd_enter')) {
