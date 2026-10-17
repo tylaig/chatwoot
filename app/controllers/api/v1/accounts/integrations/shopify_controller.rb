@@ -22,26 +22,27 @@ class Api::V1::Accounts::Integrations::ShopifyController < Api::V1::Accounts::In
   end
 
   def connect_token
-    shop_domain = Shopify::ShopDomain.normalize(params[:shop_domain])
-    access_token = params[:access_token].to_s.strip
     store_name = params[:store_name].to_s.strip
+    shop_domain = Shopify::ShopDomain.normalize(params[:shop_domain].presence || store_name)
+    access_token = params[:access_token].to_s.strip
     inbox_ids = Array(params[:inbox_ids]).map(&:to_i).reject(&:zero?).uniq
 
     shop_info = Shopify::MultiStoreOrderFinderService.verify_connection!(
       shop_domain: shop_domain,
-      access_token: access_token
+      access_token: access_token,
+      store_name: store_name
     )
 
     hook = Current.account.hooks.find_or_initialize_by(
       app_id: 'shopify',
       reference_id: shop_domain
     )
-    hook.access_token = access_token
+    hook.access_token = access_token.presence || "mock_#{SecureRandom.hex(12)}"
     hook.status = :enabled
     hook.settings = (hook.settings || {}).merge(
       'store_name' => store_name.presence || shop_info['name'].presence || shop_domain,
       'inbox_ids' => inbox_ids,
-      'auth_mode' => 'access_token',
+      'auth_mode' => shop_info['auth_mode'] || (access_token.present? ? 'access_token' : 'mock'),
       'shop_name' => shop_info['name'],
       'shop_email' => shop_info['email'],
       'domain' => shop_info['domain']
@@ -65,14 +66,21 @@ class Api::V1::Accounts::Integrations::ShopifyController < Api::V1::Accounts::In
     store_name = params[:store_name].to_s.strip
     inbox_ids = Array(params[:inbox_ids]).map(&:to_i).reject(&:zero?).uniq
     access_token = params[:access_token].to_s.strip
+    new_domain = params[:shop_domain].present? ? Shopify::ShopDomain.normalize(params[:shop_domain]) : @hook.reference_id
+
+    if new_domain.present? && new_domain != @hook.reference_id && Shopify::ShopDomain.valid?(new_domain)
+      @hook.reference_id = new_domain
+    end
 
     if access_token.present?
       shop_info = Shopify::MultiStoreOrderFinderService.verify_connection!(
         shop_domain: @hook.reference_id,
-        access_token: access_token
+        access_token: access_token,
+        store_name: store_name.presence || @hook.settings&.dig('store_name')
       )
       @hook.access_token = access_token
       @hook.settings = (@hook.settings || {}).merge(
+        'auth_mode' => shop_info['auth_mode'] || 'access_token',
         'shop_name' => shop_info['name'],
         'shop_email' => shop_info['email'],
         'domain' => shop_info['domain']
@@ -142,6 +150,7 @@ class Api::V1::Accounts::Integrations::ShopifyController < Api::V1::Accounts::In
   def validate_orders_request
     return if params[:query].to_s.strip.present?
     return if contact.present? && (contact.email.present? || contact.phone_number.present?)
+    return if Current.account.hooks.where(app_id: 'shopify', status: :enabled).any? { |h| h.settings&.dig('auth_mode') == 'mock' }
 
     render json: { orders: [] }, status: :ok
   end

@@ -49,10 +49,17 @@ class IntegrationsAPI extends ApiClient {
     });
   }
 
-  updateShopifyHook({ hookId, storeName, shopifyAdminKey, inboxIds }) {
+  updateShopifyHook({
+    hookId,
+    storeName,
+    shopDomain,
+    shopifyAdminKey,
+    inboxIds,
+  }) {
     return axios.patch(`${this.baseUrl()}/integrations/shopify/update_hook`, {
       hook_id: hookId,
       store_name: storeName,
+      shop_domain: shopDomain,
       access_token: shopifyAdminKey,
       inbox_ids: inboxIds,
     });

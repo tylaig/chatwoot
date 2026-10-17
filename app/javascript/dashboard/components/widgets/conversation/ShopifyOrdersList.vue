@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import {
   useFunctionGetter,
   useMapGetter,
@@ -23,6 +23,12 @@ const props = defineProps({
 const store = useStore();
 const contact = useFunctionGetter('contacts/getContact', props.contactId);
 const currentChat = useMapGetter('getSelectedChat');
+const shopifyIntegration = useFunctionGetter(
+  'integrations/getIntegration',
+  'shopify'
+);
+
+const hooks = computed(() => shopifyIntegration.value?.hooks || []);
 
 const effectiveInboxId = computed(
   () => props.inboxId || currentChat.value?.inbox_id
@@ -32,15 +38,25 @@ const hasSearchableInfo = computed(
   () => !!contact.value?.email || !!contact.value?.phone_number
 );
 
+const hasMockStores = computed(() =>
+  hooks.value.some(h => h.settings?.auth_mode === 'mock')
+);
+
+const selectedHookId = ref('');
 const searchQuery = ref('');
 const syncEmailToContact = ref(true);
 const orders = ref([]);
 const loading = ref(false);
 const error = ref('');
 
+const formatHookOptionLabel = hook => {
+  const baseName = hook.settings?.store_name || hook.reference_id;
+  return hook.settings?.auth_mode === 'mock' ? `${baseName} [Mock]` : baseName;
+};
+
 const fetchOrders = async (manualQuery = '') => {
   const queryToUse = manualQuery.trim() || searchQuery.value.trim();
-  if (!queryToUse && !hasSearchableInfo.value) {
+  if (!queryToUse && !hasSearchableInfo.value && !hasMockStores.value) {
     orders.value = [];
     loading.value = false;
     return;
@@ -58,6 +74,7 @@ const fetchOrders = async (manualQuery = '') => {
       contactId: props.contactId,
       query: queryToUse || undefined,
       inboxId: effectiveInboxId.value,
+      hookId: selectedHookId.value || undefined,
       syncContactEmail: shouldSync,
     });
     orders.value = response.data.orders || [];
@@ -77,15 +94,34 @@ const handleSearchSubmit = () => {
   fetchOrders(searchQuery.value);
 };
 
+const handleStoreFilterChange = () => {
+  fetchOrders(searchQuery.value);
+};
+
 const clearSearch = () => {
   searchQuery.value = '';
   fetchOrders('');
 };
 
+onMounted(() => {
+  if (!hooks.value.length) {
+    store.dispatch('integrations/get', 'shopify');
+  }
+});
+
 watch(
-  () => [props.contactId, contact.value?.email, contact.value?.phone_number],
+  () => [
+    props.contactId,
+    contact.value?.email,
+    contact.value?.phone_number,
+    hasMockStores.value,
+  ],
   () => {
-    if (hasSearchableInfo.value || searchQuery.value.trim()) {
+    if (
+      hasSearchableInfo.value ||
+      searchQuery.value.trim() ||
+      hasMockStores.value
+    ) {
       fetchOrders();
     } else {
       orders.value = [];
@@ -98,6 +134,23 @@ watch(
 <template>
   <div class="px-4 py-2 text-n-slate-12 flex flex-col gap-3">
     <form class="flex flex-col gap-2" @submit.prevent="handleSearchSubmit">
+      <div v-if="hooks.length > 1" class="flex items-center gap-1.5">
+        <select
+          v-model="selectedHookId"
+          class="w-full text-xs px-2.5 py-1.5 rounded border border-n-weak bg-n-alpha-1 text-n-slate-12 focus:outline-none focus:border-n-brand"
+          @change="handleStoreFilterChange"
+        >
+          <option value="">
+            {{
+              `${$t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.ALL_STORES')} (${hooks.length})`
+            }}
+          </option>
+          <option v-for="hook in hooks" :key="hook.id" :value="hook.id">
+            {{ formatHookOptionLabel(hook) }}
+          </option>
+        </select>
+      </div>
+
       <div class="flex items-center gap-1.5">
         <input
           v-model="searchQuery"
@@ -131,7 +184,9 @@ watch(
     </form>
 
     <div
-      v-if="!hasSearchableInfo && !searchQuery.trim() && !loading"
+      v-if="
+        !hasSearchableInfo && !searchQuery.trim() && !hasMockStores && !loading
+      "
       class="text-center text-xs text-n-slate-11 py-2"
     >
       {{ $t('CONVERSATION_SIDEBAR.SHOPIFY.SEARCH_HINT') }}
