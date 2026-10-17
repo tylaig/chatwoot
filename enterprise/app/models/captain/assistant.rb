@@ -210,7 +210,8 @@ class Captain::Assistant < ApplicationRecord
   def agent_tools
     tools = [
       self.class.resolve_tool_class('faq_lookup').new(self),
-      self.class.resolve_tool_class('handoff').new(self)
+      self.class.resolve_tool_class('handoff').new(self),
+      self.class.resolve_tool_class('resolve_conversation').new(self)
     ]
     shopify_tool_class = self.class.resolve_tool_class('shopify_order_lookup')
     if shopify_tool_class && account.hooks.where(app_id: 'shopify', status: :enabled).exists?

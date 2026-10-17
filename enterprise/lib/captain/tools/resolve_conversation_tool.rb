@@ -12,7 +12,6 @@ class Captain::Tools::ResolveConversationTool < Captain::Tools::BasePublicTool
 
     conversation.with_captain_activity_context(reason: reason, reason_type: :tool) do
       Conversation.transaction do
-        Captain::Conversation::ResolutionMessageService.new(conversation: conversation, assistant: @assistant).perform
         conversation.resolved!
       end
     end

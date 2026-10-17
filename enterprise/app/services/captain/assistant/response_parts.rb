@@ -1,8 +1,18 @@
 class Captain::Assistant::ResponseParts
   MESSAGE_ATTRIBUTE_KEY = 'captain_v2_response_parts'.freeze
   CLOSING_CODE_FENCE_LINE = /\A(?:`{3,}|~{3,})\z/
+  RESOLUTION_MARKER_REGEX = %r{<conversation_boundary\b[^>]*status\s*=\s*["'“”]resolved["'“”][^>]*/?>}i
+  GENERIC_BOUNDARY_MARKER_REGEX = %r{</?conversation_boundary\b[^>]*>}i
 
   attr_reader :parts
+
+  def self.contains_resolution_marker?(text)
+    text.to_s.match?(RESOLUTION_MARKER_REGEX)
+  end
+
+  def self.strip_internal_markers(text)
+    text.to_s.gsub(GENERIC_BOUNDARY_MARKER_REGEX, '').gsub(/\n{3,}/, "\n\n").strip
+  end
 
   def self.from_response(response)
     return new([{ text: response.to_s, citation_indexes: [] }]) unless response.is_a?(Hash)
@@ -57,7 +67,7 @@ class Captain::Assistant::ResponseParts
     part = part.with_indifferent_access
     return unless part[:text].is_a?(String)
 
-    text = part[:text].strip
+    text = self.class.strip_internal_markers(part[:text])
     return if text.blank?
 
     {

@@ -9,13 +9,25 @@ module Captain::Assistant::AgentRunResponse
                           else
                             { 'response' => model_output.to_s, 'reasoning' => 'Processed by agent' }
                           end
+    raw_text = extract_raw_output_text(structured_response)
+    boundary_resolved_requested = Captain::Assistant::ResponseParts.contains_resolution_marker?(raw_text)
+
     response_parts = Captain::Assistant::ResponseParts.from_response(structured_response)
     response_parts = response_parts.without_citations unless @assistant.citations_enabled?
     structured_response['response_parts'] = response_parts.to_a
     structured_response['response'] = response_parts.plain_text
     structured_response['agent_name'] = run_result.context&.dig(:current_agent)
     structured_response['handoff_tool_called'] = run_result.context&.dig(:captain_v2_handoff_tool_called) || false
+    structured_response['resolve_requested'] = boundary_resolved_requested
     structured_response
+  end
+
+  def extract_raw_output_text(structured_response)
+    if structured_response.key?(:response_parts)
+      Array(structured_response[:response_parts]).filter_map { |p| p.is_a?(Hash) ? (p[:text] || p['text']) : nil }.join("\n\n")
+    else
+      structured_response[:response].to_s
+    end
   end
 
   def rewrite_oversized_response(run_result)

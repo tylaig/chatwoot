@@ -78,7 +78,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
       process_v2_handoff_response
     elsif v1_handoff_requested?
       process_v1_handoff_request
-    elsif conversation_pending?
+    elsif conversation_pending_or_resolved_by_tool?
       process_standard_response
     end
   end
@@ -104,8 +104,29 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
     end
     return unless message
 
+    resolve_conversation_if_marker_requested!
     capture_assistant_session(result_message: message, credits_consumed: 1.0)
     record_v2_response_completed(message) if captain_v2_enabled?
+  end
+
+  def conversation_pending_or_resolved_by_tool?
+    conversation_pending? || @conversation.reload.resolved?
+  end
+
+  def resolve_conversation_if_marker_requested!
+    return unless @response['resolve_requested']
+    return if @conversation.resolved?
+    return if @assistant.inactive_conversation_resolution_disabled?
+
+    @conversation.with_captain_activity_context(reason: 'Cliente solicitou encerramento do atendimento', reason_type: :tool) do
+      @conversation.resolved!
+    end
+    Captain::ConversationEvents.resolved(
+      conversation: @conversation,
+      assistant: @assistant,
+      source: Captain::ConversationEvents::Sources::TOOL,
+      at: Time.current
+    )
   end
 
   def process_v2_handoff_response
