@@ -40,12 +40,19 @@ class IntegrationsAPI extends ApiClient {
     });
   }
 
-  connectShopifyToken({ storeName, shopDomain, shopifyAdminKey, inboxIds }) {
+  connectShopifyToken({
+    storeName,
+    shopDomain,
+    shopifyAdminKey,
+    inboxIds,
+    agentIds,
+  }) {
     return axios.post(`${this.baseUrl()}/integrations/shopify/connect_token`, {
       store_name: storeName,
       shop_domain: shopDomain,
       access_token: shopifyAdminKey,
       inbox_ids: inboxIds,
+      agent_ids: agentIds,
     });
   }
 
@@ -55,6 +62,7 @@ class IntegrationsAPI extends ApiClient {
     shopDomain,
     shopifyAdminKey,
     inboxIds,
+    agentIds,
   }) {
     return axios.patch(`${this.baseUrl()}/integrations/shopify/update_hook`, {
       hook_id: hookId,
@@ -62,6 +70,22 @@ class IntegrationsAPI extends ApiClient {
       shop_domain: shopDomain,
       access_token: shopifyAdminKey,
       inbox_ids: inboxIds,
+      agent_ids: agentIds,
+    });
+  }
+
+  testShopifyConnection(hookId) {
+    return axios.post(
+      `${this.baseUrl()}/integrations/shopify/test_connection`,
+      {
+        hook_id: hookId,
+      }
+    );
+  }
+
+  syncShopifyProducts(hookId) {
+    return axios.post(`${this.baseUrl()}/integrations/shopify/sync_products`, {
+      hook_id: hookId,
     });
   }
 

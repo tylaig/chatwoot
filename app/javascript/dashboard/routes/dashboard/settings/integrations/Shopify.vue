@@ -1,6 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
-import { OnClickOutside } from '@vueuse/components';
+import { ref, computed, onMounted } from 'vue';
 import {
   useFunctionGetter,
   useMapGetter,
@@ -8,16 +7,12 @@ import {
 } from 'dashboard/composables/store';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
-import Integration from './Integration.vue';
 import integrationAPI from 'dashboard/api/integrations';
-import ShopifyAPI from 'dashboard/api/integrations/shopify';
 
 import Input from 'dashboard/components-next/input/Input.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
-import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
-import ShopifyOrderItem from 'dashboard/components/widgets/conversation/ShopifyOrderItem.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 
@@ -26,52 +21,25 @@ const { t } = useI18n();
 const dialogRef = ref(null);
 const integrationLoaded = ref(false);
 
-const showStoreSwitcherDropdown = ref(false);
-const selectedHookId = ref(null);
-
 const editingHookId = ref(null);
 const storeName = ref('');
 const storeUrl = ref('');
 const shopifyAdminKey = ref('');
 const selectedInboxIds = ref([]);
+const selectedAgentIds = ref([]);
 const isSubmitting = ref(false);
 const formError = ref('');
 
-const activeStoreName = ref('');
-const activeStoreUrl = ref('');
-const activeShopifyAdminKey = ref('');
-const activeSelectedInboxIds = ref([]);
-const isUpdatingActiveStore = ref(false);
-const activeStoreError = ref('');
-
-const previewOrders = ref([]);
-const previewSearchQuery = ref('');
-const isLoadingPreview = ref(false);
+const testingHookId = ref(null);
+const syncingHookId = ref(null);
+const expandedProductsHookIds = ref([]);
 
 const integration = useFunctionGetter('integrations/getIntegration', 'shopify');
 const uiFlags = useMapGetter('integrations/getUIFlags');
 const inboxes = useMapGetter('inboxes/getInboxes');
+const agents = useMapGetter('agents/getAgents');
 
 const hooks = computed(() => integration.value?.hooks || []);
-
-const activeHook = computed(() => {
-  if (!hooks.value.length) return null;
-  return (
-    hooks.value.find(h => Number(h.id) === Number(selectedHookId.value)) ||
-    hooks.value[0]
-  );
-});
-
-const activeHookDisplayName = computed(() => {
-  if (!activeHook.value) {
-    return t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.NEW_STORE');
-  }
-  return (
-    activeHook.value.settings?.store_name ||
-    activeHook.value.reference_id ||
-    t('INTEGRATION_SETTINGS.SHOPIFY.HEADER')
-  );
-});
 
 const isMockStore = hook => {
   return hook?.settings?.auth_mode === 'mock';
@@ -96,75 +64,43 @@ const normalizeStoreDomain = rawUrl => {
   return slug ? `${slug}.myshopify.com` : '';
 };
 
-const syncActiveStoreForm = hook => {
-  if (!hook) return;
-  activeStoreName.value = hook.settings?.store_name || hook.reference_id || '';
-  activeStoreUrl.value = hook.reference_id || '';
-  activeShopifyAdminKey.value = '';
-  activeSelectedInboxIds.value = Array.isArray(hook.settings?.inbox_ids)
-    ? hook.settings.inbox_ids.map(Number)
-    : [];
-  activeStoreError.value = '';
-};
-
-const fetchPreviewOrders = async () => {
-  if (!activeHook.value) {
-    previewOrders.value = [];
-    return;
-  }
-  try {
-    isLoadingPreview.value = true;
-    const response = await ShopifyAPI.getOrders({
-      hookId: activeHook.value.id,
-      query: previewSearchQuery.value.trim() || undefined,
-    });
-    previewOrders.value = response.data?.orders || [];
-  } catch {
-    previewOrders.value = [];
-  } finally {
-    isLoadingPreview.value = false;
-  }
-};
-
-watch(
-  activeHook,
-  newHook => {
-    if (newHook) {
-      selectedHookId.value = newHook.id;
-      syncActiveStoreForm(newHook);
-      fetchPreviewOrders();
-    } else {
-      previewOrders.value = [];
-    }
-  },
-  { immediate: true }
-);
-
-const toggleStoreSwitcher = () => {
-  showStoreSwitcherDropdown.value = !showStoreSwitcherDropdown.value;
-};
-
-const selectStoreFromDropdown = hook => {
-  selectedHookId.value = hook.id;
-  showStoreSwitcherDropdown.value = false;
-};
-
 const resetForm = () => {
   editingHookId.value = null;
   storeName.value = '';
   storeUrl.value = '';
   shopifyAdminKey.value = '';
   selectedInboxIds.value = [];
+  selectedAgentIds.value = [];
   formError.value = '';
   isSubmitting.value = false;
 };
 
 const openCreateDialog = () => {
-  showStoreSwitcherDropdown.value = false;
   resetForm();
   if (dialogRef.value) {
     dialogRef.value.open();
   }
+};
+
+const openEditDialog = hook => {
+  resetForm();
+  editingHookId.value = hook.id;
+  storeName.value = hook.settings?.store_name || hook.reference_id || '';
+  storeUrl.value = hook.reference_id || '';
+  shopifyAdminKey.value = '';
+  selectedInboxIds.value = Array.isArray(hook.settings?.inbox_ids)
+    ? hook.settings.inbox_ids.map(Number)
+    : [];
+  selectedAgentIds.value = Array.isArray(hook.settings?.agent_ids)
+    ? hook.settings.agent_ids.map(Number)
+    : [];
+  if (dialogRef.value) {
+    dialogRef.value.open();
+  }
+};
+
+const handleDialogClose = () => {
+  resetForm();
 };
 
 const toggleInbox = inboxId => {
@@ -176,15 +112,36 @@ const toggleInbox = inboxId => {
   }
 };
 
-const toggleActiveStoreInbox = inboxId => {
-  const id = Number(inboxId);
-  if (activeSelectedInboxIds.value.includes(id)) {
-    activeSelectedInboxIds.value = activeSelectedInboxIds.value.filter(
+const toggleAgent = agentId => {
+  const id = Number(agentId);
+  if (selectedAgentIds.value.includes(id)) {
+    selectedAgentIds.value = selectedAgentIds.value.filter(i => i !== id);
+  } else {
+    selectedAgentIds.value = [...selectedAgentIds.value, id];
+  }
+};
+
+const selectAllAgents = () => {
+  selectedAgentIds.value = (agents.value || []).map(a => Number(a.id));
+};
+
+const clearAllAgents = () => {
+  selectedAgentIds.value = [];
+};
+
+const toggleProductsAccordion = hookId => {
+  const id = Number(hookId);
+  if (expandedProductsHookIds.value.includes(id)) {
+    expandedProductsHookIds.value = expandedProductsHookIds.value.filter(
       i => i !== id
     );
   } else {
-    activeSelectedInboxIds.value = [...activeSelectedInboxIds.value, id];
+    expandedProductsHookIds.value = [...expandedProductsHookIds.value, id];
   }
+};
+
+const isProductsExpanded = hookId => {
+  return expandedProductsHookIds.value.includes(Number(hookId));
 };
 
 const handleStoreSubmit = async () => {
@@ -203,19 +160,31 @@ const handleStoreSubmit = async () => {
     storeUrl.value = cleanDomain;
     isSubmitting.value = true;
 
-    const { data } = await integrationAPI.connectShopifyToken({
-      storeName:
-        trimmedName || cleanDomain.replace(/\.myshopify\.(com|io)$/i, ''),
-      shopDomain: cleanDomain,
-      shopifyAdminKey: shopifyAdminKey.value.trim(),
-      inboxIds: selectedInboxIds.value,
-    });
-
-    await store.dispatch('integrations/get', 'shopify');
-    if (data?.hook?.id) {
-      selectedHookId.value = data.hook.id;
+    if (editingHookId.value) {
+      await integrationAPI.updateShopifyHook({
+        hookId: editingHookId.value,
+        storeName:
+          trimmedName || cleanDomain.replace(/\.myshopify\.(com|io)$/i, ''),
+        shopDomain: cleanDomain,
+        shopifyAdminKey: shopifyAdminKey.value.trim(),
+        inboxIds: selectedInboxIds.value,
+        agentIds: selectedAgentIds.value,
+      });
+      await store.dispatch('integrations/get', 'shopify');
+      useAlert(t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.UPDATED_SUCCESS'));
+    } else {
+      await integrationAPI.connectShopifyToken({
+        storeName:
+          trimmedName || cleanDomain.replace(/\.myshopify\.(com|io)$/i, ''),
+        shopDomain: cleanDomain,
+        shopifyAdminKey: shopifyAdminKey.value.trim(),
+        inboxIds: selectedInboxIds.value,
+        agentIds: selectedAgentIds.value,
+      });
+      await store.dispatch('integrations/get', 'shopify');
+      useAlert(t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.CONNECTED_SUCCESS'));
     }
-    useAlert(t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.CONNECTED_SUCCESS'));
+
     dialogRef.value?.close();
     resetForm();
   } catch (err) {
@@ -228,52 +197,52 @@ const handleStoreSubmit = async () => {
   }
 };
 
-const handleActiveStoreSave = async () => {
-  if (!activeHook.value) return;
+const handleTestConnection = async hook => {
   try {
-    activeStoreError.value = '';
-    isUpdatingActiveStore.value = true;
-    const cleanDomain = normalizeStoreDomain(
-      activeStoreUrl.value.trim() || activeStoreName.value.trim()
-    );
-
-    await integrationAPI.updateShopifyHook({
-      hookId: activeHook.value.id,
-      storeName: activeStoreName.value.trim(),
-      shopDomain: cleanDomain || activeHook.value.reference_id,
-      shopifyAdminKey: activeShopifyAdminKey.value.trim(),
-      inboxIds: activeSelectedInboxIds.value,
-    });
+    testingHookId.value = hook.id;
+    await integrationAPI.testShopifyConnection(hook.id);
     await store.dispatch('integrations/get', 'shopify');
-    activeShopifyAdminKey.value = '';
-    await fetchPreviewOrders();
-    useAlert(t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.UPDATED_SUCCESS'));
+    useAlert('Conexão com a loja testada e validada com sucesso!');
   } catch (err) {
-    activeStoreError.value =
+    useAlert(
       err.response?.data?.error ||
-      err.message ||
-      t('INTEGRATION_SETTINGS.SHOPIFY.ERROR');
+        err.message ||
+        'Falha ao testar conexão com a loja.'
+    );
   } finally {
-    isUpdatingActiveStore.value = false;
+    testingHookId.value = null;
   }
 };
 
-const handleDeleteHook = async hook => {
-  // eslint-disable-next-line no-alert
-  const confirmed = window.confirm(
-    t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.CONFIRM_DELETE', {
-      store: hook.settings?.store_name || hook.reference_id,
-    })
-  );
-  if (!confirmed) return;
+const handleSyncProducts = async hook => {
+  try {
+    syncingHookId.value = hook.id;
+    const { data } = await integrationAPI.syncShopifyProducts(hook.id);
+    await store.dispatch('integrations/get', 'shopify');
+    if (!expandedProductsHookIds.value.includes(Number(hook.id))) {
+      expandedProductsHookIds.value = [
+        ...expandedProductsHookIds.value,
+        Number(hook.id),
+      ];
+    }
+    const count = data?.products_count ?? (data?.products || []).length;
+    useAlert(`${count} produtos sincronizados da loja com sucesso!`);
+  } catch (err) {
+    useAlert(
+      err.response?.data?.error ||
+        err.message ||
+        'Falha ao sincronizar produtos da loja.'
+    );
+  } finally {
+    syncingHookId.value = null;
+  }
+};
 
+const handleRemoveStore = async hook => {
   try {
     await integrationAPI.deleteShopifyHook(hook.id);
     await store.dispatch('integrations/get', 'shopify');
-    if (selectedHookId.value === hook.id) {
-      selectedHookId.value = hooks.value[0]?.id || null;
-    }
-    useAlert(t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.DELETED_SUCCESS'));
+    useAlert(t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.REMOVED_SUCCESS'));
   } catch (err) {
     useAlert(
       err.response?.data?.error ||
@@ -283,13 +252,46 @@ const handleDeleteHook = async hook => {
   }
 };
 
+const getInboxName = inboxId => {
+  const found = (inboxes.value || []).find(
+    i => Number(i.id) === Number(inboxId)
+  );
+  return found ? found.name : `#${inboxId}`;
+};
+
+const getAgentName = agentId => {
+  const found = (agents.value || []).find(
+    a => Number(a.id) === Number(agentId)
+  );
+  return found ? found.name || found.email : `Agente #${agentId}`;
+};
+
+const getStoreProducts = hook => {
+  return Array.isArray(hook?.settings?.products) ? hook.settings.products : [];
+};
+
+const formatDateTime = isoStr => {
+  if (!isoStr) return 'Nunca';
+  try {
+    return new Date(isoStr).toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return isoStr;
+  }
+};
+
 const initializeShopifyIntegration = async () => {
   await Promise.all([
     store.dispatch('integrations/get', 'shopify'),
     store.dispatch('inboxes/get'),
+    store.dispatch('agents/get'),
   ]);
-  if (hooks.value.length && !selectedHookId.value) {
-    selectedHookId.value = hooks.value[0].id;
+  if (hooks.value.length > 0) {
+    expandedProductsHookIds.value = [Number(hooks.value[0].id)];
   }
   integrationLoaded.value = true;
 };
@@ -299,510 +301,490 @@ onMounted(() => {
 });
 </script>
 
+<!-- eslint-disable @intlify/vue-i18n/no-raw-text, vue/no-bare-strings-in-template -->
 <template>
-  <SettingsLayout :is-loading="!integrationLoaded || uiFlags.isCreatingShopify">
+  <SettingsLayout
+    :is-loading="!integrationLoaded || uiFlags.isCreatingShopify"
+    class="max-w-6xl mx-auto"
+  >
     <template #header>
       <BaseSettingsHeader
         :title="$t('INTEGRATION_SETTINGS.SHOPIFY.HEADER')"
-        description=""
-        feature-name="shopify_integration"
+        description="Gerencie as lojas Shopify conectadas, teste conexões, sincronize o catálogo de produtos e defina quais agentes têm acesso aos pedidos de cada loja."
+        feature-name="shopify"
         :back-button-label="$t('INTEGRATION_SETTINGS.HEADER')"
       >
-        <template #title>
-          <div class="flex flex-wrap items-center justify-between w-full gap-4">
-            <div class="flex items-center gap-3">
-              <!-- Store Switcher Dropdown (Exact same pattern as Captain Assistant Switcher) -->
-              <div class="flex items-center gap-2">
-                <Avatar
-                  :name="activeHookDisplayName"
-                  :size="28"
-                  icon-name="i-lucide-shopping-bag"
-                  rounded-full
-                />
-                <span class="text-xl font-medium truncate text-n-slate-12">
-                  {{ activeHookDisplayName }}
-                </span>
-                <div class="relative group">
-                  <OnClickOutside @trigger="showStoreSwitcherDropdown = false">
-                    <Button
-                      icon="i-lucide-chevron-down"
-                      :variant="showStoreSwitcherDropdown ? 'faded' : 'ghost'"
-                      color="slate"
-                      size="xs"
-                      class="rounded-md group-hover:bg-n-slate-3 hover:bg-n-slate-3 [&>span]:size-4"
-                      @click="toggleStoreSwitcher"
-                    />
-
-                    <!-- Dropdown Popover -->
-                    <div
-                      v-if="showStoreSwitcherDropdown"
-                      class="pt-5 bg-n-alpha-3 backdrop-blur-[100px] outline outline-n-container outline-1 z-50 absolute ltr:left-0 rtl:right-0 top-9 w-[28rem] max-h-96 rounded-xl shadow-md flex flex-col gap-4"
-                    >
-                      <div
-                        class="flex items-center justify-between gap-4 px-6 pb-3 border-b border-n-alpha-2"
-                      >
-                        <div class="flex flex-col gap-1">
-                          <div class="flex items-center gap-2">
-                            <h2
-                              class="text-base font-medium text-n-slate-12 w-fit"
-                            >
-                              {{
-                                `${t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.CONNECTED_STORES')} (${hooks.length})`
-                              }}
-                            </h2>
-                          </div>
-                          <p class="text-sm text-n-slate-11">
-                            {{
-                              t(
-                                'INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.SWITCH_STORE'
-                              )
-                            }}
-                          </p>
-                        </div>
-                        <Button
-                          :label="
-                            t(
-                              'INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.NEW_STORE'
-                            )
-                          "
-                          color="slate"
-                          icon="i-lucide-plus"
-                          size="sm"
-                          class="!bg-n-alpha-2 hover:!bg-n-alpha-3"
-                          @click="openCreateDialog"
-                        />
-                      </div>
-
-                      <div
-                        v-if="hooks.length > 0"
-                        class="flex flex-col flex-1 min-h-0 gap-1.5 px-4 pb-3 overflow-y-auto overscroll-contain"
-                      >
-                        <Button
-                          v-for="hook in hooks"
-                          :key="hook.id"
-                          :label="
-                            hook.settings?.store_name || hook.reference_id
-                          "
-                          variant="ghost"
-                          color="slate"
-                          trailing-icon
-                          :icon="
-                            activeHook?.id === hook.id ? 'i-lucide-check' : ''
-                          "
-                          class="!justify-end !px-2.5 !py-2 hover:!bg-n-alpha-2 [&>.i-lucide-check]:text-n-teal-10 h-10"
-                          size="sm"
-                          @click="selectStoreFromDropdown(hook)"
-                        >
-                          <div
-                            class="flex items-center justify-between flex-1 min-w-0 gap-2 mr-2"
-                          >
-                            <span
-                              class="text-sm font-medium truncate text-n-slate-12"
-                            >
-                              {{
-                                hook.settings?.store_name || hook.reference_id
-                              }}
-                            </span>
-                            <span
-                              class="text-[11px] px-1.5 py-0.5 rounded font-medium shrink-0"
-                              :class="
-                                isMockStore(hook)
-                                  ? 'bg-n-amber-3 text-n-amber-11'
-                                  : 'bg-n-teal-3 text-n-teal-11'
-                              "
-                            >
-                              {{
-                                isMockStore(hook)
-                                  ? t(
-                                      'INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.MOCK_SHORT'
-                                    )
-                                  : hook.reference_id
-                              }}
-                            </span>
-                          </div>
-                          <Avatar
-                            :name="
-                              hook.settings?.store_name || hook.reference_id
-                            "
-                            :size="20"
-                            icon-name="i-lucide-shopping-bag"
-                            rounded-full
-                          />
-                        </Button>
-                      </div>
-                      <div
-                        v-else
-                        class="flex flex-col items-center gap-2 px-4 py-3"
-                      >
-                        <p class="text-sm text-n-slate-11">
-                          {{
-                            t(
-                              'INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.EMPTY_LIST'
-                            )
-                          }}
-                        </p>
-                      </div>
-                    </div>
-                  </OnClickOutside>
-                </div>
-              </div>
-
-              <div class="w-0.5 h-4 rounded-2xl bg-n-weak" />
-              <span class="text-xl font-medium text-n-slate-12">
-                {{ $t('INTEGRATION_SETTINGS.SHOPIFY.HEADER') }}
-              </span>
-
-              <span
-                v-if="activeHook"
-                class="text-xs px-2.5 py-1 rounded-full font-medium"
-                :class="
-                  isMockStore(activeHook)
-                    ? 'bg-n-amber-3 text-n-amber-11'
-                    : 'bg-n-teal-3 text-n-teal-11'
-                "
-              >
-                {{
-                  isMockStore(activeHook)
-                    ? t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.MOCK_BADGE')
-                    : t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.LIVE_BADGE')
-                }}
-              </span>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <Button
-                teal
-                icon="i-lucide-plus"
-                size="sm"
-                :label="
-                  t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.ADD_BUTTON')
-                "
-                @click="openCreateDialog"
-              />
-            </div>
-          </div>
+        <template #actions>
+          <Button
+            icon="i-lucide-plus"
+            label="Adicionar Loja Shopify"
+            @click="openCreateDialog"
+          />
         </template>
       </BaseSettingsHeader>
     </template>
 
     <template #body>
-      <div class="flex flex-col gap-6">
-        <Integration
-          v-if="!hooks.length"
-          :integration-id="integration.id"
-          :integration-logo="integration.logo"
-          :integration-name="integration.name"
-          :integration-description="integration.description"
-          :integration-enabled="integration.enabled"
-          integration-action="connect"
-          :delete-confirmation-text="{
-            title: t('INTEGRATION_SETTINGS.SHOPIFY.DELETE.TITLE'),
-            message: t('INTEGRATION_SETTINGS.SHOPIFY.DELETE.MESSAGE'),
-          }"
-        >
-          <template #action>
-            <Button
-              teal
-              icon="i-lucide-plus"
-              :label="t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.ADD_BUTTON')"
-              @click="openCreateDialog"
-            />
-          </template>
-        </Integration>
-
+      <div class="flex flex-col gap-5">
+        <!-- Empty state -->
         <div
-          v-if="activeHook"
-          class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
+          v-if="!hooks.length"
+          class="flex flex-col items-center justify-center p-10 text-center rounded-2xl border border-dashed border-n-weak bg-n-solid-2"
         >
+          <Avatar
+            src="/dashboard/images/integrations/shopify.png"
+            name="Shopify"
+            :size="56"
+            rounded-full
+            class="mb-3"
+          />
+          <h4 class="text-base font-semibold text-n-slate-12 mb-1">
+            Nenhuma loja Shopify cadastrada
+          </h4>
+          <p class="text-sm text-n-slate-11 max-w-lg mb-4">
+            Cadastre suas lojas Shopify (com Admin API Token ou em Modo Mock de
+            teste), sincronize os produtos e escolha quais agentes terão acesso.
+          </p>
+          <Button
+            icon="i-lucide-plus"
+            label="Adicionar Primeira Loja"
+            @click="openCreateDialog"
+          />
+        </div>
+
+        <!-- Lista de Lojas Configuradas (Sem Dropdown Switcher) -->
+        <div
+          v-for="hook in hooks"
+          :key="hook.id"
+          class="flex flex-col rounded-2xl border border-n-weak bg-n-solid-2 overflow-hidden shadow-sm"
+        >
+          <!-- Cabeçalho do Card da Loja -->
           <div
-            class="lg:col-span-7 flex flex-col gap-5 outline outline-n-container outline-1 bg-n-alpha-3 rounded-xl shadow-sm p-6"
+            class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 border-b border-n-weak bg-n-alpha-1"
           >
-            <div
-              class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-n-weak"
-            >
-              <div class="flex flex-col gap-1">
-                <div class="flex items-center gap-2">
-                  <h3 class="text-base font-semibold text-n-slate-12">
-                    {{ activeHookDisplayName }}
+            <div class="flex items-start sm:items-center gap-3.5 min-w-0">
+              <Avatar
+                src="/dashboard/images/integrations/shopify.png"
+                :name="hook.settings?.store_name || hook.reference_id"
+                :size="44"
+                rounded-full
+              />
+              <div class="flex flex-col min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h3 class="text-base font-semibold text-n-slate-12 truncate">
+                    {{ hook.settings?.store_name || hook.reference_id }}
                   </h3>
                   <span
-                    class="text-xs px-2 py-0.5 rounded bg-n-solid-3 text-n-slate-11 font-mono"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded-full"
+                    :class="
+                      hook.settings?.connection_status === 'failed'
+                        ? 'bg-n-ruby-3 text-n-ruby-11'
+                        : 'bg-n-teal-3 text-n-teal-11'
+                    "
                   >
-                    {{ activeHook.reference_id }}
+                    <span
+                      class="size-1.5 rounded-full"
+                      :class="
+                        hook.settings?.connection_status === 'failed'
+                          ? 'bg-n-ruby-9'
+                          : 'bg-n-teal-9'
+                      "
+                    />
+                    {{
+                      hook.settings?.connection_status === 'failed'
+                        ? 'Falha na Conexão'
+                        : 'Conectada'
+                    }}
+                  </span>
+                  <span
+                    class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-full"
+                    :class="
+                      isMockStore(hook)
+                        ? 'bg-n-amber-3 text-n-amber-11'
+                        : 'bg-n-brand/15 text-n-brand'
+                    "
+                  >
+                    {{
+                      isMockStore(hook)
+                        ? 'Modo Mock / Simulação'
+                        : 'API Real (shpat_)'
+                    }}
                   </span>
                 </div>
-                <p class="text-xs text-n-slate-11">
-                  {{
-                    t(
-                      'INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.STORE_CONFIG_DESC'
-                    )
-                  }}
-                </p>
-              </div>
-
-              <Button
-                faded
-                ruby
-                xs
-                icon="i-lucide-trash-2"
-                :label="t('INTEGRATION_SETTINGS.DELETE.BUTTON_TEXT')"
-                @click="handleDeleteHook(activeHook)"
-              />
-            </div>
-
-            <div class="flex flex-col gap-4">
-              <Input
-                v-model="activeStoreName"
-                :label="
-                  t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.STORE_NAME_LABEL')
-                "
-                :placeholder="
-                  t(
-                    'INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.STORE_NAME_PLACEHOLDER'
-                  )
-                "
-              />
-
-              <Input
-                v-model="activeStoreUrl"
-                :label="t('INTEGRATION_SETTINGS.SHOPIFY.STORE_URL.LABEL')"
-                :placeholder="
-                  t('INTEGRATION_SETTINGS.SHOPIFY.STORE_URL.PLACEHOLDER')
-                "
-                :message="t('INTEGRATION_SETTINGS.SHOPIFY.STORE_URL.HELP')"
-                message-type="info"
-              />
-
-              <Input
-                v-model="activeShopifyAdminKey"
-                type="password"
-                :label="
-                  t(
-                    'INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.ACCESS_TOKEN_LABEL'
-                  )
-                "
-                :placeholder="
-                  t(
-                    'INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.ACCESS_TOKEN_KEEP_PLACEHOLDER'
-                  )
-                "
-                :message="
-                  t(
-                    'INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.ACCESS_TOKEN_HELP'
-                  )
-                "
-                message-type="info"
-              />
-
-              <div class="flex flex-col gap-1.5">
-                <label class="text-sm font-medium text-n-slate-12">
-                  {{
-                    t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.INBOXES_LABEL')
-                  }}
-                </label>
-                <p class="text-xs text-n-slate-11 mb-1">
-                  {{
-                    t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.INBOXES_HELP')
-                  }}
-                </p>
                 <div
-                  class="max-h-44 overflow-y-auto border border-n-weak rounded-lg p-2.5 grid grid-cols-1 sm:grid-cols-2 gap-1.5 bg-n-alpha-1"
+                  class="flex items-center gap-3 text-xs text-n-slate-11 mt-1 flex-wrap"
                 >
-                  <label
-                    v-for="inbox in inboxes"
-                    :key="inbox.id"
-                    class="flex items-center gap-2 text-sm text-n-slate-12 cursor-pointer hover:bg-n-alpha-2 px-2 py-1.5 rounded"
-                  >
-                    <input
-                      type="checkbox"
-                      :checked="
-                        activeSelectedInboxIds.includes(Number(inbox.id))
-                      "
-                      @change="toggleActiveStoreInbox(inbox.id)"
-                    />
-                    <span class="truncate">{{ inbox.name }}</span>
-                  </label>
+                  <span class="font-mono">{{ hook.reference_id }}</span>
+                  <span v-if="hook.settings?.domain">
+                    • Domínio: {{ hook.settings.domain }}
+                  </span>
+                  <span>
+                    • Último teste:
+                    {{ formatDateTime(hook.settings?.last_tested_at) }}
+                  </span>
+                  <span>
+                    • Produtos sincronizados:
+                    <strong class="text-n-slate-12">
+                      {{ getStoreProducts(hook).length }}
+                    </strong>
+                  </span>
                 </div>
               </div>
+            </div>
 
-              <p
-                v-if="activeStoreError"
-                class="text-xs text-n-ruby-9 font-medium"
+            <!-- Botões de Ação da Loja: Testar Conexão, Puxar Produtos, Editar/Agentes, Remover -->
+            <div class="flex items-center gap-2 flex-wrap shrink-0">
+              <Button
+                size="sm"
+                variant="faded"
+                color="teal"
+                icon="i-lucide-plug-zap"
+                :label="
+                  testingHookId === hook.id ? 'Testando...' : 'Testar Conexão'
+                "
+                :is-loading="testingHookId === hook.id"
+                @click="handleTestConnection(hook)"
+              />
+              <Button
+                size="sm"
+                variant="faded"
+                color="blue"
+                icon="i-lucide-package-check"
+                :label="
+                  syncingHookId === hook.id
+                    ? 'Sincronizando...'
+                    : 'Puxar Produtos'
+                "
+                :is-loading="syncingHookId === hook.id"
+                @click="handleSyncProducts(hook)"
+              />
+              <Button
+                size="sm"
+                variant="faded"
+                color="slate"
+                icon="i-lucide-user-check"
+                label="Editar & Agentes"
+                @click="openEditDialog(hook)"
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                color="ruby"
+                icon="i-lucide-trash-2"
+                @click="handleRemoveStore(hook)"
+              />
+            </div>
+          </div>
+
+          <!-- Corpo do Card: Permissões de Agentes e Caixas de Entrada -->
+          <div
+            class="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 border-b border-n-weak"
+          >
+            <!-- Agentes com Acesso -->
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <span
+                  class="text-xs font-semibold uppercase tracking-wide text-n-slate-11 flex items-center gap-1.5"
+                >
+                  <span class="i-lucide-users size-3.5 text-n-brand" />
+                  Agentes com Acesso à Loja
+                </span>
+                <button
+                  type="button"
+                  class="text-xs text-n-brand hover:underline"
+                  @click="openEditDialog(hook)"
+                >
+                  Gerenciar agentes
+                </button>
+              </div>
+              <div
+                v-if="hook.settings?.agent_ids?.length"
+                class="flex flex-wrap gap-1.5"
               >
-                {{ activeStoreError }}
-              </p>
+                <span
+                  v-for="agentId in hook.settings.agent_ids"
+                  :key="agentId"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-n-brand/10 text-n-brand border border-n-brand/20"
+                >
+                  <span class="i-lucide-user-check size-3" />
+                  {{ getAgentName(agentId) }}
+                </span>
+              </div>
+              <div v-else class="flex items-center gap-1.5">
+                <span
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-n-alpha-2 text-n-slate-11"
+                >
+                  <span class="i-lucide-globe size-3" />
+                  Todos os agentes da conta possuem acesso
+                </span>
+              </div>
+            </div>
 
-              <div class="flex items-center justify-end gap-2 pt-2">
-                <Button
-                  teal
-                  :is-loading="isUpdatingActiveStore"
-                  :label="
-                    t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.SAVE_CHANGES')
-                  "
-                  @click="handleActiveStoreSave"
-                />
+            <!-- Caixas de Entrada Vinculadas -->
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <span
+                  class="text-xs font-semibold uppercase tracking-wide text-n-slate-11 flex items-center gap-1.5"
+                >
+                  <span class="i-lucide-inbox size-3.5 text-n-slate-10" />
+                  Caixas de Entrada Vinculadas
+                </span>
+                <button
+                  type="button"
+                  class="text-xs text-n-brand hover:underline"
+                  @click="openEditDialog(hook)"
+                >
+                  Alterar caixas
+                </button>
+              </div>
+              <div
+                v-if="hook.settings?.inbox_ids?.length"
+                class="flex flex-wrap gap-1.5"
+              >
+                <span
+                  v-for="inboxId in hook.settings.inbox_ids"
+                  :key="inboxId"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md bg-n-alpha-2 text-n-slate-12 border border-n-weak"
+                >
+                  <span class="i-lucide-inbox size-3 text-n-slate-10" />
+                  {{ getInboxName(inboxId) }}
+                </span>
+              </div>
+              <div v-else>
+                <span class="text-xs text-n-slate-10">
+                  Disponível em todas as caixas de entrada
+                </span>
               </div>
             </div>
           </div>
 
-          <div
-            class="lg:col-span-5 flex flex-col gap-4 outline outline-n-container outline-1 bg-n-alpha-3 rounded-xl shadow-sm p-5"
-          >
-            <div class="flex flex-col gap-1 pb-3 border-b border-n-weak">
-              <div class="flex items-center justify-between gap-2">
-                <h3 class="text-sm font-semibold text-n-slate-12">
-                  {{
-                    t(
-                      'INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.PREVIEW_ORDERS_TITLE',
-                      { store: activeHookDisplayName }
-                    )
-                  }}
-                </h3>
-                <span
-                  class="text-[11px] px-2 py-0.5 rounded font-medium"
-                  :class="
-                    isMockStore(activeHook)
-                      ? 'bg-n-amber-3 text-n-amber-11'
-                      : 'bg-n-teal-3 text-n-teal-11'
-                  "
-                >
-                  {{ previewOrders.length }}
+          <!-- Seção de Produtos Sincronizados da Loja -->
+          <div class="flex flex-col bg-n-surface-1">
+            <button
+              type="button"
+              class="flex items-center justify-between px-5 py-3 text-xs font-medium text-n-slate-12 hover:bg-n-alpha-1 transition-colors"
+              @click="toggleProductsAccordion(hook.id)"
+            >
+              <span class="flex items-center gap-2">
+                <span class="i-lucide-package size-4 text-n-brand" />
+                <span>
+                  Catálogo de Produtos Sincronizados ({{
+                    getStoreProducts(hook).length
+                  }})
                 </span>
-              </div>
-              <p class="text-xs text-n-slate-11">
-                {{
-                  t(
-                    'INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.PREVIEW_ORDERS_DESC'
-                  )
-                }}
-              </p>
-            </div>
-
-            <form
-              class="flex items-center gap-1.5"
-              @submit.prevent="fetchPreviewOrders"
-            >
-              <input
-                v-model="previewSearchQuery"
-                type="text"
-                :placeholder="
-                  $t('CONVERSATION_SIDEBAR.SHOPIFY.SEARCH_PLACEHOLDER')
+                <span
+                  v-if="hook.settings?.last_synced_at"
+                  class="text-n-slate-10 font-normal"
+                >
+                  • Atualizado em
+                  {{ formatDateTime(hook.settings.last_synced_at) }}
+                </span>
+              </span>
+              <span
+                class="size-4 text-n-slate-10 transition-transform"
+                :class="
+                  isProductsExpanded(hook.id)
+                    ? 'i-lucide-chevron-up'
+                    : 'i-lucide-chevron-down'
                 "
-                class="flex-1 min-w-0 text-xs px-2.5 py-1.5 rounded border border-n-weak bg-n-alpha-1 text-n-slate-12 focus:outline-none focus:border-n-brand"
               />
-              <Button
-                type="submit"
-                size="xs"
-                teal
-                :label="$t('CONVERSATION_SIDEBAR.SHOPIFY.SEARCH_BUTTON')"
-              />
-            </form>
+            </button>
 
             <div
-              v-if="isLoadingPreview"
-              class="flex justify-center items-center py-8"
+              v-if="isProductsExpanded(hook.id)"
+              class="px-5 pb-4 pt-1 border-t border-n-weak"
             >
-              <Spinner size="28" class="text-n-brand" />
-            </div>
-            <div
-              v-else-if="!previewOrders.length"
-              class="text-center text-xs text-n-slate-11 py-6"
-            >
-              {{ $t('CONVERSATION_SIDEBAR.SHOPIFY.NO_SHOPIFY_ORDERS') }}
-            </div>
-            <div
-              v-else
-              class="flex flex-col max-h-[28rem] overflow-y-auto pr-1"
-            >
-              <ShopifyOrderItem
-                v-for="order in previewOrders"
-                :key="`${order.hook_id}-${order.id}`"
-                :order="order"
-              />
+              <div
+                v-if="!getStoreProducts(hook).length"
+                class="flex items-center justify-between py-4 px-4 rounded-xl bg-n-solid-2 border border-n-weak"
+              >
+                <span class="text-xs text-n-slate-11">
+                  Nenhum produto sincronizado ainda nesta loja. Clique em "Puxar
+                  Produtos" para importar o catálogo.
+                </span>
+                <Button
+                  size="xs"
+                  variant="faded"
+                  icon="i-lucide-refresh-cw"
+                  label="Puxar Produtos Agora"
+                  :is-loading="syncingHookId === hook.id"
+                  @click="handleSyncProducts(hook)"
+                />
+              </div>
+
+              <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
+                <div
+                  v-for="product in getStoreProducts(hook)"
+                  :key="product.id"
+                  class="flex flex-col justify-between p-3 rounded-xl border border-n-weak bg-n-solid-2 gap-2"
+                >
+                  <div>
+                    <div class="flex items-start justify-between gap-2">
+                      <span
+                        class="text-xs font-semibold text-n-slate-12 line-clamp-2"
+                      >
+                        {{ product.title }}
+                      </span>
+                      <span
+                        class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-n-teal-3 text-n-teal-11 shrink-0"
+                      >
+                        Ativo
+                      </span>
+                    </div>
+                    <div
+                      class="flex items-center gap-2 text-[11px] text-n-slate-10 mt-1"
+                    >
+                      <span v-if="product.sku" class="font-mono">
+                        SKU: {{ product.sku }}
+                      </span>
+                      <span v-if="product.product_type">
+                        • {{ product.product_type }}
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    class="flex items-center justify-between pt-2 border-t border-n-weak text-xs"
+                  >
+                    <span class="font-semibold text-n-slate-12">
+                      R$ {{ product.price }}
+                    </span>
+                    <span class="text-[11px] text-n-slate-10">
+                      Estoque: {{ product.inventory_quantity ?? 'Digital' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <Dialog
-          ref="dialogRef"
-          :title="t('INTEGRATION_SETTINGS.SHOPIFY.STORE_URL.TITLE')"
-          :is-loading="isSubmitting"
-          @confirm="handleStoreSubmit"
-          @close="resetForm"
-        >
-          <div class="flex flex-col gap-4">
-            <Input
-              v-model="storeName"
-              :label="
-                t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.STORE_NAME_LABEL')
-              "
-              :placeholder="
-                t(
-                  'INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.STORE_NAME_PLACEHOLDER'
-                )
-              "
-            />
+      <!-- Modal Adicionar / Editar Loja + Agentes com Acesso -->
+      <Dialog
+        ref="dialogRef"
+        :title="
+          editingHookId
+            ? 'Editar Loja Shopify e Permissões de Agentes'
+            : 'Adicionar Nova Loja Shopify'
+        "
+        :is-loading="isSubmitting"
+        @confirm="handleStoreSubmit"
+        @close="handleDialogClose"
+      >
+        <form class="flex flex-col gap-4" @submit.prevent="handleStoreSubmit">
+          <Input
+            v-model="storeName"
+            label="Nome de identificação da Loja"
+            placeholder="Ex: Games Safari, Barba Games, GameBox Brasil"
+          />
 
-            <Input
-              v-model="storeUrl"
-              :label="t('INTEGRATION_SETTINGS.SHOPIFY.STORE_URL.LABEL')"
-              :placeholder="
-                t('INTEGRATION_SETTINGS.SHOPIFY.STORE_URL.PLACEHOLDER')
-              "
-              :message="t('INTEGRATION_SETTINGS.SHOPIFY.STORE_URL.HELP')"
-              message-type="info"
-            />
+          <Input
+            v-model="storeUrl"
+            label="Domínio .myshopify.com"
+            placeholder="Ex: gamessafari.myshopify.com"
+            :message="
+              formError ||
+              'Você pode informar o domínio .myshopify.com ou apenas o nome da loja'
+            "
+            :message-type="formError ? 'error' : 'info'"
+          />
 
-            <Input
-              v-model="shopifyAdminKey"
-              type="password"
-              :label="
-                t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.ACCESS_TOKEN_LABEL')
-              "
-              :placeholder="
-                t(
-                  'INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.ACCESS_TOKEN_PLACEHOLDER'
-                )
-              "
-              :message="
-                t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.ACCESS_TOKEN_HELP')
-              "
-              message-type="info"
-            />
+          <Input
+            v-model="shopifyAdminKey"
+            type="password"
+            label="Admin API Access Token (shpat_...)"
+            :placeholder="
+              editingHookId
+                ? 'Deixe em branco para manter o token/modo atual'
+                : 'Opcional: deixe em branco para usar em Modo Mock de teste'
+            "
+            message="Se deixado em branco no cadastro, a loja funcionará em Modo Mock com catálogo e pedidos simulados."
+            message-type="info"
+          />
 
-            <div class="flex flex-col gap-1.5">
+          <!-- Seleção de Agentes com Acesso -->
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center justify-between">
               <label class="text-sm font-medium text-n-slate-12">
-                {{
-                  t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.INBOXES_LABEL')
-                }}
+                Quais agentes terão acesso à integração desta loja?
               </label>
-              <p class="text-xs text-n-slate-11 mb-1">
-                {{ t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.INBOXES_HELP') }}
-              </p>
-              <div
-                class="max-h-40 overflow-y-auto border border-n-weak rounded-md p-2 flex flex-col gap-1.5"
-              >
-                <label
-                  v-for="inbox in inboxes"
-                  :key="inbox.id"
-                  class="flex items-center gap-2 text-sm text-n-slate-12 cursor-pointer hover:bg-n-alpha-2 px-1.5 py-1 rounded"
+              <div class="flex items-center gap-2 text-xs">
+                <button
+                  type="button"
+                  class="text-n-brand hover:underline"
+                  @click="selectAllAgents"
                 >
-                  <input
-                    type="checkbox"
-                    :checked="selectedInboxIds.includes(Number(inbox.id))"
-                    @change="toggleInbox(inbox.id)"
-                  />
-                  <span>{{ inbox.name }}</span>
-                </label>
+                  Marcar todos
+                </button>
+                <span class="text-n-slate-9">•</span>
+                <button
+                  type="button"
+                  class="text-n-slate-11 hover:underline"
+                  @click="clearAllAgents"
+                >
+                  Liberar para todos
+                </button>
               </div>
             </div>
-
-            <p v-if="formError" class="text-xs text-n-ruby-9 font-medium">
-              {{ formError }}
+            <p class="text-xs text-n-slate-11">
+              Selecione os agentes específicos que poderão ver e consultar esta
+              loja na tela de Pedidos Shopify. (Se nenhum for marcado, todos os
+              agentes terão acesso).
             </p>
+            <div
+              class="max-h-40 overflow-y-auto rounded-lg border border-n-weak p-2 flex flex-col gap-1 bg-n-alpha-1"
+            >
+              <label
+                v-for="agent in agents"
+                :key="agent.id"
+                class="flex items-center justify-between gap-2 px-2 py-1.5 rounded hover:bg-n-alpha-2 cursor-pointer text-sm text-n-slate-12"
+              >
+                <div class="flex items-center gap-2 min-w-0">
+                  <input
+                    type="checkbox"
+                    class="rounded border-n-weak text-n-brand focus:ring-n-brand"
+                    :checked="selectedAgentIds.includes(Number(agent.id))"
+                    @change="toggleAgent(agent.id)"
+                  />
+                  <span class="truncate font-medium">{{ agent.name }}</span>
+                  <span class="text-xs text-n-slate-10 truncate">
+                    ({{ agent.email }})
+                  </span>
+                </div>
+                <span
+                  class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-n-alpha-2 text-n-slate-11 shrink-0"
+                >
+                  {{ agent.role }}
+                </span>
+              </label>
+            </div>
           </div>
-        </Dialog>
-      </div>
+
+          <!-- Seleção de Caixas de Entrada -->
+          <div v-if="inboxes && inboxes.length" class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-n-slate-12">
+              Caixas de entrada vinculadas a esta loja
+            </label>
+            <div
+              class="max-h-36 overflow-y-auto rounded-lg border border-n-weak p-2 flex flex-col gap-1 bg-n-alpha-1"
+            >
+              <label
+                v-for="inbox in inboxes"
+                :key="inbox.id"
+                class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-n-alpha-2 cursor-pointer text-sm text-n-slate-12"
+              >
+                <input
+                  type="checkbox"
+                  class="rounded border-n-weak text-n-brand focus:ring-n-brand"
+                  :checked="selectedInboxIds.includes(Number(inbox.id))"
+                  @change="toggleInbox(inbox.id)"
+                />
+                <span class="truncate">{{ inbox.name }}</span>
+              </label>
+            </div>
+          </div>
+        </form>
+      </Dialog>
     </template>
   </SettingsLayout>
 </template>

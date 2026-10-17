@@ -416,6 +416,10 @@ Rails.application.routes.draw do
                 post :auth
                 post :connect_token
                 patch :update_hook
+                post :test_connection
+                post :sync_products
+                get :products
+                get :customers
                 get :orders
               end
             end

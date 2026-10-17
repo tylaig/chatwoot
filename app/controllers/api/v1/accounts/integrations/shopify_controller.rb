@@ -1,7 +1,7 @@
 class Api::V1::Accounts::Integrations::ShopifyController < Api::V1::Accounts::Integrations::BaseController
   include Shopify::IntegrationHelper
-  before_action :check_authorization, only: [:connect_token, :update_hook, :destroy]
-  before_action :fetch_hook, only: [:update_hook, :destroy]
+  before_action :check_authorization, only: [:connect_token, :update_hook, :test_connection, :sync_products, :destroy]
+  before_action :fetch_hook, only: [:update_hook, :test_connection, :sync_products, :destroy]
   before_action :validate_orders_request, only: [:orders]
 
   def auth
@@ -26,6 +26,7 @@ class Api::V1::Accounts::Integrations::ShopifyController < Api::V1::Accounts::In
     shop_domain = Shopify::ShopDomain.normalize(params[:shop_domain].presence || store_name)
     access_token = params[:access_token].to_s.strip
     inbox_ids = Array(params[:inbox_ids]).map(&:to_i).reject(&:zero?).uniq
+    agent_ids = Array(params[:agent_ids]).map(&:to_i).reject(&:zero?).uniq
 
     shop_info = Shopify::MultiStoreOrderFinderService.verify_connection!(
       shop_domain: shop_domain,
@@ -39,25 +40,27 @@ class Api::V1::Accounts::Integrations::ShopifyController < Api::V1::Accounts::In
     )
     hook.access_token = access_token.presence || "mock_#{SecureRandom.hex(12)}"
     hook.status = :enabled
+
+    products = Shopify::MultiStoreOrderFinderService.fetch_products_for_hook!(hook)
+    now_iso = Time.current.iso8601
+
     hook.settings = (hook.settings || {}).merge(
       'store_name' => store_name.presence || shop_info['name'].presence || shop_domain,
       'inbox_ids' => inbox_ids,
+      'agent_ids' => agent_ids,
       'auth_mode' => shop_info['auth_mode'] || (access_token.present? ? 'access_token' : 'mock'),
       'shop_name' => shop_info['name'],
       'shop_email' => shop_info['email'],
-      'domain' => shop_info['domain']
+      'domain' => shop_info['domain'],
+      'products' => products,
+      'products_count' => products.size,
+      'last_synced_at' => now_iso,
+      'last_tested_at' => now_iso,
+      'connection_status' => 'connected'
     )
     hook.save!
 
-    render json: {
-      hook: {
-        id: hook.id,
-        app_id: hook.app_id,
-        reference_id: hook.reference_id,
-        status: hook.enabled?,
-        settings: hook.settings
-      }
-    }, status: :ok
+    render json: { hook: serialize_hook(hook) }, status: :ok
   rescue ArgumentError, StandardError => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
@@ -65,6 +68,7 @@ class Api::V1::Accounts::Integrations::ShopifyController < Api::V1::Accounts::In
   def update_hook
     store_name = params[:store_name].to_s.strip
     inbox_ids = Array(params[:inbox_ids]).map(&:to_i).reject(&:zero?).uniq
+    agent_ids = Array(params[:agent_ids]).map(&:to_i).reject(&:zero?).uniq
     access_token = params[:access_token].to_s.strip
     new_domain = params[:shop_domain].present? ? Shopify::ShopDomain.normalize(params[:shop_domain]) : @hook.reference_id
 
@@ -83,26 +87,107 @@ class Api::V1::Accounts::Integrations::ShopifyController < Api::V1::Accounts::In
         'auth_mode' => shop_info['auth_mode'] || 'access_token',
         'shop_name' => shop_info['name'],
         'shop_email' => shop_info['email'],
-        'domain' => shop_info['domain']
+        'domain' => shop_info['domain'],
+        'last_tested_at' => Time.current.iso8601,
+        'connection_status' => 'connected'
       )
     end
 
     updated_settings = (@hook.settings || {}).dup
     updated_settings['store_name'] = store_name if store_name.present?
     updated_settings['inbox_ids'] = inbox_ids if params.key?(:inbox_ids)
+    updated_settings['agent_ids'] = agent_ids if params.key?(:agent_ids)
     @hook.settings = updated_settings
     @hook.save!
 
-    render json: {
-      hook: {
-        id: @hook.id,
-        app_id: @hook.app_id,
-        reference_id: @hook.reference_id,
-        status: @hook.enabled?,
-        settings: @hook.settings
-      }
-    }, status: :ok
+    render json: { hook: serialize_hook(@hook) }, status: :ok
   rescue ArgumentError, StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def test_connection
+    shop_info = Shopify::MultiStoreOrderFinderService.verify_connection!(
+      shop_domain: @hook.reference_id,
+      access_token: @hook.access_token,
+      store_name: @hook.settings&.dig('store_name')
+    )
+
+    updated_settings = (@hook.settings || {}).merge(
+      'auth_mode' => shop_info['auth_mode'],
+      'shop_name' => shop_info['name'],
+      'shop_email' => shop_info['email'],
+      'domain' => shop_info['domain'],
+      'last_tested_at' => Time.current.iso8601,
+      'connection_status' => 'connected'
+    )
+    @hook.update!(settings: updated_settings, status: :enabled)
+
+    render json: {
+      ok: true,
+      shop: shop_info,
+      hook: serialize_hook(@hook)
+    }, status: :ok
+  rescue StandardError => e
+    updated_settings = (@hook.settings || {}).merge(
+      'last_tested_at' => Time.current.iso8601,
+      'connection_status' => 'failed'
+    )
+    @hook.update(settings: updated_settings)
+    render json: { ok: false, error: e.message }, status: :unprocessable_entity
+  end
+
+  def sync_products
+    products = Shopify::MultiStoreOrderFinderService.fetch_products_for_hook!(@hook)
+    updated_settings = (@hook.settings || {}).merge(
+      'products' => products,
+      'products_count' => products.size,
+      'last_synced_at' => Time.current.iso8601
+    )
+    @hook.update!(settings: updated_settings)
+
+    render json: {
+      products: products,
+      products_count: products.size,
+      last_synced_at: updated_settings['last_synced_at'],
+      hook: serialize_hook(@hook)
+    }, status: :ok
+  rescue StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def products
+    hooks = accessible_hooks
+    hooks = hooks.select { |h| h.id == params[:hook_id].to_i } if params[:hook_id].present?
+
+    all_products = hooks.flat_map do |h|
+      stored = Array(h.settings&.dig('products'))
+      stored.any? ? stored : Shopify::MultiStoreOrderFinderService.fetch_products_for_hook!(h)
+    end
+
+    if params[:query].to_s.strip.present?
+      q = params[:query].to_s.strip.downcase
+      all_products = all_products.select do |p|
+        p['title'].to_s.downcase.include?(q) ||
+          p['sku'].to_s.downcase.include?(q) ||
+          p['product_type'].to_s.downcase.include?(q)
+      end
+    end
+
+    render json: { products: all_products }, status: :ok
+  rescue StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def customers
+    customers_list = Shopify::MultiStoreOrderFinderService.new(
+      account: Current.account,
+      query: params[:query].to_s.strip,
+      hook_id: params[:hook_id],
+      user: Current.user
+    ).perform_customers
+
+    render json: { customers: customers_list }, status: :ok
+  rescue StandardError => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
@@ -113,7 +198,8 @@ class Api::V1::Accounts::Integrations::ShopifyController < Api::V1::Accounts::In
       contact: contact,
       query: query_str,
       inbox_id: params[:inbox_id],
-      hook_id: params[:hook_id]
+      hook_id: params[:hook_id],
+      user: Current.user
     ).perform
 
     sync_contact_email_from_orders(orders_list, query_str) if ActiveModel::Type::Boolean.new.cast(params[:sync_contact_email])
@@ -132,6 +218,22 @@ class Api::V1::Accounts::Integrations::ShopifyController < Api::V1::Accounts::In
 
   private
 
+  def serialize_hook(hook)
+    {
+      id: hook.id,
+      app_id: hook.app_id,
+      reference_id: hook.reference_id,
+      status: hook.enabled?,
+      settings: hook.settings
+    }
+  end
+
+  def accessible_hooks
+    Current.account.hooks.where(app_id: 'shopify', status: :enabled).select do |h|
+      Shopify::MultiStoreOrderFinderService.hook_accessible_by_user?(h, Current.user, Current.account)
+    end
+  end
+
   def redirect_uri
     "#{ENV.fetch('FRONTEND_URL', '')}/shopify/callback"
   end
@@ -148,9 +250,10 @@ class Api::V1::Accounts::Integrations::ShopifyController < Api::V1::Accounts::In
   end
 
   def validate_orders_request
+    return if ActiveModel::Type::Boolean.new.cast(params[:list_all])
     return if params[:query].to_s.strip.present?
     return if contact.present? && (contact.email.present? || contact.phone_number.present?)
-    return if Current.account.hooks.where(app_id: 'shopify', status: :enabled).any? { |h| h.settings&.dig('auth_mode') == 'mock' }
+    return if accessible_hooks.any? { |h| h.settings&.dig('auth_mode') == 'mock' }
 
     render json: { orders: [] }, status: :ok
   end

@@ -18,6 +18,7 @@ class ShopifyAPI extends ApiClient {
       query,
       inboxId,
       hookId,
+      listAll = false,
       syncContactEmail = false,
     } = params;
     return axios.get(`${this.url}/orders`, {
@@ -26,8 +27,41 @@ class ShopifyAPI extends ApiClient {
         query,
         inbox_id: inboxId,
         hook_id: hookId,
+        list_all: listAll,
         sync_contact_email: syncContactEmail,
       },
+    });
+  }
+
+  getCustomers(params = {}) {
+    const { query, hookId } = params;
+    return axios.get(`${this.url}/customers`, {
+      params: {
+        query,
+        hook_id: hookId,
+      },
+    });
+  }
+
+  getProducts(params = {}) {
+    const { query, hookId } = params;
+    return axios.get(`${this.url}/products`, {
+      params: {
+        query,
+        hook_id: hookId,
+      },
+    });
+  }
+
+  testConnection(hookId) {
+    return axios.post(`${this.url}/test_connection`, {
+      hook_id: hookId,
+    });
+  }
+
+  syncProducts(hookId) {
+    return axios.post(`${this.url}/sync_products`, {
+      hook_id: hookId,
     });
   }
 }

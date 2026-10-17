@@ -260,7 +260,21 @@ shopify:
   i18n_key: shopify
   hook_type: account
   allow_multiple_hooks: true
-  visible_properties: ['store_name', 'inbox_ids', 'auth_mode', 'shop_name', 'shop_email', 'domain']
+  visible_properties:
+    [
+      'store_name',
+      'inbox_ids',
+      'agent_ids',
+      'auth_mode',
+      'shop_name',
+      'shop_email',
+      'domain',
+      'products',
+      'products_count',
+      'last_synced_at',
+      'last_tested_at',
+      'connection_status',
+    ]
 
 leadsquared:
   id: leadsquared

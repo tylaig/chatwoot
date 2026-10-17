@@ -745,6 +745,13 @@ const menuItems = computed(() => {
       ],
     },
     {
+      name: 'ShopifyOrders',
+      label: 'Pedidos Shopify',
+      icon: 'i-lucide-shopping-bag',
+      activeOn: ['shopify_orders_index'],
+      to: accountScopedRoute('shopify_orders_index'),
+    },
+    {
       name: 'Workflows',
       label: 'Workflows',
       icon: 'i-lucide-git-branch',
