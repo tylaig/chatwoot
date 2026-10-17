@@ -33,6 +33,8 @@ const formError = ref('');
 const testingHookId = ref(null);
 const syncingHookId = ref(null);
 const expandedProductsHookIds = ref([]);
+const storesViewMode = ref('cards'); // 'cards' | 'list'
+const catalogViewMode = ref('cards'); // 'cards' | 'list'
 
 const integration = useFunctionGetter('integrations/getIntegration', 'shopify');
 const uiFlags = useMapGetter('integrations/getUIFlags');
@@ -315,11 +317,45 @@ onMounted(() => {
         :back-button-label="$t('INTEGRATION_SETTINGS.HEADER')"
       >
         <template #actions>
-          <Button
-            icon="i-lucide-plus"
-            label="Adicionar Loja Shopify"
-            @click="openCreateDialog"
-          />
+          <div class="flex items-center gap-3">
+            <!-- Toggle Visualização das Lojas: Cards vs Lista -->
+            <div
+              class="inline-flex items-center p-1 rounded-xl border border-n-weak bg-n-solid-2"
+            >
+              <button
+                type="button"
+                class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+                :class="
+                  storesViewMode === 'cards'
+                    ? 'bg-n-brand text-white shadow-sm'
+                    : 'text-n-slate-11 hover:text-n-slate-12'
+                "
+                @click="storesViewMode = 'cards'"
+              >
+                <span class="i-lucide-layout-grid size-3.5" />
+                <span>Cards</span>
+              </button>
+              <button
+                type="button"
+                class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+                :class="
+                  storesViewMode === 'list'
+                    ? 'bg-n-brand text-white shadow-sm'
+                    : 'text-n-slate-11 hover:text-n-slate-12'
+                "
+                @click="storesViewMode = 'list'"
+              >
+                <span class="i-lucide-list size-3.5" />
+                <span>Lista</span>
+              </button>
+            </div>
+
+            <Button
+              icon="i-lucide-plus"
+              label="Adicionar Loja Shopify"
+              @click="openCreateDialog"
+            />
+          </div>
         </template>
       </BaseSettingsHeader>
     </template>
@@ -352,305 +388,589 @@ onMounted(() => {
           />
         </div>
 
-        <!-- Lista de Lojas Configuradas (Sem Dropdown Switcher) -->
+        <!-- MODO LISTA: TABELA DE LOJAS CONFIGURADAS -->
         <div
-          v-for="hook in hooks"
-          :key="hook.id"
-          class="flex flex-col rounded-2xl border border-n-weak bg-n-solid-2 overflow-hidden shadow-sm"
+          v-else-if="storesViewMode === 'list'"
+          class="overflow-hidden rounded-2xl border border-n-weak bg-n-solid-2 shadow-sm"
         >
-          <!-- Cabeçalho do Card da Loja -->
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr
+                class="border-b border-n-weak bg-n-alpha-1 text-xs font-semibold uppercase tracking-wide text-n-slate-11"
+              >
+                <th class="py-3.5 px-4">Loja Shopify</th>
+                <th class="py-3.5 px-4">Domínio (.myshopify.com)</th>
+                <th class="py-3.5 px-4">Status / Modo</th>
+                <th class="py-3.5 px-4">Agentes com Acesso</th>
+                <th class="py-3.5 px-4">Caixas de Entrada</th>
+                <th class="py-3.5 px-4">Produtos</th>
+                <th class="py-3.5 px-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-n-weak text-sm">
+              <template v-for="hook in hooks" :key="`list-${hook.id}`">
+                <tr class="hover:bg-n-alpha-1 transition-colors">
+                  <td class="py-3.5 px-4">
+                    <div class="flex items-center gap-2.5">
+                      <Avatar
+                        src="/dashboard/images/integrations/shopify.png"
+                        :name="hook.settings?.store_name || hook.reference_id"
+                        :size="32"
+                        rounded-full
+                      />
+                      <div class="flex flex-col">
+                        <span class="font-semibold text-n-slate-12">
+                          {{ hook.settings?.store_name || hook.reference_id }}
+                        </span>
+                        <span class="text-[11px] text-n-slate-10">
+                          Testado:
+                          {{ formatDateTime(hook.settings?.last_tested_at) }}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3.5 px-4 font-mono text-xs text-n-slate-11">
+                    {{ hook.reference_id }}
+                  </td>
+                  <td class="py-3.5 px-4">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        class="px-2 py-0.5 text-[11px] font-medium rounded-full"
+                        :class="
+                          hook.settings?.connection_status === 'failed'
+                            ? 'bg-n-ruby-3 text-n-ruby-11'
+                            : 'bg-n-teal-3 text-n-teal-11'
+                        "
+                      >
+                        {{
+                          hook.settings?.connection_status === 'failed'
+                            ? 'Falha'
+                            : 'Conectada'
+                        }}
+                      </span>
+                      <span
+                        class="px-2 py-0.5 text-[11px] font-medium rounded-full"
+                        :class="
+                          isMockStore(hook)
+                            ? 'bg-n-amber-3 text-n-amber-11'
+                            : 'bg-n-brand/15 text-n-brand'
+                        "
+                      >
+                        {{ isMockStore(hook) ? 'Mock' : 'Live' }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="py-3.5 px-4">
+                    <div
+                      v-if="hook.settings?.agent_ids?.length"
+                      class="flex flex-wrap gap-1"
+                    >
+                      <span
+                        v-for="agentId in hook.settings.agent_ids"
+                        :key="agentId"
+                        class="px-2 py-0.5 text-xs font-medium rounded bg-n-brand/10 text-n-brand"
+                      >
+                        {{ getAgentName(agentId) }}
+                      </span>
+                    </div>
+                    <span v-else class="text-xs text-n-slate-11">
+                      Todos os agentes
+                    </span>
+                  </td>
+                  <td class="py-3.5 px-4">
+                    <div
+                      v-if="hook.settings?.inbox_ids?.length"
+                      class="flex flex-wrap gap-1"
+                    >
+                      <span
+                        v-for="inboxId in hook.settings.inbox_ids"
+                        :key="inboxId"
+                        class="px-2 py-0.5 text-xs rounded bg-n-alpha-2 text-n-slate-12"
+                      >
+                        {{ getInboxName(inboxId) }}
+                      </span>
+                    </div>
+                    <span v-else class="text-xs text-n-slate-11">Todas</span>
+                  </td>
+                  <td class="py-3.5 px-4">
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-n-alpha-2 text-xs font-medium text-n-slate-12 hover:bg-n-brand/10 hover:text-n-brand"
+                      @click="toggleProductsAccordion(hook.id)"
+                    >
+                      <span class="i-lucide-package size-3.5" />
+                      <span>{{ getStoreProducts(hook).length }} itens</span>
+                      <span
+                        class="size-3.5"
+                        :class="
+                          isProductsExpanded(hook.id)
+                            ? 'i-lucide-chevron-up'
+                            : 'i-lucide-chevron-down'
+                        "
+                      />
+                    </button>
+                  </td>
+                  <td class="py-3.5 px-4 text-right">
+                    <div class="inline-flex items-center gap-1.5">
+                      <Button
+                        size="xs"
+                        variant="faded"
+                        color="teal"
+                        icon="i-lucide-plug-zap"
+                        label="Testar"
+                        :is-loading="testingHookId === hook.id"
+                        @click="handleTestConnection(hook)"
+                      />
+                      <Button
+                        size="xs"
+                        variant="faded"
+                        color="blue"
+                        icon="i-lucide-package-check"
+                        label="Puxar"
+                        :is-loading="syncingHookId === hook.id"
+                        @click="handleSyncProducts(hook)"
+                      />
+                      <Button
+                        size="xs"
+                        variant="faded"
+                        color="slate"
+                        icon="i-lucide-user-check"
+                        label="Agentes"
+                        @click="openEditDialog(hook)"
+                      />
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        color="ruby"
+                        icon="i-lucide-trash-2"
+                        @click="handleRemoveStore(hook)"
+                      />
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Linha de Catálogo Expandido da Loja -->
+                <tr v-if="isProductsExpanded(hook.id)" class="bg-n-surface-1">
+                  <td colspan="7" class="p-4 border-b border-n-weak">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div
+                        v-for="product in getStoreProducts(hook)"
+                        :key="product.id"
+                        class="flex items-center justify-between p-3 rounded-xl border border-n-weak bg-n-solid-2"
+                      >
+                        <div class="flex flex-col min-w-0">
+                          <span
+                            class="text-xs font-semibold text-n-slate-12 truncate"
+                          >
+                            {{ product.title }}
+                          </span>
+                          <span class="text-[11px] font-mono text-n-slate-10">
+                            SKU: {{ product.sku }}
+                          </span>
+                        </div>
+                        <span
+                          class="text-xs font-bold text-n-slate-12 shrink-0"
+                        >
+                          R$ {{ product.price }}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- MODO CARDS: Lista de Lojas Configuradas (Sem Dropdown Switcher) -->
+        <div v-else class="flex flex-col gap-5">
           <div
-            class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 border-b border-n-weak bg-n-alpha-1"
+            v-for="hook in hooks"
+            :key="hook.id"
+            class="flex flex-col rounded-2xl border border-n-weak bg-n-solid-2 overflow-hidden shadow-sm"
           >
-            <div class="flex items-start sm:items-center gap-3.5 min-w-0">
-              <Avatar
-                src="/dashboard/images/integrations/shopify.png"
-                :name="hook.settings?.store_name || hook.reference_id"
-                :size="44"
-                rounded-full
-              />
-              <div class="flex flex-col min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <h3 class="text-base font-semibold text-n-slate-12 truncate">
-                    {{ hook.settings?.store_name || hook.reference_id }}
-                  </h3>
-                  <span
-                    class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded-full"
-                    :class="
-                      hook.settings?.connection_status === 'failed'
-                        ? 'bg-n-ruby-3 text-n-ruby-11'
-                        : 'bg-n-teal-3 text-n-teal-11'
-                    "
-                  >
+            <!-- Cabeçalho do Card da Loja -->
+            <div
+              class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 border-b border-n-weak bg-n-alpha-1"
+            >
+              <div class="flex items-start sm:items-center gap-3.5 min-w-0">
+                <Avatar
+                  src="/dashboard/images/integrations/shopify.png"
+                  :name="hook.settings?.store_name || hook.reference_id"
+                  :size="44"
+                  rounded-full
+                />
+                <div class="flex flex-col min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <h3
+                      class="text-base font-semibold text-n-slate-12 truncate"
+                    >
+                      {{ hook.settings?.store_name || hook.reference_id }}
+                    </h3>
                     <span
-                      class="size-1.5 rounded-full"
+                      class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded-full"
                       :class="
                         hook.settings?.connection_status === 'failed'
-                          ? 'bg-n-ruby-9'
-                          : 'bg-n-teal-9'
+                          ? 'bg-n-ruby-3 text-n-ruby-11'
+                          : 'bg-n-teal-3 text-n-teal-11'
                       "
-                    />
-                    {{
-                      hook.settings?.connection_status === 'failed'
-                        ? 'Falha na Conexão'
-                        : 'Conectada'
-                    }}
-                  </span>
-                  <span
-                    class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-full"
-                    :class="
-                      isMockStore(hook)
-                        ? 'bg-n-amber-3 text-n-amber-11'
-                        : 'bg-n-brand/15 text-n-brand'
-                    "
+                    >
+                      <span
+                        class="size-1.5 rounded-full"
+                        :class="
+                          hook.settings?.connection_status === 'failed'
+                            ? 'bg-n-ruby-9'
+                            : 'bg-n-teal-9'
+                        "
+                      />
+                      {{
+                        hook.settings?.connection_status === 'failed'
+                          ? 'Falha na Conexão'
+                          : 'Conectada'
+                      }}
+                    </span>
+                    <span
+                      class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-full"
+                      :class="
+                        isMockStore(hook)
+                          ? 'bg-n-amber-3 text-n-amber-11'
+                          : 'bg-n-brand/15 text-n-brand'
+                      "
+                    >
+                      {{
+                        isMockStore(hook)
+                          ? 'Modo Mock / Simulação'
+                          : 'API Real (shpat_)'
+                      }}
+                    </span>
+                  </div>
+                  <div
+                    class="flex items-center gap-3 text-xs text-n-slate-11 mt-1 flex-wrap"
                   >
-                    {{
-                      isMockStore(hook)
-                        ? 'Modo Mock / Simulação'
-                        : 'API Real (shpat_)'
-                    }}
-                  </span>
-                </div>
-                <div
-                  class="flex items-center gap-3 text-xs text-n-slate-11 mt-1 flex-wrap"
-                >
-                  <span class="font-mono">{{ hook.reference_id }}</span>
-                  <span v-if="hook.settings?.domain">
-                    • Domínio: {{ hook.settings.domain }}
-                  </span>
-                  <span>
-                    • Último teste:
-                    {{ formatDateTime(hook.settings?.last_tested_at) }}
-                  </span>
-                  <span>
-                    • Produtos sincronizados:
-                    <strong class="text-n-slate-12">
-                      {{ getStoreProducts(hook).length }}
-                    </strong>
-                  </span>
+                    <span class="font-mono">{{ hook.reference_id }}</span>
+                    <span v-if="hook.settings?.domain">
+                      • Domínio: {{ hook.settings.domain }}
+                    </span>
+                    <span>
+                      • Último teste:
+                      {{ formatDateTime(hook.settings?.last_tested_at) }}
+                    </span>
+                    <span>
+                      • Produtos sincronizados:
+                      <strong class="text-n-slate-12">
+                        {{ getStoreProducts(hook).length }}
+                      </strong>
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Botões de Ação da Loja: Testar Conexão, Puxar Produtos, Editar/Agentes, Remover -->
-            <div class="flex items-center gap-2 flex-wrap shrink-0">
-              <Button
-                size="sm"
-                variant="faded"
-                color="teal"
-                icon="i-lucide-plug-zap"
-                :label="
-                  testingHookId === hook.id ? 'Testando...' : 'Testar Conexão'
-                "
-                :is-loading="testingHookId === hook.id"
-                @click="handleTestConnection(hook)"
-              />
-              <Button
-                size="sm"
-                variant="faded"
-                color="blue"
-                icon="i-lucide-package-check"
-                :label="
-                  syncingHookId === hook.id
-                    ? 'Sincronizando...'
-                    : 'Puxar Produtos'
-                "
-                :is-loading="syncingHookId === hook.id"
-                @click="handleSyncProducts(hook)"
-              />
-              <Button
-                size="sm"
-                variant="faded"
-                color="slate"
-                icon="i-lucide-user-check"
-                label="Editar & Agentes"
-                @click="openEditDialog(hook)"
-              />
-              <Button
-                size="sm"
-                variant="ghost"
-                color="ruby"
-                icon="i-lucide-trash-2"
-                @click="handleRemoveStore(hook)"
-              />
-            </div>
-          </div>
-
-          <!-- Corpo do Card: Permissões de Agentes e Caixas de Entrada -->
-          <div
-            class="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 border-b border-n-weak"
-          >
-            <!-- Agentes com Acesso -->
-            <div class="flex flex-col gap-2">
-              <div class="flex items-center justify-between">
-                <span
-                  class="text-xs font-semibold uppercase tracking-wide text-n-slate-11 flex items-center gap-1.5"
-                >
-                  <span class="i-lucide-users size-3.5 text-n-brand" />
-                  Agentes com Acesso à Loja
-                </span>
-                <button
-                  type="button"
-                  class="text-xs text-n-brand hover:underline"
-                  @click="openEditDialog(hook)"
-                >
-                  Gerenciar agentes
-                </button>
-              </div>
-              <div
-                v-if="hook.settings?.agent_ids?.length"
-                class="flex flex-wrap gap-1.5"
-              >
-                <span
-                  v-for="agentId in hook.settings.agent_ids"
-                  :key="agentId"
-                  class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-n-brand/10 text-n-brand border border-n-brand/20"
-                >
-                  <span class="i-lucide-user-check size-3" />
-                  {{ getAgentName(agentId) }}
-                </span>
-              </div>
-              <div v-else class="flex items-center gap-1.5">
-                <span
-                  class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-n-alpha-2 text-n-slate-11"
-                >
-                  <span class="i-lucide-globe size-3" />
-                  Todos os agentes da conta possuem acesso
-                </span>
-              </div>
-            </div>
-
-            <!-- Caixas de Entrada Vinculadas -->
-            <div class="flex flex-col gap-2">
-              <div class="flex items-center justify-between">
-                <span
-                  class="text-xs font-semibold uppercase tracking-wide text-n-slate-11 flex items-center gap-1.5"
-                >
-                  <span class="i-lucide-inbox size-3.5 text-n-slate-10" />
-                  Caixas de Entrada Vinculadas
-                </span>
-                <button
-                  type="button"
-                  class="text-xs text-n-brand hover:underline"
-                  @click="openEditDialog(hook)"
-                >
-                  Alterar caixas
-                </button>
-              </div>
-              <div
-                v-if="hook.settings?.inbox_ids?.length"
-                class="flex flex-wrap gap-1.5"
-              >
-                <span
-                  v-for="inboxId in hook.settings.inbox_ids"
-                  :key="inboxId"
-                  class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md bg-n-alpha-2 text-n-slate-12 border border-n-weak"
-                >
-                  <span class="i-lucide-inbox size-3 text-n-slate-10" />
-                  {{ getInboxName(inboxId) }}
-                </span>
-              </div>
-              <div v-else>
-                <span class="text-xs text-n-slate-10">
-                  Disponível em todas as caixas de entrada
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Seção de Produtos Sincronizados da Loja -->
-          <div class="flex flex-col bg-n-surface-1">
-            <button
-              type="button"
-              class="flex items-center justify-between px-5 py-3 text-xs font-medium text-n-slate-12 hover:bg-n-alpha-1 transition-colors"
-              @click="toggleProductsAccordion(hook.id)"
-            >
-              <span class="flex items-center gap-2">
-                <span class="i-lucide-package size-4 text-n-brand" />
-                <span>
-                  Catálogo de Produtos Sincronizados ({{
-                    getStoreProducts(hook).length
-                  }})
-                </span>
-                <span
-                  v-if="hook.settings?.last_synced_at"
-                  class="text-n-slate-10 font-normal"
-                >
-                  • Atualizado em
-                  {{ formatDateTime(hook.settings.last_synced_at) }}
-                </span>
-              </span>
-              <span
-                class="size-4 text-n-slate-10 transition-transform"
-                :class="
-                  isProductsExpanded(hook.id)
-                    ? 'i-lucide-chevron-up'
-                    : 'i-lucide-chevron-down'
-                "
-              />
-            </button>
-
-            <div
-              v-if="isProductsExpanded(hook.id)"
-              class="px-5 pb-4 pt-1 border-t border-n-weak"
-            >
-              <div
-                v-if="!getStoreProducts(hook).length"
-                class="flex items-center justify-between py-4 px-4 rounded-xl bg-n-solid-2 border border-n-weak"
-              >
-                <span class="text-xs text-n-slate-11">
-                  Nenhum produto sincronizado ainda nesta loja. Clique em "Puxar
-                  Produtos" para importar o catálogo.
-                </span>
+              <!-- Botões de Ação da Loja: Testar Conexão, Puxar Produtos, Editar/Agentes, Remover -->
+              <div class="flex items-center gap-2 flex-wrap shrink-0">
                 <Button
-                  size="xs"
+                  size="sm"
                   variant="faded"
-                  icon="i-lucide-refresh-cw"
-                  label="Puxar Produtos Agora"
+                  color="teal"
+                  icon="i-lucide-plug-zap"
+                  :label="
+                    testingHookId === hook.id ? 'Testando...' : 'Testar Conexão'
+                  "
+                  :is-loading="testingHookId === hook.id"
+                  @click="handleTestConnection(hook)"
+                />
+                <Button
+                  size="sm"
+                  variant="faded"
+                  color="blue"
+                  icon="i-lucide-package-check"
+                  :label="
+                    syncingHookId === hook.id
+                      ? 'Sincronizando...'
+                      : 'Puxar Produtos'
+                  "
                   :is-loading="syncingHookId === hook.id"
                   @click="handleSyncProducts(hook)"
                 />
+                <Button
+                  size="sm"
+                  variant="faded"
+                  color="slate"
+                  icon="i-lucide-user-check"
+                  label="Editar & Agentes"
+                  @click="openEditDialog(hook)"
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  color="ruby"
+                  icon="i-lucide-trash-2"
+                  @click="handleRemoveStore(hook)"
+                />
+              </div>
+            </div>
+
+            <!-- Corpo do Card: Permissões de Agentes e Caixas de Entrada -->
+            <div
+              class="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 border-b border-n-weak"
+            >
+              <!-- Agentes com Acesso -->
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                  <span
+                    class="text-xs font-semibold uppercase tracking-wide text-n-slate-11 flex items-center gap-1.5"
+                  >
+                    <span class="i-lucide-users size-3.5 text-n-brand" />
+                    Agentes com Acesso à Loja
+                  </span>
+                  <button
+                    type="button"
+                    class="text-xs text-n-brand hover:underline"
+                    @click="openEditDialog(hook)"
+                  >
+                    Gerenciar agentes
+                  </button>
+                </div>
+                <div
+                  v-if="hook.settings?.agent_ids?.length"
+                  class="flex flex-wrap gap-1.5"
+                >
+                  <span
+                    v-for="agentId in hook.settings.agent_ids"
+                    :key="agentId"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-n-brand/10 text-n-brand border border-n-brand/20"
+                  >
+                    <span class="i-lucide-user-check size-3" />
+                    {{ getAgentName(agentId) }}
+                  </span>
+                </div>
+                <div v-else class="flex items-center gap-1.5">
+                  <span
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-n-alpha-2 text-n-slate-11"
+                  >
+                    <span class="i-lucide-globe size-3" />
+                    Todos os agentes da conta possuem acesso
+                  </span>
+                </div>
               </div>
 
-              <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
+              <!-- Caixas de Entrada Vinculadas -->
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                  <span
+                    class="text-xs font-semibold uppercase tracking-wide text-n-slate-11 flex items-center gap-1.5"
+                  >
+                    <span class="i-lucide-inbox size-3.5 text-n-slate-10" />
+                    Caixas de Entrada Vinculadas
+                  </span>
+                  <button
+                    type="button"
+                    class="text-xs text-n-brand hover:underline"
+                    @click="openEditDialog(hook)"
+                  >
+                    Alterar caixas
+                  </button>
+                </div>
                 <div
-                  v-for="product in getStoreProducts(hook)"
-                  :key="product.id"
-                  class="flex flex-col justify-between p-3 rounded-xl border border-n-weak bg-n-solid-2 gap-2"
+                  v-if="hook.settings?.inbox_ids?.length"
+                  class="flex flex-wrap gap-1.5"
                 >
-                  <div>
-                    <div class="flex items-start justify-between gap-2">
-                      <span
-                        class="text-xs font-semibold text-n-slate-12 line-clamp-2"
-                      >
-                        {{ product.title }}
-                      </span>
-                      <span
-                        class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-n-teal-3 text-n-teal-11 shrink-0"
-                      >
-                        Ativo
-                      </span>
-                    </div>
+                  <span
+                    v-for="inboxId in hook.settings.inbox_ids"
+                    :key="inboxId"
+                    class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md bg-n-alpha-2 text-n-slate-12 border border-n-weak"
+                  >
+                    <span class="i-lucide-inbox size-3 text-n-slate-10" />
+                    {{ getInboxName(inboxId) }}
+                  </span>
+                </div>
+                <div v-else>
+                  <span class="text-xs text-n-slate-10">
+                    Disponível em todas as caixas de entrada
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Seção de Produtos Sincronizados da Loja -->
+            <div class="flex flex-col bg-n-surface-1">
+              <button
+                type="button"
+                class="flex items-center justify-between px-5 py-3 text-xs font-medium text-n-slate-12 hover:bg-n-alpha-1 transition-colors"
+                @click="toggleProductsAccordion(hook.id)"
+              >
+                <span class="flex items-center gap-2">
+                  <span class="i-lucide-package size-4 text-n-brand" />
+                  <span>
+                    Catálogo de Produtos Sincronizados ({{
+                      getStoreProducts(hook).length
+                    }})
+                  </span>
+                  <span
+                    v-if="hook.settings?.last_synced_at"
+                    class="text-n-slate-10 font-normal"
+                  >
+                    • Atualizado em
+                    {{ formatDateTime(hook.settings.last_synced_at) }}
+                  </span>
+                </span>
+                <span
+                  class="size-4 text-n-slate-10 transition-transform"
+                  :class="
+                    isProductsExpanded(hook.id)
+                      ? 'i-lucide-chevron-up'
+                      : 'i-lucide-chevron-down'
+                  "
+                />
+              </button>
+
+              <div
+                v-if="isProductsExpanded(hook.id)"
+                class="px-5 pb-4 pt-1 border-t border-n-weak"
+              >
+                <div
+                  v-if="!getStoreProducts(hook).length"
+                  class="flex items-center justify-between py-4 px-4 rounded-xl bg-n-solid-2 border border-n-weak"
+                >
+                  <span class="text-xs text-n-slate-11">
+                    Nenhum produto sincronizado ainda nesta loja. Clique em
+                    "Puxar Produtos" para importar o catálogo.
+                  </span>
+                  <Button
+                    size="xs"
+                    variant="faded"
+                    icon="i-lucide-refresh-cw"
+                    label="Puxar Produtos Agora"
+                    :is-loading="syncingHookId === hook.id"
+                    @click="handleSyncProducts(hook)"
+                  />
+                </div>
+
+                <div v-else class="flex flex-col gap-3 mt-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-n-slate-11">
+                      Visualização do catálogo sincronizado desta loja:
+                    </span>
                     <div
-                      class="flex items-center gap-2 text-[11px] text-n-slate-10 mt-1"
+                      class="inline-flex items-center p-0.5 rounded-lg border border-n-weak bg-n-surface-1"
                     >
-                      <span v-if="product.sku" class="font-mono">
-                        SKU: {{ product.sku }}
-                      </span>
-                      <span v-if="product.product_type">
-                        • {{ product.product_type }}
-                      </span>
+                      <button
+                        type="button"
+                        class="flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium"
+                        :class="
+                          catalogViewMode === 'cards'
+                            ? 'bg-n-brand text-white'
+                            : 'text-n-slate-11'
+                        "
+                        @click="catalogViewMode = 'cards'"
+                      >
+                        <span class="i-lucide-layout-grid size-3" />
+                        <span>Cards</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium"
+                        :class="
+                          catalogViewMode === 'list'
+                            ? 'bg-n-brand text-white'
+                            : 'text-n-slate-11'
+                        "
+                        @click="catalogViewMode = 'list'"
+                      >
+                        <span class="i-lucide-list size-3" />
+                        <span>Lista</span>
+                      </button>
                     </div>
                   </div>
+
+                  <!-- Produtos em Cards -->
                   <div
-                    class="flex items-center justify-between pt-2 border-t border-n-weak text-xs"
+                    v-if="catalogViewMode === 'cards'"
+                    class="grid grid-cols-1 md:grid-cols-3 2xl:grid-cols-4 gap-3"
                   >
-                    <span class="font-semibold text-n-slate-12">
-                      R$ {{ product.price }}
-                    </span>
-                    <span class="text-[11px] text-n-slate-10">
-                      Estoque: {{ product.inventory_quantity ?? 'Digital' }}
-                    </span>
+                    <div
+                      v-for="product in getStoreProducts(hook)"
+                      :key="product.id"
+                      class="flex flex-col justify-between p-3.5 rounded-xl border border-n-weak bg-n-solid-2 hover:border-n-brand/40 transition-colors gap-2.5"
+                    >
+                      <div>
+                        <div class="flex items-start justify-between gap-2">
+                          <span
+                            class="text-xs font-semibold text-n-slate-12 line-clamp-2"
+                          >
+                            {{ product.title }}
+                          </span>
+                          <span
+                            class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-n-teal-3 text-n-teal-11 shrink-0"
+                          >
+                            Ativo
+                          </span>
+                        </div>
+                        <div
+                          class="flex items-center gap-2 text-[11px] text-n-slate-10 mt-1"
+                        >
+                          <span v-if="product.sku" class="font-mono">
+                            SKU: {{ product.sku }}
+                          </span>
+                          <span v-if="product.product_type">
+                            • {{ product.product_type }}
+                          </span>
+                        </div>
+                      </div>
+                      <div
+                        class="flex items-center justify-between pt-2 border-t border-n-weak text-xs"
+                      >
+                        <span class="font-bold text-n-slate-12">
+                          R$ {{ product.price }}
+                        </span>
+                        <span class="text-[11px] text-n-slate-10">
+                          Estoque: {{ product.inventory_quantity ?? 'Digital' }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Produtos em Lista -->
+                  <div
+                    v-else
+                    class="overflow-hidden rounded-xl border border-n-weak bg-n-solid-2"
+                  >
+                    <table class="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr
+                          class="border-b border-n-weak bg-n-alpha-1 text-[11px] font-semibold uppercase text-n-slate-11"
+                        >
+                          <th class="py-2.5 px-3">Produto</th>
+                          <th class="py-2.5 px-3">SKU</th>
+                          <th class="py-2.5 px-3">Categoria</th>
+                          <th class="py-2.5 px-3">Estoque</th>
+                          <th class="py-2.5 px-3 text-right">Preço</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-n-weak">
+                        <tr
+                          v-for="product in getStoreProducts(hook)"
+                          :key="`tbl-${product.id}`"
+                        >
+                          <td class="py-2.5 px-3 font-medium text-n-slate-12">
+                            {{ product.title }}
+                          </td>
+                          <td class="py-2.5 px-3 font-mono text-n-slate-11">
+                            {{ product.sku || '—' }}
+                          </td>
+                          <td class="py-2.5 px-3 text-n-slate-11">
+                            {{ product.product_type || 'Digital' }}
+                          </td>
+                          <td class="py-2.5 px-3 text-n-slate-12">
+                            {{ product.inventory_quantity ?? 'Digital' }} un.
+                          </td>
+                          <td
+                            class="py-2.5 px-3 text-right font-bold text-n-slate-12"
+                          >
+                            R$ {{ product.price }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>

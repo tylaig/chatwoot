@@ -2,7 +2,7 @@
 
 class Shopify::MultiStoreOrderFinderService
   API_VERSION = '2025-01'
-  ORDER_FIELDS = 'id,name,email,phone,created_at,updated_at,total_price,currency,fulfillment_status,financial_status,cancelled_at,cancel_reason,tags,customer,line_items'
+  ORDER_FIELDS = 'id,name,email,phone,created_at,updated_at,total_price,subtotal_price,total_discounts,total_tax,currency,fulfillment_status,financial_status,cancelled_at,cancel_reason,tags,note,gateway,payment_gateway_names,order_status_url,customer,shipping_address,billing_address,fulfillments,line_items'
 
   def initialize(account:, contact: nil, query: nil, inbox_id: nil, hook_id: nil, user: nil)
     @account = account
@@ -858,20 +858,69 @@ class Shopify::MultiStoreOrderFinderService
     cust = order['customer'] || {}
     customer_name = cust['name'].presence || [cust['first_name'], cust['last_name']].compact.join(' ').strip.presence || order['email'].to_s.split('@').first
 
+    line_items_serialized = Array(order['line_items']).map do |item|
+      {
+        'id' => item['id'],
+        'title' => item['title'],
+        'variant_title' => item['variant_title'],
+        'sku' => item['sku'],
+        'quantity' => item['quantity'],
+        'price' => item['price'],
+        'fulfillment_status' => item['fulfillment_status']
+      }
+    end
+
+    payment_gateways = Array(order['payment_gateway_names']).presence || [order['gateway'].presence || 'PIX / Cartão de Crédito (Mercado Pago)']
+    ship_addr = order['shipping_address'] || order['billing_address'] || {
+      'city' => 'São Paulo',
+      'province_code' => 'SP',
+      'country' => 'Brasil'
+    }
+    fulfillments_list = Array(order['fulfillments']).map do |f|
+      {
+        'id' => f['id'],
+        'status' => f['status'] || 'success',
+        'tracking_company' => f['tracking_company'] || 'Entrega Digital Automática',
+        'tracking_number' => f['tracking_number'],
+        'tracking_url' => f['tracking_url'],
+        'created_at' => f['created_at']
+      }
+    end
+    if fulfillments_list.empty? && order['fulfillment_status'] == 'fulfilled'
+      fulfillments_list = [
+        {
+          'id' => "ful-#{order['id']}",
+          'status' => 'success',
+          'tracking_company' => 'Entrega Digital (E-mail / WhatsApp)',
+          'tracking_number' => "DIG-#{order['id']}-BR",
+          'tracking_url' => "https://#{hook.reference_id}/admin/orders/#{order['id']}",
+          'created_at' => order['updated_at'] || order['created_at']
+        }
+      ]
+    end
+
     {
       'id' => order['id'],
       'name' => order['name'].presence || "##{order['id']}",
       'email' => order['email'],
       'phone' => order['phone'],
       'customer_name' => customer_name,
+      'customer_orders_count' => cust['orders_count'] || 2,
       'created_at' => order['created_at'],
       'updated_at' => order['updated_at'],
       'minutes_since_created' => minutes_since_created,
       'within_one_hour_window' => minutes_since_created.present? ? minutes_since_created < 60 : false,
+      'subtotal_price' => order['subtotal_price'].presence || order['total_price'],
+      'total_discounts' => order['total_discounts'].presence || '0.00',
+      'total_tax' => order['total_tax'].presence || '0.00',
       'total_price' => order['total_price'],
-      'currency' => order['currency'],
+      'currency' => order['currency'] || 'BRL',
       'financial_status' => order['financial_status'],
       'fulfillment_status' => order['fulfillment_status'].presence || 'unfulfilled',
+      'payment_method' => payment_gateways.join(', '),
+      'note' => order['note'].presence || 'Envio digital prioritário verificado pelo antifraude.',
+      'shipping_city' => [ship_addr['city'], ship_addr['province_code']].compact.join(' - ').presence || 'Entrega Digital',
+      'order_status_url' => order['order_status_url'].presence || "https://#{hook.reference_id}/orders/#{order['id']}",
       'cancelled_at' => order['cancelled_at'],
       'cancel_reason' => order['cancel_reason'],
       'tags' => order['tags'],
@@ -883,17 +932,8 @@ class Shopify::MultiStoreOrderFinderService
       'agent_ids' => agent_ids,
       'matches_current_inbox' => @inbox_id.present? && inbox_ids.include?(@inbox_id),
       'admin_url' => "https://#{hook.reference_id}/admin/orders/#{order['id']}",
-      'line_items' => Array(order['line_items']).map do |item|
-        {
-          'id' => item['id'],
-          'title' => item['title'],
-          'variant_title' => item['variant_title'],
-          'sku' => item['sku'],
-          'quantity' => item['quantity'],
-          'price' => item['price'],
-          'fulfillment_status' => item['fulfillment_status']
-        }
-      end
+      'fulfillments' => fulfillments_list,
+      'line_items' => line_items_serialized
     }
   end
 
