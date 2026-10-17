@@ -39,6 +39,30 @@ class IntegrationsAPI extends ApiClient {
       shop_domain: shopDomain,
     });
   }
+
+  connectShopifyToken({ storeName, shopDomain, shopifyAdminKey, inboxIds }) {
+    return axios.post(`${this.baseUrl()}/integrations/shopify/connect_token`, {
+      store_name: storeName,
+      shop_domain: shopDomain,
+      access_token: shopifyAdminKey,
+      inbox_ids: inboxIds,
+    });
+  }
+
+  updateShopifyHook({ hookId, storeName, shopifyAdminKey, inboxIds }) {
+    return axios.patch(`${this.baseUrl()}/integrations/shopify/update_hook`, {
+      hook_id: hookId,
+      store_name: storeName,
+      access_token: shopifyAdminKey,
+      inbox_ids: inboxIds,
+    });
+  }
+
+  deleteShopifyHook(hookId) {
+    return axios.delete(`${this.baseUrl()}/integrations/shopify`, {
+      params: { hook_id: hookId },
+    });
+  }
 }
 
 export default new IntegrationsAPI();

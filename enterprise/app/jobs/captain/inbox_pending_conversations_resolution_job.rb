@@ -230,6 +230,8 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   end
 
   def send_out_of_office_message_if_applicable(conversation)
+    return if out_of_office_handoff_message_configured?
+
     ::MessageTemplates::Template::OutOfOffice.perform_if_applicable(conversation) if conversation.campaign.blank?
   end
 
@@ -252,9 +254,9 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   end
 
   def create_handoff_message(conversation)
-    return if out_of_office_message_applicable?(conversation)
+    return if out_of_office_message_applicable?(conversation) && !out_of_office_handoff_message_configured?
 
-    handoff_message = captain_assistant.config['handoff_message']
+    handoff_message = configured_handoff_message_for(conversation)
     return if handoff_message.blank?
 
     conversation.messages.create!(
@@ -265,6 +267,27 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
       content: handoff_message,
       preserve_waiting_since: true
     )
+  end
+
+  def configured_handoff_message_for(conversation)
+    if out_of_office_handoff_applicable?(conversation) && out_of_office_handoff_message_configured?
+      return captain_assistant.config['out_of_office_handoff_message']
+    end
+
+    captain_assistant.config['handoff_message']
+  end
+
+  def out_of_office_handoff_message_configured?
+    captain_assistant.config['out_of_office_handoff_message'].present?
+  end
+
+  def out_of_office_handoff_applicable?(conversation)
+    inbox = conversation.inbox
+    return false if conversation.campaign.present?
+    return inbox.out_of_office? if inbox.working_hours_enabled?
+
+    now_brt = Time.current.in_time_zone(inbox.timezone.presence || 'America/Sao_Paulo')
+    now_brt.hour < 11 || now_brt.hour >= 22
   end
 
   def out_of_office_message_applicable?(conversation)

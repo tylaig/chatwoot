@@ -485,6 +485,11 @@
       "ORDER_ID": "Pedido #{id}",
       "ERROR": "Erro ao carregar pedidos",
       "NO_SHOPIFY_ORDERS": "Nenhum pedido encontrado",
+      "SEARCH_PLACEHOLDER": "E-mail, #pedido ou telefone...",
+      "SEARCH_BUTTON": "Buscar",
+      "CLEAR_BUTTON": "Limpar",
+      "SEARCH_HINT": "Digite o e-mail de compra ou nº do #pedido acima para consultar nas lojas Shopify conectadas.",
+      "SYNC_EMAIL_LABEL": "Vincular e-mail ao perfil do contato",
       "FINANCIAL_STATUS": {
         "PENDING": "Pendentes",
         "AUTHORIZED": "Autorizado",

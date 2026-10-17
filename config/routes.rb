@@ -414,6 +414,8 @@ Rails.application.routes.draw do
             resource :shopify, controller: 'shopify', only: [:destroy] do
               collection do
                 post :auth
+                post :connect_token
+                patch :update_hook
                 get :orders
               end
             end

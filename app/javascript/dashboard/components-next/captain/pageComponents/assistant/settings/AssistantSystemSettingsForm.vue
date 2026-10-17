@@ -35,6 +35,7 @@ const MAX_INACTIVITY_MINUTES = 24 * 60;
 
 const initialState = {
   handoffMessage: '',
+  outOfOfficeHandoffMessage: '',
   resolutionMessage: '',
   instructions: '',
   autoResolveMode: 'evaluated',
@@ -110,6 +111,7 @@ const formErrors = computed(() => ({
 const updateStateFromAssistant = assistant => {
   const { config = {} } = assistant;
   state.handoffMessage = config.handoff_message;
+  state.outOfOfficeHandoffMessage = config.out_of_office_handoff_message ?? '';
   state.resolutionMessage = config.resolution_message;
   state.instructions = config.instructions;
   state.autoResolveMode = config.auto_resolve_mode ?? 'evaluated';
@@ -141,6 +143,7 @@ const handleSystemMessagesUpdate = async () => {
     config: {
       ...props.assistant.config,
       handoff_message: state.handoffMessage,
+      out_of_office_handoff_message: state.outOfOfficeHandoffMessage,
     },
   };
 
@@ -311,6 +314,7 @@ watch(
     <SettingsToggleSection
       hide-toggle
       :header="t('CAPTAIN.ASSISTANTS.FORM.HANDOFF_MESSAGE.LABEL')"
+      :description="t('CAPTAIN.ASSISTANTS.FORM.HANDOFF_MESSAGE.DESCRIPTION')"
     >
       <template #editor>
         <Editor
@@ -320,6 +324,26 @@ watch(
           "
           :message="formErrors.handoffMessage"
           :message-type="formErrors.handoffMessage ? 'error' : 'info'"
+          class="z-0 [&_.editor-wrapper]:!min-h-32 [&_.editor-wrapper]:!border-0 [&_.editor-wrapper]:!bg-transparent [&_.editor-wrapper]:!p-0"
+        />
+      </template>
+    </SettingsToggleSection>
+
+    <SettingsToggleSection
+      hide-toggle
+      :header="t('CAPTAIN.ASSISTANTS.FORM.OUT_OF_OFFICE_HANDOFF_MESSAGE.LABEL')"
+      :description="
+        t('CAPTAIN.ASSISTANTS.FORM.OUT_OF_OFFICE_HANDOFF_MESSAGE.DESCRIPTION')
+      "
+    >
+      <template #editor>
+        <Editor
+          v-model="state.outOfOfficeHandoffMessage"
+          :placeholder="
+            t(
+              'CAPTAIN.ASSISTANTS.FORM.OUT_OF_OFFICE_HANDOFF_MESSAGE.PLACEHOLDER'
+            )
+          "
           class="z-0 [&_.editor-wrapper]:!min-h-32 [&_.editor-wrapper]:!border-0 [&_.editor-wrapper]:!bg-transparent [&_.editor-wrapper]:!p-0"
         />
       </template>

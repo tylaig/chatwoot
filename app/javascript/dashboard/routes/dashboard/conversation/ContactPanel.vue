@@ -135,8 +135,8 @@ onMounted(() => {
   conversationSidebarItems.value = conversationSidebarItemsOrder.value;
   getContactDetails();
   store.dispatch('attributes/get', 0);
-  // Load integrations to ensure linear integration state is available
-  store.dispatch('integrations/get', 'linear');
+  // Load integrations to ensure linear and shopify integration state is available
+  store.dispatch('integrations/get');
 });
 </script>
 
@@ -296,7 +296,7 @@ onMounted(() => {
                 value => toggleSidebarUIState('is_shopify_orders_open', value)
               "
             >
-              <ShopifyOrdersList :contact-id="contactId" />
+              <ShopifyOrdersList :contact-id="contactId" :inbox-id="inboxId" />
             </AccordionItem>
           </div>
           <div v-else-if="element.name === 'contact_notes'">

@@ -113,6 +113,7 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
     # Campaign conversations should never receive OOO templates — the campaign itself
     # serves as the initial outreach, and OOO would be confusing in that context.
     return if conversation.campaign.present?
+    return if @assistant&.config&.dig('out_of_office_handoff_message').present?
 
     ::MessageTemplates::Template::OutOfOffice.perform_if_applicable(conversation)
   end

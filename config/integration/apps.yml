@@ -259,8 +259,8 @@ shopify:
   logo: shopify.png
   i18n_key: shopify
   hook_type: account
-  allow_multiple_hooks: false
-  visible_properties: []
+  allow_multiple_hooks: true
+  visible_properties: ['store_name', 'inbox_ids', 'auth_mode']
 
 leadsquared:
   id: leadsquared

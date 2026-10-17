@@ -163,12 +163,13 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
     # Campaign conversations should never receive OOO templates — the campaign itself
     # serves as the initial outreach, and OOO would be confusing in that context.
     return if @conversation.campaign.present?
+    return if out_of_office_handoff_message_configured?
 
     ::MessageTemplates::Template::OutOfOffice.perform_if_applicable(@conversation)
   end
 
   def create_handoff_message(preserve_waiting_since: false)
-    return if out_of_office_message_applicable?
+    return if out_of_office_message_applicable? && !out_of_office_handoff_message_configured?
     return if handoff_message_already_sent_in_current_cycle?
 
     @handoff_message = create_outgoing_message(
@@ -178,7 +179,18 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
   end
 
   def configured_handoff_message
+    if out_of_office_handoff_applicable? && out_of_office_handoff_message_configured?
+      return @assistant.config['out_of_office_handoff_message'].presence
+    end
+
     @assistant.config['handoff_message'].presence || I18n.t('conversations.captain.handoff')
+  end
+
+  def configured_handoff_messages
+    [
+      @assistant.config['handoff_message'].presence || I18n.t('conversations.captain.handoff'),
+      @assistant.config['out_of_office_handoff_message'].presence
+    ].compact.uniq
   end
 
   def last_resolution_activity_at
@@ -188,7 +200,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
   end
 
   def handoff_message_already_sent_in_current_cycle?
-    scope = @conversation.messages.outgoing.where(private: false, sender: @assistant, content: configured_handoff_message)
+    scope = @conversation.messages.outgoing.where(private: false, sender: @assistant, content: configured_handoff_messages)
     cutoff = last_resolution_activity_at
     scope = scope.where('created_at > ?', cutoff) if cutoff.present?
     scope.exists?
@@ -206,6 +218,21 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
       "for assignee_id=#{@conversation.assignee_id} without duplicate bot handoff"
     )
     @conversation.open! if @conversation.pending?
+  end
+
+  def out_of_office_handoff_message_configured?
+    @assistant.config['out_of_office_handoff_message'].present?
+  end
+
+  def out_of_office_handoff_applicable?
+    @conversation.campaign.blank? && inbox_or_business_hours_out_of_office?
+  end
+
+  def inbox_or_business_hours_out_of_office?
+    return @inbox.out_of_office? if @inbox.working_hours_enabled?
+
+    now_brt = Time.current.in_time_zone(@inbox.timezone.presence || 'America/Sao_Paulo')
+    now_brt.hour < 11 || now_brt.hour >= 22
   end
 
   def out_of_office_message_applicable?

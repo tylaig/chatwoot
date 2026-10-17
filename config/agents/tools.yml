@@ -30,6 +30,11 @@
   description: 'Search FAQ responses using semantic similarity'
   icon: 'search'
 
+- id: shopify_order_lookup
+  title: 'Shopify Order Lookup'
+  description: 'Lookup customer orders across connected Shopify stores by email, phone, or order number'
+  icon: 'shopping-bag'
+
 - id: resolve_conversation
   title: 'Resolve Conversation'
   description: 'Resolve a conversation when the issue has been addressed'

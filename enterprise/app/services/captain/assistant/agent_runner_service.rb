@@ -150,6 +150,7 @@ class Captain::Assistant::AgentRunnerService
 
   def available_in_reply_suggestion?(tool)
     return true if tool.is_a?(Captain::Tools::FaqLookupTool)
+    return true if tool.is_a?(Captain::Tools::ShopifyOrderLookupTool)
 
     tool.is_a?(Captain::Tools::HttpTool) && tool.available_in_reply_suggestion?
   end

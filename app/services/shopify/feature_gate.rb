@@ -3,6 +3,7 @@ class Shopify::FeatureGate
   GLOBAL_CONFIG = 'ENABLE_SHOPIFY_INTEGRATION'.freeze
 
   def self.enabled?(account: nil)
+    return true if account&.feature_enabled?(ACCOUNT_FEATURE)
     return false unless globally_enabled?
 
     account.nil? || account.feature_enabled?(ACCOUNT_FEATURE)

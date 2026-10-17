@@ -208,11 +208,16 @@ class Captain::Assistant < ApplicationRecord
   end
 
   def agent_tools
-    [
+    tools = [
       self.class.resolve_tool_class('faq_lookup').new(self),
-      self.class.resolve_tool_class('handoff').new(self),
-      *account.captain_custom_tools.enabled.map { |custom_tool| custom_tool.tool(self) }
+      self.class.resolve_tool_class('handoff').new(self)
     ]
+    shopify_tool_class = self.class.resolve_tool_class('shopify_order_lookup')
+    if shopify_tool_class && account.hooks.where(app_id: 'shopify', status: :enabled).exists?
+      tools << shopify_tool_class.new(self)
+    end
+    tools.concat(account.captain_custom_tools.enabled.map { |custom_tool| custom_tool.tool(self) })
+    tools
   end
 
   def prompt_context

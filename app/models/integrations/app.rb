@@ -130,6 +130,8 @@ class Integrations::App
   private
 
   def shopify_enabled?(account)
+    return true if account&.feature_enabled?('shopify_integration')
+
     Shopify::FeatureGate.enabled?(account: account) &&
       GlobalConfigService.load('SHOPIFY_CLIENT_ID', nil).present?
   end

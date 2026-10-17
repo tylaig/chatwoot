@@ -8,11 +8,32 @@
       },
       "STORE_URL": {
         "TITLE": "Conectar Loja Shopify",
-        "LABEL": "URL da Loja",
-        "PLACEHOLDER": "your-store.myshopify.com",
-        "HELP": "Insira a URL meushopify.com da sua loja Shopify",
+        "LABEL": "Domínio da Loja (.myshopify.com)",
+        "PLACEHOLDER": "sua-loja.myshopify.com",
+        "HELP": "Insira o domínio interno .myshopify.com da sua loja Shopify",
+        "INVALID_URL": "Por favor, insira um domínio válido da Shopify (ex: sua-loja.myshopify.com)",
         "CANCEL": "Cancelar",
         "SUBMIT": "Conectar Loja"
+      },
+      "MULTI_STORE": {
+        "ADD_BUTTON": "Adicionar Loja",
+        "CONNECTED_STORES": "Lojas Conectadas",
+        "LINKED_INBOXES": "Caixas de Entrada Vinculadas",
+        "ALL_INBOXES": "Todas as Caixas de Entrada",
+        "EDIT": "Editar",
+        "EDIT_TITLE": "Editar Loja Shopify",
+        "STORE_NAME_LABEL": "Nome de Exibição da Loja",
+        "STORE_NAME_PLACEHOLDER": "Ex: Games Safari, Barba Games, GameBox Brasil",
+        "ACCESS_TOKEN_LABEL": "Admin API Access Token (shpat_...)",
+        "ACCESS_TOKEN_PLACEHOLDER": "shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "ACCESS_TOKEN_KEEP_PLACEHOLDER": "Deixe em branco para manter o token atual",
+        "ACCESS_TOKEN_HELP": "Cole o token shpat_... do seu App Customizado na Shopify (escopos: read_orders, read_customers).",
+        "INBOXES_LABEL": "Vincular às Caixas de Entrada (Opcional)",
+        "INBOXES_HELP": "Selecione as caixas de entrada desta loja para priorizar os pedidos na barra lateral e no assistente Leo.",
+        "CONNECTED_SUCCESS": "Loja Shopify conectada com sucesso!",
+        "UPDATED_SUCCESS": "Loja Shopify atualizada com sucesso!",
+        "DELETED_SUCCESS": "Loja Shopify removida com sucesso!",
+        "CONFIRM_DELETE": "Tem certeza que deseja remover a loja {store}?"
       },
       "ERROR": "Ocorreu um erro ao tentar conectar com o Shopify. Por favor, tente novamente ou entre em contato com o suporte se o problema persistir."
     },
@@ -699,8 +720,14 @@
           "PLACEHOLDER": "Digite a mensagem de boas-vindas"
         },
         "HANDOFF_MESSAGE": {
-          "LABEL": "Mensagem de transferência",
-          "PLACEHOLDER": "Digite a mensagem de transferência"
+          "LABEL": "Mensagem de transferência (Dentro do expediente)",
+          "DESCRIPTION": "Enviada ao transferir o atendimento para a equipe humana dentro do horário de expediente.",
+          "PLACEHOLDER": "Digite a mensagem de transferência dentro do horário"
+        },
+        "OUT_OF_OFFICE_HANDOFF_MESSAGE": {
+          "LABEL": "Mensagem de transferência fora do horário (Equipe offline)",
+          "DESCRIPTION": "Enviada automaticamente quando o assistente transfere o atendimento fora do expediente (ex: informando que a equipe já está offline e retorna às 11h).",
+          "PLACEHOLDER": "Digite a mensagem de transferência fora do horário"
         },
         "RESOLUTION_MESSAGE": {
           "LABEL": "Mensagem de resolução",
