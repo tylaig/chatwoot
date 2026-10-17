@@ -18,22 +18,38 @@ class Shopify::CallbacksController < ApplicationController
   private
 
   def verify_account!
-    @account_id = verify_shopify_token(params[:state])
+    if params[:state].to_s.start_with?('hook_')
+      _, account_part, _hook_part = params[:state].to_s.split('_')
+      @account_id = account_part.to_i
+    else
+      @account_id = verify_shopify_token(params[:state])
+    end
     raise StandardError, 'Invalid state parameter' if account.blank?
   end
 
   def handle_response
     account.with_lock do
-      hook = account.hooks.find_or_initialize_by(app_id: 'shopify', reference_id: Shopify::ShopDomain.normalize(params[:shop]))
+      normalized_shop = Shopify::ShopDomain.normalize(params[:shop])
+      hook = account.hooks.find_or_initialize_by(app_id: 'shopify', reference_id: normalized_shop)
+      existing_settings = (hook.settings || {}).dup
       hook.update!(
         access_token: parsed_body['access_token'],
         status: 'enabled',
-        settings: {
-          scope: parsed_body['scope'],
-          connected_at: Time.current.utc.iso8601(6),
-          installation_id: SecureRandom.uuid
-        }
+        settings: existing_settings.merge(
+          'scope' => parsed_body['scope'],
+          'auth_mode' => 'access_token',
+          'connection_status' => 'connected',
+          'connected_at' => Time.current.utc.iso8601(6),
+          'last_tested_at' => Time.current.utc.iso8601,
+          'installation_id' => existing_settings['installation_id'] || SecureRandom.uuid
+        )
       )
+      begin
+        products = Shopify::MultiStoreOrderFinderService.fetch_products_for_hook!(hook)
+        hook.update!(settings: hook.settings.merge('products' => products, 'products_count' => products.size, 'last_synced_at' => Time.current.utc.iso8601))
+      rescue StandardError => e
+        Rails.logger.warn("Shopify initial sync warning: #{e.message}")
+      end
     end
 
     redirect_to shopify_integration_url
@@ -43,10 +59,19 @@ class Shopify::CallbacksController < ApplicationController
     @parsed_body ||= @response.response.parsed
   end
 
+  def hook_for_shop
+    return @hook_for_shop if defined?(@hook_for_shop)
+
+    normalized_shop = Shopify::ShopDomain.normalize(params[:shop])
+    @hook_for_shop = account&.hooks&.find_by(app_id: 'shopify', reference_id: normalized_shop)
+  end
+
   def oauth_client
+    effective_client_id = hook_for_shop&.settings&.dig('client_id').presence || client_id
+    effective_client_secret = hook_for_shop&.settings&.dig('client_secret').presence || client_secret
     OAuth2::Client.new(
-      client_id,
-      client_secret,
+      effective_client_id,
+      effective_client_secret,
       {
         site: "https://#{params[:shop]}",
         authorize_url: '/admin/oauth/authorize',

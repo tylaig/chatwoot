@@ -105,6 +105,12 @@ export default {
       chatBackgroundFile: null,
       chatBackgroundUrl: '',
       removeChatBackgroundImage: false,
+      antiSpamEnabled: false,
+      antiSpamMaxMessages: 10,
+      antiSpamWindowSeconds: 60,
+      antiSpamCooldownSeconds: 120,
+      antiSpamWarningMessage:
+        '⚠️ Você enviou muitas mensagens em sequência. Aguarde alguns instantes antes de enviar novas mensagens para não atrasar seu atendimento.',
       inboxColorPresets: [
         '#EAB308',
         '#22C55E',
@@ -578,6 +584,16 @@ export default {
       this.chatBackgroundUrl = this.inbox.chat_background_url || '';
       this.chatBackgroundFile = null;
       this.removeChatBackgroundImage = false;
+      this.antiSpamEnabled = Boolean(this.inbox.anti_spam_enabled);
+      this.antiSpamMaxMessages =
+        Number(this.inbox.anti_spam_max_messages) || 10;
+      this.antiSpamWindowSeconds =
+        Number(this.inbox.anti_spam_window_seconds) || 60;
+      this.antiSpamCooldownSeconds =
+        Number(this.inbox.anti_spam_cooldown_seconds) || 120;
+      this.antiSpamWarningMessage =
+        this.inbox.anti_spam_warning_message ||
+        '⚠️ Você enviou muitas mensagens em sequência. Aguarde alguns instantes antes de enviar novas mensagens para não atrasar seu atendimento.';
       this.selectedInboxName = this.inbox.name;
       this.webhookUrl = this.inbox.webhook_url;
       this.greetingEnabled = this.inbox.greeting_enabled || false;
@@ -733,6 +749,14 @@ export default {
           inbox_badge_label: this.inboxBadgeLabel?.trim() || '',
           chat_background_opacity: Number(this.chatBackgroundOpacity) || 22,
           remove_chat_background_image: this.removeChatBackgroundImage,
+          anti_spam_enabled: Boolean(this.antiSpamEnabled),
+          anti_spam_max_messages: Number(this.antiSpamMaxMessages) || 10,
+          anti_spam_window_seconds: Number(this.antiSpamWindowSeconds) || 60,
+          anti_spam_cooldown_seconds:
+            Number(this.antiSpamCooldownSeconds) || 120,
+          anti_spam_warning_message:
+            this.antiSpamWarningMessage?.trim() ||
+            '⚠️ Você enviou muitas mensagens em sequência. Aguarde alguns instantes antes de enviar novas mensagens para não atrasar seu atendimento.',
           channel: {
             widget_color: this.inbox.widget_color,
             website_url: this.channelWebsiteUrl,
@@ -1426,6 +1450,85 @@ export default {
                   isContinuityDisabled ? 'cursor-not-allowed opacity-50' : ''
                 "
               />
+            </SettingsAccordion>
+
+            <SettingsAccordion
+              v-if="isAWebWidgetInbox"
+              title="Proteção Anti-Spam e Anti-Flood (Chat do Cliente)"
+              class="mt-6"
+            >
+              <SettingsToggleSection
+                v-model="antiSpamEnabled"
+                header="Ativar bloqueio automático contra flood/spam de mensagens"
+                description="Quando o cliente envia muitas mensagens seguidas em curto espaço de tempo sem aguardar resposta, o campo de digitação é travado temporariamente com contador regressivo e aviso na tela."
+              />
+
+              <div
+                v-if="antiSpamEnabled"
+                class="flex flex-col gap-4 mt-3 p-4 rounded-xl border border-n-weak bg-n-solid-2"
+              >
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-semibold text-n-slate-12">
+                      Limite de mensagens seguidas
+                    </label>
+                    <input
+                      v-model.number="antiSpamMaxMessages"
+                      type="number"
+                      min="2"
+                      max="50"
+                      class="!mb-0 rounded-lg border border-n-weak bg-n-background px-3 py-2 text-sm text-n-slate-12"
+                    />
+                    <span class="text-[11px] text-n-slate-11">
+                      Ex: 10 mensagens seguidas
+                    </span>
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-semibold text-n-slate-12">
+                      Janela de detecção (segundos)
+                    </label>
+                    <input
+                      v-model.number="antiSpamWindowSeconds"
+                      type="number"
+                      min="10"
+                      max="600"
+                      class="!mb-0 rounded-lg border border-n-weak bg-n-background px-3 py-2 text-sm text-n-slate-12"
+                    />
+                    <span class="text-[11px] text-n-slate-11">
+                      Ex: 60s (1 minuto)
+                    </span>
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-semibold text-n-slate-12">
+                      Tempo de bloqueio / Cooldown (segundos)
+                    </label>
+                    <input
+                      v-model.number="antiSpamCooldownSeconds"
+                      type="number"
+                      min="15"
+                      max="1800"
+                      class="!mb-0 rounded-lg border border-n-weak bg-n-background px-3 py-2 text-sm text-n-slate-12"
+                    />
+                    <span class="text-[11px] text-n-slate-11">
+                      Ex: 120s (2 minutos). Destrava se o atendente responder.
+                    </span>
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-semibold text-n-slate-12">
+                    Mensagem de aviso exibida ao cliente quando o chat travar
+                  </label>
+                  <textarea
+                    v-model="antiSpamWarningMessage"
+                    rows="2"
+                    class="!mb-0 rounded-lg border border-n-weak bg-n-background px-3 py-2 text-sm text-n-slate-12"
+                    placeholder="⚠️ Você enviou muitas mensagens em sequência. Aguarde alguns instantes antes de enviar novas mensagens."
+                  />
+                </div>
+              </div>
             </SettingsAccordion>
 
             <SettingsAccordion

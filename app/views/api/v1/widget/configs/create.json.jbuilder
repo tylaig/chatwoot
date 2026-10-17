@@ -22,6 +22,13 @@ json.website_channel_config do
   json.widget_color @web_widget.widget_color
   json.working_hours @web_widget.inbox.working_hours
   json.working_hours_enabled @web_widget.inbox.working_hours_enabled
+  json.anti_spam_config do
+    json.enabled ActiveModel::Type::Boolean.new.cast(@web_widget.inbox.anti_spam_enabled)
+    json.max_messages (@web_widget.inbox.anti_spam_max_messages.presence || 10).to_i
+    json.window_seconds (@web_widget.inbox.anti_spam_window_seconds.presence || 60).to_i
+    json.cooldown_seconds (@web_widget.inbox.anti_spam_cooldown_seconds.presence || 120).to_i
+    json.warning_message @web_widget.inbox.anti_spam_warning_message.presence || '⚠️ Você enviou muitas mensagens em sequência. Aguarde alguns instantes antes de enviar novas mensagens para não atrasar seu atendimento.'
+  end
 end
 
 json.contact do

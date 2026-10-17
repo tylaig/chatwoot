@@ -51,7 +51,9 @@ class Inbox < ApplicationRecord
 
   has_one_attached :chat_background_image
   validate :acceptable_chat_background_image, if: -> { chat_background_image.changed? }
-  store_accessor :auto_assignment_config, :inbox_color, :inbox_badge_label, :chat_background_opacity
+  store_accessor :auto_assignment_config, :inbox_color, :inbox_badge_label, :chat_background_opacity,
+                 :anti_spam_enabled, :anti_spam_max_messages, :anti_spam_window_seconds,
+                 :anti_spam_cooldown_seconds, :anti_spam_warning_message
 
   # Not allowing characters:
   validates :name, presence: true

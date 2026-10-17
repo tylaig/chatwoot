@@ -197,6 +197,8 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
      :enable_auto_assignment, :working_hours_enabled, :out_of_office_message, :timezone, :allow_messages_after_resolved,
      :lock_to_single_conversation, :legacy, :portal_id, :sender_name_type, :business_name,
      :inbox_color, :inbox_badge_label, :chat_background_opacity, :chat_background_image,
+     :anti_spam_enabled, :anti_spam_max_messages, :anti_spam_window_seconds,
+     :anti_spam_cooldown_seconds, :anti_spam_warning_message,
      { csat_config: [:display_type, :message, :button_text, :language,
                      { survey_rules: [:operator, { values: [] }],
                        template: [:name, :template_id, :friendly_name, :content_sid, :approval_sid, :created_at, :language, :status] }] }]

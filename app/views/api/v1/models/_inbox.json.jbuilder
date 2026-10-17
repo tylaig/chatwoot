@@ -24,6 +24,11 @@ json.inbox_color resource.inbox_color
 json.inbox_badge_label resource.inbox_badge_label
 json.chat_background_opacity resource.chat_background_opacity
 json.chat_background_url resource.try(:chat_background_url)
+json.anti_spam_enabled ActiveModel::Type::Boolean.new.cast(resource.anti_spam_enabled)
+json.anti_spam_max_messages (resource.anti_spam_max_messages.presence || 10).to_i
+json.anti_spam_window_seconds (resource.anti_spam_window_seconds.presence || 60).to_i
+json.anti_spam_cooldown_seconds (resource.anti_spam_cooldown_seconds.presence || 120).to_i
+json.anti_spam_warning_message resource.anti_spam_warning_message.presence || '⚠️ Você enviou muitas mensagens em sequência. Aguarde alguns instantes antes de enviar novas mensagens para não atrasar seu atendimento.'
 
 if resource.portal.present?
   json.help_center do

@@ -1,6 +1,7 @@
 class Api::V1::Widget::MessagesController < Api::V1::Widget::BaseController
   before_action :prevent_reply_to_resolved_conversation, only: [:create]
   before_action :set_conversation, only: [:create]
+  before_action :enforce_anti_spam_limit, only: [:create]
   before_action :set_message, only: [:update]
 
   def index
@@ -50,6 +51,50 @@ class Api::V1::Widget::MessagesController < Api::V1::Widget::BaseController
     return if inbox.allow_messages_after_resolved
 
     render json: { error: I18n.t('errors.conversations.resolved') }, status: :forbidden
+  end
+
+  def enforce_anti_spam_limit
+    return unless conversation.present? && ActiveModel::Type::Boolean.new.cast(inbox.anti_spam_enabled)
+
+    max_messages = (inbox.anti_spam_max_messages.presence || 10).to_i.clamp(2, 100)
+    window_seconds = (inbox.anti_spam_window_seconds.presence || 60).to_i.clamp(10, 600)
+    cooldown_seconds = (inbox.anti_spam_cooldown_seconds.presence || 120).to_i.clamp(15, 3600)
+    warning_msg = inbox.anti_spam_warning_message.presence ||
+                  '⚠️ Você enviou muitas mensagens em sequência. Aguarde alguns instantes antes de enviar novas mensagens para não atrasar seu atendimento.'
+
+    lock_key = "anti_spam_lock:conv:#{conversation.id}"
+    last_agent_msg_at = conversation.messages.outgoing.maximum(:created_at)
+
+    locked_until_ts = $alfred.with { |conn| conn.get(lock_key) }&.to_i
+    if locked_until_ts.present? && locked_until_ts > Time.current.to_i
+      if last_agent_msg_at.present? && last_agent_msg_at.to_i > (locked_until_ts - cooldown_seconds)
+        $alfred.with { |conn| conn.del(lock_key) }
+      else
+        remaining = locked_until_ts - Time.current.to_i
+        render json: {
+          error: warning_msg,
+          anti_spam_locked: true,
+          retry_after: remaining,
+          locked_until: locked_until_ts
+        }, status: :too_many_requests
+        return
+      end
+    end
+
+    window_start = [Time.current - window_seconds.seconds, last_agent_msg_at].compact.max
+    recent_incoming_count = conversation.messages.incoming.where('created_at >= ?', window_start).count
+
+    return if recent_incoming_count < max_messages
+
+    new_locked_until = (Time.current + cooldown_seconds.seconds).to_i
+    $alfred.with { |conn| conn.setex(lock_key, cooldown_seconds, new_locked_until.to_s) }
+
+    render json: {
+      error: warning_msg,
+      anti_spam_locked: true,
+      retry_after: cooldown_seconds,
+      locked_until: new_locked_until
+    }, status: :too_many_requests
   end
 
   def set_conversation
