@@ -63,11 +63,11 @@ class Api::V1::Widget::MessagesController < Api::V1::Widget::BaseController
                   '⚠️ Você enviou muitas mensagens em sequência. Aguarde alguns instantes antes de enviar novas mensagens para não atrasar seu atendimento.'
 
     lock_key = "anti_spam_lock:conv:#{conversation.id}"
-    last_agent_msg_at = conversation.messages.outgoing.maximum(:created_at)
+    last_human_agent_msg_at = conversation.messages.outgoing.where(sender_type: 'User', private: false).maximum(:created_at)
 
     locked_until_ts = $alfred.with { |conn| conn.get(lock_key) }&.to_i
     if locked_until_ts.present? && locked_until_ts > Time.current.to_i
-      if last_agent_msg_at.present? && last_agent_msg_at.to_i > (locked_until_ts - cooldown_seconds)
+      if last_human_agent_msg_at.present? && last_human_agent_msg_at.to_i > (locked_until_ts - cooldown_seconds)
         $alfred.with { |conn| conn.del(lock_key) }
       else
         remaining = locked_until_ts - Time.current.to_i
@@ -81,19 +81,21 @@ class Api::V1::Widget::MessagesController < Api::V1::Widget::BaseController
       end
     end
 
-    window_start = [Time.current - window_seconds.seconds, last_agent_msg_at].compact.max
+    window_start = [Time.current - window_seconds.seconds, last_human_agent_msg_at].compact.max
     recent_incoming_count = conversation.messages.incoming.where('created_at >= ?', window_start).count
 
-    return if recent_incoming_count < max_messages
+    if recent_incoming_count >= max_messages - 1
+      new_locked_until = (Time.current + cooldown_seconds.seconds).to_i
+      $alfred.with { |conn| conn.setex(lock_key, cooldown_seconds, new_locked_until.to_s) }
+    end
 
-    new_locked_until = (Time.current + cooldown_seconds.seconds).to_i
-    $alfred.with { |conn| conn.setex(lock_key, cooldown_seconds, new_locked_until.to_s) }
+    return if recent_incoming_count < max_messages
 
     render json: {
       error: warning_msg,
       anti_spam_locked: true,
       retry_after: cooldown_seconds,
-      locked_until: new_locked_until
+      locked_until: (Time.current + cooldown_seconds.seconds).to_i
     }, status: :too_many_requests
   end
 

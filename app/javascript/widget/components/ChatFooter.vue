@@ -69,10 +69,20 @@ export default {
       const token = window.chatwootWebChannel?.websiteToken || 'default';
       return `cw_anti_spam_lock_${token}`;
     },
-    outgoingMessagesCount() {
-      return Object.values(this.conversationMessages || {}).filter(
-        m => m.message_type === 1 || m.message_type === 'outgoing'
-      ).length;
+    antiSpamTimestampsStorageKey() {
+      const token = window.chatwootWebChannel?.websiteToken || 'default';
+      return `cw_anti_spam_ts_${token}`;
+    },
+    humanAgentMessagesCount() {
+      return Object.values(this.conversationMessages || {}).filter(m => {
+        const isOutgoing =
+          m.message_type === 1 || m.message_type === 'outgoing';
+        if (!isOutgoing) return false;
+        const senderType = String(
+          m.sender?.type || m.sender_type || ''
+        ).toLowerCase();
+        return senderType === 'user';
+      }).length;
     },
     textColor() {
       return getContrastingTextColor(this.widgetColor);
@@ -95,23 +105,40 @@ export default {
     },
   },
   watch: {
-    outgoingMessagesCount(newCount, oldCount) {
-      if (newCount > oldCount && this.antiSpamRemainingSeconds > 0) {
+    humanAgentMessagesCount(newCount, oldCount) {
+      if (
+        oldCount !== undefined &&
+        newCount > oldCount &&
+        this.antiSpamRemainingSeconds > 0
+      ) {
         this.clearAntiSpamLock();
       }
     },
   },
   mounted() {
     emitter.on(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, this.toggleReplyTo);
+    emitter.on('ANTI_SPAM_LOCK_TRIGGERED', this.onServerAntiSpamLock);
     this.restoreAntiSpamLock();
   },
   beforeUnmount() {
+    emitter.off(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, this.toggleReplyTo);
+    emitter.off('ANTI_SPAM_LOCK_TRIGGERED', this.onServerAntiSpamLock);
     clearTimeout(this.transcriptCooldownTimer);
     clearInterval(this.antiSpamTimer);
   },
   methods: {
     ...mapActions('conversation', ['sendMessage', 'sendAttachment']),
     ...mapActions('conversationAttributes', ['getAttributes']),
+    onServerAntiSpamLock(payload = {}) {
+      const retryAfter =
+        Number(payload.retryAfter) || this.antiSpamConfig.cooldownSeconds;
+      this.activateAntiSpamLock(retryAfter);
+      if (payload.error) {
+        emitter.emit(BUS_EVENTS.SHOW_ALERT, {
+          message: payload.error,
+        });
+      }
+    },
     restoreAntiSpamLock() {
       if (!this.antiSpamConfig.enabled) return;
       try {
@@ -121,6 +148,26 @@ export default {
         if (saved > Date.now()) {
           this.activateAntiSpamLock(Math.ceil((saved - Date.now()) / 1000));
         }
+        const savedTs = JSON.parse(
+          window.localStorage.getItem(this.antiSpamTimestampsStorageKey) || '[]'
+        );
+        if (Array.isArray(savedTs)) {
+          const now = Date.now();
+          const windowMs = this.antiSpamConfig.windowSeconds * 1000;
+          this.sentTimestamps = savedTs.filter(
+            ts => typeof ts === 'number' && now - ts < windowMs
+          );
+        }
+      } catch {
+        // Ignore storage errors
+      }
+    },
+    saveAntiSpamTimestamps() {
+      try {
+        window.localStorage.setItem(
+          this.antiSpamTimestampsStorageKey,
+          JSON.stringify(this.sentTimestamps)
+        );
       } catch {
         // Ignore storage errors
       }
@@ -128,8 +175,14 @@ export default {
     activateAntiSpamLock(durationSeconds) {
       const secs =
         Number(durationSeconds) || this.antiSpamConfig.cooldownSeconds;
-      this.antiSpamLockedUntil = Date.now() + secs * 1000;
-      this.antiSpamRemainingSeconds = secs;
+      const targetUntil = Date.now() + secs * 1000;
+      if (this.antiSpamLockedUntil > targetUntil) {
+        return;
+      }
+      this.antiSpamLockedUntil = targetUntil;
+      this.antiSpamRemainingSeconds = Math.ceil(
+        (this.antiSpamLockedUntil - Date.now()) / 1000
+      );
       try {
         window.localStorage.setItem(
           this.antiSpamStorageKey,
@@ -155,6 +208,7 @@ export default {
       clearInterval(this.antiSpamTimer);
       try {
         window.localStorage.removeItem(this.antiSpamStorageKey);
+        window.localStorage.removeItem(this.antiSpamTimestampsStorageKey);
       } catch {
         // Ignore storage errors
       }
@@ -178,8 +232,12 @@ export default {
       }
 
       this.sentTimestamps.push(now);
+      this.saveAntiSpamTimestamps();
       if (this.sentTimestamps.length >= this.antiSpamConfig.maxMessages) {
         this.activateAntiSpamLock(this.antiSpamConfig.cooldownSeconds);
+        emitter.emit(BUS_EVENTS.SHOW_ALERT, {
+          message: this.antiSpamConfig.warningMessage,
+        });
       }
       return true;
     },

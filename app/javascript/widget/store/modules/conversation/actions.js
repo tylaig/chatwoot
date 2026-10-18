@@ -66,6 +66,16 @@ export const actions = {
       // commit('deleteMessage', message.id);
       commit('pushMessageToConversation', { ...data, status: 'sent' });
     } catch (error) {
+      const responseData = error?.response?.data;
+      if (error?.response?.status === 429 && responseData?.anti_spam_locked) {
+        commit('deleteMessage', id);
+        emitter.emit('ANTI_SPAM_LOCK_TRIGGERED', {
+          retryAfter: responseData.retry_after,
+          lockedUntil: responseData.locked_until,
+          error: responseData.error,
+        });
+        return;
+      }
       commit('pushMessageToConversation', { ...message, status: 'failed' });
       commit('updateMessageMeta', {
         id,
@@ -115,6 +125,16 @@ export const actions = {
       });
       commit('pushMessageToConversation', { ...data, status: 'sent' });
     } catch (error) {
+      const responseData = error?.response?.data;
+      if (error?.response?.status === 429 && responseData?.anti_spam_locked) {
+        commit('deleteMessage', tempMessage.id);
+        emitter.emit('ANTI_SPAM_LOCK_TRIGGERED', {
+          retryAfter: responseData.retry_after,
+          lockedUntil: responseData.locked_until,
+          error: responseData.error,
+        });
+        return;
+      }
       commit('pushMessageToConversation', { ...tempMessage, status: 'failed' });
       commit('updateMessageMeta', {
         id: tempMessage.id,
