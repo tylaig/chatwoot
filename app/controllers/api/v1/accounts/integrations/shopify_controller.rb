@@ -199,6 +199,7 @@ class Api::V1::Accounts::Integrations::ShopifyController < Api::V1::Accounts::In
       query: query_str,
       inbox_id: params[:inbox_id],
       hook_id: params[:hook_id],
+      period: params[:period],
       user: Current.user
     ).perform
 

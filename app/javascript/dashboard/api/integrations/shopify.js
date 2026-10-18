@@ -18,6 +18,7 @@ class ShopifyAPI extends ApiClient {
       query,
       inboxId,
       hookId,
+      period,
       listAll = false,
       syncContactEmail = false,
     } = params;
@@ -27,6 +28,7 @@ class ShopifyAPI extends ApiClient {
         query,
         inbox_id: inboxId,
         hook_id: hookId,
+        period,
         list_all: listAll,
         sync_contact_email: syncContactEmail,
       },

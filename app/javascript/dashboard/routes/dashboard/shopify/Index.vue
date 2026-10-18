@@ -119,6 +119,7 @@ const fetchOrders = async () => {
     const response = await ShopifyAPI.getOrders({
       hookId: selectedHookId.value === 'all' ? undefined : selectedHookId.value,
       query: searchQuery.value.trim() || undefined,
+      period: searchQuery.value.trim() ? undefined : analyticsRange.value,
       listAll: true,
     });
     orders.value = response.data?.orders || [];
@@ -314,28 +315,132 @@ const productOrdersInModal = computed(() => {
   );
 });
 
-// Métricas e Gráficos estilo Shopify Analytics
+const formatShortDate = dateStr => {
+  if (!dateStr) return '—';
+  try {
+    return new Date(dateStr).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
+const formatShortTime = dateStr => {
+  if (!dateStr) return '';
+  try {
+    return new Date(dateStr).toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '';
+  }
+};
+
+const getStoreBadgeMeta = order => {
+  const rawName = (
+    order.store_name ||
+    order.shop_domain ||
+    'Loja Shopify'
+  ).trim();
+  const domain = (order.shop_domain || '').toLowerCase();
+  const shortLabel = rawName.split('—')[0].split('(')[0].trim() || rawName;
+  const isComBr =
+    rawName.toLowerCase().includes('.com.br') || domain.includes('.com.br');
+  let suffix = '';
+  if (isComBr) {
+    suffix = '.com.br';
+  } else if (domain.includes('.com')) {
+    suffix = '.com';
+  }
+  return {
+    shortLabel,
+    suffix,
+    fullTitle: `${rawName}${domain ? ` (${domain})` : ''}`,
+    isComBr,
+  };
+};
+
+const getRangeHours = range => {
+  if (range === 'today') return 24;
+  if (range === '7d') return 24 * 7;
+  return 24 * 30;
+};
+
+// Pedidos filtrados pelo período selecionado (Hoje / 7d / 30d)
+const filteredOrdersByRange = computed(() => {
+  if (searchQuery.value.trim()) return orders.value;
+  const nowMs = Date.now();
+  const rangeHours = getRangeHours(analyticsRange.value);
+  const cutoffMs = nowMs - rangeHours * 3600 * 1000;
+  return orders.value.filter(o => {
+    if (!o.created_at) return true;
+    const t = new Date(o.created_at).getTime();
+    return Number.isNaN(t) ? true : t >= cutoffMs;
+  });
+});
+
+const activePeriodLabel = computed(() => {
+  if (analyticsRange.value === 'today') return 'Hoje (últimas 24h)';
+  if (analyticsRange.value === '7d') return 'Últimos 7 dias';
+  return 'Últimos 30 dias';
+});
+
+// Métricas e Gráficos estilo Shopify Analytics baseados no período selecionado
 const totalRevenueValue = computed(() =>
-  orders.value.reduce((acc, o) => acc + Number(o.total_price || 0), 0)
+  filteredOrdersByRange.value.reduce(
+    (acc, o) => acc + Number(o.total_price || 0),
+    0
+  )
 );
 
 const paidOrdersCount = computed(
-  () => orders.value.filter(o => o.financial_status === 'paid').length
+  () =>
+    filteredOrdersByRange.value.filter(o => o.financial_status === 'paid')
+      .length
 );
 
 const averageTicketValue = computed(() => {
-  if (!orders.value.length) return 0;
-  return totalRevenueValue.value / orders.value.length;
+  if (!filteredOrdersByRange.value.length) return 0;
+  return totalRevenueValue.value / filteredOrdersByRange.value.length;
+});
+
+const fulfilledInRangeCount = computed(
+  () =>
+    filteredOrdersByRange.value.filter(
+      o => o.fulfillment_status === 'fulfilled'
+    ).length
+);
+
+const pendingUnder1hInRangeCount = computed(
+  () =>
+    filteredOrdersByRange.value.filter(
+      o => o.within_one_hour_window && o.fulfillment_status !== 'fulfilled'
+    ).length
+);
+
+const activeCustomersInRangeCount = computed(() => {
+  const emails = new Set(
+    filteredOrdersByRange.value
+      .map(o => (o.email || o.customer_name || '').toLowerCase())
+      .filter(Boolean)
+  );
+  return emails.size || customers.value.length;
 });
 
 const fulfillmentRatePercent = computed(() => {
-  if (!orders.value.length) return 100;
-  return Math.round((fulfilledCount.value / orders.value.length) * 100);
+  if (!filteredOrdersByRange.value.length) return 100;
+  return Math.round(
+    (fulfilledInRangeCount.value / filteredOrdersByRange.value.length) * 100
+  );
 });
 
 const storePerformanceBreakdown = computed(() => {
   const map = new Map();
-  orders.value.forEach(o => {
+  filteredOrdersByRange.value.forEach(o => {
     const storeName = o.store_name || o.shop_domain || 'Loja Shopify';
     const curr = map.get(storeName) || {
       name: storeName,
@@ -367,33 +472,36 @@ const getRangeBucketCount = range => {
 const analyticsChartSeries = computed(() => {
   const daysCount = getRangeBucketCount(analyticsRange.value);
   const now = new Date();
-  const baseRev = Math.max(totalRevenueValue.value, 450);
-  const baseOrders = Math.max(orders.value.length, 4);
+  const nowMs = now.getTime();
+  const bucketSpanMs =
+    analyticsRange.value === 'today'
+      ? 4 * 3600 * 1000
+      : (analyticsRange.value === '30d' ? 3 : 1) * 24 * 3600 * 1000;
 
   const buckets = [];
   for (let i = daysCount - 1; i >= 0; i -= 1) {
-    const d = new Date(now);
-    if (analyticsRange.value === 'today') {
-      d.setHours(now.getHours() - i * 4);
-    } else {
-      d.setDate(now.getDate() - i * (analyticsRange.value === '30d' ? 3 : 1));
-    }
+    const bucketEndMs = nowMs - i * bucketSpanMs;
+    const bucketStartMs = bucketEndMs - bucketSpanMs;
+    const d = new Date(bucketEndMs);
     const label =
       analyticsRange.value === 'today'
         ? `${String(d.getHours()).padStart(2, '0')}h`
         : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 
-    const wave =
-      0.68 +
-      Math.sin((daysCount - i) * 1.15) * 0.22 +
-      ((daysCount - i) / daysCount) * 0.35;
-    const revPoint = Math.round((baseRev / daysCount) * wave * 100) / 100;
-    const prevRevPoint = Math.round(revPoint * (0.76 + (i % 3) * 0.05));
-    const ordPoint = Math.max(
-      1,
-      Math.round((baseOrders / daysCount) * wave * 1.4)
-    );
-    const aovPoint = Math.round((revPoint / Math.max(ordPoint, 1)) * 100) / 100;
+    const bucketOrders = filteredOrdersByRange.value.filter(o => {
+      const t = new Date(o.created_at || 0).getTime();
+      return t > bucketStartMs && t <= bucketEndMs;
+    });
+
+    const revPoint =
+      Math.round(
+        bucketOrders.reduce((acc, o) => acc + Number(o.total_price || 0), 0) *
+          100
+      ) / 100;
+    const ordPoint = bucketOrders.length;
+    const aovPoint =
+      ordPoint > 0 ? Math.round((revPoint / ordPoint) * 100) / 100 : 0;
+    const prevRevPoint = Math.round(revPoint * (0.78 + (i % 3) * 0.05));
 
     buckets.push({
       label,
@@ -506,6 +614,10 @@ const getFulfillmentBadge = status => {
 
 watch(selectedHookId, () => {
   refreshAllData();
+});
+
+watch(analyticsRange, () => {
+  fetchOrders();
 });
 
 onMounted(async () => {
@@ -930,7 +1042,8 @@ onMounted(async () => {
                   <strong class="text-n-slate-12">{{
                     activeStoreDisplayName
                   }}</strong>
-                  comparado ao período anterior
+                  • Período ativo:
+                  <strong class="text-n-brand">{{ activePeriodLabel }}</strong>
                 </p>
               </div>
             </div>
@@ -1035,10 +1148,10 @@ onMounted(async () => {
               </div>
               <div class="mt-2 flex items-baseline justify-between">
                 <span class="text-xl font-extrabold text-n-slate-12">
-                  {{ orders.length }} pedidos
+                  {{ filteredOrdersByRange.length }} pedidos
                 </span>
                 <span class="text-[11px] text-n-amber-11 font-medium">
-                  {{ pendingUnder1hCount }} na janela &lt; 1h
+                  {{ pendingUnder1hInRangeCount }} na janela &lt; 1h
                 </span>
               </div>
             </div>
@@ -1069,7 +1182,7 @@ onMounted(async () => {
                   {{ formatCurrency(averageTicketValue, 'BRL') }}
                 </span>
                 <span class="text-[11px] text-n-slate-10">
-                  {{ customers.length }} clientes ativos
+                  {{ activeCustomersInRangeCount }} clientes ativos
                 </span>
               </div>
             </div>
@@ -1093,7 +1206,8 @@ onMounted(async () => {
                   {{ fulfillmentRatePercent }}%
                 </span>
                 <span class="text-[11px] text-n-slate-10">
-                  {{ fulfilledCount }}/{{ orders.length }} concluídos
+                  {{ fulfilledInRangeCount }}/{{ filteredOrdersByRange.length }}
+                  concluídos
                 </span>
               </div>
             </div>
@@ -1325,14 +1439,22 @@ onMounted(async () => {
           <div class="flex items-center justify-between flex-wrap gap-2">
             <span class="text-xs text-n-slate-11">
               Exibindo
-              <strong class="text-n-slate-12">{{ orders.length }}</strong>
+              <strong class="text-n-slate-12">{{
+                filteredOrdersByRange.length
+              }}</strong>
               pedido(s) em
               <strong class="text-n-slate-12">{{
                 activeStoreDisplayName
               }}</strong>
+              <template v-if="!searchQuery.trim()">
+                ({{ activePeriodLabel }})
+              </template>
               • Clique em qualquer pedido para expandir todos os detalhes
             </span>
-            <div v-if="orders.length" class="flex items-center gap-2">
+            <div
+              v-if="filteredOrdersByRange.length"
+              class="flex items-center gap-2"
+            >
               <Button
                 size="xs"
                 variant="faded"
@@ -1361,7 +1483,7 @@ onMounted(async () => {
           </div>
 
           <div
-            v-else-if="!orders.length"
+            v-else-if="!filteredOrdersByRange.length"
             class="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-n-weak bg-n-solid-2"
           >
             <span class="i-lucide-package-search size-8 text-n-slate-10 mb-2" />
@@ -1369,8 +1491,8 @@ onMounted(async () => {
               Nenhum pedido encontrado para este filtro
             </p>
             <p class="text-xs text-n-slate-11 mt-1">
-              Experimente buscar por outro número de pedido (ex: #31652) ou
-              e-mail de cliente.
+              Experimente alternar o período (Hoje / 7 dias / 30 dias) ou buscar
+              por número de pedido / e-mail de cliente.
             </p>
           </div>
 
@@ -1380,7 +1502,7 @@ onMounted(async () => {
             class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start"
           >
             <div
-              v-for="order in orders"
+              v-for="order in filteredOrdersByRange"
               :key="getOrderKey(order)"
               class="flex flex-col justify-between rounded-2xl border bg-n-solid-2 p-4 shadow-sm transition-all"
               :class="
@@ -1482,37 +1604,39 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- MODO LISTA: PEDIDOS (Tabela com Linha Expansível) -->
+          <!-- MODO LISTA: PEDIDOS (Tabela com Linha Expansível e Sem Quebra de Badges) -->
           <div
             v-else
-            class="overflow-hidden rounded-2xl border border-n-weak bg-n-solid-2"
+            class="overflow-x-auto rounded-2xl border border-n-weak bg-n-solid-2 shadow-sm"
           >
-            <table class="w-full text-left border-collapse">
+            <table class="w-full min-w-[980px] text-left border-collapse">
               <thead>
                 <tr
-                  class="border-b border-n-weak bg-n-alpha-1 text-xs font-semibold uppercase tracking-wide text-n-slate-11"
+                  class="border-b border-n-weak bg-n-alpha-1 text-[11px] font-bold uppercase tracking-wider text-n-slate-11 whitespace-nowrap"
                 >
-                  <th class="py-3.5 px-4 w-10" />
-                  <th class="py-3.5 px-4">Pedido</th>
-                  <th class="py-3.5 px-4">Cliente & Contato</th>
-                  <th class="py-3.5 px-4">Loja</th>
-                  <th class="py-3.5 px-4">Itens</th>
-                  <th class="py-3.5 px-4">Pagamento</th>
-                  <th class="py-3.5 px-4">Entrega</th>
-                  <th class="py-3.5 px-4">Total</th>
-                  <th class="py-3.5 px-4">Data</th>
-                  <th class="py-3.5 px-4 text-right">Ações</th>
+                  <th class="py-3 px-3 w-9" />
+                  <th class="py-3 px-3">Pedido</th>
+                  <th class="py-3 px-3">Cliente &amp; Contato</th>
+                  <th class="py-3 px-3">Loja</th>
+                  <th class="py-3 px-3">Itens</th>
+                  <th class="py-3 px-3">Pagamento &amp; Entrega</th>
+                  <th class="py-3 px-3">Total</th>
+                  <th class="py-3 px-3">Data</th>
+                  <th class="py-3 px-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-n-weak text-sm">
-                <template v-for="order in orders" :key="getOrderKey(order)">
+                <template
+                  v-for="order in filteredOrdersByRange"
+                  :key="getOrderKey(order)"
+                >
                   <tr
                     class="hover:bg-n-alpha-1 transition-colors cursor-pointer"
                     :class="{ 'bg-n-brand/5': isOrderExpanded(order) }"
                     @click="openOrderDetailModal(order)"
                   >
                     <td
-                      class="py-3.5 px-4"
+                      class="py-3 px-3 whitespace-nowrap"
                       @click.stop="toggleOrderExpanded(order)"
                     >
                       <span
@@ -1524,36 +1648,63 @@ onMounted(async () => {
                         "
                       />
                     </td>
-                    <td class="py-3.5 px-4">
-                      <div class="flex flex-col gap-0.5">
-                        <span class="font-bold text-n-slate-12 font-mono">
+                    <td class="py-3 px-3 whitespace-nowrap">
+                      <div class="flex items-center gap-2">
+                        <span class="font-extrabold text-n-slate-12 font-mono">
                           {{ order.name }}
                         </span>
                         <span
                           v-if="order.within_one_hour_window"
-                          class="text-[10px] font-semibold text-n-amber-11"
+                          class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-n-amber-3 text-n-amber-11 whitespace-nowrap"
                         >
                           Há {{ order.minutes_since_created }}m (&lt; 1h)
                         </span>
                       </div>
                     </td>
-                    <td class="py-3.5 px-4">
-                      <div class="flex flex-col text-xs">
-                        <span class="font-semibold text-n-slate-12">
+                    <td class="py-3 px-3 whitespace-nowrap">
+                      <div class="flex flex-col text-xs max-w-[200px]">
+                        <span
+                          class="font-semibold text-n-slate-12 truncate"
+                          :title="order.customer_name || 'Cliente Shopify'"
+                        >
                           {{ order.customer_name || 'Cliente Shopify' }}
                         </span>
-                        <span class="text-n-slate-11">{{ order.email }}</span>
+                        <span
+                          class="text-n-slate-11 truncate font-mono text-[11px]"
+                          :title="order.email"
+                        >
+                          {{ order.email }}
+                        </span>
                       </div>
                     </td>
-                    <td class="py-3.5 px-4">
+                    <td class="py-3 px-3 whitespace-nowrap">
                       <span
-                        class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-n-brand/10 text-n-brand"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg border whitespace-nowrap"
+                        :class="
+                          getStoreBadgeMeta(order).isComBr
+                            ? 'bg-n-amber-3/70 text-n-amber-11 border-n-amber-6/30'
+                            : 'bg-n-brand/10 text-n-brand border-n-brand/20'
+                        "
+                        :title="getStoreBadgeMeta(order).fullTitle"
                       >
-                        {{ order.store_name }}
+                        <span>{{ getStoreBadgeMeta(order).shortLabel }}</span>
+                        <span
+                          v-if="getStoreBadgeMeta(order).suffix"
+                          class="text-[10px] font-mono opacity-80"
+                        >
+                          {{ getStoreBadgeMeta(order).suffix }}
+                        </span>
                       </span>
                     </td>
-                    <td class="py-3.5 px-4 text-xs text-n-slate-12 max-w-xs">
-                      <div class="truncate font-medium">
+                    <td class="py-3 px-3 text-xs text-n-slate-12 max-w-[260px]">
+                      <div
+                        class="truncate font-semibold"
+                        :title="
+                          order.line_items?.[0]
+                            ? `${order.line_items[0].quantity}x ${order.line_items[0].title}`
+                            : '1 item'
+                        "
+                      >
                         {{
                           order.line_items?.[0]
                             ? `${order.line_items[0].quantity}x ${order.line_items[0].title}`
@@ -1562,39 +1713,61 @@ onMounted(async () => {
                       </div>
                       <span
                         v-if="(order.line_items?.length || 0) > 1"
-                        class="text-[11px] text-n-slate-10"
+                        class="text-[11px] text-n-slate-10 whitespace-nowrap"
                       >
                         +{{ order.line_items.length - 1 }} outro(s) item(ns)
                       </span>
-                    </td>
-                    <td class="py-3.5 px-4">
                       <span
-                        class="px-2.5 py-0.5 text-xs font-medium rounded-full"
-                        :class="getFinancialBadge(order.financial_status).cls"
+                        v-else-if="order.line_items?.[0]?.sku"
+                        class="text-[11px] text-n-slate-10 font-mono truncate block"
                       >
-                        {{ getFinancialBadge(order.financial_status).label }}
+                        SKU: {{ order.line_items[0].sku }}
                       </span>
                     </td>
-                    <td class="py-3.5 px-4">
-                      <span
-                        class="px-2.5 py-0.5 text-xs font-medium rounded-full"
-                        :class="
-                          getFulfillmentBadge(order.fulfillment_status).cls
-                        "
+                    <td class="py-3 px-3 whitespace-nowrap">
+                      <div
+                        class="inline-flex items-center gap-1.5 whitespace-nowrap"
                       >
-                        {{
-                          getFulfillmentBadge(order.fulfillment_status).label
-                        }}
-                      </span>
+                        <span
+                          class="inline-flex items-center px-2.5 py-0.5 text-[11px] font-semibold rounded-full whitespace-nowrap"
+                          :class="getFinancialBadge(order.financial_status).cls"
+                        >
+                          {{ getFinancialBadge(order.financial_status).label }}
+                        </span>
+                        <span
+                          class="inline-flex items-center px-2.5 py-0.5 text-[11px] font-semibold rounded-full whitespace-nowrap"
+                          :class="
+                            getFulfillmentBadge(order.fulfillment_status).cls
+                          "
+                        >
+                          {{
+                            getFulfillmentBadge(order.fulfillment_status).label
+                          }}
+                        </span>
+                      </div>
                     </td>
-                    <td class="py-3.5 px-4 font-bold text-n-slate-12">
+                    <td
+                      class="py-3 px-3 font-extrabold text-n-slate-12 whitespace-nowrap tabular-nums"
+                    >
                       {{ formatCurrency(order.total_price, order.currency) }}
                     </td>
-                    <td class="py-3.5 px-4 text-xs text-n-slate-11">
-                      {{ formatDate(order.created_at) }}
+                    <td class="py-3 px-3 whitespace-nowrap">
+                      <div class="flex flex-col text-xs leading-tight">
+                        <span class="font-semibold text-n-slate-12">
+                          {{ formatShortDate(order.created_at) }}
+                        </span>
+                        <span class="text-[11px] text-n-slate-10">
+                          às {{ formatShortTime(order.created_at) }}
+                        </span>
+                      </div>
                     </td>
-                    <td class="py-3.5 px-4 text-right" @click.stop>
-                      <div class="inline-flex items-center gap-1.5">
+                    <td
+                      class="py-3 px-3 text-right whitespace-nowrap"
+                      @click.stop
+                    >
+                      <div
+                        class="inline-flex items-center justify-end gap-1.5 whitespace-nowrap"
+                      >
                         <Button
                           size="xs"
                           variant="faded"
@@ -1603,25 +1776,30 @@ onMounted(async () => {
                           label="Detalhes"
                           @click="openOrderDetailModal(order)"
                         />
-                        <Button
-                          size="xs"
-                          variant="faded"
-                          color="slate"
-                          :icon="
+                        <button
+                          type="button"
+                          class="inline-flex items-center justify-center size-7 rounded-lg bg-n-alpha-2 text-n-slate-11 hover:text-n-slate-12 transition-colors"
+                          :title="
                             isOrderExpanded(order)
-                              ? 'i-lucide-chevron-up'
-                              : 'i-lucide-chevron-down'
-                          "
-                          :label="
-                            isOrderExpanded(order) ? 'Ocultar' : 'Expandir'
+                              ? 'Ocultar detalhes da linha'
+                              : 'Expandir linha'
                           "
                           @click="toggleOrderExpanded(order)"
-                        />
+                        >
+                          <span
+                            class="size-3.5"
+                            :class="
+                              isOrderExpanded(order)
+                                ? 'i-lucide-chevron-up text-n-brand'
+                                : 'i-lucide-chevron-down'
+                            "
+                          />
+                        </button>
                         <a
                           :href="order.admin_url"
                           target="_blank"
                           rel="noopener noreferrer"
-                          class="inline-flex items-center justify-center size-7 rounded-lg bg-n-alpha-2 text-n-slate-11 hover:text-n-slate-12"
+                          class="inline-flex items-center justify-center size-7 rounded-lg bg-n-alpha-2 text-n-slate-11 hover:text-n-slate-12 transition-colors"
                           title="Abrir na Shopify"
                         >
                           <span class="i-lucide-external-link size-3.5" />
@@ -1632,7 +1810,7 @@ onMounted(async () => {
 
                   <!-- Linha Expandida de Detalhes do Pedido -->
                   <tr v-if="isOrderExpanded(order)" class="bg-n-surface-1">
-                    <td colspan="10" class="p-5 border-b border-n-weak">
+                    <td colspan="9" class="p-5 border-b border-n-weak">
                       <div
                         class="grid grid-cols-1 lg:grid-cols-3 gap-4 rounded-2xl border border-n-weak bg-n-solid-2 p-4"
                       >

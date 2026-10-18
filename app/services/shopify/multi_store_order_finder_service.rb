@@ -4,12 +4,13 @@ class Shopify::MultiStoreOrderFinderService
   API_VERSION = '2025-01'
   ORDER_FIELDS = 'id,name,email,phone,created_at,updated_at,total_price,subtotal_price,total_discounts,total_tax,currency,fulfillment_status,financial_status,cancelled_at,cancel_reason,tags,note,gateway,payment_gateway_names,order_status_url,customer,shipping_address,billing_address,fulfillments,line_items'
 
-  def initialize(account:, contact: nil, query: nil, inbox_id: nil, hook_id: nil, user: nil)
+  def initialize(account:, contact: nil, query: nil, inbox_id: nil, hook_id: nil, period: nil, user: nil)
     @account = account
     @contact = contact
     @query = query.to_s.strip
     @inbox_id = inbox_id.presence&.to_i
     @hook_id = hook_id.presence&.to_i
+    @period = period.to_s.strip.presence
     @user = user
   end
 
@@ -462,7 +463,7 @@ class Shopify::MultiStoreOrderFinderService
 
   def fetch_orders_from_hook(hook)
     if mock_hook?(hook)
-      raw_orders = filter_mock_orders_for_hook(hook)
+      raw_orders = filter_orders_by_period(filter_mock_orders_for_hook(hook))
       return raw_orders.map { |order| serialize_order(hook, order) }
     end
 
@@ -487,11 +488,42 @@ class Shopify::MultiStoreOrderFinderService
     end
 
     if raw_orders.empty? && @contact.blank? && @query.blank?
-      res = shopify_get(hook, 'orders.json', status: 'any', limit: 100, fields: ORDER_FIELDS)
+      order_params = { status: 'any', limit: 250, fields: ORDER_FIELDS }
+      min_iso = period_created_at_min
+      order_params[:created_at_min] = min_iso if min_iso.present?
+      res = shopify_get(hook, 'orders.json', order_params)
       raw_orders.concat(res['orders'] || [])
     end
 
-    raw_orders.uniq { |o| o['id'] }.map { |order| serialize_order(hook, order) }
+    filtered_orders = filter_orders_by_period(raw_orders.uniq { |o| o['id'] })
+    filtered_orders.map { |order| serialize_order(hook, order) }
+  end
+
+  def period_created_at_min
+    case @period
+    when 'today'
+      24.hours.ago.iso8601
+    when '7d'
+      7.days.ago.iso8601
+    when '30d'
+      30.days.ago.iso8601
+    end
+  end
+
+  def filter_orders_by_period(orders)
+    return orders if @period.blank? || @period == 'all' || @query.present? || @contact.present?
+
+    cutoff = case @period
+             when 'today' then 24.hours.ago
+             when '7d' then 7.days.ago
+             when '30d' then 30.days.ago
+             end
+    return orders if cutoff.blank?
+
+    orders.select do |order|
+      created_time = Time.zone.parse(order['created_at'].to_s)
+      created_time.present? && created_time >= cutoff
+    end
   end
 
   def filter_mock_orders_for_hook(hook)
