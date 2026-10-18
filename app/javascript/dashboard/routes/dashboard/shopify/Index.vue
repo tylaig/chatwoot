@@ -601,13 +601,13 @@ const getFulfillmentBadge = status => {
     },
     unfulfilled: {
       label: 'Aguardando Envio',
-      cls: 'bg-n-ruby-3 text-n-ruby-11 border border-n-ruby-6/30',
+      cls: 'bg-n-amber-3/70 text-n-amber-11 border border-n-amber-6/30',
     },
   };
   return (
     map[status] || {
       label: 'Aguardando Envio',
-      cls: 'bg-n-ruby-3 text-n-ruby-11 border border-n-ruby-6/30',
+      cls: 'bg-n-amber-3/70 text-n-amber-11 border border-n-amber-6/30',
     }
   );
 };
@@ -1532,7 +1532,9 @@ onMounted(async () => {
                     >
                       {{ order.customer_name || 'Cliente Shopify' }}
                     </span>
-                    <span class="text-[11px] text-n-slate-11 truncate">
+                    <span
+                      class="text-[11px] text-n-slate-11 truncate font-mono"
+                    >
                       {{ order.email }}
                       <template v-if="order.phone">
                         • {{ order.phone }}
@@ -1542,14 +1544,21 @@ onMounted(async () => {
                 </div>
                 <div class="flex items-center gap-1.5 shrink-0" @click.stop>
                   <span
-                    class="px-2 py-0.5 text-[10px] font-semibold rounded-full"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-md border whitespace-nowrap"
                     :class="
-                      order.auth_mode === 'mock'
-                        ? 'bg-n-amber-3 text-n-amber-11'
-                        : 'bg-n-teal-3 text-n-teal-11'
+                      getStoreBadgeMeta(order).isComBr
+                        ? 'bg-n-amber-3/70 text-n-amber-11 border-n-amber-6/30'
+                        : 'bg-n-brand/10 text-n-brand border-n-brand/20'
                     "
+                    :title="getStoreBadgeMeta(order).fullTitle"
                   >
-                    {{ order.store_name }}
+                    <span>{{ getStoreBadgeMeta(order).shortLabel }}</span>
+                    <span
+                      v-if="getStoreBadgeMeta(order).suffix"
+                      class="font-mono opacity-80"
+                    >
+                      {{ getStoreBadgeMeta(order).suffix }}
+                    </span>
                   </span>
                   <button
                     type="button"
@@ -1584,6 +1593,7 @@ onMounted(async () => {
                 :key="`${getOrderKey(order)}-${isOrderExpanded(order)}`"
                 :order="order"
                 :default-expanded="isOrderExpanded(order)"
+                embedded
               />
 
               <div

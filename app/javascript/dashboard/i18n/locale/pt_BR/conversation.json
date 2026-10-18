@@ -500,9 +500,9 @@
         "VOIDED": "Anulado"
       },
       "FULFILLMENT_STATUS": {
-        "FULFILLED": "Concluído",
-        "PARTIALLY_FULFILLED": "Parcialmente Concluído",
-        "UNFULFILLED": "Não concluído"
+        "FULFILLED": "Entregue",
+        "PARTIALLY_FULFILLED": "Envio Parcial",
+        "UNFULFILLED": "Aguardando Envio"
       }
     }
   },

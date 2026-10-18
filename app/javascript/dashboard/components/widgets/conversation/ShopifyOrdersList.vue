@@ -231,7 +231,7 @@ watch(
     >
       {{ $t('CONVERSATION_SIDEBAR.SHOPIFY.NO_SHOPIFY_ORDERS') }}
     </div>
-    <div v-else class="flex flex-col">
+    <div v-else class="flex flex-col gap-3">
       <ShopifyOrderItem
         v-for="order in orders"
         :key="`${order.hook_id || 'default'}-${order.id}`"
