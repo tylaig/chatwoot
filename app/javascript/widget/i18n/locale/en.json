@@ -20,7 +20,15 @@
   "TEAM_AVAILABILITY": {
     "ONLINE": "We are online",
     "OFFLINE": "We are away at the moment",
-    "BACK_AS_SOON_AS_POSSIBLE": "We will be back as soon as possible"
+    "BACK_AS_SOON_AS_POSSIBLE": "We will be back as soon as possible",
+    "HUMAN_TEAM_BADGE": "Human Team",
+    "HUMAN_ONLINE_TITLE": "Online Now",
+    "HUMAN_OFFLINE_TITLE": "Offline At The Moment",
+    "HUMAN_ONLINE_SUBTITLE": "Service hours: 11 AM - 10 PM (Brasília Time)",
+    "HUMAN_OFFLINE_SUBTITLE": "Returns tomorrow starting at 11 AM (Brasília Time)",
+    "BOT_CARD_TITLE": "Virtual Assistant Online 24/7 (Human Team 11 AM - 10 PM)",
+    "BOT_CARD_ONLINE_SUBTITLE": "Online • Human team available now",
+    "BOT_CARD_OFFLINE_SUBTITLE": "Online • Human team returns at 11 AM"
   },
   "REPLY_TIME": {
     "IN_A_FEW_MINUTES": "Typically replies in a few minutes",

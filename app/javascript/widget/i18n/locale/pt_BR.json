@@ -20,7 +20,15 @@
   "TEAM_AVAILABILITY": {
     "ONLINE": "Atendimento Online com IA e Equipe Técnica",
     "OFFLINE": "Assistente Virtual Online 24h (Equipe Humana das 11h às 22h)",
-    "BACK_AS_SOON_AS_POSSIBLE": "Equipe humana de volta em breve"
+    "BACK_AS_SOON_AS_POSSIBLE": "Equipe humana de volta em breve",
+    "HUMAN_TEAM_BADGE": "Equipe Humana",
+    "HUMAN_ONLINE_TITLE": "Online Agora",
+    "HUMAN_OFFLINE_TITLE": "Offline no Momento",
+    "HUMAN_ONLINE_SUBTITLE": "Atendimento das 11h às 22h (Horário de Brasília)",
+    "HUMAN_OFFLINE_SUBTITLE": "Retorna amanhã, a partir das 11h (Horário de Brasília)",
+    "BOT_CARD_TITLE": "Assistente Virtual Online 24h (Equipe Humana das 11h às 22h)",
+    "BOT_CARD_ONLINE_SUBTITLE": "Online • Equipe humana disponível agora",
+    "BOT_CARD_OFFLINE_SUBTITLE": "Online • Equipe humana retorna às 11h"
   },
   "REPLY_TIME": {
     "IN_A_FEW_MINUTES": "Online • Equipe técnica ativa",
