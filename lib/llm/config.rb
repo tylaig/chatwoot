@@ -41,6 +41,7 @@ module Llm::Config
         config.model_registry_file = Rails.root.join('config/llm_models.json').to_s
         config.logger = Rails.logger
       end
+      RubyLLM.models.load_from_json!
     end
 
     def system_api_key
