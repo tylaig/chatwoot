@@ -48,16 +48,24 @@ class Captain::Tools::ShopifyOrderLookupTool < Captain::Tools::BasePublicTool
   end
 
   def sync_contact_email(contact, search_query, orders)
-    return if contact.blank? || contact.email.present?
+    return if contact.blank?
 
-    candidate = if search_query.include?('@')
-                  search_query.downcase
-                else
-                  orders.find { |o| o['email'].present? }&.dig('email')&.downcase
-                end
+    email_from_query = search_query.to_s[/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i]&.downcase
+    email_from_orders = orders.find { |o| o['email'].present? }&.dig('email')&.downcase
+    candidate = email_from_query.presence || email_from_orders.presence
     return if candidate.blank?
+    return if contact.email.to_s.downcase == candidate
 
-    contact.update(email: candidate)
+    existing = contact.account.contacts.where.not(id: contact.id).find_by('LOWER(email) = ?', candidate)
+    if existing.present?
+      ContactMergeAction.new(
+        account: contact.account,
+        base_contact: existing,
+        mergee_contact: contact
+      ).perform
+    else
+      contact.update!(email: candidate)
+    end
   rescue StandardError => e
     Rails.logger.warn("[Captain::Tools::ShopifyOrderLookupTool] Could not sync contact email: #{e.message}")
   end

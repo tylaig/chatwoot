@@ -260,16 +260,24 @@ class Api::V1::Accounts::Integrations::ShopifyController < Api::V1::Accounts::In
   end
 
   def sync_contact_email_from_orders(orders_list, query_str)
-    return if contact.blank? || contact.email.present?
+    return if contact.blank?
 
-    candidate_email = if query_str.include?('@')
-                        query_str.downcase
-                      else
-                        orders_list.find { |o| o['email'].present? }&.dig('email')&.downcase
-                      end
+    email_from_query = query_str.to_s[/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i]&.downcase
+    email_from_orders = orders_list.find { |o| o['email'].present? }&.dig('email')&.downcase
+    candidate_email = email_from_query.presence || email_from_orders.presence
     return if candidate_email.blank?
+    return if contact.email.to_s.downcase == candidate_email
 
-    contact.update(email: candidate_email)
+    existing = Current.account.contacts.where.not(id: contact.id).find_by('LOWER(email) = ?', candidate_email)
+    if existing.present?
+      @contact = ContactMergeAction.new(
+        account: Current.account,
+        base_contact: existing,
+        mergee_contact: contact
+      ).perform
+    else
+      contact.update!(email: candidate_email)
+    end
   rescue StandardError => e
     Rails.logger.warn("[ShopifyController] Could not auto-sync contact email: #{e.message}")
   end
