@@ -9,7 +9,7 @@ class GlobalConfigService
 
     return if config_value.blank?
 
-    i = InstallationConfig.where(name: config_key).first_or_create(value: config_value, locked: false)
+    i = InstallationConfig.where(name: config_key).first_or_create!(value: config_value, locked: false)
     # Clear the cached blank even when another request created the configured value.
     GlobalConfig.clear_cache if i.value.present? || i.value == false
     i.value

@@ -13,7 +13,15 @@ RSpec.describe AccountUser do
       expect(account_user.user.notification_settings).not_to be_nil
 
       expect(account_user.user.notification_settings.first.email_conversation_creation?).to be(false)
-      expect(account_user.user.notification_settings.first.email_conversation_assignment?).to be(true)
+      expect(account_user.user.notification_settings.first.email_conversation_assignment?).to be(false)
+    end
+
+    it 'turns on push for internal chat mentions and direct messages' do
+      setting = account_user.user.notification_settings.first
+
+      expect(setting.selected_push_flags).to contain_exactly(
+        :push_conversation_assignment, :push_internal_chat_mention, :push_internal_chat_new_message
+      )
     end
   end
 

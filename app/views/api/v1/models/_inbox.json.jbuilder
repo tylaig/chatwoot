@@ -3,6 +3,7 @@ json.avatar_url resource.try(:avatar_url)
 json.channel_id resource.channel_id
 json.name resource.name
 json.channel_type resource.channel_type
+json.account_id resource.account_id
 json.greeting_enabled resource.greeting_enabled
 json.greeting_message resource.greeting_message
 json.working_hours_enabled resource.working_hours_enabled
@@ -11,6 +12,8 @@ json.csat_survey_enabled resource.csat_survey_enabled
 json.csat_config resource.csat_config
 json.enable_auto_assignment resource.enable_auto_assignment
 json.auto_assignment_config resource.auto_assignment_config
+json.prevent_assignment_takeover resource.prevent_assignment_takeover
+json.drop_assignee_outside_team_on_reopen resource.drop_assignee_outside_team_on_reopen
 json.out_of_office_message resource.out_of_office_message
 json.working_hours resource.weekly_schedule
 json.timezone resource.timezone
@@ -106,6 +109,8 @@ if resource.email?
     json.branded_email_layout resource.branded_email_layout
   end
 
+  json.continue_open_conversation resource.channel.try(:continue_open_conversation)
+
   ## IMAP
   if Current.account_user&.administrator?
     json.imap_login resource.channel.try(:imap_login)
@@ -146,6 +151,7 @@ if resource.api?
 end
 
 json.provider resource.channel.try(:provider)
+json.allow_group_creation resource.channel.try(:allow_group_creation?) || false
 
 ## Telegram Attributes
 json.bot_name resource.channel.try(:bot_name) if resource.telegram?
@@ -165,6 +171,10 @@ if resource.whatsapp?
     (resource.channel.try(:provider_config) || {}).to_h['source'] == 'embedded_signup' &&
     resource.channel.try(:reauthorization_required?)
   )
+  json.provider_connection resource.channel.try(:provider_connection_data)
+  # What this provider can do, so the dashboard gates features by capability instead of
+  # by provider name. See Whatsapp::Session::Capabilities.
+  json.capabilities resource.channel.try(:session_capabilities)
 end
 
 ## Voice attributes for TwilioSms

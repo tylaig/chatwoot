@@ -144,16 +144,6 @@ const stripTrailingBlankLine = body =>
     .replace(/\n(?:\s*\\\n)+$/, '');
 
 /**
- * Adds the signature delimiter to the beginning of the signature.
- *
- * @param {string} signature - The signature to add the delimiter to.
- * @returns {string} - The signature with the delimiter added.
- */
-function appendDelimiter(signature) {
-  return `${SIGNATURE_DELIMITER}\n\n${cleanSignature(signature)}`;
-}
-
-/**
  * Check if there's an unedited signature at the end of the body
  * If there is, return the index of the signature, If there isn't, return -1
  *
@@ -196,22 +186,28 @@ export function getEffectiveChannelType(channelType, medium) {
  *
  * @param {string} body - The body to append the signature to.
  * @param {string} signature - The signature to append.
- * @param {string} channelType - Optional. The effective channel type to determine supported formatting.
- *                               For Twilio channels, pass the result of getEffectiveChannelType().
+ * @param {Object} settings - The signature settings (position, separator).
  * @returns {string} - The body with the signature appended.
  */
-export function appendSignature(body, signature, channelType) {
-  // Strip only unsupported formatting based on channel capabilities
-  const preparedSignature = channelType
-    ? stripUnsupportedMarkdown(signature, channelType)
-    : signature;
-  const cleanedSignature = cleanSignature(preparedSignature);
+export function appendSignature(body, signature, settings = {}) {
+  const position = settings.position || 'top';
+  const separator = settings.separator || 'blank';
+  const cleanedSignature = cleanSignature(signature);
   // if signature is already present, return body
-  if (findSignatureInBody(body, cleanedSignature) > -1) {
+  if (findSignatureInBody(body, cleanedSignature).index > -1) {
     return body;
   }
 
-  return `${body.trimEnd()}\n\n${appendDelimiter(cleanedSignature)}`;
+  const delimiter =
+    {
+      blank: '\n\n',
+      '--': '\n\n--\n\n',
+    }[separator] || separator;
+
+  if (position === 'top') {
+    return `${cleanedSignature}${delimiter}${body.trimStart()}`;
+  }
+  return `${body.trimEnd()}${delimiter}${cleanedSignature}`;
 }
 
 /**
@@ -505,6 +501,55 @@ export const createVariableInputRule = ({ isPrivate, getVariables }) => {
     }
   );
   return inputRules({ rules: [rule] });
+};
+
+// The variable in the text typed after `{{`: what comes before its closing braces, or before a
+// comma when it was never closed. What follows (braces, punctuation) is not part of it.
+export const variableContent = (typedAfterTrigger = '') =>
+  typedAfterTrigger.split(/[},]/)[0];
+
+// What a picker hands back when it cannot complete its search, turned into the edit that puts it
+// in the document. The suggestion range runs from the trigger to the next space. After `{{` it can
+// hold the variable's closing braces and the punctuation after them (`{{contact.name}},`), which
+// the search never showed; after any other trigger the whole token is what the search showed.
+// - The caret sat past the token's content (past a variable's closing braces): what was typed
+//   there goes on after it.
+// - Otherwise the content becomes what the search held: the content plus what was typed after
+//   it, or, with `replace`, the edited search. Braces typed in a variable's search close it in
+//   place of the document's own, since the picker lets go on the first one and the next goes to
+//   the editor. The caret is left at the end of the content, so typing goes on inside it.
+export const releasedSearchTransaction = (
+  state,
+  range,
+  { text, replace = false } = {},
+  trigger = '{{'
+) => {
+  if (!text) return null;
+  if (!range) return state.tr.insertText(text);
+
+  const isVariable = trigger === '{{';
+  const from = range.from + trigger.length;
+  const typedAfterTrigger = state.doc.textBetween(from, range.to);
+  const contentLength = isVariable
+    ? variableContent(typedAfterTrigger).length
+    : typedAfterTrigger.length;
+  const closingBraces = isVariable
+    ? typedAfterTrigger.slice(contentLength).match(/^}*/)[0].length
+    : 0;
+  const variableEnd = from + contentLength + closingBraces;
+  if (!replace && state.selection.from >= variableEnd) {
+    return state.tr.insertText(text);
+  }
+
+  const content = replace
+    ? text
+    : typedAfterTrigger.slice(0, contentLength) + text;
+  const replacedTo =
+    isVariable && text.includes('}') ? variableEnd : from + contentLength;
+  const transaction = state.tr.insertText(content, from, replacedTo);
+  return transaction.setSelection(
+    Selection.near(transaction.doc.resolve(from + content.length))
+  );
 };
 
 /**

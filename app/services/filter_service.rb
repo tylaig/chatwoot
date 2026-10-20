@@ -48,10 +48,17 @@ class FilterService
     attribute_key = query_hash['attribute_key']
     values = query_hash['values']
 
+    # The cases below translate the UI's labels for standard keys. A condition that declares a
+    # custom_attribute_type is about an account attribute that merely shares one of those names, and
+    # its values are the attribute's own: a checkbox attribute holds a boolean, which has no #downcase,
+    # and the NoMethodError is swallowed upstream, leaving the rule quietly dead.
+    return case_insensitive_values(query_hash) if query_hash['custom_attribute_type'].present?
+
     return conversation_status_values(values) if attribute_key == 'status'
     return conversation_priority_values(values) if attribute_key == 'priority'
+    return conversation_group_type_values(values) if attribute_key == 'group_type'
     return message_type_values(values) if attribute_key == 'message_type'
-    return downcase_array_values(values) if attribute_key == 'content'
+    return downcase_array_values(values) if attribute_key.in?(%w[content sender_type])
 
     case_insensitive_values(query_hash)
   end
@@ -60,9 +67,12 @@ class FilterService
     values.map(&:downcase)
   end
 
+  # A text or list custom attribute is compared as LOWER(...) IN (...), so every value is lowercased and
+  # every value is kept: the API stores all the values a condition is given, and keeping only the first
+  # made a rule saved with two of them act on one, with nothing to say so.
   def case_insensitive_values(query_hash)
     if @custom_attribute_type.present? && query_hash['values'][0].is_a?(String)
-      string_filter_values(query_hash)
+      Array(query_hash['values']).map { |value| value.is_a?(String) ? value.downcase : value }
     else
       query_hash['values']
     end

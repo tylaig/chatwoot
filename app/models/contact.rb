@@ -11,6 +11,7 @@
 #  country_code          :string           default("")
 #  custom_attributes     :jsonb
 #  email                 :string
+#  group_type            :integer          default("individual"), not null
 #  identifier            :string
 #  last_activity_at      :datetime
 #  last_name             :string           default("")
@@ -27,6 +28,7 @@
 #
 #  index_contacts_on_account_id                          (account_id)
 #  index_contacts_on_account_id_and_contact_type         (account_id,contact_type)
+#  index_contacts_on_account_id_and_group_type           (account_id,group_type)
 #  index_contacts_on_account_id_and_last_activity_at     (account_id,last_activity_at DESC NULLS LAST)
 #  index_contacts_on_blocked                             (blocked)
 #  index_contacts_on_company_id                          (company_id)
@@ -41,7 +43,8 @@
 
 # rubocop:enable Layout/LineLength
 
-class Contact < ApplicationRecord
+class Contact < ApplicationRecord # rubocop:disable Metrics/ClassLength
+  include JsonColumnMerge
   include Avatarable
   include AvailabilityStatusable
   include Labelable
@@ -62,13 +65,19 @@ class Contact < ApplicationRecord
   has_many :inboxes, through: :contact_inboxes
   has_many :messages, as: :sender, dependent: :destroy_async
   has_many :notes, dependent: :destroy_async
+  has_many :group_memberships, class_name: 'GroupMember', foreign_key: :group_contact_id, dependent: :destroy,
+                               inverse_of: :group_contact
+  has_many :group_member_contacts, through: :group_memberships, source: :contact
+  has_many :group_participations, class_name: 'GroupMember', dependent: :destroy, inverse_of: :contact
   before_validation :prepare_contact_attributes
   after_create_commit :dispatch_create_event, :ip_lookup
   after_update_commit :dispatch_update_event
+  after_update_commit :forget_whatsapp_missing_answers, if: :saved_change_to_phone_number?
   after_destroy_commit :dispatch_destroy_event
   before_save :sync_contact_attributes
 
   enum contact_type: { visitor: 0, lead: 1, customer: 2 }
+  enum group_type: { individual: 0, group: 1 }, _prefix: true
 
   scope :order_on_last_activity_at, lambda { |direction|
     order(
@@ -147,18 +156,34 @@ class Contact < ApplicationRecord
     contact_inboxes.find_by!(inbox_id: inbox_id).source_id
   end
 
+  def group_channel
+    contact_inboxes.first&.inbox&.channel
+  end
+
+  # Whether the number behind one inbox has left the WhatsApp group this contact is.
+  # The fact belongs to the contact inbox (see `ContactInbox#group_left?`); this is the
+  # reader for the callers that hold the group contact and an inbox id rather than the
+  # row itself.
+  def group_left_in?(inbox_id)
+    return false if inbox_id.blank?
+
+    contact_inboxes.find_by(inbox_id: inbox_id)&.group_left? || false
+  end
+
   def push_event_data
     data = {
       additional_attributes: additional_attributes,
       custom_attributes: custom_attributes,
       email: email,
+      group_type: group_type,
       id: id,
       identifier: identifier,
       name: name,
       phone_number: phone_number,
       thumbnail: avatar_url,
       blocked: blocked,
-      type: 'contact'
+      type: 'contact',
+      updated_at: updated_at&.floor(6).to_f
     }
     data[:company_id] = company_id if account.feature_enabled?('companies')
     data
@@ -176,7 +201,8 @@ class Contact < ApplicationRecord
       name: name,
       phone_number: phone_number,
       thumbnail: avatar_url,
-      blocked: blocked
+      blocked: blocked,
+      updated_at: updated_at&.floor(6).to_f
     }
   end
 
@@ -250,6 +276,13 @@ class Contact < ApplicationRecord
       Time.zone.now,
       contact_data: push_event_data.merge(account_id: account_id)
     )
+  end
+
+  # A "no WhatsApp" answer is about the number that was looked up. Once the phone is
+  # corrected it says nothing about the new one, and keeping it would warn about the new
+  # number with the old number's answer and hold off the recheck for hours.
+  def forget_whatsapp_missing_answers
+    contact_inboxes.where.not(whatsapp_missing_checked_at: nil).find_each(&:clear_whatsapp_missing!)
   end
 end
 Contact.include_mod_with('Concerns::Contact')

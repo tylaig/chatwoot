@@ -16,9 +16,13 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  excludeUserId: {
+    type: Number,
+    default: null,
+  },
 });
 
-const emit = defineEmits(['selectAgent', 'close', 'removeTrigger']);
+const emit = defineEmits(['selectAgent', 'close', 'removeTrigger', 'release']);
 
 const { t } = useI18n();
 const getters = useStoreGetters();
@@ -35,6 +39,7 @@ const matchesSearch = name => name?.toLowerCase().includes(searchTerm.value);
 
 const agentItems = computed(() =>
   agents.value
+    .filter(agent => !props.excludeUserId || agent.id !== props.excludeUserId)
     .filter(agent => matchesSearch(agent.name))
     .map(agent => ({
       id: `user-${agent.id}`,
@@ -129,6 +134,7 @@ const onSelect = item => emit('selectAgent', item.record);
     @select="onSelect"
     @close="emit('close')"
     @remove-trigger="emit('removeTrigger')"
+    @release="emit('release', $event)"
   >
     <template #filters>
       <div role="tablist" class="flex items-center min-w-0 gap-1">

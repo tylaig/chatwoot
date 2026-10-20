@@ -49,6 +49,7 @@ Rails.application.routes.draw do
         member do
           post :update_active_at
           get :cache_keys
+          delete :brand_logo_email
         end
 
         scope module: :accounts do
@@ -56,6 +57,7 @@ Rails.application.routes.draw do
             resource :contact_merge, only: [:create]
           end
           resource :bulk_actions, only: [:create]
+          resources :redirect_tokens, only: [:create]
           resource :onboarding, only: [:update] do
             get :help_center_generation
           end
@@ -161,17 +163,27 @@ Rails.application.routes.draw do
           resources :conversations, only: [:index, :create, :show, :update, :destroy] do
             collection do
               get :meta
+              post :sync
               get :search
               get :unread_counts, to: 'conversations/unread_counts#index'
+              get :pins
               post :filter
+              post :presence_subscribe_bulk
             end
             scope module: :conversations do
               resources :messages, only: [:index, :create, :destroy, :update] do
                 member do
                   post :translate
                   post :retry
+                  patch :edit_content
+                end
+                resources :attachments, only: [:update]
+                scope module: :messages do
+                  resource :reactions, only: [:create]
                 end
               end
+              resources :scheduled_messages, only: [:index, :create, :update, :destroy]
+              resources :recurring_scheduled_messages, only: [:index, :create, :update, :destroy]
               resource :contact_info_request, only: [:create]
               resources :assignments, only: [:create]
               resources :labels, only: [:create, :index]
@@ -182,18 +194,57 @@ Rails.application.routes.draw do
             member do
               post :mute
               post :unmute
+              post :pin
+              delete :unpin
               post :transcript
               post :toggle_status
               post :toggle_priority
               post :toggle_typing_status
+              post :presence_subscribe
               post :update_last_seen
               post :unread
+              post :read_receipt
               post :custom_attributes
               post :destroy_custom_attributes
               get :attachments
               get :inbox_assistant
+              post :sync_history
+              post :recheck_whatsapp_number
               get :reporting_events if ChatwootApp.enterprise?
             end
+          end
+
+          namespace :internal_chat do
+            resource :search, only: [:show], controller: 'search'
+            resources :categories, only: [:index, :create, :update, :destroy]
+            resources :channels, only: [:index, :create, :show, :update, :destroy] do
+              member do
+                post :archive
+                post :unarchive
+                post :toggle_typing_status
+                post :mark_read
+                post :mark_unread
+              end
+              resources :members, controller: 'channel_members', only: [:index, :create, :update, :destroy]
+              resources :messages, only: [:index, :create, :update, :destroy] do
+                member do
+                  post :pin
+                  delete :unpin
+                  get :thread
+                end
+              end
+              resource :draft, only: [:update, :destroy]
+            end
+            resources :messages, only: [] do
+              resources :reactions, only: [:create, :destroy]
+            end
+            resources :polls, only: [:create] do
+              member do
+                post :vote
+                delete :vote, action: :unvote
+              end
+            end
+            resources :drafts, only: [:index]
           end
 
           resources :search, only: [:index] do
@@ -223,6 +274,7 @@ Rails.application.routes.draw do
               resources :notes, only: [:index]
             end
           end
+          resources :groups, only: [:create]
           resources :contacts, only: [:index, :show, :update, :create, :destroy] do
             collection do
               get :active
@@ -234,11 +286,25 @@ Rails.application.routes.draw do
             member do
               get :contactable_inboxes
               post :destroy_custom_attributes
+              post :sync_group
               delete :avatar
             end
             scope module: :contacts do
               resources :conversations, only: [:index]
               resources :contact_inboxes, only: [:create]
+              resources :group_members, only: [:index, :create, :destroy] do
+                patch ':member_id', to: 'group_members#update', on: :collection
+              end
+              resource :group_metadata, only: [:update]
+              resource :group_invite, only: [:show] do
+                post :revoke, on: :member
+              end
+              resources :group_join_requests, only: [:index] do
+                post :handle, on: :collection
+              end
+              resource :group_admin, only: [:update], controller: 'group_admin' do
+                post :leave, on: :member
+              end
               resources :labels, only: [:create, :index]
               resources :notes
               get :attachments, to: 'attachments#index'
@@ -285,6 +351,7 @@ Rails.application.routes.draw do
               end
               collection do
                 post :initiate
+                patch :ai_voice, to: 'whatsapp_ai_voice#update'
               end
             end
           end
@@ -298,12 +365,19 @@ Rails.application.routes.draw do
             get :agent_bot, on: :member
             get :message_templates, on: :member
             post :set_agent_bot, on: :member
+            resources :agent_bot_observers, only: [:index, :create, :destroy], module: :inboxes
+            post :setup_channel_provider, on: :member
+            post :request_pairing_code, on: :member
+            post :import_whatsapp_session, on: :member
+            post :disconnect_channel_provider, on: :member
+            post :convert_provider, on: :member
             delete :avatar, on: :member
             post :sync_templates, on: :member
             put :whatsapp_business_management_token, on: :member
             get :health, on: :member
             post :register_webhook, on: :member
             post :reset_secret, on: :member
+            post :on_whatsapp, on: :member
             post :rotate_hmac_token, on: :member
             if ChatwootApp.enterprise?
               resource :conference, only: %i[create destroy], controller: 'conference' do
@@ -311,12 +385,15 @@ Rails.application.routes.draw do
               end
               post :enable_whatsapp_calling, on: :member
               post :disable_whatsapp_calling, on: :member
+              get :whatsapp_calling_status, on: :member
               post :set_inbound_calls, on: :member
               post :set_call_recording, on: :member
             end
 
             resource :csat_template, only: [:show, :create], controller: 'inbox_csat_templates' do
               post :analyze, on: :collection
+              post :link, on: :member
+              get :available_templates, on: :member
             end
           end
 
@@ -385,11 +462,13 @@ Rails.application.routes.draw do
 
           namespace :whatsapp do
             resource :authorization, only: [:create]
+            resources :session_providers, only: [:index]
             resource :access_request, only: [:create] if ChatwootApp.enterprise?
             post 'manual/preview', to: 'manual_setup#preview'
             post 'manual/connect', to: 'manual_setup#connect'
             get 'manual/:inbox_id/webhook_status', to: 'manual_setup#webhook_status'
             post 'manual/:inbox_id/setup_webhook', to: 'manual_setup#setup_webhook'
+            post 'zapi/:inbox_id/rotate_webhook_url', to: 'zapi_webhook#rotate'
           end
 
           resources :webhooks, only: [:index, :create, :update, :destroy]
@@ -480,21 +559,6 @@ Rails.application.routes.draw do
               post :reject
             end
           end
-          resource :evolution_connection, only: [:show, :update] do
-            post :check
-          end
-          resources :evolution_instances, only: [:index, :create, :destroy], param: :name,
-                                           constraints: { name: %r{[^/]+} } do
-            member do
-              get :connect
-              get :connection_state
-              delete :logout
-              put :restart
-              get :webhook
-              post :webhook, action: :update_webhook
-              post :chatwoot, action: :connect_chatwoot
-            end
-          end
           resources :workflows do
             collection do
               post :test_http
@@ -548,6 +612,7 @@ Rails.application.routes.draw do
             post :verify
             post :backup_codes
           end
+          resources :inbox_signatures, only: %i[index show update destroy], param: :inbox_id
           resources :sessions, only: [:index, :destroy]
         end
       end
@@ -557,6 +622,7 @@ Rails.application.routes.draw do
       namespace :widget do
         resource :direct_uploads, only: [:create]
         resource :config, only: [:create]
+        resource :redirect_token, only: [:create]
         resources :campaigns, only: [:index]
         resources :events, only: [:create]
         resources :messages, only: [:index, :create, :update]
@@ -598,6 +664,7 @@ Rails.application.routes.draw do
               get :inbox
               get :label
               get :channel
+              get :handled_conversations
             end
           end
           resources :reports, only: [:index] do
@@ -735,11 +802,17 @@ Rails.application.routes.draw do
   post 'webhooks/line/:line_channel_id', to: 'webhooks/line#process_payload'
   post 'webhooks/telegram/:bot_token', to: 'webhooks/telegram#process_payload'
   post 'webhooks/sms/:phone_number', to: 'webhooks/sms#process_payload'
+  # Ahead of the phone-number route below, which is the legacy shape: this one has more
+  # segments, so the two cannot collide, and keeping them together is what makes that
+  # obvious to whoever adds the next provider.
+  post 'webhooks/whatsapp/session/uazapi/:channel_id/:webhook_token', to: 'webhooks/whatsapp/uazapi#process_payload'
+  post 'webhooks/whatsapp/zapi/:channel_id/:webhook_token', to: 'webhooks/whatsapp/zapi#process_payload'
   get 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#verify'
   post 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#process_payload'
   get 'webhooks/instagram', to: 'webhooks/instagram#verify'
   post 'webhooks/instagram', to: 'webhooks/instagram#events'
   post 'webhooks/tiktok', to: 'webhooks/tiktok#events'
+  post 'webhooks/resend/inbound', to: 'webhooks/resend#inbound'
   post 'webhooks/shopify', to: 'webhooks/shopify#events'
   post 'webhooks/trigger/:token', to: 'public/api/v1/webhook_dispatches#trigger'
 
@@ -774,6 +847,7 @@ Rails.application.routes.draw do
   get 'notion/callback', to: 'notion/callbacks#show'
   # ----------------------------------------------------------------------
   # Routes for external service verifications
+  get '/manifest.json' => 'manifest#show'
   get '.well-known/assetlinks.json' => 'android_app#assetlinks'
   get '.well-known/apple-app-site-association' => 'apple_app#site_association'
   get '.well-known/microsoft-identity-association.json' => 'microsoft#identity_association'

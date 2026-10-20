@@ -36,7 +36,6 @@ RSpec.describe Article do
     it { is_expected.to belong_to(:author) }
   end
 
-  # This validation happens in ApplicationRecord
   describe 'length validations' do
     let(:article) do
       create(:article, category_id: category_1.id, content: 'This is the content', description: 'this is the description',
@@ -51,9 +50,22 @@ RSpec.describe Article do
       end
 
       it 'invalid when crossed the limit' do
-        article.content = 'a' * 25_001
+        article.content = 'a' * 70_000
         article.valid?
-        expect(article.errors[:content]).to include('is too long (maximum is 20000 characters)')
+        expect(article.errors[:content]).to include('is too long (maximum is 65535 characters)')
+      end
+    end
+
+    context 'when it validates draft_content length' do
+      it 'valid above the generic text column limit' do
+        article.draft_content = 'a' * 30_000
+        expect(article.valid?).to be true
+      end
+
+      it 'invalid when crossed the limit' do
+        article.draft_content = 'a' * 65_536
+        article.valid?
+        expect(article.errors[:draft_content]).to include('is too long (maximum is 65535 characters)')
       end
     end
   end

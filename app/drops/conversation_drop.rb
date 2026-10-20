@@ -23,12 +23,51 @@ class ConversationDrop < BaseDrop
     end
   end
 
+  def assignee
+    UserDrop.new(@obj.try(:assignee))
+  end
+
+  # The conversation as it was when the current automation rule execution started. It resolves to
+  # nothing outside one: a text written by hand has no execution to take a picture of, and falling
+  # back to the live conversation would make `before` a second name for the present.
+  def before
+    snapshot = Current.conversation_snapshot
+    return unless snapshot.respond_to?(:snapshot_of?) && snapshot.snapshot_of?(@obj)
+
+    self.class.new(snapshot)
+  end
+
   def custom_attribute
     custom_attributes = @obj.try(:custom_attributes) || {}
     custom_attributes.transform_keys(&:to_s)
   end
 
+  def first_reply_created_at
+    format_datetime(@obj.try(:first_reply_created_at))
+  end
+
+  def first_reply_created_at_time
+    format_datetime(@obj.try(:first_reply_created_at), include_time: true)
+  end
+
+  def last_activity_at
+    format_datetime(@obj.try(:last_activity_at))
+  end
+
+  def last_activity_at_time
+    format_datetime(@obj.try(:last_activity_at), include_time: true)
+  end
+
   private
+
+  def format_datetime(datetime, include_time: false)
+    return '' if datetime.blank?
+
+    locale = @obj.try(:account)&.locale || 'en'
+    date_format = locale == 'pt_BR' ? '%d/%m/%Y' : '%b %d, %Y'
+    date_format += ' %H:%M' if include_time
+    datetime.strftime(date_format)
+  end
 
   def message_sender_name(sender)
     return 'Bot' if sender.blank?

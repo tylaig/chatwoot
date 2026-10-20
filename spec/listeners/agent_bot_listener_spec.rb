@@ -202,4 +202,135 @@ describe AgentBotListener do
       end
     end
   end
+
+  describe 'observers' do
+    let!(:observer_bot) { create(:agent_bot, outgoing_url: 'https://observer.example') }
+    let(:event_name) { 'message.created' }
+    let!(:message) do
+      create(:message, message_type: 'incoming', account: account, inbox: inbox, conversation: conversation)
+    end
+    let!(:event) { Events::Base.new(event_name, Time.zone.now, message: message) }
+    let(:payload) { message.webhook_data.merge(event: 'message_created') }
+
+    before { create(:agent_bot_observer, inbox: inbox, agent_bot: observer_bot) }
+
+    it 'delivers a message on a conversation a human holds, under the observer webhook type' do
+      expect(conversation.status).to eq('open')
+      expect(conversation.assignee).to eq(user)
+      expect(AgentBots::WebhookJob).to receive(:perform_later).with(
+        observer_bot.outgoing_url, payload, :agent_bot_observer_webhook,
+        secret: observer_bot.secret, delivery_id: instance_of(String)
+      ).once
+
+      listener.message_created(event)
+    end
+
+    it 'delivers to the responder and to the observer, each under its own type' do
+      create(:agent_bot_inbox, inbox: inbox, agent_bot: agent_bot)
+      expect(AgentBots::WebhookJob).to receive(:perform_later).with(
+        agent_bot.outgoing_url, payload, :agent_bot_webhook,
+        secret: agent_bot.secret, delivery_id: instance_of(String)
+      ).once
+      expect(AgentBots::WebhookJob).to receive(:perform_later).with(
+        observer_bot.outgoing_url, payload, :agent_bot_observer_webhook,
+        secret: observer_bot.secret, delivery_id: instance_of(String)
+      ).once
+
+      listener.message_created(event)
+    end
+
+    it 'delivers once, as the responder, to a bot that both answers and observes the inbox' do
+      create(:agent_bot_inbox, inbox: inbox, agent_bot: observer_bot)
+      expect(AgentBots::WebhookJob).to receive(:perform_later).with(
+        observer_bot.outgoing_url, payload, :agent_bot_webhook,
+        secret: observer_bot.secret, delivery_id: instance_of(String)
+      ).once
+
+      listener.message_created(event)
+    end
+
+    it 'skips an observer whose bot was deleted and not yet cleaned up' do
+      observer_bot.delete
+      expect(AgentBots::WebhookJob).not_to receive(:perform_later)
+
+      expect { listener.message_created(event) }.not_to raise_error
+    end
+
+    it 'delivers conversation events too' do
+      resolved_event = Events::Base.new('conversation.resolved', Time.zone.now, conversation: conversation)
+      expect(AgentBots::WebhookJob).to receive(:perform_later).with(
+        observer_bot.outgoing_url, conversation.webhook_data.merge(event: 'conversation_resolved'),
+        :agent_bot_observer_webhook, secret: observer_bot.secret, delivery_id: instance_of(String)
+      ).once
+
+      listener.conversation_resolved(resolved_event)
+    end
+  end
+
+  describe '#inbox_provider_connection_updated' do
+    let(:channel) do
+      create(:channel_whatsapp, account: account, provider: 'baileys', validate_provider_config: false, sync_templates: false)
+    end
+    let(:whatsapp_inbox) { channel.inbox }
+    let(:connection) { { 'connection' => 'close', 'qr_data_url' => 'data:image/png;base64,QR', 'error' => 'logged out' } }
+    let(:changed_at) { Time.zone.parse('2026-10-15T12:34:56.123456Z') }
+    let(:event) do
+      Events::Base.new('inbox.provider_connection_updated', changed_at,
+                       inbox: whatsapp_inbox, provider_connection: connection, previous_connection: 'open')
+    end
+    let(:payload) do
+      {
+        event: 'inbox_provider_connection_updated',
+        account: { id: account.id },
+        inbox: { id: whatsapp_inbox.id, name: whatsapp_inbox.name, channel_type: 'Channel::Whatsapp', provider: 'baileys' },
+        provider_connection: { connection: 'close' },
+        previous_connection: 'open',
+        changed_at: '2026-10-15T12:34:56.123456Z'
+      }
+    end
+
+    it 'delivers the change to the responder bot without the QR or the error' do
+      create(:agent_bot_inbox, inbox: whatsapp_inbox, agent_bot: agent_bot)
+      expect(AgentBots::WebhookJob).to receive(:perform_later).with(
+        agent_bot.outgoing_url, payload, :agent_bot_webhook, secret: agent_bot.secret, delivery_id: instance_of(String)
+      ).once
+
+      listener.inbox_provider_connection_updated(event)
+    end
+
+    it 'delivers to an observer of the inbox under the observer type' do
+      observer_bot = create(:agent_bot, outgoing_url: 'https://observer.example')
+      create(:agent_bot_observer, inbox: whatsapp_inbox, agent_bot: observer_bot)
+      expect(AgentBots::WebhookJob).to receive(:perform_later).with(
+        observer_bot.outgoing_url, payload, :agent_bot_observer_webhook, secret: observer_bot.secret, delivery_id: instance_of(String)
+      ).once
+
+      listener.inbox_provider_connection_updated(event)
+    end
+
+    it 'delivers nothing when the write left the connection as it was' do
+      create(:agent_bot_inbox, inbox: whatsapp_inbox, agent_bot: agent_bot)
+      unchanged = Events::Base.new('inbox.provider_connection_updated', Time.zone.now,
+                                   inbox: whatsapp_inbox, provider_connection: { 'connection' => 'connecting', 'qr_data_url' => 'QR2' },
+                                   previous_connection: 'connecting')
+      expect(AgentBots::WebhookJob).not_to receive(:perform_later)
+
+      listener.inbox_provider_connection_updated(unchanged)
+    end
+
+    it 'is reached from the channel write, once per change of connection' do
+      create(:agent_bot_inbox, inbox: whatsapp_inbox, agent_bot: agent_bot)
+      channel.update_provider_connection!(connection: 'open')
+      allow(AgentBots::WebhookJob).to receive(:perform_later)
+
+      channel.update_provider_connection!(connection: 'open', epoch: 2)
+      channel.update_provider_connection!(connection: 'close', error: 'logged out')
+
+      expect(AgentBots::WebhookJob).to have_received(:perform_later).once
+      expect(AgentBots::WebhookJob).to have_received(:perform_later).with(
+        agent_bot.outgoing_url, payload.merge(changed_at: match(/\A\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z\z/)),
+        :agent_bot_webhook, secret: agent_bot.secret, delivery_id: instance_of(String)
+      )
+    end
+  end
 end

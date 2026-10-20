@@ -42,6 +42,12 @@ const channelList = computed(() => {
       icon: 'i-woot-whatsapp',
     },
     {
+      key: 'whatsapp_native',
+      title: t('INBOX_MGMT.ADD.AUTH.CHANNEL.WHATSAPP_NATIVE.TITLE'),
+      description: t('INBOX_MGMT.ADD.AUTH.CHANNEL.WHATSAPP_NATIVE.DESCRIPTION'),
+      icon: 'i-woot-whatsapp-native',
+    },
+    {
       key: 'sms',
       title: t('INBOX_MGMT.ADD.AUTH.CHANNEL.SMS.TITLE'),
       description: t('INBOX_MGMT.ADD.AUTH.CHANNEL.SMS.DESCRIPTION'),
@@ -111,6 +117,14 @@ const channelList = computed(() => {
 });
 
 const initChannelAuth = channel => {
+  if (channel === 'whatsapp_native') {
+    router.push({
+      name: 'settings_inboxes_page_channel',
+      params: { sub_page: 'whatsapp', accountId: accountId.value },
+      query: { provider: 'native' },
+    });
+    return;
+  }
   const params = {
     sub_page: channel,
     accountId: accountId.value,

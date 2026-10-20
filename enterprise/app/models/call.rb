@@ -25,6 +25,7 @@
 #
 #  index_calls_on_account_id_and_contact_id       (account_id,contact_id)
 #  index_calls_on_account_id_and_conversation_id  (account_id,conversation_id)
+#  index_calls_on_account_id_and_created_at       (account_id,created_at)
 #  index_calls_on_message_id                      (message_id)
 #  index_calls_on_provider_and_provider_call_id   (provider,provider_call_id) UNIQUE
 #
@@ -156,7 +157,8 @@ class Call < ApplicationRecord
       from_number: from_number,
       to_number: to_number,
       recording_url: recording_url,
-      transcript: transcript
+      transcript: transcript,
+      voice_agent: meta&.dig('voice_agent') == true
     }
   end
 end

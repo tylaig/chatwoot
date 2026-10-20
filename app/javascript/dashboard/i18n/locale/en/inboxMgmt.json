@@ -621,6 +621,10 @@
           "VOICE": {
             "TITLE": "Voice",
             "DESCRIPTION": "Integrate with Twilio Voice"
+          },
+          "WHATSAPP_NATIVE": {
+            "TITLE": "WhatsApp (Native)",
+            "DESCRIPTION": "Connect via QR Code or pairing code directly on the server"
           }
         }
       },

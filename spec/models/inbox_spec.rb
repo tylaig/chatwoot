@@ -10,6 +10,12 @@ RSpec.describe Inbox do
     it { is_expected.to validate_presence_of(:name) }
   end
 
+  describe 'prevent_assignment_takeover' do
+    it 'is opt-in, so existing inboxes keep the last-write-wins behaviour' do
+      expect(create(:inbox).prevent_assignment_takeover).to be(false)
+    end
+  end
+
   describe 'associations' do
     it { is_expected.to belong_to(:account) }
 
@@ -28,6 +34,10 @@ RSpec.describe Inbox do
     it { is_expected.to have_many(:messages).dependent(:destroy_async) }
 
     it { is_expected.to have_one(:agent_bot_inbox) }
+
+    it { is_expected.to have_many(:agent_bot_observers).dependent(:destroy_async) }
+
+    it { is_expected.to have_many(:observer_agent_bots).through(:agent_bot_observers).source(:agent_bot) }
 
     it { is_expected.to have_many(:webhooks).dependent(:destroy_async) }
 
@@ -230,7 +240,7 @@ RSpec.describe Inbox do
 
     it 'set portal id in inbox' do
       inbox.portal_id = portal.id
-      inbox.save
+      inbox.save!
 
       expect(inbox.portal).to eq(portal)
     end
@@ -238,7 +248,7 @@ RSpec.describe Inbox do
     it 'sends the inbox_created event if ENABLE_INBOX_EVENTS is true' do
       with_modified_env ENABLE_INBOX_EVENTS: 'true' do
         channel = inbox.channel
-        channel.update(widget_color: '#fff')
+        channel.update!(widget_color: '#fff')
 
         expect(Rails.configuration.dispatcher).to have_received(:dispatch)
           .with(
@@ -252,7 +262,7 @@ RSpec.describe Inbox do
 
     it 'sends the inbox_created event if ENABLE_INBOX_EVENTS is false' do
       channel = inbox.channel
-      channel.update(widget_color: '#fff')
+      channel.update!(widget_color: '#fff')
 
       expect(Rails.configuration.dispatcher).not_to have_received(:dispatch)
         .with(
@@ -265,7 +275,7 @@ RSpec.describe Inbox do
 
     it 'resets cache key if there is an update in the channel' do
       channel = inbox.channel
-      channel.update(widget_color: '#fff')
+      channel.update!(widget_color: '#fff')
 
       expect(Rails.configuration.dispatcher).to have_received(:dispatch)
         .with(
@@ -278,7 +288,7 @@ RSpec.describe Inbox do
 
     it 'updates the cache key after update' do
       expect(inbox.account).to receive(:update_cache_key).with('inbox')
-      inbox.update(name: 'New Name')
+      inbox.update!(name: 'New Name')
     end
 
     it 'updates the cache key after touch' do
@@ -414,6 +424,29 @@ RSpec.describe Inbox do
         inbox = FactoryBot.build(:inbox, name: 'Test Name with émojis 🎉')
         expect(inbox.sanitized_name).to eq('Test Name with émojis 🎉')
       end
+    end
+  end
+
+  describe '#webhook_data' do
+    it 'ships the inbox updated_at as sub-second float seconds that move on a rename' do
+      inbox = create(:inbox, name: 'Inbox A')
+      first = inbox.webhook_data[:updated_at]
+
+      inbox.update!(name: 'Inbox B')
+
+      expect(inbox.webhook_data).to include(id: inbox.id, name: 'Inbox B')
+      expect(inbox.webhook_data[:updated_at]).to be_a(Float)
+      expect(inbox.webhook_data[:updated_at]).to be > first
+      expect(inbox.webhook_data[:updated_at]).to eq(inbox.reload.updated_at.to_f)
+    end
+
+    it 'ships the instant the database stores, not the sub-microsecond clock of the record in memory' do
+      inbox = create(:inbox)
+      inbox.update!(updated_at: Time.zone.at(1_791_823_339, 276_299_712, :nsec))
+
+      stored = described_class.find(inbox.id).updated_at.to_f
+      expect(stored).to eq(Time.zone.at(1_791_823_339, 276_299, :usec).to_f)
+      expect(inbox.webhook_data[:updated_at]).to eq(stored)
     end
   end
 end

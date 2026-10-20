@@ -190,6 +190,15 @@ export const IFrameHelper = {
             'browser_push_notifications'
           ));
 
+      if (window.$chatwoot.redirectToken) {
+        const { redirectToken, autoOpen } = window.$chatwoot;
+        window.$chatwoot.redirectToken = null;
+        IFrameHelper.sendMessage('resolve-redirect', { token: redirectToken });
+        if (autoOpen) {
+          window.$chatwoot.toggle('open');
+        }
+      }
+
       window.playAudioAlert = () => {};
 
       if (

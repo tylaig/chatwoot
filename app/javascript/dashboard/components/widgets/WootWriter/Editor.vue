@@ -14,9 +14,11 @@ import {
 import CannedResponse from '../conversation/CannedResponse.vue';
 import KeyboardEmojiSelector from './keyboardEmojiSelector.vue';
 import TagAgents from '../conversation/TagAgents.vue';
+import TagGroupMembers from '../conversation/TagGroupMembers.vue';
 import VariableList from '../conversation/VariableList.vue';
 import MacroList from '../conversation/MacroList.vue';
 import TagTools from '../conversation/TagTools.vue';
+import TagConversations from '../conversation/TagConversations.vue';
 import CopilotMenuBar from './CopilotMenuBar.vue';
 
 import { useEmitter } from 'dashboard/composables/emitter';
@@ -26,6 +28,8 @@ import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
 import { useTrack } from 'dashboard/composables';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAlert } from 'dashboard/composables';
+import { useMapGetter } from 'dashboard/composables/store';
+import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import { vOnClickOutside } from '@vueuse/components';
 
 import { BUS_EVENTS } from 'shared/constants/busEvents';
@@ -51,12 +55,10 @@ import {
 } from '@chatwoot/prosemirror-schema/src/mentions/plugin';
 
 import {
-  appendSignature,
   collapseSelection,
   findNodeToInsertImage,
   getContentNode,
   insertAtCursor,
-  removeSignature as removeSignatureHelper,
   scrollCursorIntoView,
   getFormattingForEditor,
   getSelectionCoords,
@@ -64,6 +66,7 @@ import {
   getEffectiveChannelType,
   stripUnsupportedFormatting,
   createVariableInputRule,
+  releasedSearchTransaction,
 } from 'dashboard/helper/editorHelper';
 import {
   hasPressedEnterAndNotCmdOrShift,
@@ -86,6 +89,8 @@ const props = defineProps({
   overrideLineBreaks: { type: Boolean, default: false },
   updateSelectionWith: { type: String, default: '' },
   enableVariables: { type: Boolean, default: false },
+  // Offers the variables only an automation rule can render (`conversation.before.*`).
+  enableAutomationVariables: { type: Boolean, default: false },
   enableCannedResponses: { type: Boolean, default: true },
   enableCaptainTools: { type: Boolean, default: false },
   enableMacros: { type: Boolean, default: false },
@@ -94,10 +99,19 @@ const props = defineProps({
   // allowSignature is a kill switch, ensuring no signature methods
   // are triggered except when this flag is true
   allowSignature: { type: Boolean, default: false },
+  // Per-inbox overrides; when empty, falls back to currentUser.ui_settings
+  signaturePositionOverride: { type: String, default: '' },
+  signatureSeparatorOverride: { type: String, default: '' },
   channelType: { type: String, default: '' },
   conversationId: { type: Number, default: null },
   medium: { type: String, default: '' },
   focusOnMount: { type: Boolean, default: true },
+  enableCopilot: { type: Boolean, default: true },
+  isGroupConversation: { type: Boolean, default: false },
+  groupContactId: { type: [Number, String], default: null },
+  inboxPhoneNumber: { type: String, default: null },
+  enableMentionDropdown: { type: Boolean, default: false },
+  enableConversationMention: { type: Boolean, default: false },
   // Global INSERT_INTO_RICH_EDITOR bus events (Copilot "Use this", article
   // links) are meant for the conversation reply editor only — other mounted
   // editors (canned responses, signature, etc.) must not consume them.
@@ -119,10 +133,14 @@ const emit = defineEmits([
   'input',
   'update:modelValue',
   'executeCopilotAction',
+  'toggleConversationMention',
 ]);
 
 const { t } = useI18n();
-const { captainTasksEnabled } = useCaptain();
+const { captainTasksEnabled: rawCaptainTasksEnabled } = useCaptain();
+const captainTasksEnabled = computed(
+  () => props.enableCopilot && rawCaptainTasksEnabled.value
+);
 
 const TYPING_INDICATOR_IDLE_TIME = 4000;
 const MAXIMUM_FILE_UPLOAD_SIZE = 4; // in MB
@@ -185,6 +203,10 @@ const createState = (content, placeholder, plugins = [], methods = {}) => {
 const { isEditorHotKeyEnabled, fetchSignatureFlagFromUISettings } =
   useUISettings();
 
+const { formatMessage } = useMessageFormatter();
+
+const currentUser = useMapGetter('getCurrentUser');
+
 const typingIndicator = createTypingIndicator(
   () => emit('typingOn'),
   () => emit('typingOff'),
@@ -205,6 +227,8 @@ const showEmojiMenu = ref(false);
 const showToolsMenu = ref(false);
 const showMacroMenu = ref(false);
 const toolSearchKey = ref('');
+const showConversationMenu = ref(false);
+const conversationSearchKey = ref('');
 const mentionSearchKey = ref('');
 const cannedSearchKey = ref('');
 const variableSearchKey = ref('');
@@ -269,7 +293,12 @@ const shouldShowMacros = computed(() => {
 });
 
 const shouldShowUserMentions = computed(() => {
-  return showUserMentions.value && props.isPrivate;
+  return (
+    showUserMentions.value &&
+    (props.isPrivate ||
+      props.isGroupConversation ||
+      props.enableMentionDropdown)
+  );
 });
 
 // The picker owns the search field, so it takes focus while open. Dismissing it hands
@@ -283,6 +312,22 @@ const dismissPicker = showMenu => {
 const dismissUserMentions = () => dismissPicker(showUserMentions);
 const dismissCannedResponses = () => dismissPicker(showCannedMenu);
 const dismissVariables = () => dismissPicker(showVariables);
+
+// A picker gave up on its search: what was typed in it belongs in the editor, after the trigger
+// that opened it.
+const releasePickerSearch = (showMenu, trigger) => released => {
+  showMenu.value = false;
+  const transaction =
+    editorView &&
+    releasedSearchTransaction(editorView.state, range.value, released, trigger);
+  if (transaction) editorView.dispatch(transaction);
+  editorView?.focus();
+};
+const releaseUserMentions = releasePickerSearch(showUserMentions, '@');
+const releaseCannedResponses = releasePickerSearch(showCannedMenu, '/');
+const releaseVariables = releasePickerSearch(showVariables, '{{');
+const releaseMacros = releasePickerSearch(showMacroMenu, '#');
+const releaseEmojiMenu = releasePickerSearch(showEmojiMenu, ':');
 const dismissEmojiMenu = () => dismissPicker(showEmojiMenu);
 const dismissMacros = () => dismissPicker(showMacroMenu);
 
@@ -354,7 +399,10 @@ const plugins = computed(() => {
       trigger: '@',
       showMenu: showUserMentions,
       searchTerm: mentionSearchKey,
-      isAllowed: () => props.isPrivate || !props.enableCaptainTools,
+      isAllowed: () =>
+        props.isPrivate ||
+        props.isGroupConversation ||
+        !props.enableCaptainTools,
     }),
     createSuggestionPlugin({
       trigger: '/',
@@ -384,22 +432,48 @@ const plugins = computed(() => {
       showMenu: showEmojiMenu,
       searchTerm: emojiSearchKey,
     }),
+    createSuggestionPlugin({
+      trigger: '#',
+      minChars: 0,
+      showMenu: showConversationMenu,
+      searchTerm: conversationSearchKey,
+      isAllowed: () => props.enableConversationMention,
+    }),
   ];
 });
 
 const sendWithSignature = computed(() => {
-  // this is considered the source of truth, we watch this property
-  // on change, we toggle the signature in the editor
-  if (
-    props.allowSignature &&
-    !props.isPrivate &&
-    props.channelType &&
-    !props.disabled
-  ) {
+  // this is considered the source of truth for signature display
+  if (props.allowSignature && !props.isPrivate && props.channelType) {
     return fetchSignatureFlagFromUISettings(props.channelType);
   }
 
   return false;
+});
+
+const signaturePosition = computed(() => {
+  return (
+    props.signaturePositionOverride ||
+    currentUser.value?.ui_settings?.signature_position ||
+    'top'
+  );
+});
+
+const signatureSeparator = computed(() => {
+  return (
+    props.signatureSeparatorOverride ||
+    currentUser.value?.ui_settings?.signature_separator ||
+    'blank'
+  );
+});
+
+const shouldShowSignaturePreview = computed(() => {
+  return sendWithSignature.value && props.signature;
+});
+
+const formattedSignature = computed(() => {
+  if (!props.signature) return '';
+  return formatMessage(props.signature, false, false);
 });
 
 watch(shouldShowUserMentions, updatedValue => {
@@ -418,9 +492,18 @@ watch(showToolsMenu, updatedValue => {
   emit('toggleToolsMenu', props.enableCaptainTools && updatedValue);
 });
 
+watch(showConversationMenu, updatedValue => {
+  emit(
+    'toggleConversationMention',
+    props.enableConversationMention && updatedValue
+  );
+});
+
 function focusEditorInputField(pos = 'end') {
   const { tr } = editorView.state;
 
+  // Signature is now displayed as read-only preview outside the editor,
+  // so cursor positioning is straightforward
   const selection =
     pos === 'end' ? Selection.atEnd(tr.doc) : Selection.atStart(tr.doc);
 
@@ -432,20 +515,8 @@ function isBodyEmpty(content) {
   // if content is undefined, we assume that the body is empty
   if (!content) return true;
 
-  // Only strip the signature when it's actually being auto-appended for this
-  // draft. Otherwise an agent whose typed text happens to match their saved
-  // signature would be mistakenly treated as empty.
-  const bodyWithoutSignature =
-    sendWithSignature.value && props.signature
-      ? removeSignatureHelper(
-          content,
-          props.signature,
-          effectiveChannelType.value
-        )
-      : content;
-
   // trimming should remove all the whitespaces, so we can check the length
-  return bodyWithoutSignature.trim().length === 0;
+  return content.trim().length === 0;
 }
 
 function handleEmptyBodyWithSignature() {
@@ -529,38 +600,6 @@ function reloadState(content = props.modelValue) {
   focusEditor(unrefContent);
 }
 
-function addSignature() {
-  if (props.disabled) return;
-  let content = props.modelValue;
-  // see if the content is empty, if it is before appending the signature
-  // we need to add a paragraph node and move the cursor at the start of the editor
-  const contentWasEmpty = isBodyEmpty(content);
-  content = appendSignature(
-    content,
-    props.signature,
-    effectiveChannelType.value
-  );
-  // need to reload first, ensuring that the editorView is updated
-  reloadState(content);
-
-  if (contentWasEmpty) {
-    handleEmptyBodyWithSignature();
-  }
-}
-
-function removeSignature() {
-  if (props.disabled) return;
-  if (!props.signature) return;
-  let content = props.modelValue;
-  content = removeSignatureHelper(
-    content,
-    props.signature,
-    effectiveChannelType.value
-  );
-  // reload the state, ensuring that the editorView is updated
-  reloadState(content);
-}
-
 function setMenubarPosition({ selection } = {}) {
   const wrapper = editorRoot.value;
   if (!selection || !wrapper) return;
@@ -599,20 +638,6 @@ function checkSelection(editorState) {
 function emitOnChange() {
   emit('input', contentFromEditor());
   emit('update:modelValue', contentFromEditor());
-}
-
-function toggleSignatureInEditor(signatureEnabled) {
-  // The toggleSignatureInEditor gets the new value from the
-  // watcher, this means that if the value is true, the signature
-  // is supposed to be added, else we remove it.
-  if (signatureEnabled) {
-    addSignature();
-  } else {
-    removeSignature();
-  }
-  // reloadState replaces editor state directly and bypasses dispatchTransaction,
-  // so v-model never hears about the signature change — sync it back explicitly.
-  emitOnChange();
 }
 
 function isEnterToSendEnabled() {
@@ -833,7 +858,11 @@ function createEditorView() {
     handleDOMEvents: {
       keyup: () => {
         if (!props.disabled) {
-          typingIndicator.start();
+          if (props.modelValue.length) {
+            typingIndicator.start();
+          } else {
+            typingIndicator.stop();
+          }
         }
       },
       keydown: (view, event) => !props.disabled && onKeydown(event),
@@ -912,13 +941,6 @@ watch(
   }
 );
 
-watch(sendWithSignature, newValue => {
-  // see if the allowSignature flag is true
-  if (props.allowSignature && !props.disabled) {
-    toggleSignatureInEditor(newValue);
-  }
-});
-
 onMounted(() => {
   // [VITE] state assignment was done in created before
   state = createState(
@@ -936,8 +958,6 @@ onMounted(() => {
   }
 });
 
-defineExpose({ focusEditorInputField });
-
 // BUS Event to insert text or markdown into the editor at the
 // current cursor position.
 // Components using this
@@ -946,6 +966,22 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
   if (!props.enableInsertEvents) return;
   insertContentIntoEditor(content);
 });
+
+function insertMentionTrigger(char) {
+  if (!editorView) return;
+  focusEditorInputField('end');
+  const editorState = editorView.state;
+  const { from, to } = editorState.selection;
+  const textBefore =
+    from > 0
+      ? editorState.doc.textBetween(Math.max(0, from - 1), from, '\0', '\0')
+      : '';
+  const prefix = textBefore && !/\s/.test(textBefore) ? ' ' : '';
+  const tr = editorState.tr.insertText(`${prefix}${char}`, from, to);
+  editorView.dispatch(tr);
+}
+
+defineExpose({ focusEditorInputField, insertMentionTrigger });
 </script>
 
 <template>
@@ -956,11 +992,20 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       'opacity-50 cursor-not-allowed pointer-events-none': disabled,
     }"
   >
+    <TagGroupMembers
+      v-if="showUserMentions && isGroupConversation && !isPrivate"
+      :search-key="mentionSearchKey"
+      :group-contact-id="groupContactId"
+      :exclude-phone-number="inboxPhoneNumber"
+      @select-agent="content => insertSpecialContent('mention', content)"
+    />
     <TagAgents
-      v-if="shouldShowUserMentions"
+      v-if="showUserMentions && (isPrivate || enableMentionDropdown)"
       :caret-position="caretPosition"
       :search-key="mentionSearchKey"
+      :exclude-user-id="enableMentionDropdown ? currentUser?.id : null"
       @close="dismissUserMentions"
+      @release="releaseUserMentions"
       @remove-trigger="removeSuggestionTrigger"
       @select-agent="content => insertSpecialContent('mention', content)"
     />
@@ -971,6 +1016,7 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       :variables="variables"
       :schema="editorSchema"
       @close="dismissCannedResponses"
+      @release="releaseCannedResponses"
       @remove-trigger="removeSuggestionTrigger"
       @replace="content => insertSpecialContent('cannedResponse', content)"
     />
@@ -979,7 +1025,9 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       :caret-position="caretPosition"
       :search-key="variableSearchKey"
       :variables="variables"
+      :automation="enableAutomationVariables"
       @close="dismissVariables"
+      @release="releaseVariables"
       @remove-trigger="removeSuggestionTrigger"
       @select-variable="content => insertSpecialContent('variable', content)"
     />
@@ -988,6 +1036,7 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       :caret-position="caretPosition"
       :search-key="macroSearchKey"
       @close="dismissMacros"
+      @release="releaseMacros"
       @remove-trigger="removeSuggestionTrigger"
       @select-macro="onSelectMacro"
     />
@@ -996,6 +1045,7 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       :caret-position="caretPosition"
       :search-key="emojiSearchKey"
       @close="dismissEmojiMenu"
+      @release="releaseEmojiMenu"
       @remove-trigger="removeSuggestionTrigger"
       @select-emoji="emoji => insertSpecialContent('emoji', emoji)"
     />
@@ -1003,6 +1053,11 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       v-if="showToolsMenu"
       :search-key="toolSearchKey"
       @select-tool="content => insertSpecialContent('tool', content)"
+    />
+    <TagConversations
+      v-if="showConversationMenu && enableConversationMention"
+      :search-key="conversationSearchKey"
+      @select-conversation="content => insertSpecialContent('mention', content)"
     />
     <CopilotMenuBar
       v-if="showSelectionMenu"
@@ -1023,13 +1078,77 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       hidden
       @change="onFileChange"
     />
+    <!-- Signature preview at top -->
+    <div
+      v-if="shouldShowSignaturePreview && signaturePosition === 'top'"
+      v-tooltip="t('CONVERSATION.FOOTER.SIGNATURE_LABEL_TOP_TOOLTIP')"
+      class="signature-preview signature-preview--top"
+    >
+      <div class="signature-label">
+        {{ t('CONVERSATION.FOOTER.SIGNATURE_LABEL_TOP') }}
+      </div>
+      <div v-dompurify-html="formattedSignature" class="signature-content" />
+      <div v-if="signatureSeparator === '--'" class="signature-separator">
+        {{ signatureSeparator }}
+      </div>
+    </div>
     <div ref="editor" />
+    <!-- Signature preview at bottom -->
+    <div
+      v-if="shouldShowSignaturePreview && signaturePosition === 'bottom'"
+      v-tooltip="t('CONVERSATION.FOOTER.SIGNATURE_LABEL_BOTTOM_TOOLTIP')"
+      class="signature-preview signature-preview--bottom"
+    >
+      <div class="signature-label">
+        {{ t('CONVERSATION.FOOTER.SIGNATURE_LABEL_BOTTOM') }}
+      </div>
+      <div v-if="signatureSeparator === '--'" class="signature-separator">
+        {{ signatureSeparator }}
+      </div>
+      <div v-dompurify-html="formattedSignature" class="signature-content" />
+    </div>
     <slot name="footer" />
   </div>
 </template>
 
 <style lang="scss">
 @import '@chatwoot/prosemirror-schema/src/styles/base.scss';
+
+.signature-preview {
+  @apply px-1 py-1 text-n-slate-10 text-sm select-none opacity-70 cursor-default;
+
+  &--top {
+    @apply border-b border-n-weak pb-1;
+
+    .signature-separator {
+      @apply text-n-slate-9 mt-1 mb-0;
+    }
+  }
+
+  &--bottom {
+    @apply border-t border-n-weak pt-1 mt-2;
+
+    .signature-separator {
+      @apply text-n-slate-9 mb-1 mt-0;
+    }
+  }
+
+  .signature-label {
+    @apply text-xs text-n-slate-9 mb-1;
+  }
+
+  .signature-content {
+    @apply break-words;
+
+    :deep(p) {
+      @apply m-0 text-n-slate-10;
+    }
+
+    :deep(a) {
+      @apply text-n-slate-10 no-underline;
+    }
+  }
+}
 
 .ProseMirror-menubar-wrapper {
   @apply flex flex-col gap-3;
@@ -1138,6 +1257,15 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
         @apply text-n-slate-12;
       }
     }
+  }
+}
+
+.prosemirror-mention-node[mention-type='conversation'] {
+  font-size: 0;
+
+  &::before {
+    font-size: 0.875rem;
+    content: '#' attr(mention-user-full-name);
   }
 }
 
