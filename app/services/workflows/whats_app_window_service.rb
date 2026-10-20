@@ -11,6 +11,16 @@ module Workflows
     def window_status
       return { open: false, reason: 'conversation_missing' } if @conversation.blank?
 
+      if session_family_channel?
+        return {
+          open: true,
+          last_customer_message_at: last_customer_message&.created_at,
+          expires_at: nil,
+          remaining_seconds: nil,
+          reason: 'session_channel_always_open'
+        }
+      end
+
       last_msg = last_customer_message
       if last_msg.blank?
         return {
@@ -49,6 +59,12 @@ module Workflows
     end
 
     private
+
+    def session_family_channel?
+      @conversation&.inbox&.channel_type == 'Channel::Whatsapp' &&
+        @conversation.inbox.channel.respond_to?(:session_family?) &&
+        @conversation.inbox.channel.session_family?
+    end
 
     def last_customer_message
       return nil if @conversation.blank?

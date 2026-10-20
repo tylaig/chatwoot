@@ -118,8 +118,10 @@ class Whatsapp::Session::Facade
   end
 
   # Session providers pair a real phone: there is no template catalog to sync and no
-  # template to send.
+  # template to send. Stamp `message_templates_last_updated` so TemplatesSyncSchedulerJob
+  # does not re-enqueue this channel on every cron cycle.
   def sync_templates
+    channel.mark_message_templates_updated
     true
   end
 

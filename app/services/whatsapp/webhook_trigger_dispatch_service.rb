@@ -57,7 +57,9 @@ class Whatsapp::WebhookTriggerDispatchService
   end
 
   def find_or_create_contact(account, phone)
-    contact = account.contacts.find_by(phone_number: phone)
+    variants = Whatsapp::Session::PhoneMatch.variants(phone).map { |v| "+#{v}" }
+    contact = account.contacts.find_by(phone_number: phone) ||
+              (account.contacts.find_by(phone_number: variants) if variants.any?)
     return contact if contact.present?
 
     account.contacts.create!(

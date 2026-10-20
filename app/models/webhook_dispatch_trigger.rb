@@ -280,7 +280,11 @@ class WebhookDispatchTrigger < ApplicationRecord
   end
 
   def resolve_contact!(identity)
-    contact = account.contacts.find_by(phone_number: identity[:phone]) if identity[:phone].present?
+    if identity[:phone].present?
+      variants = Whatsapp::Session::PhoneMatch.variants(identity[:phone]).map { |v| "+#{v}" }
+      contact = account.contacts.find_by(phone_number: identity[:phone]) ||
+                (account.contacts.find_by(phone_number: variants) if variants.any?)
+    end
     contact ||= account.contacts.where('LOWER(email) = ?', identity[:email]).first if identity[:email].present?
     contact ||= account.contacts.find_by(identifier: identity[:identifier]) if identity[:identifier].present?
     return refresh_contact!(contact, identity) if contact
