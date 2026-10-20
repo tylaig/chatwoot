@@ -5,10 +5,7 @@ class EnforceContactFkOnConversations < ActiveRecord::Migration[7.1]
     )
 
     count = orphan_scope.count
-    if count.positive?
-      say "Destroying #{count} orphan conversations via Rails so dependent associations are cleaned up"
-      orphan_scope.find_each(&:destroy!)
-    end
+    raise ActiveRecord::MigrationError, "#{count} conversations have no valid contact; reconcile them before enforcing NOT NULL" if count.positive?
 
     change_column_null :conversations, :contact_id, false
   end
