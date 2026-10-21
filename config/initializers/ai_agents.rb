@@ -18,6 +18,10 @@ module RubyLlmGatewayCompat
     def parameters_schema_for(tool)
       strip_strict(super)
     end
+
+    def tool_for(tool)
+      strip_strict(super)
+    end
   end
 
   module MediaPatch
