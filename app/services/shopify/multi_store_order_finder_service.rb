@@ -104,6 +104,29 @@ class Shopify::MultiStoreOrderFinderService
     )
   end
 
+  def self.refresh_hook_access_token!(hook)
+    return nil if hook.blank?
+
+    cid = hook.settings&.dig('client_id').to_s.strip
+    csec = hook.settings&.dig('client_secret').to_s.strip
+    return nil if cid.blank? || csec.blank?
+
+    res = HTTParty.post(
+      "https://#{hook.reference_id}/admin/oauth/access_token",
+      headers: { 'Content-Type' => 'application/x-www-form-urlencoded', 'Accept' => 'application/json' },
+      body: URI.encode_www_form(grant_type: 'client_credentials', client_id: cid, client_secret: csec),
+      timeout: 10
+    )
+    return nil unless res.success? && res.parsed_response.is_a?(Hash) && res.parsed_response['access_token'].present?
+
+    new_token = res.parsed_response['access_token']
+    hook.update!(access_token: new_token)
+    new_token
+  rescue StandardError => e
+    Rails.logger.warn("[Shopify::MultiStoreOrderFinderService] Failed to refresh token for hook=#{hook.id}: #{e.message}")
+    nil
+  end
+
   def self.fetch_products_for_hook!(hook)
     is_mock = hook.settings&.dig('auth_mode') == 'mock' || mock_token?(hook.access_token)
     if is_mock
@@ -119,6 +142,18 @@ class Shopify::MultiStoreOrderFinderService
       },
       timeout: 15
     )
+
+    if response.code == 401 && refresh_hook_access_token!(hook).present?
+      response = HTTParty.get(
+        "https://#{hook.reference_id}/admin/api/#{API_VERSION}/products.json",
+        query: { limit: 50, fields: 'id,title,handle,status,vendor,product_type,variants,images,updated_at' },
+        headers: {
+          'X-Shopify-Access-Token' => hook.access_token.to_s.strip,
+          'Content-Type' => 'application/json'
+        },
+        timeout: 15
+      )
+    end
 
     unless response.success? && response.parsed_response.is_a?(Hash)
       raise StandardError, "Falha ao buscar produtos na Shopify (#{response.code})"
@@ -1101,6 +1136,17 @@ class Shopify::MultiStoreOrderFinderService
       },
       timeout: 10
     )
+    if response.code == 401 && self.class.refresh_hook_access_token!(hook).present?
+      response = HTTParty.get(
+        "https://#{hook.reference_id}/admin/api/#{API_VERSION}/#{endpoint}",
+        query: query_params,
+        headers: {
+          'X-Shopify-Access-Token' => hook.access_token.to_s.strip,
+          'Content-Type' => 'application/json'
+        },
+        timeout: 10
+      )
+    end
     return {} unless response.success? && response.parsed_response.is_a?(Hash)
 
     response.parsed_response

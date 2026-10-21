@@ -10,7 +10,9 @@
     "knowledge_cutoff": null,
     "modalities": {
       "input": [
-        "text"
+        "text",
+        "image",
+        "pdf"
       ],
       "output": [
         "text"
@@ -19,7 +21,8 @@
     "capabilities": [
       "chat",
       "function_calling",
-      "structured_output"
+      "structured_output",
+      "vision"
     ],
     "pricing": {
       "text_tokens": {
@@ -62247,8 +62250,14 @@
     "max_output_tokens": 400000,
     "knowledge_cutoff": null,
     "modalities": {
-      "input": [],
-      "output": []
+      "input": [
+        "text",
+        "image",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
     },
     "capabilities": [
       "function_calling",

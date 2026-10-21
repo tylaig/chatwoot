@@ -102,11 +102,7 @@ const selectStoreFromDropdown = hookIdOrAll => {
 
 const goToShopifySettings = () => {
   showStoreSwitcherDropdown.value = false;
-  router.push(
-    accountScopedRoute('settings_integrations_integration', {
-      integration_id: 'shopify',
-    })
-  );
+  router.push(accountScopedRoute('settings_integrations_shopify'));
 };
 
 const fetchOrders = async () => {
