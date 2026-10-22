@@ -175,6 +175,9 @@ if resource.whatsapp?
   # What this provider can do, so the dashboard gates features by capability instead of
   # by provider name. See Whatsapp::Session::Capabilities.
   json.capabilities resource.channel.try(:session_capabilities)
+  if resource.channel.try(:provider) == 'whatsapp_cloud'
+    json.monthly_service_quota resource.channel.try(:monthly_service_quota_data)
+  end
 end
 
 ## Voice attributes for TwilioSms

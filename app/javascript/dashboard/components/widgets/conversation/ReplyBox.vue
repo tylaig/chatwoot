@@ -412,6 +412,10 @@ export default {
       if (this.isAnnouncementModeRestricted && !this.isOnPrivateNote) {
         return this.$t('CONVERSATION.FOOTER.ANNOUNCEMENT_MODE_RESTRICTED');
       }
+      if (this.isWhatsappServiceQuotaBlocked && !this.isOnPrivateNote) {
+        const q = this.inbox?.monthly_service_quota;
+        return `Envio bloqueado pela trava da franquia mensal da API Oficial (${q?.used || 0}/${q?.safe_cap || 990}). Clique em "Usar além do limite" acima para liberar.`;
+      }
       if (this.isEditorDisabled) {
         if (this.isAWhatsAppChannel) {
           return this.$t('CONVERSATION.FOOTER.MESSAGING_RESTRICTED_WHATSAPP');
@@ -667,6 +671,12 @@ export default {
     isDefaultEditorMode() {
       return !this.showAudioRecorderEditor && !this.copilot.isActive.value;
     },
+    isWhatsappServiceQuotaBlocked() {
+      return Boolean(
+        this.isAWhatsAppCloudChannel &&
+          this.inbox?.monthly_service_quota?.blocked
+      );
+    },
     isEditorDisabled() {
       if (this.isGroupsDisabled && !this.isOnPrivateNote) {
         return true;
@@ -675,6 +685,9 @@ export default {
         return true;
       }
       if (this.isAnnouncementModeRestricted && !this.isOnPrivateNote) {
+        return true;
+      }
+      if (this.isWhatsappServiceQuotaBlocked && !this.isOnPrivateNote) {
         return true;
       }
       return (

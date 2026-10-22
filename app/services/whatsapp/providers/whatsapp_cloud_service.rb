@@ -23,6 +23,8 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
 
     if message.attachments.present?
       send_attachment_message(phone_number, message)
+    elsif cta_url_payload(message).present?
+      send_cta_url_message(phone_number, message)
     elsif message.content_type == 'input_select'
       send_interactive_text_message(phone_number, message)
     elsif message.content_attributes[:is_reaction]
@@ -388,6 +390,50 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
         interactive: payload,
         type: 'interactive'
       }.to_json
+    )
+
+    process_response(response, message)
+  end
+
+  def cta_url_payload(message)
+    cta = message.content_attributes[:cta_url] || message.content_attributes['cta_url']
+    return nil unless cta.is_a?(Hash)
+
+    url = (cta[:url] || cta['url']).to_s.strip
+    display_text = (cta[:display_text] || cta['display_text']).to_s.strip
+    return nil if url.blank? || display_text.blank?
+
+    interactive = {
+      type: 'cta_url',
+      body: { text: message.outgoing_content.to_s },
+      action: {
+        name: 'cta_url',
+        parameters: {
+          display_text: display_text.first(20),
+          url: url
+        }
+      }
+    }
+
+    header_text = (cta[:header_text] || cta['header_text']).to_s.strip
+    footer_text = (cta[:footer_text] || cta['footer_text']).to_s.strip
+    interactive[:header] = { type: 'text', text: header_text.first(60) } if header_text.present?
+    interactive[:footer] = { text: footer_text.first(60) } if footer_text.present?
+    interactive
+  end
+
+  def send_cta_url_message(phone_number, message)
+    response = post_outgoing(
+      "#{phone_id_path('v22.0')}/messages",
+      headers: api_headers,
+      body: {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        context: whatsapp_reply_context(message),
+        **recipient_params(phone_number),
+        type: 'interactive',
+        interactive: cta_url_payload(message)
+      }.compact.to_json
     )
 
     process_response(response, message)

@@ -23,9 +23,25 @@ class Api::V1::Accounts::WhatsappTemplatesController < Api::V1::Accounts::BaseCo
       rejected: @templates.rejected.count
     }
 
+    cloud_inboxes = Current.account.inboxes.joins("INNER JOIN channel_whatsapp ON channel_whatsapp.id = inboxes.channel_id AND inboxes.channel_type = 'Channel::Whatsapp'")
+                           .where("channel_whatsapp.provider = 'whatsapp_cloud' AND inboxes.legacy = FALSE")
+                           .includes(:channel)
+
+    service_quotas = cloud_inboxes.filter_map do |inbox|
+      quota = inbox.channel.try(:monthly_service_quota_data)
+      next unless quota
+
+      quota.merge(
+        inbox_id: inbox.id,
+        inbox_name: inbox.name,
+        phone_number: inbox.channel.try(:phone_number)
+      )
+    end
+
     render json: {
       templates: @templates,
-      stats: stats
+      stats: stats,
+      service_quotas: service_quotas
     }
   end
 

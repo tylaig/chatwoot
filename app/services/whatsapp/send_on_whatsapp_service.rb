@@ -15,6 +15,17 @@ class Whatsapp::SendOnWhatsappService < Base::SendOnChannelService
     return send_contact_info_request if contact_info_request?
 
     if message.conversation.can_reply?
+      if channel.provider == 'whatsapp_cloud' && channel.service_limit_reached?
+        used = channel.monthly_service_messages_count
+        safe_cap = channel.monthly_service_safe_cap
+        limit = channel.monthly_service_limit
+        message.update_under_lock!(
+          status: :failed,
+          external_error: "Envio bloqueado pela trava de segurança da franquia mensal da API Oficial (#{used}/#{safe_cap} mensagens — teto de #{limit}/mês). Para enviar além do limite, ative a liberação na caixa de entrada."
+        )
+        return
+      end
+
       return channel.provider == 'baileys' ? send_baileys_session_message : send_session_message
     end
 

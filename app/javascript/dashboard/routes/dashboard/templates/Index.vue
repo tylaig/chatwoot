@@ -18,6 +18,8 @@ const inboxes = useMapGetter('inboxes/getInboxes');
 const templates = ref([]);
 const contentTab = ref('visual');
 const stats = ref({ total: 0, approved: 0, pending: 0, rejected: 0 });
+const serviceQuotas = ref([]);
+const isTogglingQuotaInboxId = ref(null);
 const isLoading = ref(true);
 const isSyncing = ref(false);
 const searchQuery = ref('');
@@ -84,6 +86,7 @@ const fetchTemplates = async () => {
       pending: 0,
       rejected: 0,
     };
+    serviceQuotas.value = res.data.service_quotas || [];
     if (previewTemplate.value) {
       previewTemplate.value =
         templates.value.find(tpl => tpl.id === previewTemplate.value.id) ||
@@ -136,6 +139,44 @@ onMounted(() => {
 onBeforeUnmount(() => {
   wideLayoutQuery?.removeEventListener('change', syncWideLayout);
 });
+
+const scopedServiceQuotas = computed(() => {
+  if (selectedInbox.value === 'ALL') return serviceQuotas.value;
+  return serviceQuotas.value.filter(
+    q => Number(q.inbox_id) === Number(selectedInbox.value)
+  );
+});
+
+const toggleInboxAllowExceed = async quota => {
+  if (!quota?.inbox_id || isTogglingQuotaInboxId.value) return;
+  isTogglingQuotaInboxId.value = quota.inbox_id;
+  try {
+    const inboxObj = (inboxes.value || []).find(
+      i => Number(i.id) === Number(quota.inbox_id)
+    );
+    const nextAllow = !quota.allow_exceed;
+    await store.dispatch('inboxes/updateInbox', {
+      id: quota.inbox_id,
+      formData: false,
+      channel: {
+        provider_config: {
+          ...(inboxObj?.provider_config || {}),
+          allow_exceed_service_limit: nextAllow,
+        },
+      },
+    });
+    await fetchTemplates();
+    useAlert(
+      nextAllow
+        ? `Uso além do limite liberado em ${quota.inbox_name}.`
+        : `Trava automática de ${quota.safe_cap} mensagens reativada em ${quota.inbox_name}.`
+    );
+  } catch (err) {
+    useAlert('Não foi possível alterar a trava de limite desta caixa.');
+  } finally {
+    isTogglingQuotaInboxId.value = null;
+  }
+};
 
 const inboxScopedTemplates = computed(() => {
   if (selectedInbox.value === 'ALL') return templates.value;
@@ -640,6 +681,77 @@ const removeTemplate = async tpl => {
               }}
             </span>
           </button>
+        </div>
+
+        <div
+          v-if="scopedServiceQuotas.length"
+          class="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1"
+        >
+          <div
+            v-for="q in scopedServiceQuotas"
+            :key="q.inbox_id"
+            class="flex flex-col gap-1.5 p-3 rounded-xl border border-n-weak bg-n-solid-1"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span
+                  class="i-lucide-shield-check size-3.5 shrink-0 text-n-brand"
+                />
+                <span class="text-xs font-semibold text-n-slate-12 truncate">
+                  {{ q.inbox_name }}
+                </span>
+              </div>
+              <button
+                type="button"
+                class="h-6 px-2 rounded-md text-[11px] font-medium border transition-colors shrink-0"
+                :class="
+                  q.allow_exceed
+                    ? 'border-n-amber-9/40 bg-n-amber-9/15 text-n-amber-11 hover:bg-n-amber-9/25'
+                    : 'border-n-weak bg-n-alpha-1 text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2'
+                "
+                :disabled="isTogglingQuotaInboxId === q.inbox_id"
+                @click="toggleInboxAllowExceed(q)"
+              >
+                {{
+                  q.allow_exceed
+                    ? 'Liberado (+ limite)'
+                    : 'Usar além do limite'
+                }}
+              </button>
+            </div>
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-n-slate-11">
+                Franquia mensal (Sessão/Auto-Aviso):
+              </span>
+              <span
+                class="font-semibold"
+                :class="
+                  q.blocked
+                    ? 'text-n-ruby-11'
+                    : q.used >= Math.floor(q.safe_cap * 0.85)
+                      ? 'text-n-amber-11'
+                      : 'text-green-600 dark:text-green-400'
+                "
+              >
+                {{ q.used }} / {{ q.limit }} (trava {{ q.safe_cap }})
+              </span>
+            </div>
+            <div class="w-full h-1.5 rounded-full bg-n-alpha-2 overflow-hidden">
+              <div
+                class="h-full transition-all duration-300"
+                :class="
+                  q.blocked
+                    ? 'bg-n-ruby-9'
+                    : q.used >= Math.floor(q.safe_cap * 0.85)
+                      ? 'bg-n-amber-9'
+                      : 'bg-green-500'
+                "
+                :style="{
+                  width: `${Math.min(100, Math.round((q.used / (q.limit || 1000)) * 100))}%`,
+                }"
+              />
+            </div>
+          </div>
         </div>
       </div>
 

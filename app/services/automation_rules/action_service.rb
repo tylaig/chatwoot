@@ -52,9 +52,73 @@ class AutomationRules::ActionService < ActionService
 
   def send_message(message)
     return if conversation_a_tweet?
+    return if skip_whatsapp_cloud_auto_reply?
 
-    params = { content: message[0], private: false, content_attributes: { automation_rule_id: @rule.id } }
+    content_text, cta_url = parse_message_and_cta_url(message)
+    content_attrs = { automation_rule_id: @rule.id }
+    content_attrs[:cta_url] = cta_url if cta_url.present?
+
+    params = { content: content_text, private: false, content_attributes: content_attrs }
     Messages::MessageBuilder.new(nil, @conversation, params).perform
+  end
+
+  def skip_whatsapp_cloud_auto_reply?
+    channel = @conversation.inbox&.channel
+    return false unless channel.is_a?(Channel::Whatsapp) && channel.provider == 'whatsapp_cloud'
+
+    return true if channel.service_limit_reached?
+
+    cooldown_hours = (channel.provider_config['auto_reply_cooldown_hours'].presence || 24).to_i
+    return false unless cooldown_hours.positive?
+
+    @conversation.messages.outgoing
+                 .where("content_attributes->>'automation_rule_id' = ?", @rule.id.to_s)
+                 .where('created_at >= ?', cooldown_hours.hours.ago)
+                 .where.not(status: :failed)
+                 .exists?
+  end
+
+  def parse_message_and_cta_url(message)
+    raw = Array(message).first
+    if raw.is_a?(Hash)
+      hash = raw.with_indifferent_access
+      return [hash[:content].to_s, hash[:cta_url]]
+    end
+
+    text = raw.to_s
+    cta = extract_inline_cta_tag(text)
+    if cta
+      cleaned = text.sub(/\[CTA_URL:\s*([^|\]]+?)\s*\|\s*(https?:\/\/[^\s\]]+)\s*\]/i, '').strip
+      return [cleaned, cta]
+    end
+
+    auto_cta = infer_whatsapp_cloud_cta_url(text)
+    [text, auto_cta]
+  end
+
+  def extract_inline_cta_tag(text)
+    match = text.match(/\[CTA_URL:\s*([^|\]]+?)\s*\|\s*(https?:\/\/[^\s\]]+)\s*\]/i)
+    return nil unless match
+
+    {
+      'display_text' => match[1].strip.first(20),
+      'url' => match[2].strip,
+      'footer_text' => 'Canal exclusivo de notificações'
+    }
+  end
+
+  def infer_whatsapp_cloud_cta_url(text)
+    channel = @conversation.inbox&.channel
+    return nil unless channel.is_a?(Channel::Whatsapp) && channel.provider == 'whatsapp_cloud'
+
+    url_match = text.match(%r{https?://[^\s*)]+}i)
+    return nil unless url_match
+
+    {
+      'display_text' => 'Falar no Chat Agora',
+      'url' => url_match[0].sub(/[.,;]+$/, ''),
+      'footer_text' => 'Atendimento todos os dias, 11h às 22h'
+    }
   end
 
   def add_private_note(message)

@@ -25,6 +25,58 @@ const { t } = useI18n();
 const currentChat = useMapGetter('getSelectedChat');
 const currentUser = useMapGetter('getCurrentUser');
 
+const currentInbox = computed(() => {
+  const inboxId = currentChat.value?.inbox_id;
+  if (!inboxId) return null;
+  return store.getters['inboxes/getInbox'](inboxId);
+});
+
+const whatsappServiceQuota = computed(() => {
+  if (
+    currentInbox.value?.channel_type !== 'Channel::Whatsapp' ||
+    currentInbox.value?.provider !== 'whatsapp_cloud'
+  ) {
+    return null;
+  }
+  return currentInbox.value?.monthly_service_quota || null;
+});
+
+const showQuotaBlockedBanner = computed(() => {
+  if (props.isOnPrivateNote) return false;
+  return Boolean(whatsappServiceQuota.value?.blocked);
+});
+
+const showQuotaWarningBanner = computed(() => {
+  if (props.isOnPrivateNote || showQuotaBlockedBanner.value) return false;
+  const q = whatsappServiceQuota.value;
+  if (!q || !q.enabled) return false;
+  if (q.allow_exceed && q.used >= q.safe_cap) return true;
+  return q.used >= Math.floor(q.safe_cap * 0.85);
+});
+
+const toggleAllowExceedQuota = async allowExceed => {
+  if (!currentInbox.value?.id) return;
+  try {
+    await store.dispatch('inboxes/updateInbox', {
+      id: currentInbox.value.id,
+      formData: false,
+      channel: {
+        provider_config: {
+          ...(currentInbox.value.provider_config || {}),
+          allow_exceed_service_limit: allowExceed,
+        },
+      },
+    });
+    useAlert(
+      allowExceed
+        ? 'Uso além do limite mensal liberado nesta caixa de entrada.'
+        : 'Trava de segurança da franquia mensal reativada nesta caixa de entrada.'
+    );
+  } catch (error) {
+    useAlert('Não foi possível atualizar a configuração de limite desta caixa.');
+  }
+};
+
 const assignedAgent = computed(() => currentChat.value?.meta?.assignee);
 
 const assignAgent = agent =>
@@ -110,6 +162,34 @@ const onClickBotHandoff = async () => {
 </script>
 
 <template>
+  <Banner
+    v-if="showQuotaBlockedBanner"
+    action-button-variant="solid"
+    color-scheme="alert"
+    class="mx-2 mb-2 rounded-lg !py-2"
+    :banner-message="`Trava da API Oficial atingida (${whatsappServiceQuota.used}/${whatsappServiceQuota.safe_cap} respostas no mês — franquia gratuita: ${whatsappServiceQuota.limit}). Envios pausados para evitar cobrança da Meta.`"
+    has-action-button
+    action-button-label="Usar além do limite"
+    @primary-action="toggleAllowExceedQuota(true)"
+  />
+  <Banner
+    v-else-if="showQuotaWarningBanner"
+    action-button-variant="ghost"
+    color-scheme="warning"
+    class="mx-2 mb-2 rounded-lg !py-2"
+    :banner-message="
+      whatsappServiceQuota.allow_exceed
+        ? `Franquia mensal liberada acima da trava (${whatsappServiceQuota.used}/${whatsappServiceQuota.limit} respostas enviadas no mês).`
+        : `Atenção: franquia mensal da API Oficial em ${whatsappServiceQuota.used}/${whatsappServiceQuota.limit} respostas (trava automática em ${whatsappServiceQuota.safe_cap}).`
+    "
+    has-action-button
+    :action-button-label="
+      whatsappServiceQuota.allow_exceed
+        ? 'Reativar trava'
+        : 'Liberar além do limite'
+    "
+    @primary-action="toggleAllowExceedQuota(!whatsappServiceQuota.allow_exceed)"
+  />
   <Banner
     v-if="showSelfAssignBanner && !showBotHandoffBanner"
     action-button-variant="ghost"

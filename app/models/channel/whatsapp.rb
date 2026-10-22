@@ -102,6 +102,72 @@ class Channel::Whatsapp < ApplicationRecord # rubocop:disable Metrics/ClassLengt
     save!(validate: false)
   end
 
+  DEFAULT_MONTHLY_SERVICE_LIMIT = 1000
+  DEFAULT_MONTHLY_SERVICE_SAFE_CAP = 990
+
+  def monthly_service_limit_enabled?
+    return false unless provider == 'whatsapp_cloud'
+
+    provider_config['monthly_service_limit_enabled'] != false
+  end
+
+  def monthly_service_limit
+    val = provider_config['monthly_service_limit'].to_i
+    val.positive? ? val : DEFAULT_MONTHLY_SERVICE_LIMIT
+  end
+
+  def monthly_service_safe_cap
+    val = provider_config['monthly_service_safe_cap'].to_i
+    return val if val.positive?
+
+    limit = monthly_service_limit
+    limit >= 100 ? (limit - 10) : limit
+  end
+
+  def allow_exceed_service_limit?
+    ActiveModel::Type::Boolean.new.cast(provider_config['allow_exceed_service_limit'])
+  end
+
+  def monthly_service_messages_count(reference_time = Time.current)
+    return 0 if inbox.blank?
+
+    month_start = reference_time.beginning_of_month
+    inbox.messages.outgoing
+         .where('created_at >= ?', month_start)
+         .where("additional_attributes->'template_params' IS NULL")
+         .where.not(status: :failed)
+         .count
+  end
+
+  def service_limit_reached?(reference_time = Time.current)
+    return false unless monthly_service_limit_enabled?
+    return false if allow_exceed_service_limit?
+
+    monthly_service_messages_count(reference_time) >= monthly_service_safe_cap
+  end
+
+  def monthly_service_quota_data(reference_time = Time.current)
+    return nil unless provider == 'whatsapp_cloud'
+
+    used = monthly_service_messages_count(reference_time)
+    limit = monthly_service_limit
+    safe_cap = monthly_service_safe_cap
+    enabled = monthly_service_limit_enabled?
+    allow_exceed = allow_exceed_service_limit?
+
+    {
+      enabled: enabled,
+      used: used,
+      limit: limit,
+      safe_cap: safe_cap,
+      remaining: [limit - used, 0].max,
+      safe_remaining: [safe_cap - used, 0].max,
+      allow_exceed: allow_exceed,
+      blocked: enabled && !allow_exceed && used >= safe_cap,
+      reset_at: reference_time.end_of_month.iso8601
+    }
+  end
+
   # Mutes only the incoming side of calling; default on, so only an explicit false disables inbound.
   def inbound_calls_enabled?
     provider_config['inbound_calls_enabled'] != false
@@ -652,10 +718,29 @@ class Channel::Whatsapp < ApplicationRecord # rubocop:disable Metrics/ClassLengt
   # sentence of its own. Only that one class is rescued: a defect of ours inside the check escapes as
   # itself, because telling the operator to try again is no use when the thing to fix is the code.
   def validate_provider_config
+    return true if provider == 'whatsapp_cloud' && !new_record? && !provider_changed? && only_service_quota_config_changed?
+
     errors.add(:provider_config, 'Invalid Credentials') unless provider_service.validate_provider_config?
   rescue Whatsapp::CredentialCheck::Unavailable => e
     Rails.logger.warn("[WHATSAPP] Credential check could not be completed for #{provider} channel #{id || 'new'}: #{e.message}")
     errors.add(:provider_config, I18n.t('errors.inboxes.channel.credential_check_unavailable'))
+  end
+
+  SERVICE_QUOTA_CONFIG_KEYS = %w[
+    monthly_service_limit_enabled
+    monthly_service_limit
+    monthly_service_safe_cap
+    allow_exceed_service_limit
+  ].freeze
+
+  def only_service_quota_config_changed?
+    return false unless provider_config_changed?
+
+    before, after = provider_config_change
+    before_hash = (before || {}).to_h
+    after_hash = (after || {}).to_h
+    changed_keys = (before_hash.keys | after_hash.keys).select { |k| before_hash[k] != after_hash[k] }
+    changed_keys.present? && (changed_keys - SERVICE_QUOTA_CONFIG_KEYS).empty?
   end
 
   # Logs only the embedded signup → manual migration (the save drops the

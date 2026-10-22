@@ -39,6 +39,20 @@ const contactInfoRequestState = computed(() => {
   return contentAttributes.value?.whatsappContactInfo?.state;
 });
 
+const ctaUrlButton = computed(() => {
+  const cta =
+    contentAttributes.value?.ctaUrl || contentAttributes.value?.cta_url;
+  if (!cta || typeof cta !== 'object') return null;
+  const url = cta.url;
+  const displayText = cta.displayText || cta.display_text;
+  if (!url || !displayText) return null;
+  return {
+    url,
+    displayText,
+    footerText: cta.footerText || cta.footer_text || null,
+  };
+});
+
 const isEmpty = computed(() => {
   return !content.value && !attachments.value?.length;
 });
@@ -55,6 +69,22 @@ const handleSeeOriginal = () => {
         {{ $t('CONVERSATION.NO_CONTENT') }}
       </span>
       <FormattedContent v-if="renderContent" :content="renderContent" />
+      <p
+        v-if="ctaUrlButton && ctaUrlButton.footerText"
+        class="mb-0 text-xs text-n-slate-11"
+      >
+        {{ ctaUrlButton.footerText }}
+      </p>
+      <a
+        v-if="ctaUrlButton"
+        :href="ctaUrlButton.url"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-center no-underline rounded-lg bg-n-alpha-black1 hover:bg-n-alpha-black2 text-n-slate-12 transition-colors"
+      >
+        <span class="i-lucide-external-link size-3.5 shrink-0" />
+        <span>{{ ctaUrlButton.displayText }}</span>
+      </a>
       <span
         v-if="contactInfoRequestState === 'pending'"
         class="text-xs font-medium text-n-slate-11"
