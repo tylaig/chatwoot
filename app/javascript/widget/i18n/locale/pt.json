@@ -18,9 +18,30 @@
     }
   },
   "TEAM_AVAILABILITY": {
-    "ONLINE": "Estamos online",
-    "OFFLINE": "Estamos ausentes",
-    "BACK_AS_SOON_AS_POSSIBLE": "We will be back as soon as possible"
+    "ONLINE": "Atendimento Rápido e Equipe de Suporte",
+    "OFFLINE": "Atendimento Rápido 24h (Equipe de Suporte das 11h às 22h)",
+    "BACK_AS_SOON_AS_POSSIBLE": "Equipe de suporte retorna em breve",
+    "HUMAN_TEAM_BADGE": "Equipe de Suporte",
+    "HUMAN_ONLINE_TITLE": "Online Agora",
+    "HUMAN_OFFLINE_TITLE": "Offline no Momento",
+    "HUMAN_ONLINE_SUBTITLE": "Atendimento disponível das 11h às 22h (Horário de Brasília)",
+    "HUMAN_OFFLINE_SUBTITLE": "Retorna amanhã, a partir das 11h (Horário de Brasília)",
+    "BOT_CARD_TITLE": "Leo • Atendimento Rápido",
+    "BOT_CARD_ONLINE_BADGE": "Online 24h",
+    "BOT_CARD_OFFLINE_BADGE": "Plantão 24h",
+    "BOT_CARD_ONLINE_DESC_PREFIX": "Inicia seu atendimento na hora para",
+    "BOT_CARD_ONLINE_HIGHLIGHT_1": "consultar pedidos,",
+    "BOT_CARD_ONLINE_HIGHLIGHT_2": "enviar tutoriais",
+    "BOT_CARD_ONLINE_DESC_SUFFIX": "e agilizar seu suporte.",
+    "BOT_CARD_OFFLINE_DESC_PREFIX": "Disponível agora para adiantar",
+    "BOT_CARD_OFFLINE_HIGHLIGHT_1": "dados do pedido,",
+    "BOT_CARD_OFFLINE_HIGHLIGHT_2": "passo a passo de instalação",
+    "BOT_CARD_OFFLINE_DESC_MID": "e",
+    "BOT_CARD_OFFLINE_HIGHLIGHT_3": "dúvidas rápidas.",
+    "BOT_CARD_ONLINE_FOOTER_HINT": "Equipe ativa",
+    "BOT_CARD_OFFLINE_FOOTER_HINT": "Resposta imediata",
+    "BOT_CARD_ONLINE_SUBTITLE": "Online • Equipe de suporte disponível agora",
+    "BOT_CARD_OFFLINE_SUBTITLE": "Online • Equipe de suporte retorna às 11h"
   },
   "REPLY_TIME": {
     "IN_A_FEW_MINUTES": "Normalmente respondemos em poucos minutos",

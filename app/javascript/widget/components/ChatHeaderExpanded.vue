@@ -31,15 +31,19 @@ const containerClasses = computed(() => [
 
 <template>
   <header
-    class="header-expanded pt-6 pb-4 px-5 relative box-border w-full bg-transparent"
+    class="header-expanded pt-6 pb-2 px-5 relative box-border w-full bg-transparent"
   >
     <div class="flex items-start" :class="containerClasses">
-      <img
+      <div
         v-if="avatarUrl"
-        class="h-12 rounded-full"
-        :src="avatarUrl"
-        alt="Avatar"
-      />
+        class="w-12 h-12 rounded-[14px] bg-white dark:bg-n-solid-2 flex items-center justify-center shadow-[0_2px_6px_rgba(15,23,42,0.06)] p-1.5"
+      >
+        <img
+          class="w-full h-full object-contain rounded-lg"
+          :src="avatarUrl"
+          alt="Avatar"
+        />
+      </div>
       <HeaderActions
         :show-popout-button="showPopoutButton"
         :show-end-conversation-button="false"
@@ -47,11 +51,11 @@ const containerClasses = computed(() => [
     </div>
     <h2
       v-dompurify-html="introHeading"
-      class="mt-4 text-2xl mb-1.5 font-medium text-n-slate-12 line-clamp-4"
+      class="mt-3.5 text-[21px] leading-[1.25] tracking-[-0.02em] mb-2 font-bold text-slate-900 dark:text-n-slate-12 line-clamp-4"
     />
     <p
       v-dompurify-html="formatMessage(introBody)"
-      class="text-lg leading-normal text-n-slate-11 [&_a]:underline line-clamp-6"
+      class="text-[14px] leading-[1.5] text-slate-600 dark:text-n-slate-11 [&_a]:underline line-clamp-6"
     />
   </header>
 </template>
