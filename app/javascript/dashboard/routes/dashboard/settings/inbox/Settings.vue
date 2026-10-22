@@ -28,6 +28,7 @@ import WhatsappCallingPage from './settingsPage/WhatsappCallingPage.vue';
 import CustomerSatisfactionPage from './settingsPage/CustomerSatisfactionPage.vue';
 import CollaboratorsPage from './settingsPage/CollaboratorsPage.vue';
 import BotConfiguration from './components/BotConfiguration.vue';
+import WhatsappServiceQuotaCard from './components/WhatsappServiceQuotaCard.vue';
 import AccountHealth from './components/AccountHealth.vue';
 import TwilioHealth from './components/TwilioHealth.vue';
 import WhatsappManualMigrationDialog from './components/WhatsappManualMigrationDialog.vue';
@@ -63,6 +64,7 @@ export default {
   components: {
     Banner,
     BotConfiguration,
+    WhatsappServiceQuotaCard,
     CollaboratorsPage,
     ConfigurationPage,
     VoiceConfigurationPage,
@@ -1013,6 +1015,11 @@ export default {
     </SettingIntroBanner>
     <section class="w-full overflow-auto py-8">
       <div class="max-w-7xl mx-auto w-full">
+        <WhatsappServiceQuotaCard
+          v-if="isAWhatsAppCloudChannel && selectedTabKey !== 'configuration'"
+          :inbox="inbox"
+          class="mx-6 mb-6 max-w-4xl"
+        />
         <MicrosoftReauthorize
           v-if="microsoftUnauthorized"
           :inbox="inbox"
