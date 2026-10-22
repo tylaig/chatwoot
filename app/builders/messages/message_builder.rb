@@ -337,7 +337,7 @@ class Messages::MessageBuilder # rubocop:disable Metrics/ClassLength
       is_reaction: @is_reaction,
       echo_id: @params[:echo_id],
       source_id: @params[:source_id]
-    }.merge(external_created_at).merge(automation_rule_id).merge(campaign_id)
+    }.merge(external_created_at).deep_merge(automation_rule_id).merge(campaign_id)
       .deep_merge(template_params).merge(zapi_args).deep_merge(scheduled_message_metadata)
   end
 

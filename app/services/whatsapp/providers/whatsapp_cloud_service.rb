@@ -397,6 +397,20 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
 
   def cta_url_payload(message)
     cta = message.content_attributes[:cta_url] || message.content_attributes['cta_url']
+    body_text = message.outgoing_content.to_s
+
+    if !cta.is_a?(Hash) && body_text.match?(/\[CTA_URL:\s*([^|\]]+?)\s*\|\s*(https?:\/\/[^\s\]]+)\s*\]/i)
+      m = body_text.match(/\[CTA_URL:\s*([^|\]]+?)\s*\|\s*(https?:\/\/[^\s\]]+)\s*\]/i)
+      cta = {
+        'display_text' => m[1].strip.first(20),
+        'url' => m[2].strip,
+        'footer_text' => 'Canal exclusivo de notificações'
+      }
+      body_text = body_text.sub(/\[CTA_URL:\s*([^|\]]+?)\s*\|\s*(https?:\/\/[^\s\]]+)\s*\]/i, '').strip
+    elsif cta.is_a?(Hash) && body_text.match?(/\[CTA_URL:\s*([^|\]]+?)\s*\|\s*(https?:\/\/[^\s\]]+)\s*\]/i)
+      body_text = body_text.sub(/\[CTA_URL:\s*([^|\]]+?)\s*\|\s*(https?:\/\/[^\s\]]+)\s*\]/i, '').strip
+    end
+
     return nil unless cta.is_a?(Hash)
 
     url = (cta[:url] || cta['url']).to_s.strip
@@ -405,7 +419,7 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
 
     interactive = {
       type: 'cta_url',
-      body: { text: message.outgoing_content.to_s },
+      body: { text: body_text },
       action: {
         name: 'cta_url',
         parameters: {
