@@ -1,11 +1,13 @@
-name: Build & Deploy Chatwoot Custom
+name: Deploy Games Safari (Protected Manual Only)
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
+      confirm_target:
+        description: 'Digite CONFIRMAR-GAMESSAFARI para autorizar o deploy em inbox.gamessafari.com'
+        required: true
+        default: ''
+        type: string
       force_deploy:
         description: 'Forçar deploy mesmo dentro do horário de atendimento (11h-22h BRT)'
         required: false
@@ -17,14 +19,15 @@ permissions:
   packages: write
 
 concurrency:
-  group: chatwoot-production
+  group: chatwoot-gamessafari-production
   cancel-in-progress: false
 
 jobs:
   build-and-push:
-    name: Build & Push Docker Image to GHCR
+    name: Build & Push Games Safari Image to GHCR
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    if: ${{ inputs.confirm_target == 'CONFIRMAR-GAMESSAFARI' }}
     outputs:
       short_sha: ${{ steps.vars.outputs.short_sha }}
       image_ref: ${{ steps.digest.outputs.image_ref }}
@@ -48,7 +51,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push Docker Image
+      - name: Build and Push Docker Image (Games Safari Isolated Tags)
         id: build
         uses: docker/build-push-action@v6
         with:
@@ -57,8 +60,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/chatwoot:latest
-            ghcr.io/${{ github.repository_owner }}/chatwoot:${{ steps.vars.outputs.short_sha }}
+            ghcr.io/${{ github.repository_owner }}/chatwoot:gamessafari-stable
+            ghcr.io/${{ github.repository_owner }}/chatwoot:gamessafari-${{ steps.vars.outputs.short_sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -75,12 +78,21 @@ jobs:
           echo "Built ${IMAGE_NAME}@${IMAGE_DIGEST}"
 
   deploy:
-    name: Deploy to production VPS (Docker Swarm)
+    name: Deploy to Games Safari VPS (Docker Swarm)
     needs: build-and-push
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: production
     steps:
+      - name: Validate manual confirmation token
+        env:
+          CONFIRM_TARGET: ${{ inputs.confirm_target }}
+        run: |
+          if [ "$CONFIRM_TARGET" != "CONFIRMAR-GAMESSAFARI" ]; then
+            echo "::error::Confirmação inválida. Digite exatamente CONFIRMAR-GAMESSAFARI." >&2
+            exit 1
+          fi
+
       - name: Block deploy during support hours (11:00 - 21:59 BRT)
         env:
           FORCE_DEPLOY: ${{ github.event.inputs.force_deploy || 'false' }}
