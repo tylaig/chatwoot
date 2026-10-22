@@ -45,6 +45,14 @@ module RubyLlmGatewayCompat
       }
     end
   end
+
+  module AutoResolvePatch
+    def resolve(model_id, provider: nil, assume_exists: false, config: nil)
+      super(model_id, provider: :openai, assume_exists: true, config: config)
+    rescue StandardError
+      super(model_id, provider: provider || :openai, assume_exists: true, config: config)
+    end
+  end
 end
 
 RubyLLM::Providers::OpenAI.prepend(RubyLlmGatewayCompat::ToolsPatch)
@@ -53,6 +61,8 @@ RubyLLM::Providers::OpenAI::Tools.singleton_class.prepend(RubyLlmGatewayCompat::
 RubyLLM::Providers::OpenAI.prepend(RubyLlmGatewayCompat::MediaPatch)
 RubyLLM::Providers::OpenAI::Media.prepend(RubyLlmGatewayCompat::MediaPatch)
 RubyLLM::Providers::OpenAI::Media.singleton_class.prepend(RubyLlmGatewayCompat::MediaPatch)
+RubyLLM::Models.prepend(RubyLlmGatewayCompat::AutoResolvePatch)
+RubyLLM::Models.singleton_class.prepend(RubyLlmGatewayCompat::AutoResolvePatch)
 
 Rails.application.config.after_initialize do
   api_key = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_API_KEY')&.value

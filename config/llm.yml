@@ -7,6 +7,30 @@ providers:
     display_name: 'Gemini'
 
 models:
+  gpt-5.6-sol:
+    provider: openai
+    display_name: 'GPT-5.6 Sol'
+    credit_multiplier: 1
+  gpt-6.1-sol:
+    provider: openai
+    display_name: 'GPT-6.1 Sol'
+    credit_multiplier: 2
+  claude-sonnet-4-6:
+    provider: anthropic
+    display_name: 'Claude Sonnet 4.6'
+    credit_multiplier: 2
+  claude-opus-4-6-thinking:
+    provider: anthropic
+    display_name: 'Claude Opus 4.6 Thinking'
+    credit_multiplier: 3
+  gemini-3-flash:
+    provider: gemini
+    display_name: 'Gemini 3 Flash'
+    credit_multiplier: 1
+  gemini-4-argon-high:
+    provider: gemini
+    display_name: 'Gemini 4 Argon High'
+    credit_multiplier: 2
   gpt-4.1:
     provider: openai
     display_name: 'GPT-4.1'
@@ -39,33 +63,17 @@ models:
     provider: openai
     display_name: 'GPT-5.2'
     credit_multiplier: 3
-  gpt-5.6-sol:
-    provider: openai
-    display_name: 'GPT-5.6 Sol'
-    credit_multiplier: 2
-  gemini-3.8-flash-high:
-    provider: openai
-    display_name: 'Gemini 3.8 Flash High'
-    credit_multiplier: 1
   claude-haiku-4.5:
     provider: anthropic
     display_name: 'Claude Haiku 4.5'
-    coming_soon: true
     credit_multiplier: 2
   claude-sonnet-4.5:
     provider: anthropic
     display_name: 'Claude Sonnet 4.5'
-    coming_soon: true
     credit_multiplier: 3
-  gemini-3-flash:
-    provider: gemini
-    display_name: 'Gemini 3 Flash'
-    coming_soon: true
-    credit_multiplier: 1
   gemini-3-pro:
     provider: gemini
     display_name: 'Gemini 3 Pro'
-    coming_soon: true
     credit_multiplier: 3
   whisper-1:
     provider: openai
@@ -84,143 +92,136 @@ features:
   conversation_completion:
     models:
       [
+        gpt-5.6-sol,
+        gpt-6.1-sol,
+        gemini-3-flash,
+        claude-sonnet-4-6,
         gpt-4.1-mini,
         gpt-5-mini,
         gpt-4.1,
         gpt-5.1,
         gpt-5.2,
-        gpt-5.6-sol,
-        gemini-3.8-flash-high,
       ]
-    default: gemini-3.8-flash-high
+    default: gpt-5.6-sol
     internal: true
   editor:
     models:
       [
+        gemini-3-flash,
+        gpt-5.6-sol,
+        gpt-6.1-sol,
+        claude-sonnet-4-6,
+        gemini-4-argon-high,
         gpt-4.1-mini,
         gpt-4.1-nano,
         gpt-5-mini,
         gpt-4.1,
         gpt-5.1,
         gpt-5.2,
-        gpt-5.6-sol,
-        gemini-3.8-flash-high,
-        claude-haiku-4.5,
-        gemini-3-flash,
-        gemini-3-pro,
       ]
-    default: gemini-3.8-flash-high
+    default: gemini-3-flash
   assistant:
     models:
       [
+        gpt-5.6-sol,
+        gpt-6.1-sol,
+        claude-sonnet-4-6,
+        claude-opus-4-6-thinking,
+        gemini-3-flash,
+        gemini-4-argon-high,
         gpt-4.1-mini,
         gpt-5-mini,
         gpt-4.1,
         gpt-5.1,
         gpt-5.2,
         gpt-5.5,
-        gpt-5.6-sol,
-        gemini-3.8-flash-high,
-        claude-haiku-4.5,
-        claude-sonnet-4.5,
-        gemini-3-flash,
-        gemini-3-pro,
       ]
-    default: gemini-3.8-flash-high
+    default: gpt-5.6-sol
   copilot:
     models:
       [
+        gpt-5.6-sol,
+        gpt-6.1-sol,
+        claude-sonnet-4-6,
+        gemini-3-flash,
+        gemini-4-argon-high,
         gpt-4.1-mini,
         gpt-5-mini,
         gpt-4.1,
         gpt-5.1,
         gpt-5.2,
-        gpt-5.6-sol,
-        gemini-3.8-flash-high,
-        claude-haiku-4.5,
-        claude-sonnet-4.5,
-        gemini-3-flash,
-        gemini-3-pro,
       ]
-    default: gemini-3.8-flash-high
+    default: gpt-5.6-sol
   label_suggestion:
     models:
-      [gpt-4.1-nano, gpt-4.1-mini, gpt-5-mini, gemini-3.8-flash-high, gemini-3-flash, claude-haiku-4.5]
-    default: gemini-3.8-flash-high
+      [gemini-3-flash, gpt-5.6-sol, gpt-4.1-nano, gpt-4.1-mini, gpt-5-mini]
+    default: gemini-3-flash
   document_faq_generation:
     models:
       [
+        gemini-3-flash,
+        gpt-5.6-sol,
+        gpt-6.1-sol,
+        claude-sonnet-4-6,
         gpt-4.1-mini,
         gpt-5-mini,
         gpt-4.1,
         gpt-5.1,
         gpt-5.2,
-        gpt-5.6-sol,
-        gemini-3.8-flash-high,
-        claude-haiku-4.5,
-        claude-sonnet-4.5,
-        gemini-3-flash,
-        gemini-3-pro,
       ]
-    default: gemini-3.8-flash-high
+    default: gemini-3-flash
   conversation_faq_generation:
     models:
       [
+        gpt-5.6-sol,
+        gpt-6.1-sol,
+        gemini-3-flash,
+        claude-sonnet-4-6,
         gpt-4.1-mini,
         gpt-5-mini,
         gpt-4.1,
         gpt-5.1,
         gpt-5.2,
-        gpt-5.6-sol,
-        gemini-3.8-flash-high,
-        claude-haiku-4.5,
-        claude-sonnet-4.5,
-        gemini-3-flash,
-        gemini-3-pro,
       ]
-    default: gemini-3.8-flash-high
+    default: gpt-5.6-sol
   conversation_faq_matching:
     models:
       [
+        gemini-3-flash,
+        gpt-5.6-sol,
+        gpt-6.1-sol,
+        claude-sonnet-4-6,
         gpt-4.1-mini,
         gpt-5-mini,
         gpt-4.1,
         gpt-5.1,
         gpt-5.2,
-        gpt-5.6-sol,
-        gemini-3.8-flash-high,
-        claude-haiku-4.5,
-        claude-sonnet-4.5,
-        gemini-3-flash,
-        gemini-3-pro,
       ]
-    default: gemini-3.8-flash-high
+    default: gemini-3-flash
   pdf_faq_generation:
-    models: [gpt-4.1-mini, gpt-5-mini, gpt-4.1, gpt-5.1, gpt-5.2, gpt-5.6-sol, gemini-3.8-flash-high]
-    default: gemini-3.8-flash-high
+    models: [gpt-5.6-sol, gpt-6.1-sol, gemini-3-flash, gpt-4.1-mini, gpt-5-mini, gpt-4.1, gpt-5.1, gpt-5.2]
+    default: gpt-5.6-sol
   help_center_article_generation:
     models:
       [
+        gpt-5.6-sol,
+        gpt-6.1-sol,
+        claude-sonnet-4-6,
+        gemini-3-flash,
         gpt-4.1-mini,
         gpt-5-mini,
         gpt-4.1,
         gpt-5.1,
         gpt-5.2,
-        gpt-5.6-sol,
-        gemini-3.8-flash-high,
-        claude-haiku-4.5,
-        claude-sonnet-4.5,
-        gemini-3-flash,
-        gemini-3-pro,
       ]
-    default: gemini-3.8-flash-high
+    default: gpt-5.6-sol
   onboarding_content_generation:
     models:
-      [gpt-4.1, gpt-4.1-mini, gpt-5-mini, gpt-5.1, gpt-5.2, gpt-5.6-sol, gemini-3.8-flash-high]
-    default: gemini-3.8-flash-high
+      [gpt-5.6-sol, gpt-6.1-sol, gemini-3-flash, gpt-4.1, gpt-4.1-mini, gpt-5-mini]
+    default: gpt-5.6-sol
   help_center_query_translation:
-    models: [gpt-4.1-nano, gpt-4.1-mini, gpt-5-mini, gemini-3.8-flash-high]
-    default: gemini-3.8-flash-high
+    models: [gemini-3-flash, gpt-5.6-sol, gpt-4.1-nano, gpt-4.1-mini, gpt-5-mini]
+    default: gemini-3-flash
   audio_transcription:
     models: [gpt-4o-mini-transcribe, whisper-1]
     default: gpt-4o-mini-transcribe
