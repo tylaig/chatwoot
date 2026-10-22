@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { OnClickOutside } from '@vueuse/components';
 import { useAlert } from 'dashboard/composables';
+import { useMapGetter, useStore } from 'dashboard/composables/store';
 import whatsappTemplatesApi from 'dashboard/api/whatsappTemplates';
 import { templateVariables } from './metaTemplate';
 import {
@@ -12,6 +13,8 @@ import {
 } from './templatePreview';
 
 const router = useRouter();
+const store = useStore();
+const inboxes = useMapGetter('inboxes/getInboxes');
 const templates = ref([]);
 const contentTab = ref('visual');
 const stats = ref({ total: 0, approved: 0, pending: 0, rejected: 0 });
@@ -28,9 +31,47 @@ const isWideLayout = ref(false);
 const activeDrawerTab = ref('details');
 const openMenuId = ref(null);
 const page = ref(1);
-const perPage = 8;
+const perPage = 10;
 const defaultPreviewBody =
   'Olá {{1}}! 👋\nBem-vindo à Games Safari!\n\nAqui você encontra os melhores jogos e ofertas exclusivas. Qualquer dúvida, é só nos chamar por aqui. 🚀';
+
+const officialInboxes = computed(() => {
+  const fromStore = (inboxes.value || []).filter(
+    inbox =>
+      inbox.channel_type === 'Channel::Whatsapp' &&
+      inbox.provider === 'whatsapp_cloud' &&
+      !inbox.legacy
+  );
+  const byId = new Map(fromStore.map(inbox => [Number(inbox.id), inbox]));
+  templates.value.forEach(tpl => {
+    if (tpl.inbox_id && !byId.has(Number(tpl.inbox_id))) {
+      byId.set(Number(tpl.inbox_id), {
+        id: Number(tpl.inbox_id),
+        name: tpl.inbox_name || `Inbox #${tpl.inbox_id}`,
+      });
+    }
+  });
+  return Array.from(byId.values()).sort((a, b) =>
+    String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
+  );
+});
+
+const inboxNameFor = tpl => {
+  if (!tpl?.inbox_id) return '—';
+  if (tpl.inbox_name) return tpl.inbox_name;
+  const found = (inboxes.value || []).find(
+    inbox => Number(inbox.id) === Number(tpl.inbox_id)
+  );
+  return found?.name || `Inbox #${tpl.inbox_id}`;
+};
+
+const availableLanguages = computed(() => {
+  const codes = new Set(['pt_BR', 'en_US']);
+  templates.value.forEach(tpl => {
+    if (tpl.language) codes.add(tpl.language);
+  });
+  return Array.from(codes);
+});
 
 const fetchTemplates = async () => {
   isLoading.value = true;
@@ -88,6 +129,7 @@ onMounted(() => {
   wideLayoutQuery = window.matchMedia('(min-width: 1280px)');
   syncWideLayout();
   wideLayoutQuery.addEventListener('change', syncWideLayout);
+  store.dispatch('inboxes/get');
   fetchTemplates();
 });
 
@@ -95,12 +137,36 @@ onBeforeUnmount(() => {
   wideLayoutQuery?.removeEventListener('change', syncWideLayout);
 });
 
+const inboxScopedTemplates = computed(() => {
+  if (selectedInbox.value === 'ALL') return templates.value;
+  return templates.value.filter(
+    tpl => Number(tpl.inbox_id) === Number(selectedInbox.value)
+  );
+});
+
+const scopedStats = computed(() => {
+  const list = inboxScopedTemplates.value;
+  return {
+    total: list.length,
+    approved: list.filter(
+      tpl => (tpl.status || '').toUpperCase() === 'APPROVED'
+    ).length,
+    pending: list.filter(tpl => (tpl.status || '').toUpperCase() === 'PENDING')
+      .length,
+    rejected: list.filter(
+      tpl => (tpl.status || '').toUpperCase() === 'REJECTED'
+    ).length,
+  };
+});
+
 const filteredTemplates = computed(() => {
-  return templates.value.filter(tpl => {
+  return inboxScopedTemplates.value.filter(tpl => {
+    const query = searchQuery.value.trim().toLowerCase();
     const matchesSearch =
-      !searchQuery.value ||
-      tpl.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      tpl.body?.toLowerCase().includes(searchQuery.value.toLowerCase());
+      !query ||
+      tpl.name?.toLowerCase().includes(query) ||
+      tpl.body?.toLowerCase().includes(query) ||
+      inboxNameFor(tpl).toLowerCase().includes(query);
     const matchesCat =
       selectedCategory.value === 'ALL' ||
       tpl.category === selectedCategory.value;
@@ -130,9 +196,49 @@ const pageEnd = computed(() =>
   Math.min(page.value * perPage, filteredTemplates.value.length)
 );
 
-watch([searchQuery, selectedCategory, selectedLanguage, selectedStatus], () => {
-  page.value = 1;
+watch(
+  [
+    searchQuery,
+    selectedInbox,
+    selectedCategory,
+    selectedLanguage,
+    selectedStatus,
+  ],
+  () => {
+    page.value = 1;
+  }
+);
+
+watch(filteredTemplates, list => {
+  if (!list.length) return;
+  if (
+    !previewTemplate.value ||
+    !list.some(tpl => tpl.id === previewTemplate.value.id)
+  ) {
+    previewTemplate.value = list[0];
+  }
 });
+
+const hasActiveFilters = computed(
+  () =>
+    Boolean(searchQuery.value.trim()) ||
+    selectedInbox.value !== 'ALL' ||
+    selectedLanguage.value !== 'ALL' ||
+    selectedCategory.value !== 'ALL' ||
+    selectedStatus.value !== 'ALL'
+);
+
+const clearFilters = () => {
+  searchQuery.value = '';
+  selectedInbox.value = 'ALL';
+  selectedLanguage.value = 'ALL';
+  selectedCategory.value = 'ALL';
+  selectedStatus.value = 'ALL';
+};
+
+const toggleStatusFilter = status => {
+  selectedStatus.value = selectedStatus.value === status ? 'ALL' : status;
+};
 
 watch(pageCount, count => {
   if (page.value > count) page.value = count;
@@ -158,6 +264,7 @@ const statusHint = status => {
   if (value === 'APPROVED') return 'Aprovado pela Meta e pronto para uso.';
   if (value === 'PENDING') return 'Aguardando revisão da Meta.';
   if (value === 'REJECTED') return 'Rejeitado pela Meta.';
+  if (value === 'PAUSED') return 'Pausado na Meta.';
   return status || '—';
 };
 
@@ -166,6 +273,7 @@ const statusLabel = status => {
   if (value === 'APPROVED') return 'Aprovado';
   if (value === 'PENDING') return 'Pendente';
   if (value === 'REJECTED') return 'Rejeitado';
+  if (value === 'PAUSED') return 'Pausado';
   return status || '—';
 };
 
@@ -223,9 +331,33 @@ const showDrawer = computed(
   () => previewTemplate.value && (isWideLayout.value || drawerOpen.value)
 );
 
-const previewBody = computed(() =>
-  previewTemplateText(previewTemplate.value?.body || defaultPreviewBody)
-);
+const previewBody = computed(() => {
+  const tpl = previewTemplate.value;
+  if (!tpl) return previewTemplateText(defaultPreviewBody);
+  const customSamples = { ...SAMPLE_TEMPLATE_VARIABLES };
+  (tpl.variables || []).forEach(v => {
+    const cleanKey = String(v.key || '').replace(/[{}]/g, '');
+    if (cleanKey && v.sample_value) {
+      customSamples[cleanKey] = v.sample_value;
+    }
+  });
+  return previewTemplateText(tpl.body || defaultPreviewBody, customSamples);
+});
+
+const previewHeader = computed(() => {
+  const tpl = previewTemplate.value;
+  if (!tpl || tpl.header_type !== 'TEXT' || !tpl.header_content) return '';
+  const customSamples = { ...SAMPLE_TEMPLATE_VARIABLES };
+  (tpl.variables || []).forEach(v => {
+    const cleanKey = String(v.key || '').replace(/[{}]/g, '');
+    if (cleanKey && v.sample_value) {
+      customSamples[cleanKey] = v.sample_value;
+    }
+  });
+  return previewTemplateText(tpl.header_content, customSamples);
+});
+
+const previewFooter = computed(() => previewTemplate.value?.footer || '');
 
 const previewActions = computed(() => templateButtons(previewTemplate.value));
 
@@ -275,6 +407,7 @@ const duplicateTemplate = async tpl => {
       footer: source.footer,
       buttons: source.buttons || [],
       variables,
+      inbox_id: source.inbox_id,
     });
     await fetchTemplates();
     useAlert('Template duplicado.');
@@ -332,7 +465,13 @@ const removeTemplate = async tpl => {
           <button
             type="button"
             class="h-10 ps-3 pe-4 rounded-xl bg-n-brand hover:opacity-90 text-white text-sm font-semibold shadow-sm flex items-center gap-2"
-            @click="router.push({ name: 'whatsapp_templates_new' })"
+            @click="
+              router.push({
+                name: 'whatsapp_templates_new',
+                query:
+                  selectedInbox !== 'ALL' ? { inbox_id: selectedInbox } : {},
+              })
+            "
           >
             <span class="i-lucide-plus size-4" />
             <span>Criar template</span>
@@ -340,8 +479,172 @@ const removeTemplate = async tpl => {
         </div>
       </header>
 
+      <!-- CARDS DE MÉTRICAS E PILLS DE INBOX -->
+      <div class="px-6 pt-4 pb-1 space-y-3">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <button
+            type="button"
+            class="flex items-center justify-between p-3 rounded-xl border text-start transition-colors"
+            :class="
+              selectedStatus === 'ALL'
+                ? 'border-n-brand bg-n-brand/5'
+                : 'border-n-weak bg-n-solid-1 hover:bg-n-alpha-1'
+            "
+            @click="selectedStatus = 'ALL'"
+          >
+            <div>
+              <span class="block text-[11px] font-medium text-n-slate-11">
+                Total de templates
+              </span>
+              <span class="text-lg font-semibold text-n-slate-12">
+                {{ scopedStats.total }}
+              </span>
+            </div>
+            <div
+              class="size-8 rounded-lg bg-n-brand/10 text-n-brand flex items-center justify-center shrink-0"
+            >
+              <span class="i-lucide-layout-template size-4" />
+            </div>
+          </button>
+
+          <button
+            type="button"
+            class="flex items-center justify-between p-3 rounded-xl border text-start transition-colors"
+            :class="
+              selectedStatus === 'APPROVED'
+                ? 'border-green-500 bg-green-500/10'
+                : 'border-n-weak bg-n-solid-1 hover:bg-n-alpha-1'
+            "
+            @click="toggleStatusFilter('APPROVED')"
+          >
+            <div>
+              <span class="block text-[11px] font-medium text-n-slate-11">
+                Aprovados
+              </span>
+              <span
+                class="text-lg font-semibold text-green-600 dark:text-green-400"
+              >
+                {{ scopedStats.approved }}
+              </span>
+            </div>
+            <div
+              class="size-8 rounded-lg bg-green-500/15 text-green-600 dark:text-green-400 flex items-center justify-center shrink-0"
+            >
+              <span class="i-lucide-circle-check size-4" />
+            </div>
+          </button>
+
+          <button
+            type="button"
+            class="flex items-center justify-between p-3 rounded-xl border text-start transition-colors"
+            :class="
+              selectedStatus === 'PENDING'
+                ? 'border-n-amber-9 bg-n-amber-9/10'
+                : 'border-n-weak bg-n-solid-1 hover:bg-n-alpha-1'
+            "
+            @click="toggleStatusFilter('PENDING')"
+          >
+            <div>
+              <span class="block text-[11px] font-medium text-n-slate-11">
+                Em revisão
+              </span>
+              <span class="text-lg font-semibold text-n-amber-11">
+                {{ scopedStats.pending }}
+              </span>
+            </div>
+            <div
+              class="size-8 rounded-lg bg-n-amber-9/15 text-n-amber-11 flex items-center justify-center shrink-0"
+            >
+              <span class="i-lucide-clock size-4" />
+            </div>
+          </button>
+
+          <button
+            type="button"
+            class="flex items-center justify-between p-3 rounded-xl border text-start transition-colors"
+            :class="
+              selectedStatus === 'REJECTED'
+                ? 'border-n-ruby-9 bg-n-ruby-9/10'
+                : 'border-n-weak bg-n-solid-1 hover:bg-n-alpha-1'
+            "
+            @click="toggleStatusFilter('REJECTED')"
+          >
+            <div>
+              <span class="block text-[11px] font-medium text-n-slate-11">
+                Rejeitados
+              </span>
+              <span class="text-lg font-semibold text-n-ruby-11">
+                {{ scopedStats.rejected }}
+              </span>
+            </div>
+            <div
+              class="size-8 rounded-lg bg-n-ruby-9/15 text-n-ruby-11 flex items-center justify-center shrink-0"
+            >
+              <span class="i-lucide-circle-x size-4" />
+            </div>
+          </button>
+        </div>
+
+        <div
+          v-if="officialInboxes.length > 1"
+          class="flex flex-wrap items-center gap-1.5 pt-1"
+        >
+          <span class="text-xs font-medium text-n-slate-11 me-1">Caixa:</span>
+          <button
+            type="button"
+            class="h-7 px-2.5 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1.5"
+            :class="
+              selectedInbox === 'ALL'
+                ? 'border-n-brand bg-n-brand text-white'
+                : 'border-n-weak bg-n-solid-1 text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-1'
+            "
+            @click="selectedInbox = 'ALL'"
+          >
+            <span>Todas as caixas</span>
+            <span
+              class="px-1.5 py-0.2 rounded text-[10px]"
+              :class="
+                selectedInbox === 'ALL'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-n-alpha-2 text-n-slate-11'
+              "
+            >
+              {{ templates.length }}
+            </span>
+          </button>
+          <button
+            v-for="inbox in officialInboxes"
+            :key="inbox.id"
+            type="button"
+            class="h-7 px-2.5 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1.5"
+            :class="
+              String(selectedInbox) === String(inbox.id)
+                ? 'border-n-brand bg-n-brand text-white'
+                : 'border-n-weak bg-n-solid-1 text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-1'
+            "
+            @click="selectedInbox = String(inbox.id)"
+          >
+            <span class="i-lucide-smartphone size-3.5 shrink-0" />
+            <span>{{ inbox.name }}</span>
+            <span
+              class="px-1.5 py-0.2 rounded text-[10px]"
+              :class="
+                String(selectedInbox) === String(inbox.id)
+                  ? 'bg-white/20 text-white'
+                  : 'bg-n-alpha-2 text-n-slate-11'
+              "
+            >
+              {{
+                templates.filter(t => Number(t.inbox_id) === Number(inbox.id))
+                  .length
+              }}
+            </span>
+          </button>
+        </div>
+      </div>
+
       <!-- BARRA DE PESQUISA E FILTROS HORIZONTAIS (ESTILO REFERENCE PACK) -->
-      <div class="px-6 py-4 flex flex-wrap items-center gap-3">
+      <div class="px-6 py-3 flex flex-wrap items-center gap-3">
         <div class="relative flex-1 min-w-[12rem]">
           <span
             class="i-lucide-search size-4 absolute start-3 top-1/2 -translate-y-1/2 text-n-slate-10"
@@ -349,7 +652,7 @@ const removeTemplate = async tpl => {
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Buscar templates..."
+            placeholder="Buscar por nome, conteúdo ou caixa..."
             class="reset-base w-full h-9 m-0 ps-9 pe-3 text-sm rounded-lg bg-n-solid-1 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12 placeholder:text-n-slate-10"
           />
         </div>
@@ -361,8 +664,14 @@ const removeTemplate = async tpl => {
               v-model="selectedInbox"
               class="reset-base w-auto h-9 m-0 py-0 ps-3 pe-8 text-xs rounded-lg bg-n-solid-1 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12"
             >
-              <option value="ALL">Todos</option>
-              <option value="1">Suporte - WhatsApp</option>
+              <option value="ALL">Todas as caixas</option>
+              <option
+                v-for="inbox in officialInboxes"
+                :key="inbox.id"
+                :value="String(inbox.id)"
+              >
+                {{ inbox.name }}
+              </option>
             </select>
           </div>
 
@@ -373,8 +682,13 @@ const removeTemplate = async tpl => {
               class="reset-base w-auto h-9 m-0 py-0 ps-3 pe-8 text-xs rounded-lg bg-n-solid-1 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12"
             >
               <option value="ALL">Todos</option>
-              <option value="pt_BR">pt_BR</option>
-              <option value="en_US">en_US</option>
+              <option
+                v-for="lang in availableLanguages"
+                :key="lang"
+                :value="lang"
+              >
+                {{ lang }}
+              </option>
             </select>
           </div>
 
@@ -402,8 +716,19 @@ const removeTemplate = async tpl => {
               <option value="APPROVED">Aprovado</option>
               <option value="PENDING">Pendente</option>
               <option value="REJECTED">Rejeitado</option>
+              <option value="PAUSED">Pausado</option>
             </select>
           </div>
+
+          <button
+            v-if="hasActiveFilters"
+            type="button"
+            class="h-9 px-2.5 rounded-lg border border-n-weak bg-n-solid-1 hover:bg-n-alpha-2 text-xs font-medium text-n-slate-11 hover:text-n-slate-12 flex items-center gap-1"
+            @click="clearFilters"
+          >
+            <span class="i-lucide-x size-3.5" />
+            <span>Limpar</span>
+          </button>
         </div>
       </div>
 
@@ -418,6 +743,7 @@ const removeTemplate = async tpl => {
                 class="border-b border-n-weak text-[0.6875rem] font-semibold text-n-slate-11 uppercase tracking-wide"
               >
                 <th class="py-3 px-4">Nome do Template</th>
+                <th class="py-3 px-4 w-44">Inbox</th>
                 <th class="py-3 px-4 w-28">Categoria</th>
                 <th class="py-3 px-4 w-20">Idioma</th>
                 <th class="py-3 px-4 w-28">Status</th>
@@ -426,6 +752,33 @@ const removeTemplate = async tpl => {
               </tr>
             </thead>
             <tbody class="divide-y divide-n-weak">
+              <tr v-if="isLoading">
+                <td
+                  colspan="7"
+                  class="py-16 text-center text-sm text-n-slate-11"
+                >
+                  Carregando templates...
+                </td>
+              </tr>
+              <tr v-else-if="!pagedTemplates.length">
+                <td
+                  colspan="7"
+                  class="py-16 text-center text-sm text-n-slate-11"
+                >
+                  <div class="flex flex-col items-center gap-2">
+                    <span class="i-lucide-file-search size-6 text-n-slate-10" />
+                    <p>Nenhum template encontrado para os filtros aplicados.</p>
+                    <button
+                      v-if="hasActiveFilters"
+                      type="button"
+                      class="mt-1 px-3 py-1.5 rounded-lg bg-n-alpha-2 text-xs font-medium text-n-slate-12 hover:bg-n-alpha-3"
+                      @click="clearFilters"
+                    >
+                      Limpar filtros
+                    </button>
+                  </div>
+                </td>
+              </tr>
               <tr
                 v-for="tpl in pagedTemplates"
                 :key="tpl.id"
@@ -449,6 +802,18 @@ const removeTemplate = async tpl => {
                       </p>
                     </div>
                   </div>
+                </td>
+
+                <td class="py-3 px-4">
+                  <span
+                    class="inline-flex items-center gap-1.5 max-w-full px-2 py-0.5 rounded-md bg-n-alpha-2 text-xs text-n-slate-12 truncate"
+                    :title="inboxNameFor(tpl)"
+                  >
+                    <span
+                      class="i-lucide-smartphone size-3 text-n-slate-10 shrink-0"
+                    />
+                    <span class="truncate">{{ inboxNameFor(tpl) }}</span>
+                  </span>
                 </td>
 
                 <td class="py-3 px-4">
@@ -685,6 +1050,12 @@ const removeTemplate = async tpl => {
               }}</span>
             </div>
             <div>
+              <span class="text-n-slate-10 block">Caixa de entrada</span>
+              <span class="font-medium text-n-slate-12 break-words">{{
+                inboxNameFor(previewTemplate)
+              }}</span>
+            </div>
+            <div>
               <span class="text-n-slate-10 block">Categoria</span>
               <span class="text-n-slate-12">{{
                 categoryLabel(previewTemplate.category)
@@ -705,6 +1076,19 @@ const removeTemplate = async tpl => {
                 statusHint(previewTemplate.status)
               }}</span>
             </div>
+            <div>
+              <span class="text-n-slate-10 block">ID na Meta</span>
+              <span class="font-mono text-n-slate-12 break-all">{{
+                previewTemplate.meta_template_id || '—'
+              }}</span>
+            </div>
+          </div>
+          <div
+            v-if="previewTemplate.rejection_reason"
+            class="mt-2 p-2.5 rounded-lg bg-n-ruby-9/10 border border-n-ruby-8/30 text-[11px] text-n-ruby-11"
+          >
+            <span class="font-semibold block">Motivo da rejeição:</span>
+            <span>{{ previewTemplate.rejection_reason }}</span>
           </div>
         </div>
 
@@ -756,8 +1140,17 @@ const removeTemplate = async tpl => {
             v-else
             class="p-4 rounded-2xl bg-[#F6F1E7] border border-[#E6DCC8] text-slate-900 text-xs shadow-sm space-y-2 relative"
           >
+            <p
+              v-if="previewHeader"
+              class="font-bold text-slate-900 border-b border-[#E6DCC8] pb-1.5"
+            >
+              {{ previewHeader }}
+            </p>
             <p class="whitespace-pre-line leading-relaxed font-sans">
               {{ previewBody }}
+            </p>
+            <p v-if="previewFooter" class="text-[11px] text-slate-500 italic">
+              {{ previewFooter }}
             </p>
             <div class="text-[10px] text-slate-400 text-right">12:30</div>
 

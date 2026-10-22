@@ -588,6 +588,20 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', placeVariableMenu);
 });
 
+watch(
+  officialInboxes,
+  list => {
+    if (isEditing.value || form.value.inbox_id || !list.length) return;
+    const queryInboxId = Number(route.query.inbox_id);
+    if (queryInboxId && list.some(inbox => inbox.id === queryInboxId)) {
+      form.value.inbox_id = queryInboxId;
+    } else if (list.length === 1) {
+      form.value.inbox_id = list[0].id;
+    }
+  },
+  { immediate: true }
+);
+
 onMounted(() => {
   store.dispatch('inboxes/get');
   store.dispatch('attributes/get');

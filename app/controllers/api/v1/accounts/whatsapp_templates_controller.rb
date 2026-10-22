@@ -14,7 +14,7 @@ class Api::V1::Accounts::WhatsappTemplatesController < Api::V1::Accounts::BaseCo
   end
 
   def index
-    @templates = visible_templates.with_attached_header_media.order(created_at: :desc)
+    @templates = visible_templates.includes(:inbox).with_attached_header_media.order(created_at: :desc)
     
     stats = {
       total: @templates.count,

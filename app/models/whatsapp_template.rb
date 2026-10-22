@@ -43,7 +43,8 @@ class WhatsappTemplate < ApplicationRecord
 
   def as_json(options = {})
     super.merge(
-      'header_media_name' => (header_media.filename.to_s if header_media.attached?)
+      'header_media_name' => (header_media.filename.to_s if header_media.attached?),
+      'inbox_name' => inbox&.name
     )
   end
 
