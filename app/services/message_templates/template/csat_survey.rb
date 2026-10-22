@@ -45,8 +45,10 @@ class MessageTemplates::Template::CsatSurvey
   end
 
   def content_attributes
-    {
+    attrs = {
       display_type: csat_config['display_type'] || 'emoji'
     }
+    attrs[:google_review_url] = csat_config['google_review_url'] if csat_config['google_review_url'].present?
+    attrs
   end
 end

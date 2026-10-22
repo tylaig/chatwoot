@@ -122,6 +122,10 @@
   "CSAT": {
     "TITLE": "Avalie sua conversa",
     "SUBMITTED_TITLE": "Obrigado por enviar a classificação",
+    "HIGH_RATING_TITLE": "Que alegria! Poderia compartilhar sua experiência no nosso Google?",
+    "LOW_RATING_TITLE": "Sentimos muito que não tenha sido perfeito. Conte pra gente o que houve para melhorarmos:",
+    "GOOGLE_REVIEW_CTA": "⭐ Avaliar no Google",
+    "LOW_RATING_PLACEHOLDER": "Escreva seu feedback interno para nossa equipe...",
     "PLACEHOLDER": "Conte-nos mais..."
   },
   "EMAIL_TRANSCRIPT": {

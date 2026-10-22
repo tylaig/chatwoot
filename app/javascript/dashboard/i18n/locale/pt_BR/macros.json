@@ -110,7 +110,8 @@
       "SEND_MESSAGE": "Enviar uma Mensagem",
       "CHANGE_PRIORITY": "Alterar Prioridade",
       "ADD_PRIVATE_NOTE": "Adicionar uma Nota Privada",
-      "SEND_WEBHOOK_EVENT": "Enviar evento de Webhook"
+      "SEND_WEBHOOK_EVENT": "Enviar evento de Webhook",
+      "SEND_CSAT_SURVEY": "Enviar Pesquisa CSAT (Avaliação Estrelas)"
     },
     "PRIORITY_TYPES": {
       "NONE": "Nenhuma",

@@ -129,6 +129,7 @@ const validateSingleAction = action => {
     'remove_assigned_team',
     'open_conversation',
     'pending_conversation',
+    'send_csat_survey',
   ];
 
   if (

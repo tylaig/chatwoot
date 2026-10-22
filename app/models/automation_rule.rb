@@ -65,7 +65,7 @@ class AutomationRule < ApplicationRecord
     %w[send_message add_label remove_label send_email_to_team assign_team assign_agent remove_assigned_agent
        remove_assigned_team send_webhook_event mute_conversation send_attachment change_status resolve_conversation
        open_conversation pending_conversation snooze_conversation change_priority send_email_transcript
-       add_private_note create_scheduled_message remove_custom_attribute].freeze
+       add_private_note create_scheduled_message remove_custom_attribute send_csat_survey].freeze
   end
 
   # The wait is measured from the conversation's last activity instead of from a status change.

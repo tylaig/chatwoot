@@ -1299,6 +1299,11 @@
           "UNCLEAR": "Precisa de esclarecimento"
         }
       },
+      "GOOGLE_REVIEW_URL": {
+        "LABEL": "URL do Google Reviews (Redirecionamento 4 e 5 estrelas)",
+        "PLACEHOLDER": "https://search.google.com/local/writereview?placeid=...",
+        "HELP_TEXT": "Quando configurado, avaliações de 4 ou 5 estrelas abrem este link do Google Reviews; avaliações de 1 a 3 estrelas abrem um campo de feedback privado interno."
+      },
       "SURVEY_RULE": {
         "LABEL": "Regra de pesquisa",
         "DESCRIPTION_PREFIX": "Enviar a pesquisa se a conversa",

@@ -50,6 +50,7 @@ const state = reactive({
   csatSurveyEnabled: false,
   displayType: 'emoji',
   message: '',
+  googleReviewUrl: '',
   templateButtonText: 'Please rate us',
   surveyRuleOperator: 'contains',
   templateLanguage: 'en',
@@ -221,6 +222,7 @@ const initializeState = () => {
   const {
     display_type: displayType = CSAT_DISPLAY_TYPES.EMOJI,
     message = '',
+    google_review_url: googleReviewUrl = '',
     button_text: buttonText = 'Please rate us',
     language = 'en',
     survey_rules: surveyRules = {},
@@ -228,6 +230,7 @@ const initializeState = () => {
 
   state.displayType = displayType;
   state.message = message;
+  state.googleReviewUrl = googleReviewUrl;
   state.templateButtonText = buttonText;
   state.templateLanguage = language;
   state.surveyRuleOperator = surveyRules.operator || 'contains';
@@ -559,6 +562,7 @@ const performSave = async () => {
         templateMode.value === 'use_existing'
           ? existingTemplateBody.value
           : state.message,
+      google_review_url: state.googleReviewUrl?.trim() || '',
       button_text:
         templateMode.value === 'use_existing'
           ? existingTemplateButtonText.value
@@ -871,6 +875,20 @@ const handleConfirmTemplateUpdate = async () => {
               />
             </WithLabel>
           </template>
+
+          <WithLabel
+            :label="$t('INBOX_MGMT.CSAT.GOOGLE_REVIEW_URL.LABEL')"
+            name="google_review_url"
+          >
+            <Input
+              v-model="state.googleReviewUrl"
+              :placeholder="$t('INBOX_MGMT.CSAT.GOOGLE_REVIEW_URL.PLACEHOLDER')"
+              class="w-full"
+            />
+            <p class="mt-1 text-xs text-n-slate-11">
+              {{ $t('INBOX_MGMT.CSAT.GOOGLE_REVIEW_URL.HELP_TEXT') }}
+            </p>
+          </WithLabel>
 
           <WithLabel
             :label="$t('INBOX_MGMT.CSAT.SURVEY_RULE.LABEL')"

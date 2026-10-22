@@ -26,6 +26,10 @@ export default {
       type: String,
       default: CSAT_DISPLAY_TYPES.EMOJI,
     },
+    googleReviewUrl: {
+      type: String,
+      default: '',
+    },
     message: {
       type: String,
       default: '',
@@ -53,6 +57,32 @@ export default {
       return this.messageContentAttributes?.csat_survey_response
         ?.feedback_message;
     },
+    hasGoogleReviewUrl() {
+      return Boolean(this.googleReviewUrl?.trim());
+    },
+    isHighRating() {
+      return Number(this.selectedRating) >= 4;
+    },
+    isLowRating() {
+      return (
+        Number(this.selectedRating) >= 1 && Number(this.selectedRating) <= 3
+      );
+    },
+    shouldShowGoogleReviewPrompt() {
+      return this.hasGoogleReviewUrl && this.isHighRating;
+    },
+    shouldShowFeedbackForm() {
+      if (this.isFeedbackSubmitted) return false;
+      if (this.hasGoogleReviewUrl) {
+        return this.isLowRating;
+      }
+      return true;
+    },
+    feedbackPlaceholder() {
+      return this.hasGoogleReviewUrl && this.isLowRating
+        ? this.$t('CSAT.LOW_RATING_PLACEHOLDER')
+        : this.$t('CSAT.PLACEHOLDER');
+    },
     isButtonDisabled() {
       if (!(this.selectedRating && this.feedback)) return true;
       if (this.isUpdating) return true;
@@ -62,6 +92,17 @@ export default {
       return getContrastingTextColor(this.widgetColor);
     },
     title() {
+      if (this.isRatingSubmitted && this.shouldShowGoogleReviewPrompt) {
+        return this.$t('CSAT.HIGH_RATING_TITLE');
+      }
+      if (
+        this.isRatingSubmitted &&
+        this.hasGoogleReviewUrl &&
+        this.isLowRating &&
+        !this.isFeedbackSubmitted
+      ) {
+        return this.$t('CSAT.LOW_RATING_TITLE');
+      }
       return this.isRatingSubmitted
         ? this.$t('CSAT.SUBMITTED_TITLE')
         : this.message || this.$t('CSAT.TITLE');
@@ -97,6 +138,10 @@ export default {
         'emoji-button',
       ];
     },
+    openGoogleReview() {
+      if (!this.hasGoogleReviewUrl) return;
+      window.open(this.googleReviewUrl.trim(), '_blank', 'noopener,noreferrer');
+    },
     async onSubmit() {
       if (this.isUpdating) return;
       this.isUpdating = true;
@@ -120,11 +165,17 @@ export default {
     selectRating(rating) {
       if (this.isFeedbackSubmitted || this.isUpdating) return;
       this.selectedRating = rating.value;
+      if (this.hasGoogleReviewUrl && Number(rating.value) >= 4) {
+        this.openGoogleReview();
+      }
       this.onSubmit();
     },
     selectStarRating(value) {
       if (this.isFeedbackSubmitted || this.isUpdating) return;
       this.selectedRating = value;
+      if (this.hasGoogleReviewUrl && Number(value) >= 4) {
+        this.openGoogleReview();
+      }
       this.onSubmit();
     },
   },
@@ -156,14 +207,31 @@ export default {
       :is-disabled="isFeedbackSubmitted || isUpdating"
       @select-rating="selectStarRating"
     />
+    <div
+      v-if="shouldShowGoogleReviewPrompt"
+      class="px-4 pb-4 flex flex-col items-center gap-2 text-center"
+    >
+      <a
+        :href="googleReviewUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="w-full py-2 px-3 rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90 no-underline"
+        :style="{
+          background: widgetColor,
+          color: textColor,
+        }"
+      >
+        <span>{{ $t('CSAT.GOOGLE_REVIEW_CTA') }}</span>
+      </a>
+    </div>
     <form
-      v-if="!isFeedbackSubmitted"
+      v-if="shouldShowFeedbackForm"
       class="feedback-form flex"
       @submit.prevent="onSubmit()"
     >
       <input
         v-model="feedback"
-        :placeholder="$t('CSAT.PLACEHOLDER')"
+        :placeholder="feedbackPlaceholder"
         @keydown.enter="onSubmit"
       />
       <button

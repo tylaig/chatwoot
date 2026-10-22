@@ -1,11 +1,11 @@
 class CsatSurveyService
-  pattr_initialize [:conversation!]
+  pattr_initialize [:conversation!, { force: false }]
 
   # Returns why the survey did not go out, so the caller can tell a conversation that was never
   # eligible from one whose rule may still be waiting on a label another job is about to write.
   def perform
     return :not_eligible unless eligible_for_csat?
-    return :blocked_by_survey_rules unless csat_allowed_by_survey_rules?
+    return :blocked_by_survey_rules unless force || csat_allowed_by_survey_rules?
 
     deliver_survey
   end
@@ -27,6 +27,8 @@ class CsatSurveyService
   end
 
   def eligible_for_csat?
+    return !conversation.tweet? && !csat_already_sent? if force
+
     conversation_allows_csat? && csat_enabled? && !csat_already_sent?
   end
 

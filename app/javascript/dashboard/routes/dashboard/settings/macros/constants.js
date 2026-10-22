@@ -74,4 +74,9 @@ export const MACRO_ACTION_TYPES = [
     label: 'SEND_WEBHOOK_EVENT',
     inputType: 'url',
   },
+  {
+    key: 'send_csat_survey',
+    label: 'SEND_CSAT_SURVEY',
+    inputType: null,
+  },
 ];

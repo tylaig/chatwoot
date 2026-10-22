@@ -168,6 +168,10 @@ export const AUTOMATIONS = {
         key: 'send_attachment',
         name: 'SEND_ATTACHMENT',
       },
+      {
+        key: 'send_csat_survey',
+        name: 'SEND_CSAT_SURVEY',
+      },
     ],
   },
   conversation_created: {
@@ -305,6 +309,10 @@ export const AUTOMATIONS = {
       {
         key: 'send_attachment',
         name: 'SEND_ATTACHMENT',
+      },
+      {
+        key: 'send_csat_survey',
+        name: 'SEND_CSAT_SURVEY',
       },
     ],
   },
@@ -456,6 +464,10 @@ export const AUTOMATIONS = {
         key: 'send_attachment',
         name: 'SEND_ATTACHMENT',
       },
+      {
+        key: 'send_csat_survey',
+        name: 'SEND_CSAT_SURVEY',
+      },
     ],
   },
   conversation_opened: {
@@ -596,6 +608,10 @@ export const AUTOMATIONS = {
         key: 'send_attachment',
         name: 'SEND_ATTACHMENT',
       },
+      {
+        key: 'send_csat_survey',
+        name: 'SEND_CSAT_SURVEY',
+      },
     ],
   },
   conversation_resolved: {
@@ -713,6 +729,10 @@ export const AUTOMATIONS = {
       {
         key: 'send_attachment',
         name: 'SEND_ATTACHMENT',
+      },
+      {
+        key: 'send_csat_survey',
+        name: 'SEND_CSAT_SURVEY',
       },
     ],
   },
@@ -863,6 +883,11 @@ export const AUTOMATION_ACTION_TYPES = [
     key: 'remove_custom_attribute',
     label: 'REMOVE_CUSTOM_ATTRIBUTE',
     inputType: 'multi_select',
+  },
+  {
+    key: 'send_csat_survey',
+    label: 'SEND_CSAT_SURVEY',
+    inputType: null,
   },
 ];
 

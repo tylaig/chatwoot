@@ -122,6 +122,10 @@
   "CSAT": {
     "TITLE": "Rate your conversation",
     "SUBMITTED_TITLE": "Thank you for submitting the rating",
+    "HIGH_RATING_TITLE": "Thank you! Would you mind sharing your experience on Google?",
+    "LOW_RATING_TITLE": "We are sorry your experience wasn't ideal. Tell us what happened so we can improve:",
+    "GOOGLE_REVIEW_CTA": "⭐ Leave a review on Google",
+    "LOW_RATING_PLACEHOLDER": "Write your private feedback for our team...",
     "PLACEHOLDER": "Tell us more..."
   },
   "EMAIL_TRANSCRIPT": {

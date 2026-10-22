@@ -1408,6 +1408,11 @@
           "UNCLEAR": "Needs clarification"
         }
       },
+      "GOOGLE_REVIEW_URL": {
+        "LABEL": "Google Reviews URL (4 & 5 stars redirect)",
+        "PLACEHOLDER": "https://search.google.com/local/writereview?placeid=...",
+        "HELP_TEXT": "When configured, ratings of 4 or 5 stars open this Google Reviews link directly; ratings of 1 to 3 stars open an internal private feedback form."
+      },
       "SURVEY_RULE": {
         "LABEL": "Survey rule",
         "DESCRIPTION_PREFIX": "Send the survey if the conversation",

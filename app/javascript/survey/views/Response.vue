@@ -40,6 +40,7 @@ export default {
       logo: '',
       inboxName: '',
       displayType: CSAT_DISPLAY_TYPES.EMOJI,
+      googleReviewUrl: '',
       messageContent: '',
     };
   },
@@ -107,8 +108,28 @@ export default {
     shouldShowBanner() {
       return this.isRatingSubmitted || this.errorMessage;
     },
+    hasGoogleReviewUrl() {
+      return Boolean(this.googleReviewUrl?.trim());
+    },
+    isHighRating() {
+      return Number(this.selectedRating) >= 4;
+    },
+    isLowRating() {
+      return (
+        Number(this.selectedRating) >= 1 && Number(this.selectedRating) <= 3
+      );
+    },
+    shouldShowGoogleReviewPrompt() {
+      return (
+        this.isRatingSubmitted && this.hasGoogleReviewUrl && this.isHighRating
+      );
+    },
     enableFeedbackForm() {
-      return !this.isFeedbackSubmitted && this.isRatingSubmitted;
+      if (this.isFeedbackSubmitted || !this.isRatingSubmitted) return false;
+      if (this.hasGoogleReviewUrl) {
+        return this.isLowRating;
+      }
+      return true;
     },
     shouldShowErrorMessage() {
       return !!this.errorMessage;
@@ -153,12 +174,26 @@ export default {
       // Only on success: a failed write (an expired survey, a dropped connection) has to
       // leave the button on screen, or the contact is left with no way to send the rating
       // and, on a revised one, a page claiming the old rating went through.
+      if (this.hasGoogleReviewUrl && Number(this.selectedRating) >= 4) {
+        window.open(
+          this.googleReviewUrl.trim(),
+          '_blank',
+          'noopener,noreferrer'
+        );
+      }
       const saved = await this.updateSurveyDetails();
       if (saved) this.isPendingConfirmation = false;
     },
     async selectRating(rating) {
       if (this.isFeedbackSubmitted || this.isUpdating) return;
       this.selectedRating = rating;
+      if (this.hasGoogleReviewUrl && Number(rating) >= 4) {
+        window.open(
+          this.googleReviewUrl.trim(),
+          '_blank',
+          'noopener,noreferrer'
+        );
+      }
       // Same rule as confirmRating: a revision stays pending until the write lands. Clearing
       // it first would make isRatingSubmitted fall back to the stored rating, so a failed
       // save would show the success banner for a rating the contact just replaced.
@@ -181,6 +216,7 @@ export default {
         this.selectedRating = this.surveyDetails?.rating;
         this.feedbackMessage = this.surveyDetails?.feedback_message || '';
         this.displayType = result.data.display_type || CSAT_DISPLAY_TYPES.EMOJI;
+        this.googleReviewUrl = result.data.google_review_url || '';
         this.messageContent =
           result.data.content ||
           this.$t('SURVEY.DESCRIPTION', { inboxName: this.inboxName });
@@ -321,6 +357,23 @@ export default {
             <Spinner v-if="isUpdating" class="p-0" />
             {{ $t('SURVEY.RATING.CONFIRM_BUTTON') }}
           </CustomButton>
+        </div>
+        <div
+          v-if="shouldShowGoogleReviewPrompt"
+          class="mt-8 border-t border-n-weak pt-6 flex flex-col items-start gap-4"
+        >
+          <p class="m-0 text-base font-medium text-n-slate-12">
+            {{ $t('SURVEY.GOOGLE_REVIEW.PROMPT') }}
+          </p>
+          <a
+            :href="googleReviewUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="w-full sm:w-auto py-3.5 px-8 rounded-xl text-base font-semibold text-white inline-flex items-center justify-center gap-2 no-underline transition-opacity hover:opacity-90"
+            :style="{ backgroundColor: brandColor || '#1f93ff' }"
+          >
+            {{ $t('SURVEY.GOOGLE_REVIEW.CTA') }}
+          </a>
         </div>
         <Feedback
           v-if="enableFeedbackForm"

@@ -108,6 +108,7 @@ const ACTION_ICONS = {
   change_priority: 'i-lucide-signal-high',
   add_sla: 'i-lucide-gauge',
   remove_custom_attribute: 'i-lucide-eraser',
+  send_csat_survey: 'i-lucide-star',
 };
 
 const DEFAULT_ACTION_ICON = 'i-lucide-zap';

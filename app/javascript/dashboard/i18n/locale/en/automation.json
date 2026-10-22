@@ -202,7 +202,8 @@
       "CHANGE_PRIORITY": "Change Priority",
       "ADD_SLA": "Add SLA",
       "OPEN_CONVERSATION": "Open conversation",
-      "PENDING_CONVERSATION": "Mark conversation as pending"
+      "PENDING_CONVERSATION": "Mark conversation as pending",
+      "SEND_CSAT_SURVEY": "Send CSAT Survey (Star Rating)"
     },
     "MESSAGE_TYPES": {
       "INCOMING": "Incoming Message",

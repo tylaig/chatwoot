@@ -3,7 +3,12 @@
     "DESCRIPTION": "Dear customer 👋, please take a few moments to share feedback about the conversation you had with {inboxName}.",
     "RATING": {
       "LABEL": "Rate your conversation",
+      "CONFIRM_BUTTON": "Confirm rating",
       "SUCCESS_MESSAGE": "Thank you for submitting the rating"
+    },
+    "GOOGLE_REVIEW": {
+      "PROMPT": "Thank you for the great rating! Would you like to share your experience on Google?",
+      "CTA": "⭐ Leave a review on Google"
     },
     "FEEDBACK": {
       "LABEL": "Do you have any thoughts you'd like to share?",

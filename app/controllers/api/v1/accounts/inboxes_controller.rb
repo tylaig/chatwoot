@@ -312,6 +312,7 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController #
     formatted = {
       'display_type' => config['display_type'] || 'emoji',
       'message' => config['message'] || '',
+      'google_review_url' => config['google_review_url'] || '',
       :survey_rules => {
         'operator' => config.dig('survey_rules', 'operator') || 'contains',
         'values' => config.dig('survey_rules', 'values') || []
@@ -363,7 +364,7 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController #
      :inbox_color, :inbox_badge_label, :chat_background_opacity, :chat_background_image,
      :anti_spam_enabled, :anti_spam_max_messages, :anti_spam_window_seconds,
      :anti_spam_cooldown_seconds, :anti_spam_warning_message,
-     { csat_config: [:display_type, :message, :button_text, :language,
+     { csat_config: [:display_type, :message, :button_text, :language, :google_review_url,
                      { survey_rules: [:operator, { values: [] }],
                        template: [:name, :template_id, :friendly_name, :content_sid, :approval_sid,
                                   :created_at, :linked_at, :language, :source, :status, { body_variables: {} }] }] }]

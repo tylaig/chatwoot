@@ -145,6 +145,7 @@ export default {
       v-if="isCSAT"
       :message-content-attributes="messageContentAttributes.submitted_values"
       :display-type="messageContentAttributes.display_type"
+      :google-review-url="messageContentAttributes.google_review_url"
       :message="message"
       :message-id="messageId"
     />

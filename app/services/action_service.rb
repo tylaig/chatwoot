@@ -94,6 +94,10 @@ class ActionService
     @conversation.with_lock { @conversation.update!(team_id: nil) }
   end
 
+  def send_csat_survey(_params = [])
+    CsatSurveyService.new(conversation: @conversation.reload, force: true).perform
+  end
+
   def send_email_transcript(emails)
     return unless @account.email_transcript_enabled?
 

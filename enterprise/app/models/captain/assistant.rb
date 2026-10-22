@@ -213,6 +213,8 @@ class Captain::Assistant < ApplicationRecord
       self.class.resolve_tool_class('handoff').new(self),
       self.class.resolve_tool_class('resolve_conversation').new(self)
     ]
+    request_rating_tool_class = self.class.resolve_tool_class('request_rating')
+    tools << request_rating_tool_class.new(self) if request_rating_tool_class
     shopify_tool_class = self.class.resolve_tool_class('shopify_order_lookup')
     if shopify_tool_class && account.hooks.where(app_id: 'shopify', status: :enabled).exists?
       tools << shopify_tool_class.new(self)

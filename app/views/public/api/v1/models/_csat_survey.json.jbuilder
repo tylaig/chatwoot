@@ -1,6 +1,7 @@
 json.id resource.id
 json.csat_survey_response resource.csat_survey_response
 json.display_type resource.inbox.csat_config.try(:[], 'display_type') || 'emoji'
+json.google_review_url resource.inbox.csat_config.try(:[], 'google_review_url')
 json.content resource.content || resource.inbox.csat_config.try(:[], 'message')
 json.inbox_avatar_url resource.inbox.avatar_url
 json.inbox_name resource.inbox.name
