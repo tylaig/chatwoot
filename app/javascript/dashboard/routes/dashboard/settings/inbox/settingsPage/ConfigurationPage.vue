@@ -79,11 +79,6 @@ export default {
       zapiTokenUpdate: '',
       zapiClientTokenUpdate: '',
       isReconfiguring: false,
-      monthlyServiceLimitEnabled: true,
-      monthlyServiceLimit: 1000,
-      monthlyServiceSafeCap: 990,
-      allowExceedServiceLimit: false,
-      isUpdatingServiceQuota: false,
     };
   },
   validations() {
@@ -110,23 +105,6 @@ export default {
     },
     isForwardingEnabled() {
       return !!this.inbox.forwarding_enabled;
-    },
-    whatsappServiceQuota() {
-      return this.inbox.monthly_service_quota || {
-        enabled: this.monthlyServiceLimitEnabled,
-        used: 0,
-        limit: this.monthlyServiceLimit,
-        safe_cap: this.monthlyServiceSafeCap,
-        remaining: this.monthlyServiceLimit,
-        safe_remaining: this.monthlyServiceSafeCap,
-        allow_exceed: this.allowExceedServiceLimit,
-        blocked: false,
-      };
-    },
-    whatsappQuotaPercentage() {
-      const limit = Number(this.whatsappServiceQuota?.limit) || 1000;
-      const used = Number(this.whatsappServiceQuota?.used) || 0;
-      return Math.min(100, Math.round((used / limit) * 100));
     },
   },
   watch: {
@@ -162,15 +140,6 @@ export default {
       this.zapiInstanceId = this.inbox.provider_config?.instance_id ?? '';
       this.zapiToken = this.inbox.provider_config?.token ?? '';
       this.zapiClientToken = this.inbox.provider_config?.client_token ?? '';
-      this.monthlyServiceLimitEnabled =
-        this.inbox.provider_config?.monthly_service_limit_enabled !== false;
-      this.monthlyServiceLimit =
-        Number(this.inbox.provider_config?.monthly_service_limit) || 1000;
-      this.monthlyServiceSafeCap =
-        Number(this.inbox.provider_config?.monthly_service_safe_cap) || 990;
-      this.allowExceedServiceLimit = Boolean(
-        this.inbox.provider_config?.allow_exceed_service_limit
-      );
     },
     handleHmacFlag() {
       this.updateInbox();
@@ -285,37 +254,6 @@ export default {
       } finally {
         this.isSyncingTemplates = false;
       }
-    },
-    async saveWhatsappServiceQuota(overrides = {}) {
-      this.isUpdatingServiceQuota = true;
-      try {
-        const nextConfig = {
-          ...(this.inbox.provider_config || {}),
-          monthly_service_limit_enabled: this.monthlyServiceLimitEnabled,
-          monthly_service_limit: Number(this.monthlyServiceLimit) || 1000,
-          monthly_service_safe_cap: Number(this.monthlyServiceSafeCap) || 990,
-          allow_exceed_service_limit: Boolean(this.allowExceedServiceLimit),
-          ...overrides,
-        };
-        await this.$store.dispatch('inboxes/updateInbox', {
-          id: this.inbox.id,
-          formData: false,
-          channel: {
-            provider_config: nextConfig,
-          },
-        });
-        useAlert(this.$t('INBOX_MGMT.EDIT.API.SUCCESS_MESSAGE'));
-      } catch (error) {
-        useAlert(this.$t('INBOX_MGMT.EDIT.API.ERROR_MESSAGE'));
-      } finally {
-        this.isUpdatingServiceQuota = false;
-      }
-    },
-    async toggleAllowExceedServiceLimit() {
-      this.allowExceedServiceLimit = !this.allowExceedServiceLimit;
-      await this.saveWhatsappServiceQuota({
-        allow_exceed_service_limit: this.allowExceedServiceLimit,
-      });
     },
     async updateBaileysProviderUrl() {
       try {
@@ -703,101 +641,6 @@ export default {
         <NextButton :disabled="isSyncingTemplates" @click="syncTemplates">
           {{ $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_TEMPLATES_SYNC_BUTTON') }}
         </NextButton>
-      </SettingsFieldSection>
-
-      <SettingsFieldSection
-        label="Franquia Mensal de Respostas Gratuitas (API Oficial)"
-        help-text="Contabiliza mensagens de sessão/respostas enviadas no mês atual e trava automaticamente os envios antes de atingir o limite de cobrança da Meta."
-      >
-        <div
-          class="flex flex-col gap-3 p-4 rounded-xl border border-n-weak bg-n-solid-1"
-        >
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold text-n-slate-12">
-                Uso no mês atual: {{ whatsappServiceQuota.used }} /
-                {{ whatsappServiceQuota.limit }} respostas
-              </span>
-              <span
-                class="px-2 py-0.5 text-[11px] font-medium rounded-full"
-                :class="
-                  whatsappServiceQuota.blocked
-                    ? 'bg-n-ruby-9/15 text-n-ruby-11'
-                    : whatsappServiceQuota.allow_exceed
-                      ? 'bg-n-amber-9/15 text-n-amber-11'
-                      : 'bg-green-500/15 text-green-600 dark:text-green-400'
-                "
-              >
-                {{
-                  whatsappServiceQuota.blocked
-                    ? 'Bloqueado pela trava'
-                    : whatsappServiceQuota.allow_exceed
-                      ? 'Liberado além do limite'
-                      : `${whatsappServiceQuota.safe_remaining} restantes até a trava (${whatsappServiceQuota.safe_cap})`
-                }}
-              </span>
-            </div>
-            <NextButton
-              size="sm"
-              :variant="whatsappServiceQuota.allow_exceed ? 'faded' : 'solid'"
-              :color="whatsappServiceQuota.allow_exceed ? 'amber' : 'blue'"
-              :disabled="isUpdatingServiceQuota"
-              @click="toggleAllowExceedServiceLimit"
-            >
-              {{
-                whatsappServiceQuota.allow_exceed
-                  ? 'Reativar trava do limite'
-                  : 'Usar além do limite'
-              }}
-            </NextButton>
-          </div>
-
-          <div class="w-full h-2 rounded-full bg-n-alpha-2 overflow-hidden">
-            <div
-              class="h-full transition-all duration-300"
-              :class="
-                whatsappServiceQuota.blocked
-                  ? 'bg-n-ruby-9'
-                  : whatsappQuotaPercentage >= 85
-                    ? 'bg-n-amber-9'
-                    : 'bg-green-500'
-              "
-              :style="{ width: `${whatsappQuotaPercentage}%` }"
-            />
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-            <div>
-              <label class="block text-xs font-medium text-n-slate-11 mb-1">
-                Franquia mensal gratuita
-              </label>
-              <woot-input
-                v-model.number="monthlyServiceLimit"
-                type="number"
-                class="[&>input]:!mb-0"
-              />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-n-slate-11 mb-1">
-                Trava de segurança (pausa envios)
-              </label>
-              <woot-input
-                v-model.number="monthlyServiceSafeCap"
-                type="number"
-                class="[&>input]:!mb-0"
-              />
-            </div>
-            <div class="flex items-end">
-              <NextButton
-                class="w-full"
-                :disabled="isUpdatingServiceQuota"
-                @click="saveWhatsappServiceQuota()"
-              >
-                Salvar limites
-              </NextButton>
-            </div>
-          </div>
-        </div>
       </SettingsFieldSection>
     </div>
   </div>

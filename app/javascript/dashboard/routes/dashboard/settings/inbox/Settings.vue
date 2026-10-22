@@ -1016,7 +1016,7 @@ export default {
     <section class="w-full overflow-auto py-8">
       <div class="max-w-7xl mx-auto w-full">
         <WhatsappServiceQuotaCard
-          v-if="isAWhatsAppCloudChannel && selectedTabKey !== 'configuration'"
+          v-if="isAWhatsAppCloudChannel && selectedTabKey === 'inbox-settings'"
           :inbox="inbox"
           class="mx-6 mb-6 max-w-4xl"
         />
