@@ -1,40 +1,773 @@
 <!DOCTYPE html>
-<html>
+<html class="dark">
   <head>
     <title>
       <%= @global_config['INSTALLATION_NAME'] %>
     </title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=0"/>
-    <meta name="generator" content="fazer.ai"/>
-    <meta name="theme-color" content="<%= @global_config['BRAND_COLOR'] %>">
-    <meta name="apple-mobile-web-app-title" content="<%= @global_config['INSTALLATION_NAME'] %>">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <link rel="apple-touch-icon" href="<%= @global_config['LOGO_THUMBNAIL'] %>">
-    <link rel="manifest" href="/manifest.json">
     <% unless ChatwootApp.chatwoot_cloud? %>
       <meta name="robots" content="noindex">
     <% end %>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <script>
+      try {
+        localStorage.setItem('THEME_COLOR', 'dark');
+        if (!localStorage.getItem('color_scheme')) {
+          localStorage.setItem('color_scheme', 'dark');
+        }
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+      } catch (e) {}
+    </script>
+    <style id="meusuperchat-dark-emerald-theme">
+      :root, html, html.dark, body {
+        --brand: 16 185 129 !important;
+        --b-50: 236 253 245 !important;
+        --b-100: 209 250 229 !important;
+        --b-200: 167 243 208 !important;
+        --b-300: 110 231 183 !important;
+        --b-400: 52 211 153 !important;
+        --b-500: 16 185 129 !important;
+        --b-600: 5 150 105 !important;
+        --b-700: 4 120 87 !important;
+        --b-800: 6 95 70 !important;
+        --b-900: 6 78 59 !important;
+        --w-25: #052e16 !important;
+        --w-50: #064e3b !important;
+        --w-75: #065f46 !important;
+        --w-100: #047857 !important;
+        --w-200: #059669 !important;
+        --w-300: #10b981 !important;
+        --w-400: #34d399 !important;
+        --w-500: #10b981 !important;
+        --w-600: #059669 !important;
+        --w-700: #047857 !important;
+        --w-800: #065f46 !important;
+        --w-900: #064e3b !important;
+      }
+      html.dark body {
+        background-color: #04080E !important;
+        color: #f8fafc !important;
+      }
+      .text-n-brand {
+        color: #10b981 !important;
+      }
+      .bg-n-brand {
+        background-color: #10b981 !important;
+      }
+      .bg-n-brand:hover {
+        background-color: #059669 !important;
+      }
+      .border-n-brand, .outline-n-brand, .ring-n-brand {
+        border-color: #10b981 !important;
+        --tw-ring-color: #10b981 !important;
+      }
+
+      /* ==========================================================================
+         MEU SUPER CHAT — FUTURISTIC CLEAN LOGIN REIMAGINED (GPT 2.5 SPEC)
+         ========================================================================== */
+      body.msc-auth-page {
+        background-color: #04080E !important;
+        color: #F8FAFC !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        overflow-x: hidden !important;
+        min-height: 100vh !important;
+        position: relative !important;
+      }
+
+      /* Ambient Futuristic Orbital & Horizon Glow Background */
+      #msc-ambient-bg {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 18%, rgba(16, 185, 129, 0.14) 0%, rgba(0, 229, 179, 0.05) 32%, transparent 65%),
+          radial-gradient(ellipse 90% 55% at 50% 100%, rgba(16, 185, 129, 0.22) 0%, rgba(6, 78, 59, 0.12) 45%, transparent 75%),
+          #04080E;
+      }
+      #msc-ambient-bg .msc-orbit-1 {
+        position: absolute;
+        left: 50%;
+        top: 52%;
+        width: 980px;
+        height: 980px;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        border: 1px solid rgba(16, 185, 129, 0.14);
+        box-shadow: inset 0 0 80px rgba(16, 185, 129, 0.06), 0 0 60px rgba(16, 185, 129, 0.05);
+      }
+      #msc-ambient-bg .msc-orbit-2 {
+        position: absolute;
+        left: 50%;
+        top: 46%;
+        width: 680px;
+        height: 680px;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        border: 1px solid rgba(45, 212, 191, 0.12);
+        box-shadow: inset 0 0 50px rgba(0, 229, 179, 0.05);
+      }
+      #msc-ambient-bg .msc-horizon-arc {
+        position: absolute;
+        left: 50%;
+        bottom: -440px;
+        width: 1380px;
+        height: 760px;
+        transform: translateX(-50%);
+        border-radius: 50%;
+        border-top: 1.5px solid rgba(110, 231, 183, 0.42);
+        background: radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.20) 0%, rgba(4, 120, 87, 0.06) 45%, transparent 70%);
+        box-shadow: 0 -20px 90px rgba(16, 185, 129, 0.28);
+      }
+
+      /* Main Auth Container Override */
+      body.msc-auth-page #app,
+      body.msc-auth-page #app > div {
+        background: transparent !important;
+        min-height: 100vh !important;
+        position: relative;
+        z-index: 10;
+      }
+      body.msc-auth-page main {
+        background: transparent !important;
+        min-height: 100vh !important;
+        padding-top: 24px !important;
+        padding-bottom: 24px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+
+      /* Stacked Futuristic Brand Logo + Heading */
+      body.msc-auth-page main > section:first-child {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        margin-bottom: 4px !important;
+      }
+      body.msc-auth-page main > section:first-child img {
+        height: 64px !important;
+        width: auto !important;
+        filter: drop-shadow(0 0 24px rgba(16, 185, 129, 0.35));
+      }
+      body.msc-auth-page main > section:first-child h2 {
+        margin-top: 18px !important;
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+        font-size: 28px !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.025em !important;
+        color: #FFFFFF !important;
+        text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);
+      }
+
+      /* Elevated Dark Glassmorphism Login Card */
+      body.msc-auth-page main > section:nth-of-type(2) {
+        position: relative !important;
+        width: calc(100% - 32px) !important;
+        max-width: 440px !important;
+        margin: 22px auto 0 auto !important;
+        padding: 32px 32px !important;
+        border-radius: 22px !important;
+        background: rgba(11, 18, 30, 0.78) !important;
+        border: 1px solid rgba(45, 212, 191, 0.24) !important;
+        box-shadow:
+          0 25px 60px -12px rgba(0, 0, 0, 0.85),
+          0 0 45px -10px rgba(16, 185, 129, 0.25),
+          inset 0 1px 1px rgba(255, 255, 255, 0.12) !important;
+        backdrop-filter: blur(24px) !important;
+        -webkit-backdrop-filter: blur(24px) !important;
+      }
+      /* Specular Top & Bottom Neon Highlights on Card */
+      body.msc-auth-page main > section:nth-of-type(2)::before {
+        content: "";
+        position: absolute;
+        top: -1px;
+        left: 15%;
+        right: 15%;
+        height: 1.5px;
+        background: linear-gradient(90deg, transparent, rgba(45, 212, 191, 0.95), rgba(212, 255, 0, 0.75), transparent);
+        box-shadow: 0 0 16px 2px rgba(16, 185, 129, 0.55);
+        pointer-events: none;
+      }
+      body.msc-auth-page main > section:nth-of-type(2)::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 20%;
+        right: 20%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.95), rgba(212, 255, 0, 0.8), transparent);
+        box-shadow: 0 0 24px 4px rgba(16, 185, 129, 0.65);
+        pointer-events: none;
+      }
+
+      /* Hide SSO Login Button & "OU" Divider (Email & Password Only) */
+      body.msc-auth-page a[href*="/login/sso"],
+      body.msc-auth-page .section-separator,
+      body.msc-auth-page main > section:nth-of-type(2) > div:has(a[href*="/login/sso"]) {
+        display: none !important;
+      }
+
+      /* Form Labels */
+      body.msc-auth-page form label {
+        color: #E2E8F0 !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        margin-bottom: 6px !important;
+      }
+
+      /* Dark Glass Inputs (Email & Password) + Autofill Override */
+      body.msc-auth-page input[data-testid="email_input"],
+      body.msc-auth-page input[data-testid="password_input"],
+      body.msc-auth-page form input[type="text"],
+      body.msc-auth-page form input[type="email"],
+      body.msc-auth-page form input[type="password"] {
+        height: 46px !important;
+        padding-left: 42px !important;
+        padding-right: 40px !important;
+        border-radius: 12px !important;
+        background-color: rgba(16, 25, 41, 0.88) !important;
+        border: 1px solid rgba(255, 255, 255, 0.11) !important;
+        outline: none !important;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35) !important;
+        color: #F8FAFC !important;
+        font-size: 14px !important;
+        transition: all 0.2s ease !important;
+      }
+      body.msc-auth-page input[data-testid="email_input"]::placeholder,
+      body.msc-auth-page input[data-testid="password_input"]::placeholder {
+        color: #64748B !important;
+      }
+      body.msc-auth-page input[data-testid="email_input"]:focus,
+      body.msc-auth-page input[data-testid="password_input"]:focus {
+        background-color: rgba(19, 31, 51, 0.95) !important;
+        border-color: #10B981 !important;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.20), inset 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+      }
+      body.msc-auth-page input:-webkit-autofill,
+      body.msc-auth-page input:-webkit-autofill:hover,
+      body.msc-auth-page input:-webkit-autofill:focus {
+        -webkit-text-fill-color: #F8FAFC !important;
+        -webkit-box-shadow: 0 0 0px 1000px #101929 inset !important;
+        border: 1px solid rgba(45, 212, 191, 0.35) !important;
+        transition: background-color 5000s ease-in-out 0s;
+      }
+
+      /* Left Field Icons inside Inputs */
+      .msc-input-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 17px;
+        height: 17px;
+        color: #94A3B8;
+        pointer-events: none;
+        z-index: 5;
+      }
+
+      /* Forgot Password Link ("Esqueceu-se da sua senha?") */
+      body.msc-auth-page a[href*="reset/password"] {
+        color: #00E5B3 !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        text-decoration: underline !important;
+        text-underline-offset: 4px !important;
+        text-decoration-color: rgba(0, 229, 179, 0.45) !important;
+        transition: color 0.2s ease !important;
+      }
+      body.msc-auth-page a[href*="reset/password"]:hover {
+        color: #D4FF00 !important;
+        text-decoration-color: #D4FF00 !important;
+      }
+      .msc-forgot-wrap {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 8px !important;
+      }
+
+      /* Primary Submit Button ("Entrar ->") */
+      body.msc-auth-page button[data-testid="submit_button"] {
+        height: 48px !important;
+        border-radius: 12px !important;
+        background: linear-gradient(90deg, #00D68F 0%, #4ADE80 52%, #D4FF00 100%) !important;
+        color: #04120B !important;
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.01em !important;
+        border: none !important;
+        outline: none !important;
+        box-shadow: 0 0 28px rgba(16, 185, 129, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+        transition: all 0.2s ease !important;
+      }
+      body.msc-auth-page button[data-testid="submit_button"]:hover {
+        filter: brightness(1.08) !important;
+        box-shadow: 0 0 36px rgba(212, 255, 0, 0.48) !important;
+        transform: translateY(-1px);
+      }
+      body.msc-auth-page button[data-testid="submit_button"] span {
+        color: #04120B !important;
+        font-weight: 700 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+      }
+      body.msc-auth-page button[data-testid="submit_button"] span::after {
+        content: "→";
+        font-size: 18px;
+        line-height: 1;
+        font-weight: 700;
+        transition: transform 0.2s ease;
+      }
+      body.msc-auth-page button[data-testid="submit_button"]:hover span::after {
+        transform: translateX(3px);
+      }
+
+      /* Responsive Adjustments (Tablet & Mobile) */
+      @media (max-width: 480px) {
+        body.msc-auth-page main > section:first-child h2 {
+          font-size: 22px !important;
+        }
+        body.msc-auth-page main > section:nth-of-type(2) {
+          padding: 24px 20px !important;
+        }
+      }
+
+      /* ==========================================================================
+         MEU SUPER CHAT — DASHBOARD DARK GLASSMORPHISM (GPT 2.5 SPEC)
+         Escopo: body.msc-app-page (todas as telas logadas). Menu real preservado.
+         ========================================================================== */
+      body.msc-app-page,
+      body.msc-app-page #app > div.bg-n-background {
+        background-color: #04080E !important;
+      }
+
+      /* --- Sidebar (coluna 1) --- */
+      body.msc-app-page aside.bg-n-background {
+        background: linear-gradient(180deg, #070E17 0%, #050A11 100%) !important;
+        border-color: rgba(255, 255, 255, 0.07) !important;
+      }
+      body.msc-app-page aside #sidebar-account-switcher span {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+        font-weight: 700 !important;
+        color: #F8FAFC !important;
+      }
+      body.msc-app-page aside a[href$="/search"] {
+        background: rgba(255, 255, 255, 0.03) !important;
+        outline-color: rgba(255, 255, 255, 0.08) !important;
+        border-radius: 10px !important;
+        transition: outline-color 0.2s ease, background 0.2s ease !important;
+      }
+      body.msc-app-page aside a[href$="/search"]:hover {
+        outline-color: rgba(16, 185, 129, 0.40) !important;
+        background: rgba(16, 185, 129, 0.06) !important;
+      }
+      body.msc-app-page aside section button:has(.i-lucide-pen-line) {
+        background: rgba(16, 185, 129, 0.15) !important;
+        outline-color: rgba(16, 185, 129, 0.40) !important;
+        color: #34D399 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.25) !important;
+      }
+      body.msc-app-page aside section button:has(.i-lucide-pen-line) span {
+        color: #34D399 !important;
+      }
+      body.msc-app-page aside nav > ul > li > a {
+        color: #94A3B8 !important;
+        border-radius: 10px !important;
+        transition: background 0.18s ease, color 0.18s ease !important;
+      }
+      body.msc-app-page aside nav > ul > li > a:hover {
+        background: rgba(255, 255, 255, 0.04) !important;
+        color: #F8FAFC !important;
+      }
+      body.msc-app-page aside nav > ul > li > a.font-medium {
+        color: #F8FAFC !important;
+      }
+      body.msc-app-page aside nav > ul > li > a.font-medium [class*="i-lucide"] {
+        color: #34D399 !important;
+      }
+      /* Grupo expandido (ex.: Conversas) em container sutil */
+      body.msc-app-page aside nav > ul > li:has(> ul li a.router-link-active) {
+        border-radius: 12px !important;
+        border: 1px solid rgba(16, 185, 129, 0.20) !important;
+        background: rgba(6, 78, 59, 0.10) !important;
+        padding: 2px 0 6px !important;
+      }
+      body.msc-app-page aside li.child-item {
+        margin-inline-start: 8px !important;
+        padding-inline-start: 6px !important;
+      }
+      body.msc-app-page aside li.child-item::before {
+        background-color: rgba(16, 185, 129, 0.18) !important;
+      }
+      body.msc-app-page aside li.child-item::after {
+        background-color: transparent !important;
+        border-color: rgba(16, 185, 129, 0.18) !important;
+      }
+      body.msc-app-page aside li.child-item > a {
+        padding-left: 6px !important;
+        padding-right: 6px !important;
+      }
+      /* Item ativo: gradiente emerald + barra Volt Lime + sem truncar */
+      body.msc-app-page aside li.child-item a.router-link-active,
+      body.msc-app-page aside li.child-item a.active {
+        position: relative !important;
+        background: linear-gradient(90deg, rgba(16, 185, 129, 0.25) 0%, rgba(16, 185, 129, 0.05) 100%) !important;
+        box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.30), 0 0 15px rgba(16, 185, 129, 0.15) !important;
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+      }
+      body.msc-app-page aside li.child-item a.router-link-active::before,
+      body.msc-app-page aside li.child-item a.active::before {
+        content: "";
+        position: absolute;
+        left: -3px;
+        top: 7px;
+        bottom: 7px;
+        width: 3px;
+        border-radius: 0 4px 4px 0;
+        background: #D4FF00;
+        box-shadow: 0 0 8px #D4FF00;
+      }
+      body.msc-app-page aside li.child-item a.router-link-active [class*="i-lucide"] {
+        color: #34D399 !important;
+      }
+      body.msc-app-page aside li.child-item a.router-link-active .truncate {
+        overflow: visible !important;
+        text-overflow: clip !important;
+        white-space: nowrap !important;
+        font-size: 13px !important;
+        letter-spacing: -0.015em;
+      }
+      body.msc-app-page aside li.child-item a:not(.router-link-active):hover {
+        background: rgba(255, 255, 255, 0.04) !important;
+        color: #F8FAFC !important;
+      }
+
+      /* --- Lista de conversas (coluna 2) --- */
+      body.msc-app-page .conversations-list-wrap {
+        background: rgba(7, 14, 23, 0.92) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
+      }
+      body.msc-app-page .conversations-list-wrap h1 {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.02em !important;
+        color: #F8FAFC !important;
+      }
+      body.msc-app-page .conversations-list-wrap h1 + span,
+      body.msc-app-page .conversations-list-wrap h1 ~ span.capitalize {
+        background: rgba(16, 185, 129, 0.15) !important;
+        border: 1px solid rgba(16, 185, 129, 0.30) !important;
+        color: #34D399 !important;
+        border-radius: 999px !important;
+        font-weight: 600 !important;
+        padding: 2px 10px !important;
+      }
+      body.msc-app-page .conversations-list-wrap > div:first-child button {
+        background: rgba(255, 255, 255, 0.04) !important;
+        outline: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 8px !important;
+      }
+      body.msc-app-page .conversations-list-wrap > div:first-child button:hover {
+        outline-color: rgba(16, 185, 129, 0.40) !important;
+        color: #34D399 !important;
+      }
+      body.msc-app-page .conversations-list-wrap .border-b-n-weak {
+        border-bottom-color: rgba(255, 255, 255, 0.07) !important;
+      }
+      /* Abas: ativa em Emerald (antes laranja/azul) */
+      body.msc-app-page .conversations-list-wrap ul li a.text-n-blue-11 {
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+      }
+      body.msc-app-page .conversations-list-wrap ul li a.text-n-blue-11::after {
+        background: #34D399 !important;
+        box-shadow: 0 0 10px rgba(52, 211, 153, 0.75) !important;
+      }
+      body.msc-app-page .conversations-list-wrap ul li a.text-n-blue-11 > div {
+        background: rgba(16, 185, 129, 0.20) !important;
+        color: #6EE7B7 !important;
+        border: 1px solid rgba(16, 185, 129, 0.30) !important;
+      }
+      body.msc-app-page .conversations-list-wrap ul li a.text-n-slate-11 > div {
+        background: rgba(255, 255, 255, 0.05) !important;
+        color: #94A3B8 !important;
+      }
+      /* Empty state ilustrado */
+      body.msc-app-page .conversations-list-wrap > p.msc-empty-enhanced {
+        flex: 1 1 auto !important;
+        flex-direction: column !important;
+        text-align: center !important;
+        padding: 32px 28px !important;
+        color: #E2E8F0 !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+      }
+      body.msc-app-page .conversations-list-wrap > p.msc-empty-enhanced ~ .conversations-list {
+        flex: 0 0 auto !important;
+      }
+      .msc-empty-icon {
+        position: relative;
+        width: 92px;
+        height: 92px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748B;
+        box-shadow: 0 0 40px rgba(16, 185, 129, 0.14), inset 0 0 20px rgba(16, 185, 129, 0.06);
+      }
+      .msc-empty-icon svg { width: 38px; height: 38px; }
+      .msc-empty-sub {
+        display: block;
+        max-width: 250px;
+        margin: 8px auto 0;
+        color: #64748B;
+        font-size: 12.5px;
+        font-weight: 400;
+        line-height: 1.6;
+      }
+
+      /* --- Área principal: onboarding (coluna 3) --- */
+      body.msc-app-page .conversation-details-wrap {
+        position: relative !important;
+        background: #04080E !important;
+        border-color: rgba(255, 255, 255, 0.07) !important;
+        overflow: hidden;
+      }
+      body.msc-app-page .conversation-details-wrap::before {
+        content: "";
+        position: absolute;
+        top: -120px;
+        right: -80px;
+        width: 560px;
+        height: 340px;
+        background: radial-gradient(ellipse at 70% 30%, rgba(16, 185, 129, 0.20) 0%, rgba(212, 255, 0, 0.05) 40%, transparent 70%);
+        filter: blur(30px);
+        pointer-events: none;
+        z-index: 0;
+      }
+      body.msc-app-page .msc-onboarding {
+        position: relative;
+        z-index: 1;
+        gap: 20px !important;
+      }
+      body.msc-app-page .msc-onboarding > .col-span-full p:first-child {
+        font-family: 'Plus Jakarta Sans', 'Inter', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif !important;
+        font-size: 26px !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.02em !important;
+        line-height: 1.3 !important;
+        color: #F8FAFC !important;
+      }
+      body.msc-app-page .msc-onboarding > .col-span-full p:nth-child(2) {
+        margin-top: 6px !important;
+        font-size: 15px !important;
+        color: #94A3B8 !important;
+      }
+      body.msc-app-page .msc-onboarding > div.rounded-lg {
+        position: relative !important;
+        overflow: hidden !important;
+        min-height: 270px !important;
+        padding: 22px !important;
+        border-radius: 18px !important;
+        background: rgba(11, 22, 34, 0.62) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease !important;
+      }
+      body.msc-app-page .msc-onboarding > div.rounded-lg:hover {
+        border-color: rgba(16, 185, 129, 0.32) !important;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(16, 185, 129, 0.12) !important;
+        transform: translateY(-2px);
+      }
+      body.msc-app-page .msc-onboarding > div.rounded-lg > .flex-1 img {
+        display: none !important;
+      }
+      body.msc-app-page .msc-onboarding > div.rounded-lg p.font-semibold {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+        font-size: 17px !important;
+        color: #FFFFFF !important;
+        margin-bottom: 4px !important;
+      }
+      body.msc-app-page .msc-onboarding > div.rounded-lg p.text-sm {
+        font-size: 13.5px !important;
+        line-height: 1.6 !important;
+        color: #94A3B8 !important;
+      }
+      /* CTA pill */
+      body.msc-app-page .msc-onboarding > div.rounded-lg a.text-n-brand {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin-top: 14px !important;
+        padding: 8px 16px !important;
+        border-radius: 999px !important;
+        background: rgba(16, 185, 129, 0.15) !important;
+        border: 1px solid rgba(16, 185, 129, 0.40) !important;
+        color: #FFFFFF !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.20) !important;
+        transition: all 0.2s ease !important;
+      }
+      body.msc-app-page .msc-onboarding > div.rounded-lg a.text-n-brand:hover {
+        background: rgba(16, 185, 129, 0.25) !important;
+        box-shadow: 0 0 26px rgba(16, 185, 129, 0.40) !important;
+      }
+      body.msc-app-page .msc-onboarding > div.rounded-lg a.text-n-brand span.ml-2 {
+        margin-left: 0 !important;
+        color: #34D399 !important;
+        transition: transform 0.2s ease;
+      }
+      body.msc-app-page .msc-onboarding > div.rounded-lg a.text-n-brand:hover span.ml-2 {
+        transform: translateX(3px);
+      }
+      /* Visuais glass (substituem PNGs brancos) */
+      .msc-visual {
+        position: relative;
+        width: 100%;
+        height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+      }
+      .msc-glass-tile {
+        position: relative;
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45), 0 0 18px rgba(16, 185, 129, 0.12);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .msc-glass-tile svg { width: 28px; height: 28px; }
+      .msc-glass-tile:nth-child(odd) { transform: rotate(-6deg) translateY(-6px); }
+      .msc-glass-tile:nth-child(even) { transform: rotate(6deg) translateY(6px); }
+      .msc-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        min-width: 20px;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: #EF4444;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 18px;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(239, 68, 68, 0.45);
+      }
+      .msc-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+        font-weight: 700;
+        font-size: 15px;
+        color: #04120B;
+        box-shadow: 0 0 0 2px #34D399, 0 0 15px rgba(16, 185, 129, 0.45);
+        margin-left: -10px;
+      }
+      .msc-avatar:first-child { margin-left: 0; }
+      .msc-avatar-add {
+        width: 48px;
+        height: 48px;
+        margin-left: 8px;
+        border-radius: 50%;
+        border: 1.5px dashed rgba(16, 185, 129, 0.5);
+        color: #34D399;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        font-weight: 300;
+      }
+      .msc-cursor { position: absolute; width: 22px; height: 22px; filter: drop-shadow(0 0 6px currentColor); }
+      .msc-cmd {
+        width: 100%;
+        max-width: 330px;
+        border-radius: 12px;
+        background: rgba(6, 13, 22, 0.92);
+        border: 1px solid rgba(16, 185, 129, 0.30);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+        font-size: 12px;
+        text-align: left;
+      }
+      .msc-cmd-input { padding: 8px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); color: #fff; font-family: ui-monospace, monospace; }
+      .msc-cmd-input i { color: #34D399; font-style: normal; animation: mscBlink 1s steps(1) infinite; }
+      .msc-cmd-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; margin: 4px; border-radius: 8px; color: #94A3B8; }
+      .msc-cmd-row b { font-family: ui-monospace, monospace; font-weight: 600; }
+      .msc-cmd-row span { color: #64748B; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .msc-cmd-row.on { background: rgba(16, 185, 129, 0.20); border: 1px solid rgba(16, 185, 129, 0.30); color: #6EE7B7; }
+      .msc-cmd-row.on span { color: #CBD5E1; }
+      @keyframes mscBlink { 50% { opacity: 0; } }
+      .msc-tags { flex-wrap: wrap; gap: 10px 12px; max-width: 300px; }
+      .msc-tag {
+        padding: 7px 14px;
+        border-radius: 12px;
+        border: 1px solid;
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+        font-weight: 700;
+        font-size: 15px;
+      }
+      .msc-tag.t1 { background: rgba(16,185,129,.15); border-color: rgba(52,211,153,.5); color: #6EE7B7; box-shadow: 0 0 15px rgba(16,185,129,.22); transform: rotate(-4deg); }
+      .msc-tag.t2 { background: rgba(212,255,0,.12); border-color: rgba(212,255,0,.5); color: #D4FF00; box-shadow: 0 0 15px rgba(212,255,0,.2); transform: rotate(3deg); }
+      .msc-tag.t3 { background: rgba(59,130,246,.15); border-color: rgba(96,165,250,.5); color: #93C5FD; box-shadow: 0 0 15px rgba(59,130,246,.2); transform: rotate(2deg); }
+      .msc-tag.t4 { background: rgba(168,85,247,.15); border-color: rgba(192,132,252,.5); color: #D8B4FE; box-shadow: 0 0 15px rgba(168,85,247,.2); transform: rotate(-3deg); }
+
+      /* Responsivo: cards em 1 coluna abaixo de 1100px na área útil */
+      @media (max-width: 1180px) {
+        body.msc-app-page .msc-onboarding {
+          grid-template-columns: minmax(0, 1fr) !important;
+          grid-template-rows: auto !important;
+          padding: 24px !important;
+        }
+      }
+      @media (max-width: 768px) {
+        body.msc-app-page .msc-onboarding > .col-span-full p:first-child { font-size: 21px !important; }
+        body.msc-app-page .msc-onboarding { padding: 18px !important; }
+        body.msc-app-page .msc-onboarding > div.rounded-lg { min-height: 0 !important; }
+        .msc-visual { height: 120px; }
+      }
+    </style>
     <% if @global_config['DISPLAY_MANIFEST'] %>
-      <meta name="msapplication-TileColor" content="<%= @global_config['BRAND_COLOR'] %>">
-      <meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
-      <meta name="description" content="<%= @global_config['INSTALLATION_NAME'] %> is a customer support solution that helps companies engage customers over Messenger, Twitter, Telegram, WeChat, Whatsapp. Simply connect your channels and converse with your customers from a single place. Easily add new agents to your system and have them own and resolve conversations with customers. <%= @global_config['INSTALLATION_NAME'] %> also gives you real-time reports to measure your team's performance, canned responses to easily respond to frequently asked questions and private notes for agents to collaborate among themselves.">
+      <meta name="msapplication-TileColor" content="#10b981">
+      <meta name="msapplication-TileImage" content="/favicon-512x512.png">
+      <meta name="theme-color" content="#10b981">
+      <meta name="description" content="Meu Super Chat — Plataforma de Atendimento Omnichannel, Agentes de IA com RAG, Workflows Visuais e API Oficial da Meta.">
       <% if ENV['IOS_APP_IDENTIFIER'].present? %>
         <meta name="apple-itunes-app" content='app-id=<%= ENV['IOS_APP_IDENTIFIER'] %>'>
       <% end %>
-      <link rel="apple-touch-icon" sizes="57x57" href="/apple-icon-57x57.png">
-      <link rel="apple-touch-icon" sizes="60x60" href="/apple-icon-60x60.png">
-      <link rel="apple-touch-icon" sizes="72x72" href="/apple-icon-72x72.png">
-      <link rel="apple-touch-icon" sizes="76x76" href="/apple-icon-76x76.png">
-      <link rel="apple-touch-icon" sizes="114x114" href="/apple-icon-114x114.png">
-      <link rel="apple-touch-icon" sizes="120x120" href="/apple-icon-120x120.png">
-      <link rel="apple-touch-icon" sizes="144x144" href="/apple-icon-144x144.png">
-      <link rel="apple-touch-icon" sizes="152x152" href="/apple-icon-152x152.png">
-      <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon-180x180.png">
-      <link rel="icon" type="image/png" sizes="192x192"  href="/android-icon-192x192.png">
+      <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
       <link class="favicon" rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
       <link class="favicon" rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
       <link class="favicon" rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+      <link rel="manifest" href="/manifest.json">
     <% end %>
     <link rel="icon" type="image/png" sizes="512x512" href="<%= @global_config['LOGO_THUMBNAIL'] %>">
     <%= csrf_meta_tags %>
@@ -47,7 +780,7 @@
         tiktokAppId: '<%= @global_config['TIKTOK_APP_ID'] %>',
         googleOAuthClientId: '<%= ENV.fetch('GOOGLE_OAUTH_CLIENT_ID', nil) %>',
         googleOAuthCallbackUrl: '<%= ENV.fetch('GOOGLE_OAUTH_CALLBACK_URL', nil) %>',
-        allowedLoginMethods: <%= @global_config['ALLOWED_LOGIN_METHODS'].to_json.html_safe %>,
+        allowedLoginMethods: ["email"],
         fbApiVersion: '<%= @global_config['FACEBOOK_API_VERSION'] %>',
         whatsappAppId: '<%= @global_config['WHATSAPP_APP_ID'] %>',
         whatsappConfigurationId: '<%= @global_config['WHATSAPP_CONFIGURATION_ID'] %>',
@@ -82,7 +815,221 @@
     <%= vite_client_tag %>
     <%= vite_javascript_tag @application_pack %>
   </head>
-  <body class="text-slate-600">
+  <body class="text-slate-600 dark:bg-[#04080E] dark:text-slate-100">
+    <script>
+      (function() {
+        function enhanceLoginView() {
+          var isAuth = window.location.pathname.indexOf('/login') !== -1 || window.location.pathname.indexOf('/auth') !== -1;
+          if (!isAuth) {
+            document.body.classList.remove('msc-auth-page');
+            var oldBar = document.getElementById('msc-top-bar');
+            if (oldBar) oldBar.remove();
+            var oldBg = document.getElementById('msc-ambient-bg');
+            if (oldBg) oldBg.remove();
+            return;
+          }
+
+          document.body.classList.add('msc-auth-page');
+
+          // Force dark class on Vue root wrapper
+          var appRoot = document.querySelector('#app > div');
+          if (appRoot && appRoot.classList.contains('light')) {
+            appRoot.classList.remove('light');
+            appRoot.classList.add('dark');
+          }
+
+          // Inject Ambient Background
+          if (!document.getElementById('msc-ambient-bg')) {
+            var bg = document.createElement('div');
+            bg.id = 'msc-ambient-bg';
+            bg.innerHTML = '<div class="msc-orbit-1"></div><div class="msc-orbit-2"></div><div class="msc-horizon-arc"></div>';
+            document.body.insertBefore(bg, document.body.firstChild);
+          }
+
+          // Ensure any legacy top bar is removed
+          var oldTopBar = document.getElementById('msc-top-bar');
+          if (oldTopBar) oldTopBar.remove();
+
+          // Inject Stacked Glowing Logo (matching GPT 2.5 mockup)
+          var firstSection = document.querySelector('main > section:first-child');
+          if (firstSection && !document.getElementById('msc-hero-logo')) {
+            var imgs = firstSection.querySelectorAll('img');
+            imgs.forEach(function(img) { img.style.display = 'none'; });
+            var logoWrap = document.createElement('div');
+            logoWrap.id = 'msc-hero-logo';
+            logoWrap.innerHTML =
+              '<svg width="250" height="76" viewBox="0 0 340 104" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 24px rgba(16, 185, 129, 0.35));">' +
+                '<defs>' +
+                  '<linearGradient id="mscBubbleGrad" x1="10" y1="10" x2="90" y2="90" gradientUnits="userSpaceOnUse">' +
+                    '<stop offset="0%" stop-color="#D4FF00"/>' +
+                    '<stop offset="55%" stop-color="#4ADE80"/>' +
+                    '<stop offset="100%" stop-color="#10B981"/>' +
+                  '</linearGradient>' +
+                '</defs>' +
+                '<rect x="14" y="10" width="76" height="72" rx="24" fill="rgba(16, 185, 129, 0.10)" stroke="url(#mscBubbleGrad)" stroke-width="4.5"/>' +
+                '<path d="M36 82L26 95L48 82" fill="rgba(16, 185, 129, 0.10)" stroke="url(#mscBubbleGrad)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+                '<path d="M56 26L41 47H52L47 66L63 45H52L56 26Z" fill="#D4FF00"/>' +
+                '<text x="108" y="48" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="40" font-weight="800" letter-spacing="-0.03em" fill="#FFFFFF">meusuper</text>' +
+                '<text x="108" y="86" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="42" font-weight="800" letter-spacing="-0.03em" fill="#B8FF01">chat</text>' +
+                '<text x="202" y="68" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#94A3B8">®</text>' +
+              '</svg>';
+            firstSection.insertBefore(logoWrap, firstSection.firstChild);
+          }
+
+          // Inject Icons inside Email and Password inputs + Move Forgot Password Link below Password Input
+          var emailInput = document.querySelector('input[data-testid="email_input"]');
+          if (emailInput && emailInput.parentElement && !emailInput.parentElement.querySelector('.msc-input-icon')) {
+            var mailIcon = document.createElement('span');
+            mailIcon.className = 'msc-input-icon';
+            mailIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
+            emailInput.parentElement.insertBefore(mailIcon, emailInput);
+          }
+
+          var passInput = document.querySelector('input[data-testid="password_input"]');
+          if (passInput && passInput.parentElement && !passInput.parentElement.querySelector('.msc-input-icon')) {
+            var lockIcon = document.createElement('span');
+            lockIcon.className = 'msc-input-icon';
+            lockIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+            passInput.parentElement.insertBefore(lockIcon, passInput);
+          }
+
+          var forgotLink = document.querySelector('a[href*="reset/password"]');
+          if (forgotLink && passInput) {
+            var fieldContainer = passInput.closest('.space-y-1');
+            if (fieldContainer && !fieldContainer.querySelector('.msc-forgot-wrap')) {
+              var wrap = document.createElement('div');
+              wrap.className = 'msc-forgot-wrap';
+              wrap.appendChild(forgotLink);
+              fieldContainer.appendChild(wrap);
+            }
+          }
+        }
+
+        var MSC_ICONS = {
+          whatsapp: '<svg viewBox="0 0 24 24" fill="#25D366"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-3.9-4.7-4.1-.1-.2-1.1-1.5-1.1-2.9s.7-2.1 1-2.4c.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l2 1c.3.1.5.2.5.3.1.2.1.6-.1 1.1Z"/></svg>',
+          messenger: '<svg viewBox="0 0 24 24"><defs><linearGradient id="mscMsg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#0866FF"/><stop offset="1" stop-color="#C837AB"/></linearGradient></defs><path fill="url(#mscMsg)" d="M12 2C6.4 2 2 6.1 2 11.6c0 2.9 1.2 5.4 3.1 7.1V22l2.9-1.6c1.2.3 2.5.5 4 .5 5.6 0 10-4.1 10-9.6S17.6 2 12 2Z"/><path fill="#fff" d="m6.5 14.4 3-4.7 2.6 2 3.3-2.2-3 4.7-2.6-2Z"/></svg>',
+          mail: '<svg viewBox="0 0 24 24" fill="none" stroke="#E2E8F0" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
+          chat: '<svg viewBox="0 0 24 24" fill="#38BDF8"><path d="M12 3C6.5 3 2 6.8 2 11.5c0 2.3 1.1 4.4 2.9 6L4 21l4-1.8c1.2.4 2.6.6 4 .6 5.5 0 10-3.8 10-8.5S17.5 3 12 3Z"/><circle cx="8" cy="11.5" r="1.2" fill="#fff"/><circle cx="12" cy="11.5" r="1.2" fill="#fff"/><circle cx="16" cy="11.5" r="1.2" fill="#fff"/></svg>',
+          cursor: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 3l16 7-7 2-2 7z"/></svg>'
+        };
+
+        function mscVisualFor(key) {
+          if (key === 'inboxes') {
+            return '<div class="msc-visual">' +
+              '<div class="msc-glass-tile">' + MSC_ICONS.whatsapp + '<span class="msc-badge">12</span></div>' +
+              '<div class="msc-glass-tile">' + MSC_ICONS.messenger + '<span class="msc-badge">3</span></div>' +
+              '<div class="msc-glass-tile">' + MSC_ICONS.mail + '<span class="msc-badge">5</span></div>' +
+              '<div class="msc-glass-tile">' + MSC_ICONS.chat + '<span class="msc-badge">8</span></div>' +
+            '</div>';
+          }
+          if (key === 'teams') {
+            return '<div class="msc-visual" style="gap:0">' +
+              '<div class="msc-avatar" style="background:linear-gradient(135deg,#6EE7B7,#10B981)">AN</div>' +
+              '<div class="msc-avatar" style="background:linear-gradient(135deg,#D4FF00,#4ADE80)">RC</div>' +
+              '<div class="msc-avatar" style="background:linear-gradient(135deg,#93C5FD,#34D399)">JS</div>' +
+              '<div class="msc-avatar-add">+</div>' +
+              '<span class="msc-cursor" style="color:#D4FF00;top:22px;left:24%">' + MSC_ICONS.cursor + '</span>' +
+              '<span class="msc-cursor" style="color:#10B981;bottom:18px;right:22%;transform:scaleX(-1)">' + MSC_ICONS.cursor + '</span>' +
+            '</div>';
+          }
+          if (key === 'canned') {
+            return '<div class="msc-visual"><div class="msc-cmd">' +
+              '<div class="msc-cmd-input">/g<i>|</i></div>' +
+              '<div class="msc-cmd-row on"><b>/grato</b><span>Agradecimento ao cliente</span></div>' +
+              '<div class="msc-cmd-row"><b>/garantia</b><span>Informações sobre garantia</span></div>' +
+            '</div></div>';
+          }
+          if (key === 'labels') {
+            return '<div class="msc-visual msc-tags">' +
+              '<span class="msc-tag t1">#vendas</span><span class="msc-tag t2">#financeiro</span>' +
+              '<span class="msc-tag t3">#suporte</span><span class="msc-tag t4">#vip</span>' +
+            '</div>';
+          }
+          return '';
+        }
+
+        var MSC_CTA = {
+          inboxes: 'Conectar canais agora',
+          teams: 'Convidar agora',
+          canned: 'Criar resposta pronta',
+          labels: 'Criar etiquetas'
+        };
+
+        function mscKeyFromHref(href) {
+          if (!href) return null;
+          if (href.indexOf('/settings/inboxes') !== -1) return 'inboxes';
+          if (href.indexOf('/settings/teams') !== -1 || href.indexOf('/settings/agents') !== -1) return 'teams';
+          if (href.indexOf('/settings/canned-response') !== -1) return 'canned';
+          if (href.indexOf('/settings/labels') !== -1) return 'labels';
+          return null;
+        }
+
+        function enhanceAppView() {
+          var path = window.location.pathname;
+          var isAuth = path.indexOf('/login') !== -1 || path.indexOf('/auth') !== -1;
+          if (isAuth || path.indexOf('/app') !== 0) {
+            document.body.classList.remove('msc-app-page');
+            return;
+          }
+          document.body.classList.add('msc-app-page');
+
+          // Onboarding cards (tela inicial de Conversas)
+          var details = document.querySelector('.conversation-details-wrap');
+          if (details) {
+            var grid = details.querySelector('.grid.grid-cols-2');
+            if (grid && grid.querySelector('img[src*="/onboarding/"]')) {
+              grid.classList.add('msc-onboarding');
+              grid.querySelectorAll(':scope > div.rounded-lg').forEach(function(card) {
+                var link = card.querySelector('a.text-n-brand');
+                var key = mscKeyFromHref(link && link.getAttribute('href'));
+                if (!key) return;
+                var imgWrap = card.querySelector(':scope > .flex-1');
+                if (imgWrap && !imgWrap.querySelector('.msc-visual')) {
+                  imgWrap.insertAdjacentHTML('beforeend', mscVisualFor(key));
+                }
+                if (link && !link.dataset.mscCta) {
+                  var label = link.querySelector('span:first-child');
+                  if (label) label.textContent = MSC_CTA[key];
+                  link.dataset.mscCta = '1';
+                }
+              });
+            }
+          }
+
+          // Empty state ilustrado da lista de conversas
+          var listWrap = document.querySelector('.conversations-list-wrap');
+          if (listWrap) {
+            var empty = listWrap.querySelector(':scope > p.justify-center');
+            if (empty && !empty.querySelector('.msc-empty-icon')) {
+              var msg = empty.textContent.trim();
+              empty.classList.add('msc-empty-enhanced');
+              empty.innerHTML =
+                '<span class="msc-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12Z"/><circle cx="8.5" cy="12" r=".6" fill="currentColor"/><circle cx="12.5" cy="12" r=".6" fill="currentColor"/><circle cx="16.5" cy="12" r=".6" fill="currentColor"/></svg></span>' +
+                '<span class="msc-empty-title"></span>' +
+                '<span class="msc-empty-sub">Quando novas conversas chegarem ou forem atribuídas a você, elas aparecerão aqui.</span>';
+              empty.querySelector('.msc-empty-title').textContent = msg;
+            }
+          }
+        }
+
+        var mscQueued = false;
+        function mscRunAll() {
+          mscQueued = false;
+          enhanceLoginView();
+          enhanceAppView();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+          mscRunAll();
+          var obs = new MutationObserver(function() {
+            if (mscQueued) return;
+            mscQueued = true;
+            window.requestAnimationFrame(mscRunAll);
+          });
+          obs.observe(document.body, { childList: true, subtree: true });
+        });
+      })();
+    </script>
     <div id="app"></div>
     <noscript id="noscript">This app works best with JavaScript enabled.</noscript>
     <%= yield %>
