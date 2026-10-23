@@ -20,7 +20,9 @@ class Api::V1::Accounts::CalendarSchedulesController < Api::V1::Accounts::BaseCo
     render json: {
       schedules: schedules.map { |s| s.as_api_json(today_count: counts_by_schedule[s.id] || 0) },
       appointment_types: types.map(&:as_api_json),
-      google_oauth_configured: Calendar::GoogleCalendarService.oauth_configured?,
+      google_oauth_configured: Calendar::GoogleCalendarService.oauth_configured?(Current.account),
+      google_oauth_redirect_uri: Calendar::GoogleCalendarService.redirect_uri,
+      integration_hooks_count: Current.account.hooks.where(app_id: 'google_calendar', status: :enabled).count,
       team_public_url: "#{base_url}/agendar/#{team_slug}"
     }
   end
@@ -48,10 +50,12 @@ class Api::V1::Accounts::CalendarSchedulesController < Api::V1::Accounts::BaseCo
   end
 
   def google_auth_url
-    unless Calendar::GoogleCalendarService.oauth_configured?
+    unless Calendar::GoogleCalendarService.oauth_configured?(Current.account)
       return render json: {
         oauth_configured: false,
-        message: 'Configure GOOGLE_OAUTH_CLIENT_ID e GOOGLE_OAUTH_CLIENT_SECRET no Super Admin para autenticar via OAuth, ou conecte o Google Calendar ID direto.'
+        redirect_uri: Calendar::GoogleCalendarService.redirect_uri,
+        integrations_path: "/app/accounts/#{Current.account.id}/settings/integrations/google_calendar",
+        message: 'Configure as credenciais OAuth 2.0 em Configurações → Integrações → Agendamento Inteligente IA ou conecte direto pela central de integrações.'
       }, status: :ok
     end
 
@@ -61,12 +65,13 @@ class Api::V1::Accounts::CalendarSchedulesController < Api::V1::Accounts::BaseCo
         account_id: Current.account.id,
         schedule_id: @schedule.id,
         user_id: Current.user.id,
+        return_to: params[:return_to].presence || 'calendar',
         exp: 20.minutes.from_now.to_i
       }
     )
     render json: {
       oauth_configured: true,
-      authorization_url: Calendar::GoogleCalendarService.authorization_url(state: state)
+      authorization_url: Calendar::GoogleCalendarService.authorization_url(state: state, account: Current.account)
     }
   end
 
@@ -162,7 +167,7 @@ class Api::V1::Accounts::CalendarSchedulesController < Api::V1::Accounts::BaseCo
       buffer_minutes: schedule.buffer_after_minutes || 15,
       location_type: 'google_meet',
       color: schedule.color,
-      description: "Reunião online com #{schedule.name} via Google Meet."
+      description: "Reunião executiva online com #{schedule.name} pela Sala de Vídeo Meu Super Chat."
     )
   end
 end

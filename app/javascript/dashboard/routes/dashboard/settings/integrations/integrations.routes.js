@@ -9,6 +9,7 @@ import Slack from './Slack.vue';
 import Linear from './Linear.vue';
 import Notion from './Notion.vue';
 import Shopify from './Shopify.vue';
+import GoogleCalendar from './GoogleCalendar.vue';
 
 export default {
   routes: [
@@ -82,6 +83,17 @@ export default {
           path: 'shopify',
           name: 'settings_integrations_shopify',
           component: Shopify,
+          meta: {
+            featureFlag: FEATURE_FLAGS.INTEGRATIONS,
+            permissions: ['administrator'],
+            fullWidth: true,
+          },
+          props: route => ({ error: route.query.error }),
+        },
+        {
+          path: 'google_calendar',
+          name: 'settings_integrations_google_calendar',
+          component: GoogleCalendar,
           meta: {
             featureFlag: FEATURE_FLAGS.INTEGRATIONS,
             permissions: ['administrator'],

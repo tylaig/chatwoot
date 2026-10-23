@@ -511,6 +511,17 @@ Rails.application.routes.draw do
                 get :orders
               end
             end
+            resource :google_calendar, controller: 'google_calendar', only: [:destroy] do
+              collection do
+                get :index
+                post :save_oauth_credentials
+                post :auth
+                post :connect
+                patch :update_hook
+                post :test_connection
+                post :sync_events
+              end
+            end
             resource :linear, controller: 'linear', only: [] do
               collection do
                 delete :destroy

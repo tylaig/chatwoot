@@ -347,3 +347,24 @@ leadsquared:
       'conversation_activity_score',
       'transcript_activity_score',
     ]
+
+google_calendar:
+  id: google_calendar
+  logo: google_calendar.png
+  i18n_key: google_calendar
+  hook_type: account
+  allow_multiple_hooks: true
+  visible_properties:
+    [
+      'connection_name',
+      'provider',
+      'calendar_email',
+      'calendar_id',
+      'schedule_ids',
+      'agent_ids',
+      'auth_mode',
+      'last_synced_at',
+      'last_tested_at',
+      'connection_status',
+      'oauth_client_id_configured',
+    ]

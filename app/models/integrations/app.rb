@@ -94,6 +94,8 @@ class Integrations::App
       account.dashboard_apps.exists?
     when 'shopify'
       account.hooks.exists?(app_id: id, status: :enabled)
+    when 'google_calendar'
+      account.hooks.exists?(app_id: id, status: :enabled) || account.calendar_schedules.where(google_connected: true).exists?
     else
       account.hooks.exists?(app_id: id)
     end

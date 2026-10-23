@@ -450,6 +450,10 @@ en:
       name: 'LeadSquared'
       short_description: 'Sync your contacts and conversations with LeadSquared CRM.'
       description: 'Sync your contacts and conversations with LeadSquared CRM. This integration automatically creates leads in LeadSquared when new contacts are added, and logs conversation activity to provide your sales team with complete context.'
+    google_calendar:
+      name: 'Google Calendar & AI Scheduling'
+      short_description: 'Connect multiple Google Calendar OAuth 2.0 accounts and specialist schedules with real-time sync.'
+      description: 'Manage multiple calendar OAuth 2.0 connections, link individual specialist or team schedules, auto-generate video rooms, and let the AI Agent check availability conflicts in real time.'
   captain:
     copilot_message_required: Message is required
     copilot_error: 'Please connect an assistant to this inbox to use Copilot'

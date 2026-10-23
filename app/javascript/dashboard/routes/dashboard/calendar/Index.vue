@@ -1,11 +1,15 @@
 <script setup>
 /* eslint-disable @intlify/vue-i18n/no-raw-text, vue/no-bare-strings-in-template */
 import { ref, computed, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { OnClickOutside } from '@vueuse/components';
 import { useAlert } from 'dashboard/composables';
 import CalendarAPI from 'dashboard/api/calendar';
 import ProfileBuilderTab from './ProfileBuilderTab.vue';
 import BookingModal from './BookingModal.vue';
+
+const route = useRoute();
+const router = useRouter();
 
 const schedules = ref([]);
 const appointments = ref([]);
@@ -18,14 +22,15 @@ const stats = ref({
   no_show_rate: 0,
 });
 const googleOauthConfigured = ref(false);
+const integrationHooksCount = ref(0);
 const teamPublicUrl = ref('');
 const loading = ref(true);
 
-// Multi-professional filter ('all' or schedule.id) — identical to Shopify store switcher
+// Multi-professional filter ('all' or schedule.id)
 const selectedScheduleId = ref('all');
 const showScheduleSwitcherDropdown = ref(false);
 const activeMainTab = ref('calendar'); // 'calendar' | 'ai_bookings' | 'profile_builder'
-const viewMode = ref('week'); // 'week' | 'day' | 'list'
+const viewMode = ref('week'); // 'week' | 'list'
 const searchQuery = ref('');
 
 // Modal state
@@ -101,7 +106,7 @@ const selectedSchedule = computed(() => {
 });
 
 const activeProfessionalDisplayName = computed(() => {
-  if (!schedules.value.length) return 'Nenhum Profissional Cadastrado';
+  if (!schedules.value.length) return 'Nenhum Especialista Cadastrado';
   if (selectedScheduleId.value === 'all' || !selectedSchedule.value) {
     return `Todos os Profissionais (${schedules.value.length})`;
   }
@@ -122,6 +127,30 @@ const activePublicLink = computed(() => {
 const googleConnectedCount = computed(
   () => schedules.value.filter(s => s.google_connected).length
 );
+
+const aiConversionPercent = computed(() => {
+  const total = appointments.value.length || 1;
+  const aiCount =
+    stats.value.ai_booked ||
+    appointments.value.filter(a => a.source === 'ai_agent').length;
+  return Math.min(100, Math.round((aiCount / total) * 100));
+});
+
+const activeWeeklyHoursCount = computed(() => {
+  const target = selectedSchedule.value || schedules.value[0];
+  if (!target?.weekly_hours) return 38;
+  let mins = 0;
+  Object.values(target.weekly_hours).forEach(arr => {
+    (arr || []).forEach(iv => {
+      if (!iv.start || !iv.end) return;
+      const [sh, sm] = iv.start.split(':').map(Number);
+      const [eh, em] = iv.end.split(':').map(Number);
+      const d = eh * 60 + em - (sh * 60 + sm);
+      if (d > 0) mins += d;
+    });
+  });
+  return Math.round(mins / 60);
+});
 
 const filteredAppointments = computed(() => {
   return appointments.value.filter(appt => {
@@ -162,6 +191,7 @@ const loadAllData = async () => {
     ]);
     schedules.value = schedRes.data?.schedules || [];
     googleOauthConfigured.value = !!schedRes.data?.google_oauth_configured;
+    integrationHooksCount.value = schedRes.data?.integration_hooks_count || 0;
     teamPublicUrl.value = schedRes.data?.team_public_url || '';
     appointments.value = apptRes.data?.appointments || [];
     stats.value = apptRes.data?.stats || stats.value;
@@ -202,6 +232,13 @@ const copyPublicLink = () => {
   useAlert('Link público copiado!');
 };
 
+const goToIntegrationsHub = () => {
+  const accountId = route.params.accountId || 1;
+  router.push(
+    `/app/accounts/${accountId}/settings/integrations/google_calendar`
+  );
+};
+
 const handleProfileSaved = async savedId => {
   await loadAllData();
   if (savedId) {
@@ -218,7 +255,7 @@ const sourceBadge = source => {
   }
   if (source === 'public_link') {
     return {
-      label: 'Link Público',
+      label: 'Página Pública',
       cls: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
     };
   }
@@ -230,12 +267,15 @@ const sourceBadge = source => {
 
 onMounted(() => {
   loadAllData();
+  if (route.query.google_connected) {
+    useAlert('Agenda sincronizada via OAuth 2.0 com sucesso!');
+  }
 });
 </script>
 
 <template>
   <section class="flex flex-col w-full h-full overflow-hidden bg-[#04090D]">
-    <!-- Top Header com o Multi-Profissional Switcher (Idêntico ao Shopify Switcher) -->
+    <!-- Top Header Executivo com Multi-Profissional Switcher -->
     <header
       class="sticky top-0 z-20 px-4 sm:px-6 border-b border-[#132631] bg-[#04090D]"
     >
@@ -243,10 +283,10 @@ onMounted(() => {
         <div
           class="flex flex-col lg:flex-row items-start lg:items-center justify-between w-full py-3.5 lg:py-0 lg:h-20 gap-3"
         >
-          <!-- Esquerda: Dropdown Seletor de Profissionais -->
+          <!-- Esquerda: Seletor de Especialistas -->
           <div class="flex items-center gap-3 min-w-0">
             <div
-              class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0"
+              class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm"
             >
               <span class="i-lucide-calendar-check-2 size-5" />
             </div>
@@ -268,7 +308,7 @@ onMounted(() => {
                   >
                     <button
                       type="button"
-                      class="px-2.5 py-1 rounded-lg bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 text-xs text-slate-200 flex items-center gap-1"
+                      class="px-2.5 py-1 rounded-lg bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 text-xs text-slate-200 flex items-center gap-1 transition"
                       @click="
                         showScheduleSwitcherDropdown =
                           !showScheduleSwitcherDropdown
@@ -278,44 +318,43 @@ onMounted(() => {
                       <span class="i-lucide-chevron-down size-3.5" />
                     </button>
 
-                    <!-- Popover Dropdown Multi-Profissional (Estilo Shopify) -->
+                    <!-- Popover Dropdown Multi-Profissional -->
                     <div
                       v-if="showScheduleSwitcherDropdown"
-                      class="bg-[#081218]/95 backdrop-blur-xl border border-[#162936] w-[calc(100vw-4.5rem)] max-w-80 sm:w-96 sm:max-w-none rounded-xl p-4 absolute z-50 left-0 top-full mt-2 flex flex-col gap-2.5 shadow-2xl"
+                      class="bg-[#081218]/95 backdrop-blur-xl border border-[#162936] w-[calc(100vw-4.5rem)] max-w-80 sm:w-96 sm:max-w-none rounded-2xl p-4 absolute z-50 left-0 top-full mt-2 flex flex-col gap-2.5 shadow-2xl"
                     >
                       <div
                         class="flex items-center justify-between gap-2 pb-2.5 border-b border-[#132631]"
                       >
                         <div>
                           <h5 class="text-sm font-semibold text-[#F8FAFC]">
-                            Alternar Profissional / Agenda
+                            Alternar Especialista / Agenda
                           </h5>
                           <span class="text-[11px] text-slate-400">
-                            {{ schedules.length }} agendas configuradas ({{
+                            {{ schedules.length }} agendas ativas ({{
                               googleConnectedCount
                             }}
-                            Google Sync)
+                            sincronizadas)
                           </span>
                         </div>
                         <button
                           type="button"
-                          class="px-2.5 py-1 rounded-md bg-[#0F1E29] border border-[#1C3545] text-[11px] text-emerald-400 font-medium"
+                          class="px-2.5 py-1 rounded-lg bg-[#0F1E29] border border-[#1C3545] text-[11px] text-emerald-400 font-semibold"
                           @click="
                             activeMainTab = 'profile_builder';
                             showScheduleSwitcherDropdown = false;
                           "
                         >
-                          + Profissional
+                          + Especialista
                         </button>
                       </div>
 
                       <div
                         class="flex flex-col gap-1.5 max-h-72 overflow-y-auto"
                       >
-                        <!-- Opção Todos os Profissionais -->
                         <button
                           type="button"
-                          class="flex items-center justify-between px-3 py-2 rounded-lg border text-left transition"
+                          class="flex items-center justify-between px-3 py-2 rounded-xl border text-left transition"
                           :class="
                             selectedScheduleId === 'all'
                               ? 'bg-emerald-500/15 border-emerald-500/40 text-white'
@@ -334,7 +373,7 @@ onMounted(() => {
                                 Todos os Profissionais ({{ schedules.length }})
                               </div>
                               <div class="text-[10px] text-slate-400 truncate">
-                                Visão consolidada da equipe / clínica
+                                Visão consolidada da operação Meu Super Chat
                               </div>
                             </div>
                           </div>
@@ -344,12 +383,11 @@ onMounted(() => {
                           />
                         </button>
 
-                        <!-- Cada Profissional -->
                         <button
                           v-for="sched in schedules"
                           :key="sched.id"
                           type="button"
-                          class="flex items-center justify-between px-3 py-2 rounded-lg border text-left transition"
+                          class="flex items-center justify-between px-3 py-2 rounded-xl border text-left transition"
                           :class="
                             Number(selectedScheduleId) === Number(sched.id)
                               ? 'bg-emerald-500/15 border-emerald-500/40 text-white'
@@ -390,7 +428,7 @@ onMounted(() => {
                                   v-if="sched.google_connected"
                                   class="text-emerald-400"
                                 >
-                                  • Google Sync
+                                  • Sync Ativo
                                 </span>
                               </div>
                             </div>
@@ -410,22 +448,22 @@ onMounted(() => {
                   class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                 >
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  Google Agenda & IA Ativos
+                  Agenda & IA Ativos
                 </span>
               </div>
               <span class="text-xs text-slate-400 truncate">
-                Compromissos sincronizados com Google Calendar, Agente IA no
-                WhatsApp e Links Públicos estilo Cal.com
+                Agendamento Inteligente sincronizado em tempo real com Agente IA
+                no WhatsApp e Páginas Exclusivas Meu Super Chat
               </span>
             </div>
           </div>
 
-          <!-- Direita: Link Público + Configurar + Novo Agendamento -->
+          <!-- Direita: Link Público + Hub OAuth + Configurar + Novo Agendamento -->
           <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             <div
-              class="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#081218] border border-[#162936] text-xs"
+              class="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#081218] border border-[#162936] text-xs"
             >
-              <span class="text-slate-400">Link Público:</span>
+              <span class="i-lucide-link-2 size-3.5 text-emerald-400" />
               <a
                 :href="activePublicLink"
                 target="_blank"
@@ -436,7 +474,7 @@ onMounted(() => {
               </a>
               <button
                 type="button"
-                class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold"
+                class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold"
                 @click="copyPublicLink"
               >
                 Copiar
@@ -445,7 +483,17 @@ onMounted(() => {
 
             <button
               type="button"
-              class="px-3 py-2 rounded-lg bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 text-xs font-medium text-slate-200 flex items-center gap-1.5"
+              class="px-3 py-2 rounded-xl bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 text-xs font-medium text-slate-200 flex items-center gap-1.5 transition"
+              title="Gerenciar múltiplas conexões OAuth de calendário"
+              @click="goToIntegrationsHub"
+            >
+              <span class="i-lucide-blocks size-3.5 text-emerald-400" />
+              <span class="hidden sm:inline">Integrações OAuth</span>
+            </button>
+
+            <button
+              type="button"
+              class="px-3 py-2 rounded-xl bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 text-xs font-medium text-slate-200 flex items-center gap-1.5 transition"
               @click="
                 activeMainTab =
                   activeMainTab === 'profile_builder'
@@ -467,7 +515,7 @@ onMounted(() => {
 
             <button
               type="button"
-              class="px-3.5 py-2 rounded-lg bg-[#10B981] hover:bg-emerald-400 text-[#04090D] font-semibold text-xs flex items-center gap-1.5 shadow"
+              class="px-3.5 py-2 rounded-xl bg-[#10B981] hover:bg-emerald-400 text-[#04090D] font-semibold text-xs flex items-center gap-1.5 shadow-md transition"
               @click="openNewBooking"
             >
               <span class="i-lucide-plus size-4" />
@@ -476,14 +524,14 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Sub-barra de Abas + Indicadores (Idêntica à sub-barra da Shopify) -->
+        <!-- Sub-barra de Abas + Indicadores -->
         <div
           class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2.5 border-t border-[#132631] text-xs"
         >
-          <div class="flex flex-wrap items-center gap-4">
+          <div class="flex flex-wrap items-center gap-5">
             <button
               type="button"
-              class="pb-1 font-medium transition flex items-center gap-1.5 border-b-2"
+              class="pb-1.5 font-medium transition flex items-center gap-1.5 border-b-2"
               :class="
                 activeMainTab === 'calendar'
                   ? 'text-emerald-400 border-emerald-400 font-semibold'
@@ -502,7 +550,7 @@ onMounted(() => {
 
             <button
               type="button"
-              class="pb-1 font-medium transition flex items-center gap-1.5 border-b-2"
+              class="pb-1.5 font-medium transition flex items-center gap-1.5 border-b-2"
               :class="
                 activeMainTab === 'ai_bookings'
                   ? 'text-emerald-400 border-emerald-400 font-semibold'
@@ -510,7 +558,7 @@ onMounted(() => {
               "
               @click="activeMainTab = 'ai_bookings'"
             >
-              <span class="i-lucide-bot size-3.5" />
+              <span class="i-lucide-sparkles size-3.5" />
               <span>Agendados pela IA</span>
               <span
                 class="px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300 text-[10px]"
@@ -521,7 +569,7 @@ onMounted(() => {
 
             <button
               type="button"
-              class="pb-1 font-medium transition flex items-center gap-1.5 border-b-2"
+              class="pb-1.5 font-medium transition flex items-center gap-1.5 border-b-2"
               :class="
                 activeMainTab === 'profile_builder'
                   ? 'text-emerald-400 border-emerald-400 font-semibold'
@@ -529,8 +577,8 @@ onMounted(() => {
               "
               @click="activeMainTab = 'profile_builder'"
             >
-              <span class="i-lucide-globe size-3.5" />
-              <span>Perfil Público & Horários (Cal.com)</span>
+              <span class="i-lucide-user-Check size-3.5" />
+              <span>Perfil Público & Horários</span>
             </button>
           </div>
 
@@ -542,17 +590,17 @@ onMounted(() => {
               }}</strong>
             </span>
             <span class="text-slate-400 text-[11px]">
-              ● Link Público:
+              ● Página Pública:
               <strong class="text-cyan-400">{{ stats.public_booked }}</strong>
             </span>
 
             <div
               v-if="activeMainTab !== 'profile_builder'"
-              class="flex rounded-lg bg-[#081218] border border-[#162936] p-0.5"
+              class="flex rounded-xl bg-[#081218] border border-[#162936] p-0.5"
             >
               <button
                 type="button"
-                class="px-2.5 py-1 rounded-md text-[11px] transition"
+                class="px-2.5 py-1 rounded-lg text-[11px] transition"
                 :class="
                   viewMode === 'week'
                     ? 'bg-[#10B981] text-[#04090D] font-semibold'
@@ -564,7 +612,7 @@ onMounted(() => {
               </button>
               <button
                 type="button"
-                class="px-2.5 py-1 rounded-md text-[11px] transition"
+                class="px-2.5 py-1 rounded-lg text-[11px] transition"
                 :class="
                   viewMode === 'list'
                     ? 'bg-[#10B981] text-[#04090D] font-semibold'
@@ -581,28 +629,152 @@ onMounted(() => {
     </header>
 
     <!-- Conteúdo Principal -->
-    <div class="flex-1 overflow-y-auto p-4 sm:p-6">
-      <!-- ABA 3: Construtor de Perfil & Horários (Estilo Cal.com) -->
+    <div class="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-5">
+      <!-- Faixa de 4 KPIs Executivos no Topo (Fiel ao GPT Image 2.5) -->
+      <div
+        class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 shrink-0"
+      >
+        <div
+          class="p-4 rounded-2xl bg-[#081218] border border-[#142633] flex items-center justify-between shadow-sm"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0"
+            >
+              <span class="i-lucide-calendar-check size-5" />
+            </div>
+            <div>
+              <span class="text-[11px] text-slate-400 font-medium">
+                Agendamentos Hoje
+              </span>
+              <div
+                class="text-xl font-bold text-[#F8FAFC] leading-tight mt-0.5"
+              >
+                {{ stats.today_confirmed || appointments.length }}
+              </div>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-[11px] font-semibold text-emerald-400">
+              ↗ +100%
+            </span>
+            <div class="text-[10px] text-slate-500">sincronizados</div>
+          </div>
+        </div>
+
+        <div
+          class="p-4 rounded-2xl bg-[#081218] border border-[#142633] flex items-center justify-between shadow-sm"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0"
+            >
+              <span class="i-lucide-zap size-5" />
+            </div>
+            <div>
+              <span class="text-[11px] text-slate-400 font-medium">
+                Gerados pela IA
+              </span>
+              <div
+                class="text-xl font-bold text-[#F8FAFC] leading-tight mt-0.5"
+              >
+                {{ aiConversionPercent }}%
+              </div>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-[11px] font-semibold text-emerald-400">
+              {{ stats.ai_booked }} sessões
+            </span>
+            <div class="text-[10px] text-slate-500">via WhatsApp IA</div>
+          </div>
+        </div>
+
+        <div
+          class="p-4 rounded-2xl bg-[#081218] border border-[#142633] flex items-center justify-between shadow-sm"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0"
+            >
+              <span class="i-lucide-clock size-5" />
+            </div>
+            <div>
+              <span class="text-[11px] text-slate-400 font-medium">
+                Turnos Ativos
+              </span>
+              <div
+                class="text-xl font-bold text-[#F8FAFC] leading-tight mt-0.5"
+              >
+                {{ activeWeeklyHoursCount }}h/sem
+              </div>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-[11px] font-semibold text-emerald-400">
+              {{ schedules.length }} agendas
+            </span>
+            <div class="text-[10px] text-slate-500">em operação</div>
+          </div>
+        </div>
+
+        <div
+          class="p-4 rounded-2xl bg-[#081218] border border-[#142633] flex items-center justify-between shadow-sm"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0"
+            >
+              <span class="i-lucide-globe size-5" />
+            </div>
+            <div>
+              <span class="text-[11px] text-slate-400 font-medium">
+                Status da Página
+              </span>
+              <div
+                class="text-xl font-bold text-[#F8FAFC] leading-tight mt-0.5 flex items-center gap-1.5"
+              >
+                <span>Online</span>
+                <span class="w-2 h-2 rounded-full bg-emerald-400" />
+              </div>
+            </div>
+          </div>
+          <div class="text-right">
+            <a
+              :href="activePublicLink"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-[11px] font-semibold text-emerald-400 hover:underline"
+            >
+              Testar Link →
+            </a>
+            <div class="text-[10px] text-slate-500">reserva instantânea</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA 3: Construtor de Perfil & Horários Meu Super Chat -->
       <ProfileBuilderTab
         v-if="activeMainTab === 'profile_builder'"
         :schedules="schedules"
         :selected-schedule-id="selectedScheduleId"
         :google-oauth-configured="googleOauthConfigured"
+        :integration-hooks-count="integrationHooksCount"
         @saved="handleProfileSaved"
         @select-schedule="id => (selectedScheduleId = id)"
       />
 
       <!-- ABAS 1 & 2: Calendário / Agendamentos -->
-      <div v-else class="flex flex-col gap-4 h-full">
+      <div v-else class="flex flex-col gap-4 flex-1">
         <!-- Barra de Pílulas de Profissionais + Navegação de Datas -->
         <div
-          class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#081218] border border-[#132631] rounded-xl px-4 py-2.5"
+          class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#081218] border border-[#142633] rounded-2xl px-4 py-3"
         >
           <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xs text-slate-400 mr-1">Profissional:</span>
+            <span class="text-xs text-slate-400 mr-1">Especialista:</span>
             <button
               type="button"
-              class="px-3 py-1 rounded-lg text-xs font-medium border transition"
+              class="px-3 py-1.5 rounded-xl text-xs font-medium border transition"
               :class="
                 selectedScheduleId === 'all'
                   ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
@@ -617,7 +789,7 @@ onMounted(() => {
               v-for="sched in schedules"
               :key="sched.id"
               type="button"
-              class="px-3 py-1 rounded-lg text-xs border transition flex items-center gap-1.5"
+              class="px-3 py-1.5 rounded-xl text-xs border transition flex items-center gap-1.5"
               :class="
                 Number(selectedScheduleId) === Number(sched.id)
                   ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-medium'
@@ -638,19 +810,19 @@ onMounted(() => {
               v-model="searchQuery"
               type="text"
               placeholder="Buscar cliente, título ou telefone..."
-              class="px-3 py-1.5 rounded-lg bg-[#04090D] border border-[#162936] text-xs text-white outline-none w-full sm:w-56"
+              class="px-3.5 py-1.5 rounded-xl bg-[#04090D] border border-[#162936] text-xs text-white outline-none w-full sm:w-56 focus:border-emerald-500/60"
             />
             <div class="flex items-center gap-1.5 text-xs text-slate-200">
               <button
                 type="button"
-                class="px-2.5 py-1.5 rounded bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 flex items-center justify-center"
+                class="px-2.5 py-1.5 rounded-lg bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 flex items-center justify-center"
                 @click="shiftWeek(-1)"
               >
                 <span class="i-lucide-chevron-left size-3.5" />
               </button>
               <button
                 type="button"
-                class="px-2.5 py-1 rounded bg-[#0A151D] border border-[#162936] text-[11px] text-emerald-400"
+                class="px-2.5 py-1 rounded-lg bg-[#0A151D] border border-[#162936] text-[11px] text-emerald-400 font-medium"
                 @click="goToToday"
               >
                 Hoje
@@ -660,7 +832,7 @@ onMounted(() => {
               </span>
               <button
                 type="button"
-                class="px-2.5 py-1.5 rounded bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 flex items-center justify-center"
+                class="px-2.5 py-1.5 rounded-lg bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 flex items-center justify-center"
                 @click="shiftWeek(1)"
               >
                 <span class="i-lucide-chevron-right size-3.5" />
@@ -677,11 +849,11 @@ onMounted(() => {
           <div
             v-for="day in weekDays"
             :key="day.iso"
-            class="rounded-xl p-3 flex flex-col gap-2.5 min-h-[260px]"
+            class="rounded-2xl p-3.5 flex flex-col gap-2.5 min-h-[260px] transition"
             :class="
               day.isToday
                 ? 'bg-[#0A151D] border-2 border-emerald-500/40 shadow-lg'
-                : 'bg-[#081218] border border-[#132631]'
+                : 'bg-[#081218] border border-[#142633]'
             "
           >
             <div
@@ -717,7 +889,7 @@ onMounted(() => {
             <div
               v-for="appt in appointmentsForDay(day.iso)"
               :key="appt.id"
-              class="p-2.5 rounded-lg bg-[#04090D] border border-[#162936] hover:border-emerald-500/50 transition cursor-pointer flex flex-col gap-1 border-l-4"
+              class="p-3 rounded-xl bg-[#04090D] border border-[#162936] hover:border-emerald-500/50 transition cursor-pointer flex flex-col gap-1 border-l-4 shadow-sm"
               :style="{
                 borderLeftColor: appt.professional_color || '#10b981',
               }"
@@ -752,8 +924,8 @@ onMounted(() => {
                   v-if="appt.meeting_url"
                   class="text-emerald-400 flex items-center gap-0.5 shrink-0"
                 >
-                  <span>Meet</span>
-                  <span class="i-lucide-external-link size-2.5" />
+                  <span>Sala</span>
+                  <span class="i-lucide-video size-2.5" />
                 </span>
               </div>
             </div>
@@ -763,7 +935,7 @@ onMounted(() => {
         <!-- Visão em Lista Completa -->
         <div
           v-else
-          class="bg-[#081218] border border-[#132631] rounded-xl overflow-hidden"
+          class="bg-[#081218] border border-[#142633] rounded-2xl overflow-hidden"
         >
           <div
             v-if="filteredAppointments.length === 0"
@@ -819,7 +991,7 @@ onMounted(() => {
                     {{ appt.end_time }}
                   </div>
                   <div class="text-[11px] text-slate-400">
-                    Profissional: {{ appt.professional_name }}
+                    Especialista: {{ appt.professional_name }}
                   </div>
                 </div>
                 <a
@@ -827,10 +999,10 @@ onMounted(() => {
                   :href="appt.meeting_url"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-semibold text-xs"
+                  class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-semibold text-xs"
                   @click.stop
                 >
-                  Abrir Meet
+                  Abrir Sala de Vídeo
                 </a>
               </div>
             </div>

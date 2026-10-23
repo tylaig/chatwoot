@@ -17,15 +17,35 @@ class Calendar::GoogleCalendarService
     @schedule = schedule
   end
 
-  def self.oauth_configured?
-    client_id.present? && client_secret.present?
+  def self.oauth_configured?(account = nil)
+    client_id(account).present? && client_secret(account).present?
   end
 
-  def self.client_id
+  def self.account_oauth_config(account)
+    return {} unless account
+
+    raw = account.respond_to?(:custom_attributes) ? (account.custom_attributes || {}) : {}
+    cfg = raw['google_calendar_oauth']
+    cfg.is_a?(Hash) ? cfg : {}
+  end
+
+  def self.client_id(account = nil, hook: nil)
+    hook_cid = hook&.settings&.dig('oauth_client_id')
+    return hook_cid if hook_cid.present?
+
+    acc_cid = account_oauth_config(account)['client_id']
+    return acc_cid if acc_cid.present?
+
     GlobalConfigService.load('GOOGLE_OAUTH_CLIENT_ID', nil).presence || ENV.fetch('GOOGLE_OAUTH_CLIENT_ID', nil)
   end
 
-  def self.client_secret
+  def self.client_secret(account = nil, hook: nil)
+    hook_sec = hook&.settings&.dig('oauth_client_secret')
+    return hook_sec if hook_sec.present?
+
+    acc_sec = account_oauth_config(account)['client_secret']
+    return acc_sec if acc_sec.present?
+
     GlobalConfigService.load('GOOGLE_OAUTH_CLIENT_SECRET', nil).presence || ENV.fetch('GOOGLE_OAUTH_CLIENT_SECRET', nil)
   end
 
@@ -34,9 +54,9 @@ class Calendar::GoogleCalendarService
     "#{base}/callbacks/google_calendar"
   end
 
-  def self.authorization_url(state:)
+  def self.authorization_url(state:, account: nil, hook: nil)
     params = {
-      client_id: client_id,
+      client_id: client_id(account, hook: hook),
       redirect_uri: redirect_uri,
       response_type: 'code',
       scope: SCOPES,
@@ -48,13 +68,13 @@ class Calendar::GoogleCalendarService
     "#{GOOGLE_AUTH_URL}?#{URI.encode_www_form(params)}"
   end
 
-  def self.exchange_code!(code)
+  def self.exchange_code!(code, account: nil, hook: nil)
     resp = HTTParty.post(
       GOOGLE_TOKEN_URL,
       body: {
         code: code,
-        client_id: client_id,
-        client_secret: client_secret,
+        client_id: client_id(account, hook: hook),
+        client_secret: client_secret(account, hook: hook),
         redirect_uri: redirect_uri,
         grant_type: 'authorization_code'
       },
@@ -197,8 +217,8 @@ class Calendar::GoogleCalendarService
     resp = HTTParty.post(
       GOOGLE_TOKEN_URL,
       body: {
-        client_id: self.class.client_id,
-        client_secret: self.class.client_secret,
+        client_id: self.class.client_id(@schedule.account),
+        client_secret: self.class.client_secret(@schedule.account),
         refresh_token: refresh_token,
         grant_type: 'refresh_token'
       },

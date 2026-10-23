@@ -94,6 +94,69 @@ class IntegrationsAPI extends ApiClient {
       params: { hook_id: hookId },
     });
   }
+
+  getGoogleCalendarIntegrations() {
+    return axios.get(`${this.baseUrl()}/integrations/google_calendar`);
+  }
+
+  saveGoogleCalendarOauthCredentials({ clientId, clientSecret }) {
+    return axios.post(
+      `${this.baseUrl()}/integrations/google_calendar/save_oauth_credentials`,
+      {
+        client_id: clientId,
+        client_secret: clientSecret,
+      }
+    );
+  }
+
+  startGoogleCalendarOauth({ hookId, scheduleId, returnTo = 'integrations' }) {
+    return axios.post(`${this.baseUrl()}/integrations/google_calendar/auth`, {
+      hook_id: hookId,
+      schedule_id: scheduleId,
+      return_to: returnTo,
+    });
+  }
+
+  connectGoogleCalendarHook(payload) {
+    return axios.post(
+      `${this.baseUrl()}/integrations/google_calendar/connect`,
+      payload
+    );
+  }
+
+  updateGoogleCalendarHook(payload) {
+    return axios.patch(
+      `${this.baseUrl()}/integrations/google_calendar/update_hook`,
+      payload
+    );
+  }
+
+  testGoogleCalendarConnection(hookId) {
+    return axios.post(
+      `${this.baseUrl()}/integrations/google_calendar/test_connection`,
+      {
+        hook_id: hookId,
+      }
+    );
+  }
+
+  syncGoogleCalendarEvents(hookId) {
+    return axios.post(
+      `${this.baseUrl()}/integrations/google_calendar/sync_events`,
+      {
+        hook_id: hookId,
+      }
+    );
+  }
+
+  deleteGoogleCalendarHook(hookId, disconnectSchedules = false) {
+    return axios.delete(`${this.baseUrl()}/integrations/google_calendar`, {
+      params: {
+        hook_id: hookId,
+        disconnect_schedules: disconnectSchedules ? 1 : undefined,
+      },
+    });
+  }
 }
 
 export default new IntegrationsAPI();

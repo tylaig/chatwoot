@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Agendar Horário • <%= @global_config['BRAND_NAME'].presence || 'Meu Super Chat' %></title>
+  <meta name="description" content="Escolha seu serviço, horário e confirme sua sessão na agenda inteligente do Meu Super Chat." />
   <link rel="icon" type="image/png" href="/favicon-32x32.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -69,6 +70,22 @@
       .booking-container {
         grid-template-columns: 1fr;
         max-width: 640px;
+      }
+    }
+    @media (max-width: 520px) {
+      .page-shell {
+        justify-content: flex-start;
+        padding: 18px 16px 28px;
+      }
+      .top-brand {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+        line-height: 1.35;
+        margin-bottom: 14px;
+      }
+      .booking-container {
+        border-radius: 16px;
       }
     }
     .col-info {
@@ -367,6 +384,71 @@
       color: #FDA4AF;
       font-size: 12px;
     }
+    .booking-stepper {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(90deg, rgba(16,185,129,.08), transparent 65%);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .booking-stepper::-webkit-scrollbar { display: none; }
+    @media (max-width: 520px) {
+      .booking-stepper {
+        gap: 7px;
+        padding: 13px 14px;
+        justify-content: flex-start;
+      }
+      .booking-step {
+        font-size: 10px;
+        gap: 5px;
+      }
+      .booking-step::after { width: 18px; margin-left: 1px; }
+      .booking-step .step-number {
+        width: 26px;
+        height: 26px;
+        flex: 0 0 26px;
+      }
+    }
+    .booking-step {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      flex: 0 0 auto;
+      color: var(--subtle);
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .booking-step::after {
+      content: '';
+      width: 34px;
+      height: 1px;
+      margin-left: 4px;
+      background: var(--border-strong);
+    }
+    .booking-step:last-child::after { display: none; }
+    .booking-step .step-number {
+      width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-elevated);
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .booking-step.active, .booking-step.done { color: #A7F3D0; }
+    .booking-step.active .step-number, .booking-step.done .step-number {
+      border-color: var(--accent);
+      background: rgba(16,185,129,.18);
+      color: var(--accent-bright);
+    }
     .powered-footer {
       font-size: 11px;
       color: var(--subtle);
@@ -573,6 +655,14 @@
         const duration = (srv && srv.duration_minutes) || sched.slot_duration_minutes || 30;
         const availableTypes = (sched.appointment_types && sched.appointment_types.length) ? sched.appointment_types : state.appointmentTypes;
 
+        const currentStep = state.step === 'confirmed' ? 3 : (state.step === 'fill_form' ? 2 : 1);
+        const stepperHtml = '<div class="booking-stepper" aria-label="Progresso do agendamento">' +
+          ['Escolha o serviço e horário', 'Seus dados', 'Confirmação'].map(function(label, index) {
+            const step = index + 1;
+            const status = step === currentStep ? 'active' : (step < currentStep ? 'done' : '');
+            return '<div class="booking-step ' + status + '"><span class="step-number">' + step + '</span><span>' + label + '</span></div>';
+          }).join('') + '</div>';
+
         // Left column HTML
         let leftHtml = '<div class="col-info"><div>' +
           '<div class="prof-header">' +
@@ -607,20 +697,20 @@
           '<p class="service-bio">' + escapeHtml((srv && srv.description) || sched.bio || 'Escolha o melhor dia e horário para sua reunião sincronizada em tempo real.') + '</p>' +
           '<div class="meta-list">' +
             '<div class="meta-item">' + icClock + ' <strong>' + duration + ' minutos</strong></div>' +
-            '<div class="meta-item">' + icVideo + ' <strong>Google Meet</strong> (link gerado na hora)</div>' +
+            '<div class="meta-item">' + icVideo + ' <strong>Sala de Vídeo Meu Super Chat</strong> (link gerado na hora)</div>' +
             '<div class="meta-item">' + icGlobe + ' <strong>' + escapeHtml(sched.timezone || 'America/Sao_Paulo') + '</strong></div>' +
             '<div class="meta-item" style="color:#6EE7B7;">' + icChat + ' <strong>Confirmação & Lembrete WhatsApp</strong></div>' +
           '</div>' +
         '</div>' +
         '<div class="powered-footer">' +
-          '<div class="badge-sync" style="margin-bottom:10px;">' + icZap + ' Sincronizado com Google Agenda</div><br/>' +
+          '<div class="badge-sync" style="margin-bottom:10px;">' + icZap + ' Sincronizado em tempo real</div><br/>' +
           'Powered by <strong>Meu Super Chat</strong>' +
         '</div></div>';
 
         // Step 3: Confirmed view
         if (state.step === 'confirmed' && state.confirmedAppointment) {
           const appt = state.confirmedAppointment;
-          root.innerHTML = leftHtml +
+          root.innerHTML = stepperHtml + leftHtml +
             '<div class="success-box">' +
               '<div style="width:56px;height:56px;border-radius:50%;background:rgba(16,185,129,0.2);border:2px solid #10B981;display:flex;align-items:center;justify-content:center;color:#10B981;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>' +
               '<h2 style="font-size:22px;font-weight:700;">Agendamento Confirmado!</h2>' +
@@ -641,7 +731,7 @@
 
         // Step 2: Form fill view
         if (state.step === 'fill_form' && state.selectedSlot) {
-          root.innerHTML = leftHtml +
+          root.innerHTML = stepperHtml + leftHtml +
             '<form id="booking-form" class="form-panel">' +
               '<div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid #132631;flex-wrap:wrap;gap:8px;">' +
                 '<div>' +
@@ -657,7 +747,7 @@
               '</div>' +
               '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">' +
                 '<div class="field-group">' +
-                  '<label class="field-label">E-mail (para convite no Google Agenda) *</label>' +
+                  '<label class="field-label">E-mail para confirmação e convite *</label>' +
                   '<input id="inp-email" type="email" required class="field-input" placeholder="voce@empresa.com.br" value="' + escapeHtml(state.form.email) + '" />' +
                 '</div>' +
                 '<div class="field-group">' +
@@ -731,7 +821,7 @@
         }
         slotsHtml += '</div>';
 
-        root.innerHTML = leftHtml + calHtml + slotsHtml;
+        root.innerHTML = stepperHtml + leftHtml + calHtml + slotsHtml;
         attachCommonListeners();
 
         document.getElementById('prev-month').onclick = function() {

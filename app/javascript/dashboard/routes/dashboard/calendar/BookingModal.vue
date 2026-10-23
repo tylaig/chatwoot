@@ -225,7 +225,8 @@ const handleCancelAppointment = async () => {
             }}
           </h3>
           <p class="text-xs text-slate-400">
-            Sincronização direta com Google Agenda e geração automática de link
+            Sincronização em tempo real e geração automática de Sala de Vídeo
+            Meu Super Chat
           </p>
         </div>
         <button
@@ -365,7 +366,7 @@ const handleCancelAppointment = async () => {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">
-              E-mail (Convite Google Agenda)
+              E-mail (Convite de Calendário)
             </label>
             <input
               v-model="form.customer_email"
@@ -382,7 +383,7 @@ const handleCancelAppointment = async () => {
               v-model="form.location_type"
               class="w-full px-3 py-2 rounded-lg bg-[#04090D] border border-[#162936] text-white outline-none"
             >
-              <option value="google_meet">Google Meet (Online)</option>
+              <option value="google_meet">Sala de Vídeo Meu Super Chat</option>
               <option value="whatsapp">Chamada WhatsApp</option>
               <option value="in_person">Presencial</option>
               <option value="phone">Telefone</option>
