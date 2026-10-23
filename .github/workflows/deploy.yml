@@ -1,12 +1,18 @@
-name: Deploy Games Safari (Protected Manual Only)
+name: Deploy Games Safari (Protected Branch + Off-Hours Auto Rollout)
 
 on:
+  push:
+    branches:
+      - prod/gamessafari
+  schedule:
+    # 01:05 UTC = 22:05 BRT (America/Sao_Paulo) - aplica automaticamente após o fim do expediente qualquer build feito durante o dia
+    - cron: '5 1 * * *'
   workflow_dispatch:
     inputs:
       confirm_target:
-        description: 'Digite CONFIRMAR-GAMESSAFARI para autorizar o deploy em inbox.gamessafari.com'
-        required: true
-        default: ''
+        description: 'Digite CONFIRMAR-GAMESSAFARI para autorizar o deploy manual em inbox.gamessafari.com'
+        required: false
+        default: 'CONFIRMAR-GAMESSAFARI'
         type: string
       force_deploy:
         description: 'Forçar deploy mesmo dentro do horário de atendimento (11h-22h BRT)'
@@ -27,19 +33,37 @@ jobs:
     name: Build & Push Games Safari Image to GHCR
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    if: ${{ inputs.confirm_target == 'CONFIRMAR-GAMESSAFARI' }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || inputs.confirm_target == 'CONFIRMAR-GAMESSAFARI' }}
     outputs:
       short_sha: ${{ steps.vars.outputs.short_sha }}
       image_ref: ${{ steps.digest.outputs.image_ref }}
       image_digest: ${{ steps.digest.outputs.image_digest }}
+      within_support_hours: ${{ steps.window.outputs.within_support_hours }}
+      now_brt: ${{ steps.window.outputs.now_brt }}
     steps:
-      - name: Checkout Code
+      - name: Checkout Code (prod/gamessafari)
         uses: actions/checkout@v4
+        with:
+          ref: prod/gamessafari
+
+      - name: Calculate short SHA & Check Brasília Support Window (11h-22h BRT)
+        id: window
+        run: |
+          hour_brt="$(TZ=America/Sao_Paulo date +%H)"
+          now_brt="$(TZ=America/Sao_Paulo date '+%Y-%m-%d %H:%M:%S %Z')"
+          echo "now_brt=${now_brt}" >> "$GITHUB_OUTPUT"
+          if [ "$hour_brt" -ge 11 ] && [ "$hour_brt" -lt 22 ]; then
+            echo "within_support_hours=true" >> "$GITHUB_OUTPUT"
+            echo "🕒 Horário comercial em Brasília (${now_brt}): A imagem será compilada e salva no GHCR agora, e o deploy na VPS rodará automaticamente às 22:05 BRT."
+          else
+            echo "within_support_hours=false" >> "$GITHUB_OUTPUT"
+            echo "✅ Fora do horário comercial (${now_brt}): Build + Deploy imediato autorizado."
+          fi
 
       - name: Calculate short SHA
         id: vars
         run: |
-          echo "short_sha=$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -78,36 +102,30 @@ jobs:
           echo "Built ${IMAGE_NAME}@${IMAGE_DIGEST}"
 
   deploy:
-    name: Deploy to Games Safari VPS (Docker Swarm)
+    name: Deploy to Games Safari VPS (Off-Hours Only: 22h-11h BRT)
     needs: build-and-push
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: production
+    if: ${{ needs.build-and-push.outputs.within_support_hours == 'false' || inputs.force_deploy == 'true' }}
     steps:
-      - name: Validate manual confirmation token
+      - name: Verify Brasília Time Window (22:00 - 10:59 BRT)
         env:
-          CONFIRM_TARGET: ${{ inputs.confirm_target }}
-        run: |
-          if [ "$CONFIRM_TARGET" != "CONFIRMAR-GAMESSAFARI" ]; then
-            echo "::error::Confirmação inválida. Digite exatamente CONFIRMAR-GAMESSAFARI." >&2
-            exit 1
-          fi
-
-      - name: Block deploy during support hours (11:00 - 21:59 BRT)
-        env:
-          FORCE_DEPLOY: ${{ github.event.inputs.force_deploy || 'false' }}
+          FORCE_DEPLOY: ${{ inputs.force_deploy || 'false' }}
         run: |
           set -euo pipefail
           hour_brt="$(TZ=America/Sao_Paulo date +%H)"
           now_brt="$(TZ=America/Sao_Paulo date '+%Y-%m-%d %H:%M:%S %Z')"
           echo "Current time in Brasília: ${now_brt} (hour=${hour_brt})"
           if [ "$FORCE_DEPLOY" != "true" ] && [ "$hour_brt" -ge 11 ] && [ "$hour_brt" -lt 22 ]; then
-            echo "::error::Deploy bloqueado durante o horário de atendimento (11:00 às 22:00 BRT). A imagem Docker já foi compilada e salva no GHCR. Rode o deploy após as 22:00 BRT." >&2
-            exit 1
+            echo "::notice::Deploy adiado por estar dentro do horário de atendimento (11:00 às 22:00 BRT). O agendamento das 22:05 BRT aplicará automaticamente."
+            exit 0
           fi
 
       - name: Checkout deploy helper
         uses: actions/checkout@v4
+        with:
+          ref: prod/gamessafari
 
       - name: Validate required deployment secrets
         env:
