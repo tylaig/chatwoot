@@ -35,6 +35,26 @@
   description: 'Lookup customer orders across connected Shopify stores by email, phone, or order number'
   icon: 'shopping-bag'
 
+- id: calendar_check_availability
+  title: 'Consultar Disponibilidade de Agenda'
+  description: 'Consulta horários livres dos profissionais (sincronizados com Google Agenda)'
+  icon: 'calendar'
+
+- id: calendar_create_appointment
+  title: 'Criar Agendamento na Agenda'
+  description: 'Reserva um horário na agenda do profissional, cria evento no Google Agenda e gera link do Meet'
+  icon: 'calendar-add'
+
+- id: calendar_list_appointments
+  title: 'Listar Agendamentos & Links Públicos'
+  description: 'Lista compromissos futuros do contato e retorna os links públicos de agendamento'
+  icon: 'calendar-clock'
+
+- id: calendar_reschedule_or_cancel
+  title: 'Reagendar ou Cancelar Compromisso'
+  description: 'Reagenda para novo horário ou cancela um agendamento existente no Google Agenda'
+  icon: 'calendar-sync'
+
 - id: resolve_conversation
   title: 'Resolve Conversation'
   description: 'Resolve a conversation when the issue has been addressed'

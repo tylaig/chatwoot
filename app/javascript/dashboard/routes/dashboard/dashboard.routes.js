@@ -11,6 +11,7 @@ import campaignsRoutes from './campaigns/campaigns.routes';
 import whatsappTemplatesRoutes from './templates/templates.routes';
 import workflowsRoutes from './workflows/workflows.routes';
 import shopifyRoutes from './shopify/shopify.routes';
+import calendarRoutes from './calendar/calendar.routes';
 import { routes as captainRoutes } from './captain/captain.routes';
 import { routes as kanbanRoutes } from './kanban/kanban.routes';
 import dashboardAppsRoutes from './dashboardApps/dashboardApps.routes';
@@ -41,6 +42,7 @@ export default {
         ...whatsappTemplatesRoutes.routes,
         ...workflowsRoutes.routes,
         ...shopifyRoutes.routes,
+        ...calendarRoutes.routes,
         ...dashboardAppsRoutes.routes,
         ...internalChatRoutes.routes,
       ],

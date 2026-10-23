@@ -779,6 +779,13 @@ const menuItems = computed(() => {
       ],
     },
     {
+      name: 'CalendarSchedules',
+      label: 'Agendamentos',
+      icon: 'i-lucide-calendar-check-2',
+      activeOn: ['calendar_schedules_index'],
+      to: accountScopedRoute('calendar_schedules_index'),
+    },
+    {
       name: 'ShopifyOrders',
       label: 'Shopify',
       icon: 'i-lucide-shopping-bag',

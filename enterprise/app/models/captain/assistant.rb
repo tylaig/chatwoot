@@ -219,6 +219,17 @@ class Captain::Assistant < ApplicationRecord
     if shopify_tool_class && account.hooks.where(app_id: 'shopify', status: :enabled).exists?
       tools << shopify_tool_class.new(self)
     end
+    if account.respond_to?(:calendar_schedules) && account.calendar_schedules.ai_bookable.exists?
+      %w[
+        calendar_check_availability
+        calendar_create_appointment
+        calendar_list_appointments
+        calendar_reschedule_or_cancel
+      ].each do |tool_id|
+        cal_tool_class = self.class.resolve_tool_class(tool_id)
+        tools << cal_tool_class.new(self) if cal_tool_class
+      end
+    end
     tools.concat(account.captain_custom_tools.enabled.map { |custom_tool| custom_tool.tool(self) })
     tools
   end

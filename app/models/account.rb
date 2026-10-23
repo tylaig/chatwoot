@@ -128,6 +128,9 @@ class Account < ApplicationRecord # rubocop:disable Metrics/ClassLength
   has_many :workflow_executions, dependent: :destroy_async
   has_many :whatsapp_channels, dependent: :destroy_async, class_name: '::Channel::Whatsapp'
   has_many :working_hours, dependent: :destroy_async
+  has_many :calendar_schedules, dependent: :destroy_async
+  has_many :appointment_types, dependent: :destroy_async
+  has_many :calendar_appointments, dependent: :destroy_async
 
   has_one_attached :contacts_export
   has_one_attached :brand_logo_email

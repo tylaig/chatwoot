@@ -4,6 +4,7 @@ import wootConstants from 'dashboard/constants/globals';
 
 export const DEFAULT_CONVERSATION_SIDEBAR_ITEMS_ORDER = Object.freeze([
   { name: 'scheduled_messages' },
+  { name: 'calendar_appointments' },
   { name: 'conversation_actions' },
   { name: 'shopify_orders' },
   { name: 'macros' },
@@ -173,7 +174,8 @@ export function useUISettings() {
     contactSidebarItemsOrder: useContactSidebarItemsOrder(uiSettings),
     isContactSidebarItemOpen: key => {
       if (
-        key === 'is_shopify_orders_open' &&
+        (key === 'is_shopify_orders_open' ||
+          key === 'is_calendar_appointments_open') &&
         uiSettings.value[key] === undefined
       ) {
         return true;

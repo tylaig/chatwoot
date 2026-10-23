@@ -36,7 +36,16 @@ Rails.application.routes.draw do
       resources :responses, only: [:show]
     end
     resource :slack_uploads, only: [:show]
+    get '/agendar/sala/:uid', to: 'public_bookings#show_meeting', as: 'public_booking_meeting_room'
+    get '/reuniao/:uid', to: 'public_bookings#show_meeting', as: 'public_meeting_room'
+    get '/agendar/:slug', to: 'public_bookings#show', as: 'public_booking_page'
+    get '/agendar/equipe/:slug', to: 'public_bookings#show', as: 'public_team_booking_page'
   end
+
+  get '/callbacks/google_calendar', to: 'google_calendar_callbacks#show'
+  get '/public/api/v1/bookings/:slug', to: 'public_bookings#profile'
+  get '/public/api/v1/bookings/:slug/slots', to: 'public_bookings#slots'
+  post '/public/api/v1/bookings/:slug/book', to: 'public_bookings#book'
 
   get '/health', to: 'health#show'
   get '/robots.txt', to: 'robots#show', format: false
@@ -582,6 +591,25 @@ Rails.application.routes.draw do
             member do
               post :cancel
               post :retry, action: :retry_execution
+            end
+          end
+          resources :calendar_schedules, only: [:index, :show, :create, :update, :destroy] do
+            collection do
+              post :appointment_types, action: :upsert_appointment_type
+              delete 'appointment_types/:type_id', action: :destroy_appointment_type
+            end
+            member do
+              get :google_auth_url
+              post :disconnect_google
+            end
+          end
+          resources :calendar_appointments, only: [:index, :show, :create, :update, :destroy] do
+            collection do
+              get :availability
+            end
+            member do
+              post :reschedule
+              post :cancel
             end
           end
         end

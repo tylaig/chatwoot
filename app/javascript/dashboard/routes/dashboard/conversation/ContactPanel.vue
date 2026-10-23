@@ -25,6 +25,7 @@ import SharedFiles from './SharedFiles.vue';
 import Draggable from 'vuedraggable';
 import MacrosList from './Macros/List.vue';
 import ShopifyOrdersList from 'dashboard/components/widgets/conversation/ShopifyOrdersList.vue';
+import ContactAppointmentsList from 'dashboard/components/widgets/conversation/ContactAppointmentsList.vue';
 import SidebarActionsHeader from 'dashboard/components-next/SidebarActionsHeader.vue';
 import LinearIssuesList from 'dashboard/components/widgets/conversation/linear/IssuesList.vue';
 import LinearSetupCTA from 'dashboard/components/widgets/conversation/linear/LinearSetupCTA.vue';
@@ -39,6 +40,8 @@ const props = defineProps({
     default: undefined,
   },
 });
+
+const calendarAccordionTitle = 'Agendamentos & Google Agenda';
 
 const {
   updateUISettings,
@@ -371,6 +374,25 @@ onMounted(() => {
               "
             >
               <ShopifyOrdersList :contact-id="contactId" :inbox-id="inboxId" />
+            </AccordionItem>
+          </div>
+          <div v-else-if="element.name === 'calendar_appointments'">
+            <AccordionItem
+              :title="calendarAccordionTitle"
+              lucide-icon="i-lucide-calendar-check-2"
+              :is-open="
+                isContactSidebarItemOpen('is_calendar_appointments_open')
+              "
+              compact
+              @toggle="
+                value =>
+                  toggleSidebarUIState('is_calendar_appointments_open', value)
+              "
+            >
+              <ContactAppointmentsList
+                :contact-id="contactId"
+                :conversation-id="conversationId"
+              />
             </AccordionItem>
           </div>
           <div v-else-if="element.name === 'contact_notes'">
