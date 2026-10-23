@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="dark">
+<html>
   <head>
     <title>
       <%= @global_config['INSTALLATION_NAME'] %>
@@ -11,18 +11,30 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
       try {
-        localStorage.setItem('THEME_COLOR', 'dark');
+        var rawScheme = localStorage.getItem('color_scheme') || 'dark';
+        var cleanScheme = rawScheme.replace(/^"|"$/g, '');
         if (!localStorage.getItem('color_scheme')) {
-          localStorage.setItem('color_scheme', 'dark');
+          localStorage.setItem('color_scheme', '"dark"');
+          cleanScheme = 'dark';
         }
-        document.documentElement.classList.add('dark');
-        document.documentElement.classList.remove('light');
+        var isOSDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var useDark = (cleanScheme === 'dark') || (cleanScheme === 'auto' && isOSDark);
+        if (useDark) {
+          document.documentElement.classList.add('dark');
+          document.documentElement.classList.remove('light');
+          document.documentElement.style.setProperty('color-scheme', 'dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.add('light');
+          document.documentElement.style.setProperty('color-scheme', 'light');
+        }
       } catch (e) {}
     </script>
     <style id="meusuperchat-dark-emerald-theme">
-      :root, html, html.dark, body {
+      :root, html, body {
         --brand: 16 185 129 !important;
         --b-50: 236 253 245 !important;
         --b-100: 209 250 229 !important;
@@ -34,6 +46,83 @@
         --b-700: 4 120 87 !important;
         --b-800: 6 95 70 !important;
         --b-900: 6 78 59 !important;
+        --w-25: #f0fdf4 !important;
+        --w-50: #ecfdf5 !important;
+        --w-75: #d1fae5 !important;
+        --w-100: #a7f3d0 !important;
+        --w-200: #6ee7b7 !important;
+        --w-300: #34d399 !important;
+        --w-400: #10b981 !important;
+        --w-500: #10b981 !important;
+        --w-600: #059669 !important;
+        --w-700: #047857 !important;
+        --w-800: #065f46 !important;
+        --w-900: #064e3b !important;
+      }
+
+      /* ==========================================================================
+         LIGHT MODE (WHITE CLEAN EMERALD) TOKENS — body:not(.dark)
+         ========================================================================== */
+      html:not(.dark), body:not(.dark) {
+        --background-color: 248 250 252 !important;
+        --surface-1: 255 255 255 !important;
+        --surface-2: 241 245 249 !important;
+        --surface-active: 236 253 245 !important;
+        --solid-1: 255 255 255 !important;
+        --solid-2: 248 250 252 !important;
+        --solid-3: 241 245 249 !important;
+        --solid-active: 209 250 229 !important;
+        --card-color: 255 255 255 !important;
+        --button-color: 255 255 255 !important;
+        --label-background: 241 245 249 !important;
+
+        /* Clean Light Slate Scale (1 = lightest, 12 = darkest text) */
+        --slate-1: 255 255 255 !important;
+        --slate-2: 248 250 252 !important;
+        --slate-3: 241 245 249 !important;
+        --slate-4: 226 232 240 !important;
+        --slate-5: 203 213 225 !important;
+        --slate-6: 148 163 184 !important;
+        --slate-7: 100 116 139 !important;
+        --slate-8: 71 85 105 !important;
+        --slate-9: 71 85 105 !important;
+        --slate-10: 51 65 85 !important;
+        --slate-11: 30 41 59 !important;
+        --slate-12: 15 23 42 !important;
+
+        /* Emerald Brand Scale replacing --blue-* in Light Mode */
+        --blue-1: 240 253 244 !important;
+        --blue-2: 236 253 245 !important;
+        --blue-3: 209 250 229 !important;
+        --blue-4: 167 243 208 !important;
+        --blue-5: 110 231 183 !important;
+        --blue-6: 52 211 153 !important;
+        --blue-7: 16 185 129 !important;
+        --blue-8: 5 150 105 !important;
+        --blue-9: 16 185 129 !important;
+        --blue-10: 5 150 105 !important;
+        --blue-11: 4 120 87 !important;
+        --blue-12: 6 78 59 !important;
+        --text-blue: 4 120 87 !important;
+        --border-blue: 16, 185, 129, 0.38 !important;
+        --border-blue-strong: 5 150 105 !important;
+        --solid-blue: 209 250 229 !important;
+        --solid-blue-2: 236 253 245 !important;
+
+        --border-weak: 226 232 240 !important;
+        --border-strong: 203 213 225 !important;
+        --border-container: 226 232 240 !important;
+        --alpha-1: 15, 23, 42, 0.04 !important;
+        --alpha-2: 16, 185, 129, 0.10 !important;
+        --alpha-3: 255, 255, 255, 0.96 !important;
+        --black-alpha-1: 15, 23, 42, 0.08 !important;
+        --black-alpha-2: 15, 23, 42, 0.04 !important;
+      }
+
+      /* ==========================================================================
+         DARK MODE (OBSIDIAN & EMERALD) TOKENS — html.dark / body.dark / .dark
+         ========================================================================== */
+      html.dark, body.dark, .dark {
         --w-25: #052e16 !important;
         --w-50: #064e3b !important;
         --w-75: #065f46 !important;
@@ -46,6 +135,61 @@
         --w-700: #047857 !important;
         --w-800: #065f46 !important;
         --w-900: #064e3b !important;
+
+        /* Global Obsidian & Emerald Dark Surface Tokens */
+        --background-color: 4 8 14 !important;
+        --surface-1: 4 8 14 !important;
+        --surface-2: 7 14 23 !important;
+        --surface-active: 14 28 44 !important;
+        --solid-1: 8 15 26 !important;
+        --solid-2: 11 22 34 !important;
+        --solid-3: 16 30 46 !important;
+        --solid-active: 20 38 58 !important;
+        --card-color: 9 18 29 !important;
+        --button-color: 13 25 40 !important;
+        --label-background: 11 22 34 !important;
+
+        /* Cool Obsidian Slate Scale */
+        --slate-1: 4 8 14 !important;
+        --slate-2: 7 14 23 !important;
+        --slate-3: 11 22 34 !important;
+        --slate-4: 15 29 44 !important;
+        --slate-5: 22 38 56 !important;
+        --slate-6: 30 49 70 !important;
+        --slate-7: 45 66 90 !important;
+        --slate-8: 71 85 105 !important;
+        --slate-9: 100 116 139 !important;
+        --slate-10: 148 163 184 !important;
+        --slate-11: 203 213 225 !important;
+        --slate-12: 248 250 252 !important;
+
+        /* Replace orange --blue-* tokens with Emerald/Mint scale globally */
+        --blue-1: 4 15 12 !important;
+        --blue-2: 6 24 19 !important;
+        --blue-3: 6 46 34 !important;
+        --blue-4: 6 62 46 !important;
+        --blue-5: 6 78 59 !important;
+        --blue-6: 5 105 78 !important;
+        --blue-7: 4 120 87 !important;
+        --blue-8: 5 150 105 !important;
+        --blue-9: 16 185 129 !important;
+        --blue-10: 52 211 153 !important;
+        --blue-11: 110 231 183 !important;
+        --blue-12: 209 250 229 !important;
+        --text-blue: 167 243 208 !important;
+        --border-blue: 16, 185, 129, 0.45 !important;
+        --border-blue-strong: 5 150 105 !important;
+        --solid-blue: 6 62 46 !important;
+        --solid-blue-2: 6 28 22 !important;
+
+        /* Borders & Alphas in Cool Deep Glass */
+        --border-weak: 18 32 48 !important;
+        --border-strong: 28 46 68 !important;
+        --alpha-1: 11, 22, 34, 0.82 !important;
+        --alpha-2: 148, 163, 184, 0.10 !important;
+        --alpha-3: 7, 14, 23, 0.95 !important;
+        --black-alpha-1: 2, 6, 12, 0.45 !important;
+        --black-alpha-2: 7, 14, 23, 0.65 !important;
       }
       html.dark body {
         background-color: #04080E !important;
@@ -71,7 +215,7 @@
       body.msc-auth-page {
         background-color: #04080E !important;
         color: #F8FAFC !important;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
         overflow-x: hidden !important;
         min-height: 100vh !important;
         position: relative !important;
@@ -157,7 +301,7 @@
       }
       body.msc-auth-page main > section:first-child h2 {
         margin-top: 18px !important;
-        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+        font-family: 'Geist', 'Inter', sans-serif !important;
         font-size: 28px !important;
         font-weight: 700 !important;
         letter-spacing: -0.025em !important;
@@ -297,7 +441,7 @@
         border-radius: 12px !important;
         background: linear-gradient(90deg, #00D68F 0%, #4ADE80 52%, #D4FF00 100%) !important;
         color: #04120B !important;
-        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+        font-family: 'Geist', 'Inter', sans-serif !important;
         font-size: 16px !important;
         font-weight: 700 !important;
         letter-spacing: -0.01em !important;
@@ -341,91 +485,187 @@
 
       /* ==========================================================================
          MEU SUPER CHAT — DASHBOARD DARK GLASSMORPHISM (GPT 2.5 SPEC)
-         Escopo: body.msc-app-page (todas as telas logadas). Menu real preservado.
+         Escopo: body.dark.msc-app-page (todas as telas logadas). Menu real preservado.
          ========================================================================== */
-      body.msc-app-page,
-      body.msc-app-page #app > div.bg-n-background {
+      body.dark.msc-app-page,
+      body.dark.msc-app-page #app > div.bg-n-background,
+      body.dark.msc-app-page main,
+      body.dark.msc-app-page main.bg-n-surface-1 {
         background-color: #04080E !important;
       }
 
+      /* Let immediate page wrappers inside main be transparent so main's #04080E + radial glow shines through on EVERY page */
+      body.dark.msc-app-page main > div.bg-n-surface-1,
+      body.dark.msc-app-page main > section.bg-n-surface-1,
+      body.dark.msc-app-page main > div.bg-n-background,
+      body.dark.msc-app-page main > div > section.bg-n-surface-1,
+      body.dark.msc-app-page main > section > div.bg-n-surface-1:not(.conversations-list-wrap):not(.conversation-details-wrap),
+      body.dark.msc-app-page main > div > div > div.bg-n-solid-1.justify-center {
+        background-color: transparent !important;
+      }
+
+      /* Global ambient emerald-lime radial glow on main workspace across all pages */
+      body.dark.msc-app-page main {
+        position: relative !important;
+        background-color: #04080E !important;
+        background-image:
+          radial-gradient(ellipse 680px 380px at 88% 6%, rgba(16, 185, 129, 0.15) 0%, rgba(212, 255, 0, 0.04) 42%, transparent 72%),
+          radial-gradient(ellipse 540px 340px at 18% 96%, rgba(16, 185, 129, 0.08) 0%, transparent 70%) !important;
+      }
+
+      /* Global 2nd-column lists (Caixa de Entrada / Notificações, Chat Interno, etc.) matching Conversations list */
+      body.dark.msc-app-page main > section > div.lg\:min-w-\[340px\],
+      body.dark.msc-app-page main > div > div.bg-n-solid-2.border-r {
+        background: rgba(7, 14, 23, 0.92) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
+      }
+
+      /* Sticky headers in inner pages (Shopify, Contacts, Reports, Settings, Portals) */
+      body.dark.msc-app-page main header.bg-n-surface-1,
+      body.dark.msc-app-page main header.bg-n-background {
+        background: rgba(4, 8, 14, 0.85) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        border-bottom-color: rgba(255, 255, 255, 0.07) !important;
+      }
+
+      /* Cards, panels, modals & containers across all pages (Settings, Kanban, Reports, Inboxes, Internal Chat) */
+      body.dark.msc-app-page main .bg-n-solid-1:not(aside),
+      body.dark.msc-app-page main .bg-n-card {
+        background-color: rgba(11, 22, 34, 0.62) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+      }
+      body.dark.msc-app-page main .bg-n-solid-2:not(.border-r) {
+        background-color: rgba(13, 25, 40, 0.72) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+      }
+
+      /* Form Inputs, Selects & Textareas across Settings, Contacts, Inboxes, etc. */
+      body.dark.msc-app-page main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+      body.dark.msc-app-page main select,
+      body.dark.msc-app-page main textarea {
+        background-color: rgba(7, 14, 23, 0.78) !important;
+        outline-color: rgba(255, 255, 255, 0.09) !important;
+        border-color: rgba(255, 255, 255, 0.09) !important;
+        color: #F8FAFC !important;
+      }
+      body.dark.msc-app-page main input:not([type="checkbox"]):not([type="radio"]):hover,
+      body.dark.msc-app-page main select:hover,
+      body.dark.msc-app-page main textarea:hover {
+        outline-color: rgba(16, 185, 129, 0.35) !important;
+      }
+      body.dark.msc-app-page main input:not([type="checkbox"]):not([type="radio"]):focus,
+      body.dark.msc-app-page main select:focus,
+      body.dark.msc-app-page main textarea:focus {
+        outline-color: #10B981 !important;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14) !important;
+      }
+
       /* --- Sidebar (coluna 1) --- */
-      body.msc-app-page aside.bg-n-background {
+      body.dark.msc-app-page aside.bg-n-background {
         background: linear-gradient(180deg, #070E17 0%, #050A11 100%) !important;
         border-color: rgba(255, 255, 255, 0.07) !important;
       }
-      body.msc-app-page aside #sidebar-account-switcher span {
-        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+      body.dark.msc-app-page aside #sidebar-account-switcher span {
+        font-family: 'Geist', 'Inter', sans-serif !important;
         font-weight: 700 !important;
         color: #F8FAFC !important;
       }
-      body.msc-app-page aside a[href$="/search"] {
+      body.dark.msc-app-page aside a[href$="/search"] {
         background: rgba(255, 255, 255, 0.03) !important;
         outline-color: rgba(255, 255, 255, 0.08) !important;
         border-radius: 10px !important;
         transition: outline-color 0.2s ease, background 0.2s ease !important;
       }
-      body.msc-app-page aside a[href$="/search"]:hover {
+      body.dark.msc-app-page aside a[href$="/search"]:hover {
         outline-color: rgba(16, 185, 129, 0.40) !important;
         background: rgba(16, 185, 129, 0.06) !important;
       }
-      body.msc-app-page aside section button:has(.i-lucide-pen-line) {
+      body.dark.msc-app-page aside section button:has(.i-lucide-pen-line) {
         background: rgba(16, 185, 129, 0.15) !important;
         outline-color: rgba(16, 185, 129, 0.40) !important;
         color: #34D399 !important;
         border-radius: 10px !important;
         box-shadow: 0 0 12px rgba(16, 185, 129, 0.25) !important;
       }
-      body.msc-app-page aside section button:has(.i-lucide-pen-line) span {
+      body.dark.msc-app-page aside section button:has(.i-lucide-pen-line) span {
         color: #34D399 !important;
       }
-      body.msc-app-page aside nav > ul > li > a {
+      body.dark.msc-app-page aside nav > ul > li > a {
         color: #94A3B8 !important;
         border-radius: 10px !important;
         transition: background 0.18s ease, color 0.18s ease !important;
       }
-      body.msc-app-page aside nav > ul > li > a:hover {
+      body.dark.msc-app-page aside nav > ul > li > a:hover {
         background: rgba(255, 255, 255, 0.04) !important;
         color: #F8FAFC !important;
       }
-      body.msc-app-page aside nav > ul > li > a.font-medium {
+      body.dark.msc-app-page aside nav > ul > li > a.font-medium {
         color: #F8FAFC !important;
       }
-      body.msc-app-page aside nav > ul > li > a.font-medium [class*="i-lucide"] {
+      body.dark.msc-app-page aside nav > ul > li > a.font-medium [class*="i-lucide"] {
         color: #34D399 !important;
       }
-      /* Grupo expandido (ex.: Conversas) em container sutil */
-      body.msc-app-page aside nav > ul > li:has(> ul li a.router-link-active) {
-        border-radius: 12px !important;
-        border: 1px solid rgba(16, 185, 129, 0.20) !important;
-        background: rgba(6, 78, 59, 0.10) !important;
-        padding: 2px 0 6px !important;
-      }
-      body.msc-app-page aside li.child-item {
-        margin-inline-start: 8px !important;
-        padding-inline-start: 6px !important;
-      }
-      body.msc-app-page aside li.child-item::before {
-        background-color: rgba(16, 185, 129, 0.18) !important;
-      }
-      body.msc-app-page aside li.child-item::after {
-        background-color: transparent !important;
-        border-color: rgba(16, 185, 129, 0.18) !important;
-      }
-      body.msc-app-page aside li.child-item > a {
-        padding-left: 6px !important;
-        padding-right: 6px !important;
-      }
-      /* Item ativo: gradiente emerald + barra Volt Lime + sem truncar */
-      body.msc-app-page aside li.child-item a.router-link-active,
-      body.msc-app-page aside li.child-item a.active {
+      /* Top-level item ativo direto (ex.: Caixa de Entrada, Kanban, Chat Interno, Chamadas, etc.) */
+      body.dark.msc-app-page aside nav > ul > li > a.bg-n-alpha-2,
+      body.dark.msc-app-page aside nav > ul > li > a.router-link-active {
         position: relative !important;
         background: linear-gradient(90deg, rgba(16, 185, 129, 0.25) 0%, rgba(16, 185, 129, 0.05) 100%) !important;
         box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.30), 0 0 15px rgba(16, 185, 129, 0.15) !important;
         color: #FFFFFF !important;
         font-weight: 600 !important;
       }
-      body.msc-app-page aside li.child-item a.router-link-active::before,
-      body.msc-app-page aside li.child-item a.active::before {
+      body.dark.msc-app-page aside nav > ul > li > a.bg-n-alpha-2::before,
+      body.dark.msc-app-page aside nav > ul > li > a.router-link-active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 6px;
+        bottom: 6px;
+        width: 3px;
+        border-radius: 0 4px 4px 0;
+        background: #D4FF00;
+        box-shadow: 0 0 8px #D4FF00;
+      }
+      body.dark.msc-app-page aside nav > ul > li > a.bg-n-alpha-2 [class*="i-lucide"],
+      body.dark.msc-app-page aside nav > ul > li > a.router-link-active [class*="i-lucide"] {
+        color: #34D399 !important;
+      }
+      /* Grupo expandido (ex.: Conversas) em container sutil */
+      body.dark.msc-app-page aside nav > ul > li:has(> ul li a.router-link-active) {
+        border-radius: 12px !important;
+        border: 1px solid rgba(16, 185, 129, 0.20) !important;
+        background: rgba(6, 78, 59, 0.10) !important;
+        padding: 2px 0 6px !important;
+      }
+      body.dark.msc-app-page aside li.child-item {
+        margin-inline-start: 8px !important;
+        padding-inline-start: 6px !important;
+      }
+      body.dark.msc-app-page aside li.child-item::before {
+        background-color: rgba(16, 185, 129, 0.18) !important;
+      }
+      body.dark.msc-app-page aside li.child-item::after {
+        background-color: transparent !important;
+        border-color: rgba(16, 185, 129, 0.18) !important;
+      }
+      body.dark.msc-app-page aside li.child-item > a {
+        padding-left: 6px !important;
+        padding-right: 6px !important;
+      }
+      /* Item ativo: gradiente emerald + barra Volt Lime + sem truncar */
+      body.dark.msc-app-page aside li.child-item a.router-link-active,
+      body.dark.msc-app-page aside li.child-item a.active {
+        position: relative !important;
+        background: linear-gradient(90deg, rgba(16, 185, 129, 0.25) 0%, rgba(16, 185, 129, 0.05) 100%) !important;
+        box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.30), 0 0 15px rgba(16, 185, 129, 0.15) !important;
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+      }
+      body.dark.msc-app-page aside li.child-item a.router-link-active::before,
+      body.dark.msc-app-page aside li.child-item a.active::before {
         content: "";
         position: absolute;
         left: -3px;
@@ -436,35 +676,35 @@
         background: #D4FF00;
         box-shadow: 0 0 8px #D4FF00;
       }
-      body.msc-app-page aside li.child-item a.router-link-active [class*="i-lucide"] {
+      body.dark.msc-app-page aside li.child-item a.router-link-active [class*="i-lucide"] {
         color: #34D399 !important;
       }
-      body.msc-app-page aside li.child-item a.router-link-active .truncate {
+      body.dark.msc-app-page aside li.child-item a.router-link-active .truncate {
         overflow: visible !important;
         text-overflow: clip !important;
         white-space: nowrap !important;
         font-size: 13px !important;
         letter-spacing: -0.015em;
       }
-      body.msc-app-page aside li.child-item a:not(.router-link-active):hover {
+      body.dark.msc-app-page aside li.child-item a:not(.router-link-active):hover {
         background: rgba(255, 255, 255, 0.04) !important;
         color: #F8FAFC !important;
       }
 
       /* --- Lista de conversas (coluna 2) --- */
-      body.msc-app-page .conversations-list-wrap {
+      body.dark.msc-app-page .conversations-list-wrap {
         background: rgba(7, 14, 23, 0.92) !important;
         border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
       }
-      body.msc-app-page .conversations-list-wrap h1 {
-        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+      body.dark.msc-app-page .conversations-list-wrap h1 {
+        font-family: 'Geist', 'Inter', sans-serif !important;
         font-size: 18px !important;
         font-weight: 700 !important;
         letter-spacing: -0.02em !important;
         color: #F8FAFC !important;
       }
-      body.msc-app-page .conversations-list-wrap h1 + span,
-      body.msc-app-page .conversations-list-wrap h1 ~ span.capitalize {
+      body.dark.msc-app-page .conversations-list-wrap h1 + span,
+      body.dark.msc-app-page .conversations-list-wrap h1 ~ span.capitalize {
         background: rgba(16, 185, 129, 0.15) !important;
         border: 1px solid rgba(16, 185, 129, 0.30) !important;
         color: #34D399 !important;
@@ -472,38 +712,38 @@
         font-weight: 600 !important;
         padding: 2px 10px !important;
       }
-      body.msc-app-page .conversations-list-wrap > div:first-child button {
+      body.dark.msc-app-page .conversations-list-wrap > div:first-child button {
         background: rgba(255, 255, 255, 0.04) !important;
         outline: 1px solid rgba(255, 255, 255, 0.08) !important;
         border-radius: 8px !important;
       }
-      body.msc-app-page .conversations-list-wrap > div:first-child button:hover {
+      body.dark.msc-app-page .conversations-list-wrap > div:first-child button:hover {
         outline-color: rgba(16, 185, 129, 0.40) !important;
         color: #34D399 !important;
       }
-      body.msc-app-page .conversations-list-wrap .border-b-n-weak {
+      body.dark.msc-app-page .conversations-list-wrap .border-b-n-weak {
         border-bottom-color: rgba(255, 255, 255, 0.07) !important;
       }
       /* Abas: ativa em Emerald (antes laranja/azul) */
-      body.msc-app-page .conversations-list-wrap ul li a.text-n-blue-11 {
+      body.dark.msc-app-page .conversations-list-wrap ul li a.text-n-blue-11 {
         color: #FFFFFF !important;
         font-weight: 600 !important;
       }
-      body.msc-app-page .conversations-list-wrap ul li a.text-n-blue-11::after {
+      body.dark.msc-app-page .conversations-list-wrap ul li a.text-n-blue-11::after {
         background: #34D399 !important;
         box-shadow: 0 0 10px rgba(52, 211, 153, 0.75) !important;
       }
-      body.msc-app-page .conversations-list-wrap ul li a.text-n-blue-11 > div {
+      body.dark.msc-app-page .conversations-list-wrap ul li a.text-n-blue-11 > div {
         background: rgba(16, 185, 129, 0.20) !important;
         color: #6EE7B7 !important;
         border: 1px solid rgba(16, 185, 129, 0.30) !important;
       }
-      body.msc-app-page .conversations-list-wrap ul li a.text-n-slate-11 > div {
+      body.dark.msc-app-page .conversations-list-wrap ul li a.text-n-slate-11 > div {
         background: rgba(255, 255, 255, 0.05) !important;
         color: #94A3B8 !important;
       }
       /* Empty state ilustrado */
-      body.msc-app-page .conversations-list-wrap > p.msc-empty-enhanced {
+      body.dark.msc-app-page .conversations-list-wrap > p.msc-empty-enhanced {
         flex: 1 1 auto !important;
         flex-direction: column !important;
         text-align: center !important;
@@ -512,7 +752,7 @@
         font-size: 15px !important;
         font-weight: 600 !important;
       }
-      body.msc-app-page .conversations-list-wrap > p.msc-empty-enhanced ~ .conversations-list {
+      body.dark.msc-app-page .conversations-list-wrap > p.msc-empty-enhanced ~ .conversations-list {
         flex: 0 0 auto !important;
       }
       .msc-empty-icon {
@@ -541,13 +781,13 @@
       }
 
       /* --- Área principal: onboarding (coluna 3) --- */
-      body.msc-app-page .conversation-details-wrap {
+      body.dark.msc-app-page .conversation-details-wrap {
         position: relative !important;
         background: #04080E !important;
         border-color: rgba(255, 255, 255, 0.07) !important;
         overflow: hidden;
       }
-      body.msc-app-page .conversation-details-wrap::before {
+      body.dark.msc-app-page .conversation-details-wrap::before {
         content: "";
         position: absolute;
         top: -120px;
@@ -559,12 +799,12 @@
         pointer-events: none;
         z-index: 0;
       }
-      body.msc-app-page .msc-onboarding {
+      body.dark.msc-app-page .msc-onboarding {
         position: relative;
         z-index: 1;
         gap: 20px !important;
       }
-      body.msc-app-page .msc-onboarding > .col-span-full p:first-child {
+      body.dark.msc-app-page .msc-onboarding > .col-span-full p:first-child {
         font-family: 'Plus Jakarta Sans', 'Inter', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif !important;
         font-size: 26px !important;
         font-weight: 700 !important;
@@ -572,12 +812,12 @@
         line-height: 1.3 !important;
         color: #F8FAFC !important;
       }
-      body.msc-app-page .msc-onboarding > .col-span-full p:nth-child(2) {
+      body.dark.msc-app-page .msc-onboarding > .col-span-full p:nth-child(2) {
         margin-top: 6px !important;
         font-size: 15px !important;
         color: #94A3B8 !important;
       }
-      body.msc-app-page .msc-onboarding > div.rounded-lg {
+      body.dark.msc-app-page .msc-onboarding > div.rounded-lg {
         position: relative !important;
         overflow: hidden !important;
         min-height: 270px !important;
@@ -590,27 +830,27 @@
         -webkit-backdrop-filter: blur(20px) !important;
         transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease !important;
       }
-      body.msc-app-page .msc-onboarding > div.rounded-lg:hover {
+      body.dark.msc-app-page .msc-onboarding > div.rounded-lg:hover {
         border-color: rgba(16, 185, 129, 0.32) !important;
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(16, 185, 129, 0.12) !important;
         transform: translateY(-2px);
       }
-      body.msc-app-page .msc-onboarding > div.rounded-lg > .flex-1 img {
+      body.dark.msc-app-page .msc-onboarding > div.rounded-lg > .flex-1 img {
         display: none !important;
       }
-      body.msc-app-page .msc-onboarding > div.rounded-lg p.font-semibold {
-        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+      body.dark.msc-app-page .msc-onboarding > div.rounded-lg p.font-semibold {
+        font-family: 'Geist', 'Inter', sans-serif !important;
         font-size: 17px !important;
         color: #FFFFFF !important;
         margin-bottom: 4px !important;
       }
-      body.msc-app-page .msc-onboarding > div.rounded-lg p.text-sm {
+      body.dark.msc-app-page .msc-onboarding > div.rounded-lg p.text-sm {
         font-size: 13.5px !important;
         line-height: 1.6 !important;
         color: #94A3B8 !important;
       }
       /* CTA pill */
-      body.msc-app-page .msc-onboarding > div.rounded-lg a.text-n-brand {
+      body.dark.msc-app-page .msc-onboarding > div.rounded-lg a.text-n-brand {
         display: inline-flex !important;
         align-items: center !important;
         gap: 8px !important;
@@ -625,16 +865,16 @@
         box-shadow: 0 0 20px rgba(16, 185, 129, 0.20) !important;
         transition: all 0.2s ease !important;
       }
-      body.msc-app-page .msc-onboarding > div.rounded-lg a.text-n-brand:hover {
+      body.dark.msc-app-page .msc-onboarding > div.rounded-lg a.text-n-brand:hover {
         background: rgba(16, 185, 129, 0.25) !important;
         box-shadow: 0 0 26px rgba(16, 185, 129, 0.40) !important;
       }
-      body.msc-app-page .msc-onboarding > div.rounded-lg a.text-n-brand span.ml-2 {
+      body.dark.msc-app-page .msc-onboarding > div.rounded-lg a.text-n-brand span.ml-2 {
         margin-left: 0 !important;
         color: #34D399 !important;
         transition: transform 0.2s ease;
       }
-      body.msc-app-page .msc-onboarding > div.rounded-lg a.text-n-brand:hover span.ml-2 {
+      body.dark.msc-app-page .msc-onboarding > div.rounded-lg a.text-n-brand:hover span.ml-2 {
         transform: translateX(3px);
       }
       /* Visuais glass (substituem PNGs brancos) */
@@ -685,7 +925,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+        font-family: 'Geist', 'Inter', sans-serif;
         font-weight: 700;
         font-size: 15px;
         color: #04120B;
@@ -731,7 +971,7 @@
         padding: 7px 14px;
         border-radius: 12px;
         border: 1px solid;
-        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+        font-family: 'Geist', 'Inter', sans-serif;
         font-weight: 700;
         font-size: 15px;
       }
@@ -742,17 +982,827 @@
 
       /* Responsivo: cards em 1 coluna abaixo de 1100px na área útil */
       @media (max-width: 1180px) {
-        body.msc-app-page .msc-onboarding {
+        body.dark.msc-app-page .msc-onboarding {
           grid-template-columns: minmax(0, 1fr) !important;
           grid-template-rows: auto !important;
           padding: 24px !important;
         }
       }
       @media (max-width: 768px) {
-        body.msc-app-page .msc-onboarding > .col-span-full p:first-child { font-size: 21px !important; }
-        body.msc-app-page .msc-onboarding { padding: 18px !important; }
-        body.msc-app-page .msc-onboarding > div.rounded-lg { min-height: 0 !important; }
+        body.dark.msc-app-page .msc-onboarding > .col-span-full p:first-child { font-size: 21px !important; }
+        body.dark.msc-app-page .msc-onboarding { padding: 18px !important; }
+        body.dark.msc-app-page .msc-onboarding > div.rounded-lg { min-height: 0 !important; }
         .msc-visual { height: 120px; }
+      }
+    
+      /* ==========================================================================
+         9. COPILOT PANEL, FLOATING LAUNCHER (FAB) & CONVERSATION SIDEPANEL SWITCH
+            Refactored per GPT Image 2.5 Dark Obsidian + Emerald + Volt Lime spec
+         ========================================================================== */
+
+      /* 9.1 Ultra-thin Dark Obsidian + Emerald custom scrollbars across entire app */
+      body.dark.msc-app-page * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(16, 185, 129, 0.35) rgba(4, 8, 14, 0.6);
+      }
+      body.dark.msc-app-page *::-webkit-scrollbar {
+        width: 4px !important;
+        height: 4px !important;
+      }
+      body.dark.msc-app-page *::-webkit-scrollbar-track {
+        background: rgba(4, 8, 14, 0.75) !important;
+      }
+      body.dark.msc-app-page *::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(212, 255, 0, 0.5) 0%, rgba(16, 185, 129, 0.7) 100%) !important;
+        border-radius: 9999px !important;
+      }
+      body.dark.msc-app-page *::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #D4FF00 0%, #10B981 100%) !important;
+      }
+      body.dark.msc-app-page *::-webkit-scrollbar-button {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+      }
+
+      /* 9.2 Floating Copilot Launcher Button (FAB - bottom right corner) */
+      body.dark.msc-app-page div.fixed.bottom-4.z-50:has(button .i-woot-captain) {
+        bottom: 1.5rem !important;
+        right: 1.5rem !important;
+      }
+      body.dark.msc-app-page div.fixed.bottom-4.z-50:has(button .i-woot-captain) > div {
+        background: rgba(4, 8, 14, 0.92) !important;
+        backdrop-filter: blur(18px) !important;
+        -webkit-backdrop-filter: blur(18px) !important;
+        padding: 4px !important;
+        border-radius: 9999px !important;
+        border: 1.5px solid rgba(212, 255, 0, 0.72) !important;
+        box-shadow:
+          0 12px 32px rgba(0, 0, 0, 0.8),
+          0 0 26px rgba(16, 185, 129, 0.48),
+          0 0 10px rgba(212, 255, 0, 0.28),
+          inset 0 0 12px rgba(212, 255, 0, 0.18) !important;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+      body.dark.msc-app-page div.fixed.bottom-4.z-50:has(button .i-woot-captain) > div:hover {
+        transform: translateY(-2px) scale(1.06) !important;
+        border-color: #D4FF00 !important;
+        box-shadow:
+          0 16px 36px rgba(0, 0, 0, 0.85),
+          0 0 34px rgba(16, 185, 129, 0.7),
+          0 0 16px rgba(212, 255, 0, 0.55),
+          inset 0 0 16px rgba(212, 255, 0, 0.28) !important;
+      }
+      body.dark.msc-app-page div.fixed.bottom-4.z-50 button:has(.i-woot-captain) {
+        background: radial-gradient(circle at 35% 25%, rgba(0, 245, 155, 0.28) 0%, #050C15 72%) !important;
+        color: #00F59B !important;
+        width: 3.1rem !important;
+        height: 3.1rem !important;
+        border-radius: 9999px !important;
+        border: 1px solid rgba(16, 185, 129, 0.42) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+      }
+      body.dark.msc-app-page div.fixed.bottom-4.z-50 button:has(.i-woot-captain) .i-woot-captain {
+        background-color: #00F59B !important;
+        color: #00F59B !important;
+        width: 1.45rem !important;
+        height: 1.45rem !important;
+        filter: drop-shadow(0 0 8px rgba(212, 255, 0, 0.7)) !important;
+      }
+
+      /* 9.3 Conversation SidepanelSwitch (floating Contact / Copilot pill in conversations) */
+      body.dark.msc-app-page .conversation-details-wrap div.absolute.rounded-full:has(button .i-ph-user-bold),
+      body.dark.msc-app-page div.absolute.rounded-full:has(button .i-woot-captain) {
+        background: rgba(6, 12, 20, 0.92) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(16, 185, 129, 0.32) !important;
+        border-radius: 1rem !important;
+        padding: 0.375rem !important;
+        gap: 0.375rem !important;
+        box-shadow:
+          0 12px 28px rgba(0, 0, 0, 0.65),
+          0 0 20px rgba(16, 185, 129, 0.16),
+          inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+      }
+      body.dark.msc-app-page div.absolute.rounded-full:has(button .i-ph-user-bold) button {
+        border-radius: 0.75rem !important;
+        color: #94A3B8 !important;
+        transition: all 0.2s ease !important;
+      }
+      body.dark.msc-app-page div.absolute.rounded-full:has(button .i-ph-user-bold) button:hover {
+        background: rgba(16, 185, 129, 0.14) !important;
+        color: #F8FAFC !important;
+      }
+      body.dark.msc-app-page div.absolute.rounded-full:has(button .i-ph-user-bold) button.bg-n-alpha-2 {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(13, 25, 23, 0.95) 100%) !important;
+        border: 1px solid rgba(212, 255, 0, 0.6) !important;
+        color: #D4FF00 !important;
+        box-shadow: 0 0 14px rgba(212, 255, 0, 0.24) !important;
+      }
+      body.dark.msc-app-page div.absolute.rounded-full:has(button .i-ph-user-bold) button.bg-n-alpha-2 span {
+        background-color: #D4FF00 !important;
+        color: #D4FF00 !important;
+        filter: drop-shadow(0 0 6px rgba(212, 255, 0, 0.5)) !important;
+      }
+
+      /* 9.4 Copilot Side Panel Container (Right Sidebar) */
+      body.dark.msc-app-page div.bg-n-surface-2:has(> div[support-agent]) {
+        background:
+          radial-gradient(ellipse 320px 240px at 50% 18%, rgba(16, 185, 129, 0.14) 0%, transparent 72%),
+          linear-gradient(180deg, #060C14 0%, #04080E 100%) !important;
+        border-left: 1px solid rgba(16, 185, 129, 0.26) !important;
+        box-shadow: -12px 0 36px rgba(0, 0, 0, 0.6), -1px 0 20px rgba(16, 185, 129, 0.08) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+      }
+
+      /* 9.5 Copilot Header with glowing SVG Sparkle icon + Volt Lime 'IA' badge */
+      body.dark.msc-app-page div[support-agent] > div.border-b.h-12 {
+        height: 3.5rem !important;
+        padding: 0 1.125rem !important;
+        background: rgba(6, 12, 20, 0.85) !important;
+        backdrop-filter: blur(16px) !important;
+        border-bottom: 1px solid rgba(16, 185, 129, 0.18) !important;
+      }
+      body.dark.msc-app-page div[support-agent] > div.border-b.h-12 > div > span.font-medium {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.55rem !important;
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+        color: #F8FAFC !important;
+        letter-spacing: -0.01em !important;
+      }
+      body.dark.msc-app-page div[support-agent] > div.border-b.h-12 > div > span.font-medium::before {
+        content: "" !important;
+        display: inline-flex !important;
+        width: 1.7rem !important;
+        height: 1.7rem !important;
+        border-radius: 9999px !important;
+        background-color: rgba(16, 185, 129, 0.14) !important;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300F59B'%3E%3Cpath d='M12 2L14.6 9.4L22 12L14.6 14.6L12 22L9.4 14.6L2 12L9.4 9.4L12 2Z'/%3E%3C/svg%3E") !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        background-size: 14px 14px !important;
+        border: 1px solid rgba(16, 185, 129, 0.42) !important;
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.3) !important;
+      }
+      body.dark.msc-app-page div[support-agent] > div.border-b.h-12 > div > span.font-medium::after {
+        content: "IA" !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0.1rem 0.45rem !important;
+        border-radius: 9999px !important;
+        font-size: 0.625rem !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.06em !important;
+        background: rgba(212, 255, 0, 0.12) !important;
+        color: #D4FF00 !important;
+        border: 1px solid rgba(212, 255, 0, 0.45) !important;
+        box-shadow: 0 0 10px rgba(212, 255, 0, 0.18) !important;
+      }
+      /* Close button in Copilot header */
+      body.dark.msc-app-page div[support-agent] > div.border-b.h-12 button {
+        width: 1.85rem !important;
+        height: 1.85rem !important;
+        border-radius: 9999px !important;
+        background: rgba(12, 20, 31, 0.9) !important;
+        border: 1px solid rgba(148, 163, 184, 0.16) !important;
+        color: #94A3B8 !important;
+        transition: all 0.2s ease !important;
+      }
+      body.dark.msc-app-page div[support-agent] > div.border-b.h-12 button:hover {
+        background: rgba(16, 185, 129, 0.16) !important;
+        border-color: rgba(16, 185, 129, 0.45) !important;
+        color: #F8FAFC !important;
+      }
+
+      /* 9.6 Copilot Empty State Cards (Top Hero Card + Bottom CTA Card) */
+      body.dark.msc-app-page div[support-agent] > div.overflow-y-auto > div.flex-col.gap-6 {
+        gap: 1rem !important;
+        padding: 0.25rem !important;
+      }
+      /* Top presentation card */
+      body.dark.msc-app-page div[support-agent] > div.overflow-y-auto > div.flex-col.gap-6 > div.space-y-4.py-4 {
+        background:
+          radial-gradient(circle at 50% 24%, rgba(0, 245, 155, 0.18) 0%, transparent 58%),
+          linear-gradient(180deg, rgba(11, 25, 30, 0.94) 0%, rgba(7, 14, 20, 0.96) 100%) !important;
+        border: 1px solid rgba(16, 185, 129, 0.3) !important;
+        border-radius: 1rem !important;
+        padding: 1.75rem 1.25rem 1.4rem 1.25rem !important;
+        text-align: center !important;
+        align-items: center !important;
+        box-shadow:
+          0 14px 32px rgba(0, 0, 0, 0.45),
+          inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+        position: relative !important;
+        overflow: hidden !important;
+      }
+      /* Glowing Emerald AI Bot Icon inside Hero Card (i-woot-captain uses CSS mask-image) */
+      body.dark.msc-app-page div[support-agent] > div.overflow-y-auto > div.flex-col.gap-6 > div.space-y-4.py-4 > .i-woot-captain {
+        display: block !important;
+        width: 3.75rem !important;
+        height: 3.75rem !important;
+        margin: 0 auto 0.5rem auto !important;
+        background-color: #00F59B !important;
+        background-image: linear-gradient(135deg, #D4FF00 0%, #00F59B 55%, #10B981 100%) !important;
+        filter: drop-shadow(0 0 16px rgba(0, 245, 155, 0.6)) !important;
+      }
+      body.dark.msc-app-page div[support-agent] > div.overflow-y-auto > div.flex-col.gap-6 > div.space-y-4.py-4 h3 {
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
+        color: #FFFFFF !important;
+        letter-spacing: -0.015em !important;
+        margin-bottom: 0.25rem !important;
+      }
+      body.dark.msc-app-page div[support-agent] > div.overflow-y-auto > div.flex-col.gap-6 > div.space-y-4.py-4 p {
+        font-size: 0.8125rem !important;
+        line-height: 1.55 !important;
+        color: #94A3B8 !important;
+      }
+
+      /* Bottom action card ("Não há assistentes disponíveis" + CTA Pill Button) */
+      body.dark.msc-app-page div[support-agent] > div.overflow-y-auto > div.flex-col.gap-6 > div.w-full.space-y-2 {
+        background: rgba(7, 14, 22, 0.94) !important;
+        border: 1px solid rgba(16, 185, 129, 0.24) !important;
+        border-radius: 1rem !important;
+        padding: 1.25rem !important;
+        text-align: center !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 0.75rem !important;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38) !important;
+      }
+      body.dark.msc-app-page div[support-agent] > div.overflow-y-auto > div.flex-col.gap-6 > div.w-full.space-y-2 > p {
+        font-size: 0.8125rem !important;
+        font-weight: 600 !important;
+        color: #E2E8F0 !important;
+        margin: 0 !important;
+      }
+      /* Transform "Criar um novo assistente" link into a high-impact Emerald/Mint Pill Button */
+      body.dark.msc-app-page div[support-agent] > div.overflow-y-auto > div.flex-col.gap-6 > div.w-full.space-y-2 > a {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+        padding: 0.65rem 1rem !important;
+        border-radius: 0.75rem !important;
+        background: linear-gradient(90deg, #00F59B 0%, #10B981 100%) !important;
+        color: #04080E !important;
+        font-size: 0.8125rem !important;
+        font-weight: 700 !important;
+        text-decoration: none !important;
+        border: 1px solid rgba(212, 255, 0, 0.45) !important;
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.38) !important;
+        transition: all 0.2s ease !important;
+      }
+      body.dark.msc-app-page div[support-agent] > div.overflow-y-auto > div.flex-col.gap-6 > div.w-full.space-y-2 > a::before {
+        content: "+" !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 1.15rem !important;
+        height: 1.15rem !important;
+        border-radius: 9999px !important;
+        background: #04080E !important;
+        color: #00F59B !important;
+        font-size: 0.85rem !important;
+        font-weight: 800 !important;
+        line-height: 1 !important;
+      }
+      body.dark.msc-app-page div[support-agent] > div.overflow-y-auto > div.flex-col.gap-6 > div.w-full.space-y-2 > a:hover {
+        filter: brightness(1.08) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 0 26px rgba(16, 185, 129, 0.55) !important;
+      }
+
+      /* Prompt suggestion buttons when assistants exist */
+      body.dark.msc-app-page div[support-agent] > div.overflow-y-auto button.border-n-weak {
+        background: rgba(10, 20, 29, 0.9) !important;
+        border: 1px solid rgba(16, 185, 129, 0.22) !important;
+        border-radius: 0.75rem !important;
+        color: #E2E8F0 !important;
+        padding: 0.625rem 0.875rem !important;
+        font-size: 0.8125rem !important;
+        transition: all 0.2s ease !important;
+      }
+      body.dark.msc-app-page div[support-agent] > div.overflow-y-auto button.border-n-weak:hover {
+        background: rgba(16, 185, 129, 0.14) !important;
+        border-color: rgba(16, 185, 129, 0.45) !important;
+        color: #FFFFFF !important;
+      }
+
+      /* Copilot chat input area */
+      body.dark.msc-app-page div[support-agent] form textarea {
+        background: #0A111A !important;
+        border: 1px solid rgba(16, 185, 129, 0.28) !important;
+        border-radius: 0.875rem !important;
+        color: #F8FAFC !important;
+        box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+      }
+      body.dark.msc-app-page div[support-agent] form textarea:focus {
+        border-color: #10B981 !important;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.22) !important;
+      }
+      body.dark.msc-app-page div[support-agent] form button[type="submit"] {
+        color: #00F59B !important;
+      }
+
+      /* 9.7 Copilot Menu Bar & Inline Editor inside Conversation ReplyBox */
+      body.dark.msc-app-page .editor--copilot {
+        background: rgba(8, 18, 28, 0.95) !important;
+        border: 1px solid rgba(16, 185, 129, 0.32) !important;
+        border-radius: 0.75rem !important;
+      }
+      body.dark.msc-app-page .editor--copilot button.bg-n-iris-9,
+      body.dark.msc-app-page button.bg-n-iris-9 {
+        background: linear-gradient(135deg, #00F59B 0%, #10B981 100%) !important;
+        color: #04080E !important;
+        font-weight: 600 !important;
+        box-shadow: 0 0 14px rgba(16, 185, 129, 0.35) !important;
+      }
+
+
+      /* 9.8 Kanban Native Board Search & Select Input Polish */
+      body.dark.msc-app-page .msc-kanban-root input[type="text"] {
+        padding-left: 2.35rem !important;
+        padding-right: 0.75rem !important;
+        margin-bottom: 0 !important;
+        height: 2.35rem !important;
+        background-color: #09131F !important;
+        border: 1px solid rgba(16, 185, 129, 0.24) !important;
+        border-radius: 0.5rem !important;
+        color: #F8FAFC !important;
+      }
+      body.dark.msc-app-page .msc-kanban-root header select {
+        padding-left: 0.75rem !important;
+        padding-right: 2rem !important;
+        margin-bottom: 0 !important;
+        height: 2.35rem !important;
+        background-color: #09131F !important;
+        border: 1px solid rgba(16, 185, 129, 0.24) !important;
+        border-radius: 0.5rem !important;
+        color: #F8FAFC !important;
+      }
+
+      /* ==========================================================================
+         10. MEUSUPER.APP DESIGN SYSTEM — GEIST TYPOGRAPHY, ANIMATIONS & LOADERS
+             Matches https://meusuper.app/ visual identity, fonts & motion
+         ========================================================================== */
+      :root, html, body {
+        --font-lp-sans: Geist, Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif !important;
+        --font-lp-mono: Geist Mono, JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace !important;
+        --font-sans: Geist, Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif !important;
+        --font-inter: Geist, Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif !important;
+      }
+
+      html, body, #app, button, input, select, textarea {
+        font-family: var(--font-lp-sans) !important;
+        -webkit-font-smoothing: antialiased !important;
+        -moz-osx-font-smoothing: grayscale !important;
+        text-rendering: optimizeLegibility !important;
+        font-feature-settings: "ss01", "cv11" !important;
+      }
+
+      /* Headings with tight geometric tracking like meusuper.app */
+      h1, h2, h3, h4, .font-semibold, .font-bold {
+        font-family: var(--font-lp-sans) !important;
+        letter-spacing: -0.028em !important;
+      }
+
+      code, pre, kbd, .font-mono {
+        font-family: var(--font-lp-mono) !important;
+      }
+
+      body.dark ::selection {
+        background: rgba(16, 185, 129, 0.30) !important;
+        color: #ECFDF5 !important;
+      }
+      body:not(.dark) ::selection {
+        background: rgba(16, 185, 129, 0.22) !important;
+        color: #064E3B !important;
+      }
+
+      /* Subtle Architectural Grid + Emerald Radial Spotlight on Main Views */
+      body.dark.msc-app-page main,
+      body.dark.msc-app-page .msc-kanban-root,
+      body.dark.msc-app-page .conversation-details-wrap {
+        background-color: #060A11 !important;
+        background-image:
+          radial-gradient(ellipse 75% 50% at 50% 0%, rgba(16, 185, 129, 0.095) 0%, transparent 70%),
+          linear-gradient(rgba(255, 255, 255, 0.026) 1px, transparent 0),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 0) !important;
+        background-size: 100% 100%, 64px 64px, 64px 64px !important;
+      }
+
+      /* Keyframes from meusuper.app */
+      @keyframes msc-lp-pop {
+        0% {
+          opacity: 0;
+          transform: translate3d(0, 10px, 0) scale(0.985);
+        }
+        100% {
+          opacity: 1;
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+      }
+
+      @keyframes msc-lp-shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(220%); }
+      }
+
+      @keyframes msc-top-bar {
+        0% { transform: translateX(-100%) scaleX(0.2); opacity: 1; }
+        50% { transform: translateX(0%) scaleX(0.65); opacity: 1; }
+        100% { transform: translateX(100%) scaleX(1); opacity: 0; }
+      }
+
+      @keyframes msc-pulse-dot {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+        50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+      }
+
+      /* Top Emerald Route Progress Bar */
+      #msc-top-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2.5px;
+        z-index: 99999;
+        pointer-events: none;
+        overflow: hidden;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+      }
+      #msc-top-loader.is-active {
+        opacity: 1;
+      }
+      #msc-top-loader::after {
+        content: "";
+        display: block;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, #10B981, #34D399, #D4FF00, transparent);
+        box-shadow: 0 0 16px rgba(16, 185, 129, 0.85);
+        animation: msc-top-bar 0.85s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+      }
+
+      /* Smooth Entrance Reveal on Kanban Columns, Cards, Conversation Items & Messages */
+      body.dark.msc-app-page .msc-kanban-root article,
+      body.dark.msc-app-page .conversations-list div[role="button"],
+      body.dark.msc-app-page .conversations-list a {
+        animation: msc-lp-pop 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+        transition:
+          transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+          border-color 0.24s ease,
+          box-shadow 0.24s ease,
+          background-color 0.24s ease !important;
+      }
+
+      /* Interactive Card Hover Lift & Specular Top Edge Light */
+      body.dark.msc-app-page .msc-kanban-root article {
+        position: relative !important;
+        background: linear-gradient(180deg, rgba(13, 23, 36, 0.92) 0%, rgba(8, 15, 25, 0.96) 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.075) !important;
+        box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+      }
+      body.dark.msc-app-page .msc-kanban-root article:hover {
+        transform: translateY(-2px) !important;
+        border-color: rgba(16, 185, 129, 0.48) !important;
+        box-shadow:
+          0 14px 32px -8px rgba(0, 0, 0, 0.72),
+          0 0 24px -4px rgba(16, 185, 129, 0.22),
+          inset 0 1px 0 rgba(167, 243, 208, 0.22) !important;
+      }
+
+      /* Kanban Column Glass Containers with Top Specular Edge Light */
+      body.dark.msc-app-page .msc-kanban-root .grid > div.rounded-2xl {
+        position: relative !important;
+        background: linear-gradient(180deg, rgba(10, 17, 28, 0.86) 0%, rgba(6, 11, 18, 0.92) 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.07) !important;
+        box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+      }
+      body.dark.msc-app-page .msc-kanban-root .grid > div.rounded-2xl::before {
+        content: "";
+        position: absolute;
+        left: 12%;
+        right: 12%;
+        top: -1px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(167, 243, 208, 0.55), transparent);
+        pointer-events: none;
+      }
+
+      /* Primary Emerald Pill CTA Buttons matching meusuper.app "Agendar Raio-X 360" */
+      body.dark.msc-app-page .msc-kanban-root header button {
+        background: linear-gradient(180deg, #10B981 0%, #059669 100%) !important;
+        color: #03110B !important;
+        font-weight: 600 !important;
+        border: 1px solid rgba(167, 243, 208, 0.45) !important;
+        box-shadow: 0 0 24px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+      body.dark.msc-app-page .msc-kanban-root header button:hover {
+        transform: translateY(-1px) !important;
+        filter: brightness(1.07) !important;
+        box-shadow: 0 0 32px rgba(16, 185, 129, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+      }
+      /* Keep mobile tab switcher buttons subtle unless active */
+      body.dark.msc-app-page .msc-kanban-root header div.md\:hidden button {
+        background: rgba(9, 19, 31, 0.85) !important;
+        color: #94A3B8 !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        box-shadow: none !important;
+      }
+      body.dark.msc-app-page .msc-kanban-root header div.md\:hidden button.text-emerald-300 {
+        background: rgba(16, 185, 129, 0.18) !important;
+        color: #6EE7B7 !important;
+        border-color: rgba(16, 185, 129, 0.45) !important;
+        box-shadow: 0 0 16px rgba(16, 185, 129, 0.2) !important;
+      }
+
+      /* Chat Bubbles inside Conversation Thread matching meusuper.app Hero Demo */
+      body.dark.msc-app-page .conversation-panel li .message-text__wrap,
+      body.dark.msc-app-page [data-bubble-name] {
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+
+      /* ==========================================================================
+         11. CONTACT HERO CARD & ACCORDIONS — EXACT GPT IMAGE 2.5 EMERALD SPEC
+         ========================================================================== */
+      /* Hero Card Container */
+      body.dark.msc-app-page .msc-contact-hero-card {
+        position: relative !important;
+        overflow: hidden !important;
+        background: linear-gradient(180deg, rgba(13, 24, 29, 0.96) 0%, rgba(9, 17, 22, 0.98) 100%) !important;
+        border: 1px solid rgba(16, 185, 129, 0.28) !important;
+        border-radius: 16px !important;
+        padding: 14px !important;
+        box-shadow:
+          0 16px 36px -8px rgba(0, 0, 0, 0.72),
+          0 0 28px -8px rgba(16, 185, 129, 0.18),
+          inset 0 1px 0 rgba(52, 211, 153, 0.25) !important;
+      }
+
+      /* Circular Glowing Emerald Ring Avatar + White Initials */
+      body.dark.msc-app-page .msc-contact-hero-card .relative.flex-shrink-0 > div.rounded-full {
+        border-radius: 9999px !important;
+        padding: 2px !important;
+        background: linear-gradient(135deg, #34D399 0%, #10B981 55%, #047857 100%) !important;
+        box-shadow: 0 0 18px rgba(16, 185, 129, 0.45) !important;
+      }
+      body.dark.msc-app-page .msc-contact-hero-card .relative.flex-shrink-0 [role="img"],
+      body.dark.msc-app-page .msc-contact-hero-card .relative.flex-shrink-0 span[class*="rounded"] {
+        border-radius: 9999px !important;
+        background: radial-gradient(circle at 30% 30%, #0E2F25 0%, #071914 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+      }
+      body.dark.msc-app-page .msc-contact-hero-card .relative.flex-shrink-0 [role="img"] div,
+      body.dark.msc-app-page .msc-contact-hero-card .relative.flex-shrink-0 [role="img"] span {
+        background: transparent !important;
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+      }
+
+      /* Online Status Dot */
+      body.dark.msc-app-page .msc-contact-hero-card .relative.flex-shrink-0 > span.absolute {
+        width: 13px !important;
+        height: 13px !important;
+        background-color: #10B981 !important;
+        border: 2px solid #091318 !important;
+        border-radius: 9999px !important;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.9) !important;
+        bottom: 1px !important;
+        right: 1px !important;
+      }
+
+      /* Company Emerald Pill Badge under Contact Name */
+      body.dark.msc-app-page .msc-contact-hero-card span.rounded-full.inline-flex {
+        background: rgba(16, 185, 129, 0.14) !important;
+        border: 1px solid rgba(16, 185, 129, 0.38) !important;
+        border-radius: 9999px !important;
+        color: #34D399 !important;
+        padding: 3px 10px !important;
+        font-size: 11.5px !important;
+        font-weight: 500 !important;
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.12) !important;
+      }
+      body.dark.msc-app-page .msc-contact-hero-card span.rounded-full.inline-flex > span {
+        color: #34D399 !important;
+        border: none !important;
+        outline: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+
+      /* Top-Right Utility Buttons (Info & External Link) */
+      body.dark.msc-app-page .msc-contact-hero-card .flex.items-center.gap-1\.5.flex-shrink-0 > button,
+      body.dark.msc-app-page .msc-contact-hero-card .flex.items-center.gap-1\.5.flex-shrink-0 > a {
+        width: 30px !important;
+        height: 30px !important;
+        border-radius: 8px !important;
+        background: rgba(15, 25, 32, 0.85) !important;
+        border: 1px solid rgba(255, 255, 255, 0.10) !important;
+        color: #CBD5E1 !important;
+        transition: all 0.2s ease !important;
+      }
+      body.dark.msc-app-page .msc-contact-hero-card .flex.items-center.gap-1\.5.flex-shrink-0 > button:hover,
+      body.dark.msc-app-page .msc-contact-hero-card .flex.items-center.gap-1\.5.flex-shrink-0 > a:hover {
+        border-color: rgba(16, 185, 129, 0.45) !important;
+        background: rgba(16, 185, 129, 0.12) !important;
+        color: #34D399 !important;
+      }
+
+      /* Interactive Contact Info Data Pills (Email, Phone, Company) */
+      body.dark.msc-app-page .msc-contact-info-pill {
+        background: rgba(13, 22, 28, 0.92) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 12px !important;
+        padding: 8px 10px !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+      body.dark.msc-app-page .msc-contact-info-pill:hover {
+        border-color: rgba(16, 185, 129, 0.38) !important;
+        background: rgba(16, 28, 36, 0.96) !important;
+        box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.5) !important;
+      }
+
+      /* Left Mini-Badge inside Data Pill */
+      body.dark.msc-app-page .msc-contact-info-pill .w-9.h-9 {
+        width: 34px !important;
+        height: 34px !important;
+        border-radius: 9px !important;
+        background: rgba(16, 185, 129, 0.13) !important;
+        border: 1px solid rgba(16, 185, 129, 0.32) !important;
+        color: #10B981 !important;
+        box-shadow: inset 0 1px 0 rgba(52, 211, 153, 0.18) !important;
+      }
+      body.dark.msc-app-page .msc-contact-info-pill .w-9.h-9 svg,
+      body.dark.msc-app-page .msc-contact-info-pill .w-9.h-9 span {
+        color: #10B981 !important;
+        border: none !important;
+        background: transparent !important;
+      }
+
+      /* Right Copy / Edit Button inside Data Pill */
+      body.dark.msc-app-page .msc-contact-info-pill button {
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 7px !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid rgba(255, 255, 255, 0.10) !important;
+        color: #CBD5E1 !important;
+      }
+      body.dark.msc-app-page .msc-contact-info-pill button:hover {
+        background: rgba(16, 185, 129, 0.15) !important;
+        border-color: rgba(16, 185, 129, 0.45) !important;
+        color: #34D399 !important;
+      }
+
+      /* Quick Action Bar — Fit 100% inside Hero Card without clipping */
+      body.dark.msc-app-page .msc-contact-hero-card > .flex.items-center.w-full.pt-0\.5.gap-2 {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 6px !important;
+        width: 100% !important;
+        margin-top: 2px !important;
+      }
+      /* Ensure ComposeConversation & ContactMergeModal trigger wrappers shrink/grow cleanly */
+      body.dark.msc-app-page .msc-contact-hero-card > .flex.items-center.w-full.pt-0\.5.gap-2 > * {
+        min-width: 0 !important;
+      }
+      /* 1. Chat Button (Emerald Highlight) */
+      body.dark.msc-app-page .msc-contact-hero-card button:has(.i-ph-chat-circle-dots) {
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+        height: 34px !important;
+        padding: 0 8px !important;
+        border-radius: 9px !important;
+        background: rgba(16, 185, 129, 0.14) !important;
+        border: 1px solid rgba(16, 185, 129, 0.45) !important;
+        color: #34D399 !important;
+        font-weight: 600 !important;
+        font-size: 11.5px !important;
+        box-shadow: 0 0 14px rgba(16, 185, 129, 0.14) !important;
+      }
+      body.dark.msc-app-page .msc-contact-hero-card button:has(.i-ph-chat-circle-dots) span {
+        color: #34D399 !important;
+      }
+      body.dark.msc-app-page .msc-contact-hero-card button:has(.i-ph-chat-circle-dots):hover {
+        background: rgba(16, 185, 129, 0.24) !important;
+        border-color: #10B981 !important;
+      }
+
+      /* 2 & 3. Editar & Mesclar Buttons */
+      body.dark.msc-app-page .msc-contact-hero-card button:has(.i-ph-pencil-simple),
+      body.dark.msc-app-page .msc-contact-hero-card button:has(.i-ph-arrows-merge) {
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+        height: 34px !important;
+        padding: 0 8px !important;
+        border-radius: 9px !important;
+        background: rgba(16, 25, 33, 0.92) !important;
+        border: 1px solid rgba(255, 255, 255, 0.10) !important;
+        color: #E2E8F0 !important;
+        font-weight: 500 !important;
+        font-size: 11.5px !important;
+      }
+      body.dark.msc-app-page .msc-contact-hero-card button:has(.i-ph-pencil-simple):hover,
+      body.dark.msc-app-page .msc-contact-hero-card button:has(.i-ph-arrows-merge):hover {
+        background: rgba(24, 38, 49, 0.95) !important;
+        border-color: rgba(16, 185, 129, 0.38) !important;
+        color: #FFFFFF !important;
+      }
+
+      /* 4. Delete Button (Crimson Box) */
+      body.dark.msc-app-page .msc-contact-hero-card button:has(.i-ph-trash) {
+        width: 34px !important;
+        height: 34px !important;
+        min-width: 34px !important;
+        flex: 0 0 34px !important;
+        padding: 0 !important;
+        border-radius: 9px !important;
+        background: rgba(239, 68, 68, 0.12) !important;
+        border: 1px solid rgba(239, 68, 68, 0.38) !important;
+        color: #F87171 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      body.dark.msc-app-page .msc-contact-hero-card button:has(.i-ph-trash) span {
+        color: #F87171 !important;
+      }
+      body.dark.msc-app-page .msc-contact-hero-card button:has(.i-ph-trash):hover {
+        background: rgba(239, 68, 68, 0.22) !important;
+        border-color: #EF4444 !important;
+      }
+
+      /* Lower 9 Accordion Items matching GPT Image 2.5 */
+      body.dark.msc-app-page .msc-accordion-item {
+        border-radius: 12px !important;
+        overflow: hidden !important;
+      }
+      body.dark.msc-app-page .msc-accordion-item > button.drag-handle {
+        background: linear-gradient(180deg, rgba(12, 21, 27, 0.95) 0%, rgba(9, 16, 21, 0.98) 100%) !important;
+        border: 1px solid rgba(16, 185, 129, 0.22) !important;
+        border-radius: 12px !important;
+        padding: 11px 14px !important;
+        box-shadow: 0 4px 14px -4px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+      /* When accordion is open (has a sibling div body) */
+      body.dark.msc-app-page .msc-accordion-item:has(> div) > button.drag-handle {
+        border-bottom-left-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        border-color: rgba(16, 185, 129, 0.32) !important;
+        border-bottom-color: rgba(16, 185, 129, 0.12) !important;
+        background: linear-gradient(180deg, rgba(15, 28, 36, 0.98) 0%, rgba(11, 21, 28, 0.98) 100%) !important;
+      }
+      body.dark.msc-app-page .msc-accordion-item > button.drag-handle:hover {
+        border-color: rgba(16, 185, 129, 0.48) !important;
+        background: linear-gradient(180deg, rgba(15, 28, 36, 0.98) 0%, rgba(11, 21, 28, 1) 100%) !important;
+      }
+      /* Accordion Expanded Content Body — Eliminate white currentColor border */
+      body.dark.msc-app-page .msc-accordion-item > div {
+        background: rgba(8, 15, 20, 0.92) !important;
+        border: 1px solid rgba(16, 185, 129, 0.24) !important;
+        border-top: none !important;
+        border-bottom-left-radius: 12px !important;
+        border-bottom-right-radius: 12px !important;
+        color: #CBD5E1 !important;
+        box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+      }
+      /* Hide empty accordion body when it has no visible content */
+      body.dark.msc-app-page .msc-accordion-item > div:empty {
+        display: none !important;
+      }
+      /* Inner dividers & borders inside expanded accordions */
+      body.dark.msc-app-page .msc-accordion-item > div *,
+      body.dark.msc-app-page .conversation--actions * {
+        border-color: rgba(16, 185, 129, 0.14) !important;
+      }
+      /* Left contextual icon in emerald */
+      body.dark.msc-app-page .msc-accordion-item > button.drag-handle [class*="i-lucide-"] {
+        color: #10B981 !important;
+        width: 17px !important;
+        height: 17px !important;
+      }
+      /* Right + / - icon in emerald */
+      body.dark.msc-app-page .msc-accordion-item > button.drag-handle svg {
+        color: #34D399 !important;
       }
     </style>
     <% if @global_config['DISPLAY_MANIFEST'] %>
@@ -815,9 +1865,18 @@
     <%= vite_client_tag %>
     <%= vite_javascript_tag @application_pack %>
   </head>
-  <body class="text-slate-600 dark:bg-[#04080E] dark:text-slate-100">
+  <body class="text-slate-700 bg-[#F8FAFC] dark:bg-[#04080E] dark:text-slate-100">
     <script>
       (function() {
+        try {
+          if (document.documentElement.classList.contains('dark')) {
+            document.body.classList.add('dark');
+            document.body.classList.remove('light');
+          } else {
+            document.body.classList.remove('dark');
+            document.body.classList.add('light');
+          }
+        } catch (e) {}
         function enhanceLoginView() {
           var isAuth = window.location.pathname.indexOf('/login') !== -1 || window.location.pathname.indexOf('/auth') !== -1;
           if (!isAuth) {
@@ -1036,5 +2095,546 @@
     <% if @dashboard_scripts.present? %>
       <%= @dashboard_scripts.html_safe %>
     <% end %>
+    <style id="msc-geist-late-override">
+      :root, html, body, .dark {
+        --font-sans: Geist, Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif !important;
+        --font-inter: Geist, Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif !important;
+        font-family: Geist, Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif !important;
+      }
+      html body, html body #app, html body button, html body input, html body select, html body textarea,
+      html body p, html body span, html body div, html body a, html body li {
+        font-family: Geist, Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif;
+      }
+      html body h1, html body h2, html body h3, html body h4, html body .font-semibold, html body .font-bold {
+        font-family: Geist, Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif !important;
+        letter-spacing: -0.028em !important;
+      }
+      html body code, html body pre, html body kbd, html body .font-mono {
+        font-family: Geist Mono, JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace !important;
+      }
+
+      /* Workflows Index & Builder — Scoped Dark Emerald & Multi-Category Polish */
+      body.dark.msc-app-page .msc-workflows-page,
+      body.dark.msc-app-page .msc-workflow-canvas,
+      body.dark.msc-app-page .msc-wf-drawer,
+      body.dark.msc-app-page .msc-node-selector-modal {
+        --tw-border-opacity: 1;
+      }
+      body.dark.msc-app-page .msc-workflows-page *,
+      body.dark.msc-app-page .msc-wf-drawer *,
+      body.dark.msc-app-page .msc-node-selector-modal *,
+      body.dark.msc-app-page .msc-workflow-canvas * {
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+      body.dark.msc-app-page .msc-wf-kpi-card:nth-child(1) {
+        background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(10, 19, 25, 0.94) 100%) !important;
+        border: 1px solid rgba(16, 185, 129, 0.30) !important;
+        box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(16, 185, 129, 0.15) !important;
+      }
+      body.dark.msc-app-page .msc-wf-kpi-card:nth-child(1) > div:first-child {
+        background: rgba(16, 185, 129, 0.16) !important;
+        border: 1px solid rgba(16, 185, 129, 0.40) !important;
+        color: #34D399 !important;
+      }
+      body.dark.msc-app-page .msc-wf-kpi-card:nth-child(2) {
+        background: linear-gradient(180deg, rgba(6, 182, 212, 0.08) 0%, rgba(10, 19, 25, 0.94) 100%) !important;
+        border: 1px solid rgba(6, 182, 212, 0.30) !important;
+        box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(6, 182, 212, 0.15) !important;
+      }
+      body.dark.msc-app-page .msc-wf-kpi-card:nth-child(2) > div:first-child {
+        background: rgba(6, 182, 212, 0.16) !important;
+        border: 1px solid rgba(6, 182, 212, 0.40) !important;
+        color: #22D3EE !important;
+      }
+      body.dark.msc-app-page .msc-wf-kpi-card:nth-child(3) {
+        background: linear-gradient(180deg, rgba(139, 92, 246, 0.08) 0%, rgba(10, 19, 25, 0.94) 100%) !important;
+        border: 1px solid rgba(139, 92, 246, 0.30) !important;
+        box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(139, 92, 246, 0.15) !important;
+      }
+      body.dark.msc-app-page .msc-wf-kpi-card:nth-child(3) > div:first-child {
+        background: rgba(139, 92, 246, 0.16) !important;
+        border: 1px solid rgba(139, 92, 246, 0.40) !important;
+        color: #A78BFA !important;
+      }
+      body.dark.msc-app-page .msc-wf-kpi-card:nth-child(4) {
+        background: linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, rgba(10, 19, 25, 0.94) 100%) !important;
+        border: 1px solid rgba(245, 158, 11, 0.30) !important;
+        box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(245, 158, 11, 0.15) !important;
+      }
+      body.dark.msc-app-page .msc-wf-kpi-card:nth-child(4) > div:first-child {
+        background: rgba(245, 158, 11, 0.16) !important;
+        border: 1px solid rgba(245, 158, 11, 0.40) !important;
+        color: #FBBF24 !important;
+      }
+      /* CTA Buttons in Workflows & Builder */
+      body.dark.msc-app-page .msc-cta-emerald {
+        background: linear-gradient(135deg, #10B981 0%, #34D399 55%, #14B8A6 100%) !important;
+        color: #021810 !important;
+        font-weight: 700 !important;
+        border: 1px solid rgba(110, 231, 183, 0.55) !important;
+        box-shadow: 0 8px 22px -4px rgba(16, 185, 129, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+      }
+      body.dark.msc-app-page .msc-cta-emerald:hover:not(:disabled) {
+        filter: brightness(1.08) !important;
+        transform: translateY(-1px) !important;
+      }
+      body.dark.msc-app-page .msc-cta-emerald:disabled {
+        background: rgba(16, 185, 129, 0.18) !important;
+        color: #6EE7B7 !important;
+        border-color: rgba(16, 185, 129, 0.35) !important;
+        opacity: 0.75 !important;
+      }
+      /* Table & Drawer Borders */
+      body.dark.msc-app-page .msc-workflows-page table,
+      body.dark.msc-app-page .msc-workflows-page tr,
+      body.dark.msc-app-page .msc-workflows-page th,
+      body.dark.msc-app-page .msc-workflows-page td {
+        border-color: rgba(255, 255, 255, 0.06) !important;
+      }
+      body.dark.msc-app-page .msc-wf-table-wrap {
+        border: 1px solid rgba(16, 185, 129, 0.24) !important;
+        background: rgba(8, 16, 21, 0.92) !important;
+      }
+      body.dark.msc-app-page .msc-wf-row-selected {
+        background: rgba(16, 185, 129, 0.10) !important;
+        box-shadow: inset 3px 0 0 #10B981 !important;
+      }
+      body.dark.msc-app-page .msc-wf-drawer {
+        border-inline-start: 1px solid rgba(16, 185, 129, 0.24) !important;
+        background: rgba(7, 14, 19, 0.97) !important;
+      }
+      body.dark.msc-app-page .msc-wf-hero-card {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(11, 23, 30, 0.96) 55%, rgba(8, 17, 23, 0.98) 100%) !important;
+        border: 1px solid rgba(16, 185, 129, 0.38) !important;
+        box-shadow: 0 10px 26px -8px rgba(0, 0, 0, 0.55) !important;
+      }
+      body.dark.msc-app-page .msc-wf-webhook-box {
+        border: 1px solid rgba(16, 185, 129, 0.26) !important;
+        background: rgba(11, 20, 27, 0.92) !important;
+      }
+      body.dark.msc-app-page .msc-wf-webhook-btn {
+        border: 1px dashed rgba(16, 185, 129, 0.45) !important;
+        color: #6EE7B7 !important;
+      }
+      body.dark.msc-app-page .msc-node-selector-modal {
+        border: 1px solid rgba(16, 185, 129, 0.38) !important;
+        background: rgba(10, 19, 25, 0.97) !important;
+        box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(16, 185, 129, 0.18) !important;
+      }
+      body.dark.msc-app-page .msc-builder-controls {
+        border: 1px solid rgba(16, 185, 129, 0.30) !important;
+        background: rgba(10, 19, 25, 0.92) !important;
+      }
+      body.dark.msc-app-page .msc-builder-minimap {
+        border: 1px solid rgba(16, 185, 129, 0.32) !important;
+        background: rgba(10, 19, 25, 0.92) !important;
+      }
+      body.dark.msc-app-page .msc-builder-minimap > div {
+        border: 1px solid rgba(16, 185, 129, 0.18) !important;
+      }
+
+    
+      /* ==========================================================================
+         12. LIGHT CLEAN EMERALD THEME (WHITE MODE) — body:not(.dark).msc-app-page
+             Preserves 100% Meu Super Chat Emerald identity on clean white surfaces
+         ========================================================================== */
+      body:not(.dark).msc-app-page,
+      body:not(.dark).msc-app-page #app,
+      body:not(.dark).msc-app-page #app > div.bg-n-background {
+        background-color: #F8FAFC !important;
+        color: #0F172A !important;
+      }
+
+      /* Quick Theme Toggle Button in Sidebar Footer */
+      body.dark.msc-app-page .msc-theme-toggle-btn {
+        background: rgba(16, 185, 129, 0.12) !important;
+        border-color: rgba(16, 185, 129, 0.32) !important;
+        color: #FCD34D !important;
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.16) !important;
+      }
+      body.dark.msc-app-page .msc-theme-toggle-btn:hover {
+        background: rgba(16, 185, 129, 0.22) !important;
+        border-color: #10B981 !important;
+        transform: translateY(-1px);
+      }
+      body:not(.dark).msc-app-page .msc-theme-toggle-btn {
+        background: #ECFDF5 !important;
+        border-color: #A7F3D0 !important;
+        color: #047857 !important;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+      }
+      body:not(.dark).msc-app-page .msc-theme-toggle-btn:hover {
+        background: #D1FAE5 !important;
+        border-color: #10B981 !important;
+        transform: translateY(-1px);
+      }
+
+      /* Main Workspace in Light Mode: Subtle Emerald Aura + Clean White/Slate Grid */
+      body:not(.dark).msc-app-page main,
+      body:not(.dark).msc-app-page .msc-kanban-root,
+      body:not(.dark).msc-app-page .conversation-details-wrap {
+        background-color: #F8FAFC !important;
+        background-image:
+          radial-gradient(ellipse 75% 50% at 50% 0%, rgba(16, 185, 129, 0.07) 0%, transparent 70%),
+          linear-gradient(rgba(15, 23, 42, 0.025) 1px, transparent 0),
+          linear-gradient(90deg, rgba(15, 23, 42, 0.025) 1px, transparent 0) !important;
+        background-size: 100% 100%, 64px 64px, 64px 64px !important;
+        color: #0F172A !important;
+      }
+
+      /* Sidebar in Light Mode */
+      body:not(.dark).msc-app-page aside.bg-n-background {
+        background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%) !important;
+        border-color: #E2E8F0 !important;
+      }
+      body:not(.dark).msc-app-page aside #sidebar-account-switcher span {
+        color: #0F172A !important;
+        font-weight: 700 !important;
+      }
+      body:not(.dark).msc-app-page aside nav > ul > li > a {
+        color: #475569 !important;
+        border-radius: 10px !important;
+      }
+      body:not(.dark).msc-app-page aside nav > ul > li > a:hover {
+        background: #F1F5F9 !important;
+        color: #0F172A !important;
+      }
+      body:not(.dark).msc-app-page aside nav > ul > li > a.bg-n-alpha-2,
+      body:not(.dark).msc-app-page aside nav > ul > li > a.router-link-active,
+      body:not(.dark).msc-app-page aside li.child-item a.router-link-active,
+      body:not(.dark).msc-app-page aside li.child-item a.active {
+        position: relative !important;
+        background: linear-gradient(90deg, rgba(16, 185, 129, 0.16) 0%, rgba(16, 185, 129, 0.04) 100%) !important;
+        box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.28) !important;
+        color: #065F46 !important;
+        font-weight: 600 !important;
+      }
+      body:not(.dark).msc-app-page aside nav > ul > li > a.bg-n-alpha-2::before,
+      body:not(.dark).msc-app-page aside nav > ul > li > a.router-link-active::before,
+      body:not(.dark).msc-app-page aside li.child-item a.router-link-active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 6px;
+        bottom: 6px;
+        width: 3px;
+        border-radius: 0 4px 4px 0;
+        background: #10B981;
+      }
+      body:not(.dark).msc-app-page aside nav > ul > li > a.bg-n-alpha-2 [class*="i-lucide"],
+      body:not(.dark).msc-app-page aside nav > ul > li > a.router-link-active [class*="i-lucide"],
+      body:not(.dark).msc-app-page aside li.child-item a.router-link-active [class*="i-lucide"] {
+        color: #059669 !important;
+      }
+      body:not(.dark).msc-app-page aside section button:has(.i-lucide-pen-line) {
+        background: #ECFDF5 !important;
+        outline-color: #A7F3D0 !important;
+        color: #059669 !important;
+        border-radius: 10px !important;
+      }
+      body:not(.dark).msc-app-page aside section button:has(.i-lucide-pen-line) span {
+        color: #059669 !important;
+      }
+
+      /* Conversations List (Column 2) in Light Mode */
+      body:not(.dark).msc-app-page .conversations-list-wrap {
+        background: #FFFFFF !important;
+        border-right: 1px solid #E2E8F0 !important;
+      }
+      body:not(.dark).msc-app-page .conversations-list-wrap h1 {
+        color: #0F172A !important;
+        font-weight: 700 !important;
+      }
+      body:not(.dark).msc-app-page .conversations-list-wrap ul li a.text-n-blue-11 {
+        color: #047857 !important;
+        font-weight: 600 !important;
+      }
+      body:not(.dark).msc-app-page .conversations-list-wrap ul li a.text-n-blue-11::after {
+        background: #10B981 !important;
+      }
+      body:not(.dark).msc-app-page .conversations-list-wrap ul li a.text-n-blue-11 > div {
+        background: #ECFDF5 !important;
+        color: #047857 !important;
+        border: 1px solid #A7F3D0 !important;
+      }
+
+      /* Onboarding Cards in Light Mode */
+      body:not(.dark).msc-app-page .msc-onboarding > .col-span-full p:first-child {
+        color: #0F172A !important;
+      }
+      body:not(.dark).msc-app-page .msc-onboarding > .col-span-full p:nth-child(2) {
+        color: #475569 !important;
+      }
+      body:not(.dark).msc-app-page .msc-onboarding > div.rounded-lg {
+        background: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 18px !important;
+        box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.06) !important;
+      }
+      body:not(.dark).msc-app-page .msc-onboarding > div.rounded-lg:hover {
+        border-color: #10B981 !important;
+        box-shadow: 0 10px 28px -6px rgba(16, 185, 129, 0.14) !important;
+      }
+      body:not(.dark).msc-app-page .msc-onboarding > div.rounded-lg > .flex-1 img {
+        display: none !important;
+      }
+      body:not(.dark).msc-app-page .msc-onboarding > div.rounded-lg p.font-semibold {
+        color: #0F172A !important;
+      }
+      body:not(.dark).msc-app-page .msc-onboarding > div.rounded-lg p.text-sm {
+        color: #475569 !important;
+      }
+      body:not(.dark).msc-app-page .msc-onboarding > div.rounded-lg a.text-n-brand {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin-top: 14px !important;
+        padding: 8px 16px !important;
+        border-radius: 999px !important;
+        background: #ECFDF5 !important;
+        border: 1px solid #6EE7B7 !important;
+        color: #065F46 !important;
+        font-weight: 600 !important;
+      }
+      body:not(.dark).msc-app-page .msc-glass-tile {
+        background: #F8FAFC !important;
+        border: 1px solid #E2E8F0 !important;
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06) !important;
+      }
+      body:not(.dark).msc-app-page .msc-cmd {
+        background: #FFFFFF !important;
+        border: 1px solid #A7F3D0 !important;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+      }
+      body:not(.dark).msc-app-page .msc-cmd-input {
+        color: #0F172A !important;
+        border-bottom-color: #E2E8F0 !important;
+      }
+      body:not(.dark).msc-app-page .msc-cmd-row.on {
+        background: #ECFDF5 !important;
+        border-color: #6EE7B7 !important;
+        color: #065F46 !important;
+      }
+      body:not(.dark).msc-app-page .msc-cmd-row.on span {
+        color: #334155 !important;
+      }
+      body:not(.dark).msc-app-page .msc-tag.t1 { background: #ECFDF5; border-color: #6EE7B7; color: #047857; box-shadow: none; }
+      body:not(.dark).msc-app-page .msc-tag.t2 { background: #F7FEE7; border-color: #BEF264; color: #3F6212; box-shadow: none; }
+      body:not(.dark).msc-app-page .msc-tag.t3 { background: #EFF6FF; border-color: #93C5FD; color: #1D4ED8; box-shadow: none; }
+      body:not(.dark).msc-app-page .msc-tag.t4 { background: #FAF5FF; border-color: #D8B4FE; color: #6B21A8; box-shadow: none; }
+
+      /* Contact Hero Card & Accordions in Light Mode */
+      body:not(.dark).msc-app-page .msc-contact-hero-card {
+        background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%) !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 16px !important;
+        padding: 14px !important;
+        box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.06) !important;
+      }
+      body:not(.dark).msc-app-page .msc-contact-info-pill {
+        background: #F8FAFC !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 12px !important;
+        padding: 8px 10px !important;
+      }
+      body:not(.dark).msc-app-page .msc-accordion-item > button.drag-handle {
+        background: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 12px !important;
+        padding: 11px 14px !important;
+        color: #0F172A !important;
+      }
+      body:not(.dark).msc-app-page .msc-accordion-item > div {
+        background: #F8FAFC !important;
+        border: 1px solid #E2E8F0 !important;
+        border-top: none !important;
+        border-bottom-left-radius: 12px !important;
+        border-bottom-right-radius: 12px !important;
+        color: #334155 !important;
+      }
+
+      /* ==========================================================================
+         13. AUTOMATIC LIGHT-MODE ADAPTATION FOR CUSTOM MODULES
+             (Agendamentos, Shopify, Kanban, Workflows, Templates, Contacts)
+         ========================================================================== */
+      /* Convert dark page/header/card surfaces inside main to clean white/slate in Light Mode */
+      body:not(.dark).msc-app-page main [class*="bg-[#04"],
+      body:not(.dark).msc-app-page main [class*="bg-[#05"],
+      body:not(.dark).msc-app-page main [class*="bg-[#06"],
+      body:not(.dark).msc-app-page main [class*="bg-[#07"] {
+        background-color: #F8FAFC !important;
+      }
+      body:not(.dark).msc-app-page main header[class*="bg-[#0"] {
+        background-color: rgba(255, 255, 255, 0.92) !important;
+        backdrop-filter: blur(12px) !important;
+        border-bottom-color: #E2E8F0 !important;
+      }
+      body:not(.dark).msc-app-page main [class*="bg-[#08"],
+      body:not(.dark).msc-app-page main [class*="bg-[#09"],
+      body:not(.dark).msc-app-page main [class*="bg-[#0A"],
+      body:not(.dark).msc-app-page main [class*="bg-[#0a"],
+      body:not(.dark).msc-app-page main [class*="bg-[#0B"],
+      body:not(.dark).msc-app-page main [class*="bg-[#0b"],
+      body:not(.dark).msc-app-page main [class*="bg-[#0C"],
+      body:not(.dark).msc-app-page main [class*="bg-[#0c"],
+      body:not(.dark).msc-app-page main [class*="bg-[#0D"],
+      body:not(.dark).msc-app-page main [class*="bg-[#0d"],
+      body:not(.dark).msc-app-page main [class*="bg-[#0E"],
+      body:not(.dark).msc-app-page main [class*="bg-[#0e"],
+      body:not(.dark).msc-app-page main [class*="bg-[#0F"],
+      body:not(.dark).msc-app-page main [class*="bg-[#0f"],
+      body:not(.dark).msc-app-page main [class*="bg-[#11"],
+      body:not(.dark).msc-app-page main [class*="bg-[#12"],
+      body:not(.dark).msc-app-page main [class*="bg-[#13"],
+      body:not(.dark).msc-app-page main [class*="bg-[#14"] {
+        background-color: #FFFFFF !important;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+      }
+
+      /* Borders in custom modules when in Light Mode */
+      body:not(.dark).msc-app-page main [class*="border-[#1"],
+      body:not(.dark).msc-app-page main [class*="border-[#2"],
+      body:not(.dark).msc-app-page main [class*="border-slate-8"],
+      body:not(.dark).msc-app-page main [class*="border-slate-7"],
+      body:not(.dark).msc-app-page main [class*="border-white/"] {
+        border-color: #E2E8F0 !important;
+      }
+
+      /* Texts in custom modules when in Light Mode (excluding solid emerald/lime/colored badges) */
+      body:not(.dark).msc-app-page main [class*="text-[#F8FAFC]"],
+      body:not(.dark).msc-app-page main [class*="text-[#f8fafc]"],
+      body:not(.dark).msc-app-page main .text-slate-100,
+      body:not(.dark).msc-app-page main .text-slate-200 {
+        color: #0F172A !important;
+      }
+      body:not(.dark).msc-app-page main .text-white:not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-red"]):not([class*="bg-blue"]):not([class*="bg-indigo"]):not([class*="bg-violet"]):not([class*="bg-amber"]):not([class*="bg-teal"]):not([class*="bg-cyan"]):not([class*="bg-n-brand"]) {
+        color: #0F172A !important;
+      }
+      body:not(.dark).msc-app-page main .text-slate-300,
+      body:not(.dark).msc-app-page main .text-slate-400,
+      body:not(.dark).msc-app-page main [class*="text-[#94A3B8]"] {
+        color: #475569 !important;
+      }
+      body:not(.dark).msc-app-page main .text-emerald-300,
+      body:not(.dark).msc-app-page main .text-emerald-400 {
+        color: #047857 !important;
+      }
+
+      /* Form inputs inside custom views in Light Mode */
+      body:not(.dark).msc-app-page main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+      body:not(.dark).msc-app-page main select,
+      body:not(.dark).msc-app-page main textarea {
+        background-color: #FFFFFF !important;
+        border-color: #CBD5E1 !important;
+        color: #0F172A !important;
+      }
+      body:not(.dark).msc-app-page main input:focus,
+      body:not(.dark).msc-app-page main select:focus,
+      body:not(.dark).msc-app-page main textarea:focus {
+        border-color: #10B981 !important;
+        outline-color: #10B981 !important;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+      }
+
+      /* Scrollbars in Light Mode */
+      body:not(.dark).msc-app-page * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(16, 185, 129, 0.45) #F1F5F9;
+      }
+
+    
+      /* Empty state ilustrado in Light Mode */
+      body:not(.dark).msc-app-page .conversations-list-wrap > p.msc-empty-enhanced {
+        flex: 1 1 auto !important;
+        flex-direction: column !important;
+        text-align: center !important;
+        padding: 32px 28px !important;
+        color: #0F172A !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+      }
+      body:not(.dark).msc-app-page .msc-empty-icon {
+        background: #ECFDF5 !important;
+        border: 1px solid #A7F3D0 !important;
+        color: #059669 !important;
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.12) !important;
+      }
+
+      /* Kanban Board & Cards in Light Mode */
+      body:not(.dark).msc-app-page .msc-kanban-root .grid > div.rounded-2xl {
+        background: #F1F5F9 !important;
+        border: 1px solid #E2E8F0 !important;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03) !important;
+      }
+      body:not(.dark).msc-app-page .msc-kanban-root article {
+        background: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
+      }
+      body:not(.dark).msc-app-page .msc-kanban-root article:hover {
+        transform: translateY(-2px) !important;
+        border-color: #10B981 !important;
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.12) !important;
+      }
+
+      /* Workflows & Builder in Light Mode */
+      body:not(.dark).msc-app-page .msc-cta-emerald {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+        border: 1px solid #059669 !important;
+        box-shadow: 0 6px 18px -4px rgba(16, 185, 129, 0.35) !important;
+      }
+      body:not(.dark).msc-app-page .msc-wf-table-wrap,
+      body:not(.dark).msc-app-page .msc-wf-drawer,
+      body:not(.dark).msc-app-page .msc-wf-hero-card,
+      body:not(.dark).msc-app-page .msc-wf-kpi-card,
+      body:not(.dark).msc-app-page .msc-node-selector-modal {
+        background: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.06) !important;
+      }
+
+      /* Custom Modals & Popovers with hardcoded dark backgrounds in Light Mode */
+      body:not(.dark).msc-app-page [class*="bg-[#081218]"],
+      body:not(.dark).msc-app-page [class*="bg-[#0A151D]"],
+      body:not(.dark).msc-app-page [class*="bg-[#060E14]"],
+      body:not(.dark).msc-app-page [class*="bg-[#0D1B26]"] {
+        background-color: #FFFFFF !important;
+        border-color: #CBD5E1 !important;
+        color: #0F172A !important;
+      }
+      body:not(.dark).msc-app-page [class*="bg-[#081218]"] [class*="text-[#F8FAFC]"],
+      body:not(.dark).msc-app-page [class*="bg-[#0A151D]"] [class*="text-[#F8FAFC]"],
+      body:not(.dark).msc-app-page [class*="bg-[#060E14]"] [class*="text-[#F8FAFC]"] {
+        color: #0F172A !important;
+      }
+      body:not(.dark).msc-app-page [class*="bg-[#081218]"] .text-slate-400,
+      body:not(.dark).msc-app-page [class*="bg-[#0A151D]"] .text-slate-400 {
+        color: #475569 !important;
+      }
+
+    
+      /* Preserve Solid Emerald CTA Buttons & Badges in Light Mode */
+      body:not(.dark).msc-app-page main [class*="bg-[#10B981]"],
+      body:not(.dark).msc-app-page main [class*="bg-[#10b981]"],
+      body:not(.dark).msc-app-page main [class*="bg-emerald-500"]:not([class*="bg-emerald-500/"]),
+      body:not(.dark).msc-app-page main [class*="bg-emerald-600"]:not([class*="bg-emerald-600/"]) {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+        color: #FFFFFF !important;
+        border-color: #059669 !important;
+        box-shadow: 0 4px 14px -2px rgba(16, 185, 129, 0.35) !important;
+      }
+      body:not(.dark).msc-app-page main [class*="bg-emerald-500"]:not([class*="bg-emerald-500/"]) *,
+      body:not(.dark).msc-app-page main [class*="bg-emerald-600"]:not([class*="bg-emerald-600/"]) * {
+        color: #FFFFFF !important;
+      }
+      body:not(.dark).msc-app-page main [class*="bg-emerald-500/"] {
+        background-color: #ECFDF5 !important;
+        border-color: #6EE7B7 !important;
+        color: #047857 !important;
+      }
+
+    </style>
   </body>
 </html>

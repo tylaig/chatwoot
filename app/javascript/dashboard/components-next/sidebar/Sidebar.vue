@@ -24,6 +24,9 @@ import EmojiIcon from 'next/emoji-icon-picker/EmojiIcon.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
 import Logo from 'next/icon/Logo.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
+import { LocalStorage } from 'shared/helpers/localStorage';
+import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
+import { setColorTheme } from 'dashboard/helper/themeHelper';
 import {
   SIDEBAR_SORT_SECTIONS,
   getSidebarSortOptions,
@@ -1070,6 +1073,31 @@ const menuItems = computed(() => {
 
   return items;
 });
+
+const isDarkTheme = ref(true);
+
+const syncThemeState = () => {
+  if (typeof document === 'undefined') return;
+  isDarkTheme.value =
+    document.body.classList.contains('dark') ||
+    document.documentElement.classList.contains('dark');
+};
+
+const toggleQuickTheme = () => {
+  const nextScheme = isDarkTheme.value ? 'light' : 'dark';
+  LocalStorage.set(LOCAL_STORAGE_KEYS.COLOR_SCHEME, nextScheme);
+  const isOSOnDarkMode = window.matchMedia(
+    '(prefers-color-scheme: dark)'
+  ).matches;
+  setColorTheme(isOSOnDarkMode);
+  syncThemeState();
+};
+
+onMounted(() => {
+  syncThemeState();
+});
+
+useEventListener(window, 'msc-theme-changed', syncThemeState);
 </script>
 
 <template>
@@ -1204,13 +1232,69 @@ const menuItems = computed(() => {
         "
       />
       <div
-        class="px-1 py-1.5 flex-shrink-0 flex w-full z-50 gap-2 items-center border-t border-n-weak shadow-[0px_-2px_4px_0px_rgba(27,28,29,0.02)]"
-        :class="isEffectivelyCollapsed ? 'justify-center' : 'justify-between'"
+        class="px-1 py-1.5 flex-shrink-0 flex w-full z-50 gap-1.5 items-center border-t border-n-weak shadow-[0px_-2px_4px_0px_rgba(27,28,29,0.02)]"
+        :class="
+          isEffectivelyCollapsed ? 'flex-col justify-center' : 'justify-between'
+        "
       >
-        <SidebarProfileMenu
-          :is-collapsed="isEffectivelyCollapsed"
-          @open-key-shortcut-modal="emit('openKeyShortcutModal')"
-        />
+        <div
+          class="min-w-0"
+          :class="isEffectivelyCollapsed ? 'w-auto' : 'flex-1'"
+        >
+          <SidebarProfileMenu
+            :is-collapsed="isEffectivelyCollapsed"
+            @open-key-shortcut-modal="emit('openKeyShortcutModal')"
+          />
+        </div>
+        <button
+          type="button"
+          data-testid="msc-theme-toggle"
+          class="msc-theme-toggle-btn flex-shrink-0 inline-flex items-center justify-center size-8 rounded-lg border transition-all duration-200 cursor-pointer"
+          :title="
+            isDarkTheme
+              ? 'Mudar para Modo Claro (White Emerald)'
+              : 'Mudar para Modo Escuro (Dark Obsidian)'
+          "
+          :aria-label="isDarkTheme ? 'Ativar Modo Claro' : 'Ativar Modo Escuro'"
+          @click="toggleQuickTheme"
+        >
+          <!-- Sun SVG (shown in Dark mode to switch to Light) -->
+          <svg
+            v-if="isDarkTheme"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="size-4 text-amber-300"
+          >
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2" />
+            <path d="M12 20v2" />
+            <path d="m4.93 4.93 1.41 1.41" />
+            <path d="m17.66 17.66 1.41 1.41" />
+            <path d="M2 12h2" />
+            <path d="M20 12h2" />
+            <path d="m6.34 17.66-1.41 1.41" />
+            <path d="m19.07 4.93-1.41 1.41" />
+          </svg>
+          <!-- Moon SVG (shown in Light mode to switch to Dark) -->
+          <svg
+            v-else
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="size-4 text-emerald-700"
+          >
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+          </svg>
+        </button>
       </div>
     </section>
     <!-- Resize Handle (desktop only) -->
