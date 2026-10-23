@@ -23,24 +23,44 @@ const startConversation = () => {
   }
 };
 
-const isHumanOnline = computed(() => {
+const getBrasiliaHour = () => {
   try {
-    const params = new URLSearchParams(window.location.search);
-    const forcedStatus = params.get('cw_team_status');
-    if (forcedStatus === 'online') return true;
-    if (forcedStatus === 'offline') return false;
-
     const now = new Date();
     const brStr = now.toLocaleString('en-US', {
       timeZone: 'America/Sao_Paulo',
     });
     const brDate = new Date(brStr);
-    const hour = brDate.getHours();
-    return hour >= 11 && hour < 22;
+    return brDate.getHours();
   } catch (e) {
-    const localHour = new Date().getHours();
-    return localHour >= 11 && localHour < 22;
+    return new Date().getHours();
   }
+};
+
+const isHumanOnline = computed(() => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const forcedStatus = params.get('cw_team_status');
+    if (forcedStatus === 'online') return true;
+    if (forcedStatus === 'offline' || forcedStatus === 'offline_today') {
+      return false;
+    }
+  } catch (e) {
+    // ignore
+  }
+  const hour = getBrasiliaHour();
+  return hour >= 11 && hour < 22;
+});
+
+const isOfflineBeforeOpeningToday = computed(() => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const forcedStatus = params.get('cw_team_status');
+    if (forcedStatus === 'offline_today') return true;
+  } catch (e) {
+    // ignore
+  }
+  const hour = getBrasiliaHour();
+  return hour < 11;
 });
 
 const styles = {
@@ -198,7 +218,9 @@ const styles = {
             {{
               isHumanOnline
                 ? $t('TEAM_AVAILABILITY.HUMAN_ONLINE_SUBTITLE')
-                : $t('TEAM_AVAILABILITY.HUMAN_OFFLINE_SUBTITLE')
+                : isOfflineBeforeOpeningToday
+                  ? $t('TEAM_AVAILABILITY.HUMAN_OFFLINE_TODAY_SUBTITLE')
+                  : $t('TEAM_AVAILABILITY.HUMAN_OFFLINE_SUBTITLE')
             }}
           </span>
         </div>

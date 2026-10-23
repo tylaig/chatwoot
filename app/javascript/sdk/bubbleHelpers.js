@@ -1,6 +1,5 @@
 import { addClasses, removeClasses, toggleClass } from './DOMHelpers';
 import { IFrameHelper } from './IFrameHelper';
-import { isExpandedView } from './settingsHelper';
 import {
   CHATWOOT_CLOSED,
   CHATWOOT_OPENED,
@@ -14,19 +13,34 @@ export const body = document.getElementsByTagName('body')[0];
 export const widgetHolder = document.createElement('div');
 
 export const bubbleHolder = document.createElement('div');
-export const chatBubble = document.createElement('button');
+export const chatBubble = document.createElement('div');
 export const closeBubble = document.createElement('button');
 export const notificationBubble = document.createElement('span');
 
-export const setBubbleText = bubbleText => {
-  if (isExpandedView(window.$chatwoot.type)) {
-    const textNode = document.getElementById('woot-widget--expanded__text');
-    textNode.innerText = bubbleText;
-  }
+export const setBubbleText = () => {
+  // O launcher usa o layout fixo de card ("PRECISA DE AJUDA?"), ignorando launcherTitle legado
 };
 
 export const createBubbleIcon = ({ className, path, target }) => {
-  let bubbleClassName = `${className} woot-elements--${window.$chatwoot.position}`;
+  const positionClass = `woot-elements--${window.$chatwoot.position}`;
+  const bubbleClassName = `${className} ${positionClass} woot-widget--expanded woot-help-card`;
+
+  target.innerHTML = '';
+  target.setAttribute('role', 'button');
+  target.setAttribute('tabindex', '0');
+  target.setAttribute(
+    'aria-label',
+    'Precisa de ajuda? Clique aqui e fale conosco!'
+  );
+
+  // Linha superior do card
+  const topRow = document.createElement('div');
+  topRow.className = 'woot-help-card__top';
+
+  // Círculo verde com o balão de chat branco
+  const iconWrap = document.createElement('div');
+  iconWrap.className = 'woot-help-card__icon-wrap';
+
   const bubbleIcon = document.createElementNS(
     'http://www.w3.org/2000/svg',
     'svg'
@@ -44,20 +58,87 @@ export const createBubbleIcon = ({ className, path, target }) => {
   );
   bubblePath.setAttributeNS(null, 'd', path);
   bubblePath.setAttributeNS(null, 'fill', '#FFFFFF');
-
   bubbleIcon.appendChild(bubblePath);
-  target.appendChild(bubbleIcon);
 
-  if (isExpandedView(window.$chatwoot.type)) {
-    const textNode = document.createElement('div');
-    textNode.id = 'woot-widget--expanded__text';
-    textNode.innerText = '';
-    target.appendChild(textNode);
-    bubbleClassName += ' woot-widget--expanded';
-  }
+  const innerDot = document.createElement('span');
+  innerDot.className = 'woot-help-card__icon-dot';
+
+  iconWrap.appendChild(bubbleIcon);
+  iconWrap.appendChild(innerDot);
+
+  // Textos principais ("PRECISA DE AJUDA?" / "Clique aqui e fale conosco!")
+  const textCol = document.createElement('div');
+  textCol.className = 'woot-help-card__text-col';
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'woot-help-card__title';
+  titleEl.innerText = 'PRECISA DE AJUDA?';
+
+  const subtitleEl = document.createElement('div');
+  subtitleEl.className = 'woot-help-card__subtitle';
+  subtitleEl.id = 'woot-widget--expanded__text';
+  subtitleEl.innerText = 'Clique aqui e fale conosco!';
+
+  textCol.appendChild(titleEl);
+  textCol.appendChild(subtitleEl);
+
+  // Botão X no canto superior direito para recolher/minimizar o card se desejar
+  const dismissBtn = document.createElement('span');
+  dismissBtn.className = 'woot-help-card__dismiss';
+  dismissBtn.setAttribute('role', 'button');
+  dismissBtn.setAttribute('aria-label', 'Minimizar aviso');
+  dismissBtn.innerHTML =
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
+  dismissBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    target.classList.toggle('woot-help-card--minimized');
+  });
+
+  topRow.appendChild(iconWrap);
+  topRow.appendChild(textCol);
+  topRow.appendChild(dismissBtn);
+
+  // Divisor horizontal sutil
+  const divider = document.createElement('div');
+  divider.className = 'woot-help-card__divider';
+
+  // Linha inferior ("Horário de atendimento / Todos os dias, das 11h às 22h" + bolinha verde)
+  const bottomRow = document.createElement('div');
+  bottomRow.className = 'woot-help-card__bottom';
+
+  const clockWrap = document.createElement('div');
+  clockWrap.className = 'woot-help-card__clock';
+  clockWrap.innerHTML =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#65c428" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>';
+
+  const hoursCol = document.createElement('div');
+  hoursCol.className = 'woot-help-card__hours-col';
+
+  const hoursTitle = document.createElement('div');
+  hoursTitle.className = 'woot-help-card__hours-title';
+  hoursTitle.innerText = 'Horário de atendimento';
+
+  const hoursSub = document.createElement('div');
+  hoursSub.className = 'woot-help-card__hours-sub';
+  hoursSub.innerText = 'Todos os dias, das 11h às 22h';
+
+  hoursCol.appendChild(hoursTitle);
+  hoursCol.appendChild(hoursSub);
+
+  const statusDot = document.createElement('span');
+  statusDot.className = 'woot-help-card__status-dot';
+
+  bottomRow.appendChild(clockWrap);
+  bottomRow.appendChild(hoursCol);
+  bottomRow.appendChild(statusDot);
+
+  target.appendChild(topRow);
+  target.appendChild(divider);
+  target.appendChild(bottomRow);
 
   target.className = bubbleClassName;
-  target.title = 'Open chat window';
+  target.title = 'Precisa de ajuda? Clique aqui e fale conosco!';
   return target;
 };
 

@@ -72,6 +72,7 @@ import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { emitter } from 'shared/helpers/mitt';
+import { CMD_RESOLVE_CONVERSATION } from 'dashboard/helper/commandbar/events';
 const EmojiIconPicker = defineAsyncComponent(
   () =>
     import('dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue')
@@ -1667,6 +1668,16 @@ export default {
       this.message = acceptedMessage;
       this.setCopilotAcceptedMessage(acceptedMessage);
     },
+    onResolveFromReplyBox() {
+      emitter.emit(CMD_RESOLVE_CONVERSATION);
+    },
+    onMarkPendingFromReplyBox() {
+      if (!this.currentChat?.id) return;
+      this.$store.dispatch('toggleStatus', {
+        conversationId: this.currentChat.id,
+        status: wootConstants.STATUS_TYPE.PENDING,
+      });
+    },
   },
 };
 </script>
@@ -1867,12 +1878,15 @@ export default {
         :portal-slug="connectedPortalSlug"
         :new-conversation-modal-active="newConversationModalActive"
         :show-schedule-options="!isPrivate"
+        :conversation-status="currentChat?.status || ''"
         @select-whatsapp-template="openWhatsappTemplateModal"
         @select-content-template="openContentTemplateModal"
         @toggle-insert-article="toggleInsertArticle"
         @toggle-quoted-reply="toggleQuotedReply"
         @schedule-message="openScheduledMessageModal"
         @request-contact-info-template="openContactInfoTemplateModal"
+        @resolve-conversation="onResolveFromReplyBox"
+        @mark-pending-conversation="onMarkPendingFromReplyBox"
       />
     </Transition>
 

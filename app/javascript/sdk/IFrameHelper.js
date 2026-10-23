@@ -470,7 +470,7 @@ export const IFrameHelper = {
 
     addClasses(closeBubble, closeBtnClassName);
 
-    chatIcon.style.background = widgetColor;
+    chatIcon.style.setProperty('--cw-widget-color', widgetColor || '#65c428');
     closeBubble.style.background = widgetColor;
 
     bubbleHolder.appendChild(chatIcon);

@@ -47,6 +47,7 @@ module Captain::Conversation::MessageBuilder
   end
 
   def create_outgoing_message(message_content, agent_name: nil, response_parts: nil, preserve_waiting_since: false)
+    clean_content = message_content.present? ? CGI.unescapeHTML(message_content.to_s) : message_content
     additional_attrs = {}
     additional_attrs[:agent_name] = agent_name if agent_name.present?
     additional_attrs[Captain::Assistant::ResponseParts::MESSAGE_ATTRIBUTE_KEY] = response_parts unless response_parts.nil?
@@ -56,7 +57,7 @@ module Captain::Conversation::MessageBuilder
       account_id: account.id,
       inbox_id: inbox.id,
       sender: @assistant,
-      content: message_content,
+      content: clean_content,
       additional_attributes: additional_attrs,
       preserve_waiting_since: preserve_waiting_since
     )

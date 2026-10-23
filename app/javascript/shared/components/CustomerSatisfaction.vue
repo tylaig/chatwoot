@@ -91,6 +91,36 @@ export default {
     textColor() {
       return getContrastingTextColor(this.widgetColor);
     },
+    parsedUnratedContent() {
+      const raw = (this.message || this.$t('CSAT.TITLE') || '').trim();
+      const splitTokens = [
+        'Toque nas estrelas abaixo:',
+        'Toque nas estrelas abaixo',
+        'Tap the stars below:',
+      ];
+      const matchedToken = splitTokens.find(
+        token => raw.toLowerCase().indexOf(token.toLowerCase()) !== -1
+      );
+      if (matchedToken) {
+        const idx = raw.toLowerCase().indexOf(matchedToken.toLowerCase());
+        const mainPart = raw.slice(0, idx).trim();
+        const subPart = raw.slice(idx).trim();
+        return {
+          heading: mainPart || '⭐ Como você avalia o nosso atendimento hoje?',
+          subtitle: subPart,
+        };
+      }
+      if (this.isStarType) {
+        return {
+          heading: raw,
+          subtitle: this.$t('CSAT.STAR_SUBTITLE'),
+        };
+      }
+      return {
+        heading: raw,
+        subtitle: '',
+      };
+    },
     title() {
       if (this.isRatingSubmitted && this.shouldShowGoogleReviewPrompt) {
         return this.$t('CSAT.HIGH_RATING_TITLE');
@@ -105,7 +135,11 @@ export default {
       }
       return this.isRatingSubmitted
         ? this.$t('CSAT.SUBMITTED_TITLE')
-        : this.message || this.$t('CSAT.TITLE');
+        : this.parsedUnratedContent.heading;
+    },
+    subtitle() {
+      if (this.isRatingSubmitted) return '';
+      return this.parsedUnratedContent.subtitle;
     },
     formattedTitle() {
       return this.formatMessage(this.title, false);
@@ -184,13 +218,21 @@ export default {
 
 <template>
   <div
-    class="customer-satisfaction w-full bg-n-background dark:bg-n-solid-3 shadow-[0_0.25rem_6px_rgba(50,50,93,0.08),0_1px_3px_rgba(0,0,0,0.05)] ltr:rounded-bl-[0.25rem] rtl:rounded-br-[0.25rem] rounded-lg inline-block leading-[1.5] mt-1 border-t-2 border-t-n-brand border-solid"
+    class="customer-satisfaction w-full min-w-[272px] sm:min-w-[300px] bg-white dark:bg-n-solid-3 shadow-[0_4px_14px_rgba(15,23,42,0.08),0_1px_3px_rgba(15,23,42,0.04)] ltr:rounded-bl-[0.25rem] rtl:rounded-br-[0.25rem] rounded-xl inline-block leading-[1.4] mt-1 border-t-[3px] border-t-n-brand border-solid"
     :style="{ borderColor: widgetColor }"
   >
-    <h6
-      v-dompurify-html="formattedTitle"
-      class="text-n-slate-12 text-sm font-medium pt-5 px-2.5 text-center prose prose-bubble"
-    />
+    <div class="pt-5 px-4 text-center">
+      <h6
+        v-dompurify-html="formattedTitle"
+        class="text-slate-900 dark:text-n-slate-12 text-[15.5px] font-bold leading-snug m-0 prose prose-bubble"
+      />
+      <p
+        v-if="subtitle"
+        class="text-slate-500 dark:text-n-slate-11 text-[12.5px] font-medium mt-1.5 mb-0"
+      >
+        {{ subtitle }}
+      </p>
+    </div>
     <div v-if="isEmojiType" class="ratings flex justify-around py-5 px-4">
       <button
         v-for="rating in ratings"
@@ -215,7 +257,7 @@ export default {
         :href="googleReviewUrl"
         target="_blank"
         rel="noopener noreferrer"
-        class="w-full py-2 px-3 rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90 no-underline"
+        class="w-full py-2.5 px-3 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90 no-underline"
         :style="{
           background: widgetColor,
           color: textColor,

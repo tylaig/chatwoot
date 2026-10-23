@@ -169,7 +169,7 @@ const formattedOpeningTime = computed(() => {
     <!-- Same day - 3+ hours away (eg: at 10:00 AM) -->
     <template v-else>
       {{
-        t('REPLY_TIME.BACK_AT_TIME', {
+        t('REPLY_TIME.BACK_TODAY_AT_TIME', {
           time: formattedOpeningTime,
         })
       }}

@@ -58,21 +58,21 @@ class Messages::MarkdownRendererService
 
   def render_whatsapp
     # Strip whitespace from whitespace-only lines to normalize newlines
-    normalized_content = @content.gsub(/^[ \t]+$/m, '')
+    normalized_content = CGI.unescapeHTML(@content.to_s).gsub(/^[ \t]+$/m, '')
     content_with_preserved_newlines = preserve_multiple_newlines(normalized_content)
     renderer = Messages::MarkdownRenderers::WhatsAppRenderer.new
     doc = CommonMarker.render_doc(content_with_preserved_newlines, [:DEFAULT, :STRIKETHROUGH_DOUBLE_TILDE])
-    result = renderer.render(doc).gsub(/\n+\z/, '')
+    result = CGI.unescapeHTML(renderer.render(doc)).gsub(/\n+\z/, '')
     restore_multiple_newlines(result)
   end
 
   def render_instagram
     # Strip whitespace from whitespace-only lines to normalize newlines
-    normalized_content = @content.gsub(/^[ \t]+$/m, '')
+    normalized_content = CGI.unescapeHTML(@content.to_s).gsub(/^[ \t]+$/m, '')
     content_with_preserved_newlines = preserve_multiple_newlines(normalized_content)
     renderer = Messages::MarkdownRenderers::InstagramRenderer.new
     doc = CommonMarker.render_doc(content_with_preserved_newlines, [:DEFAULT, :STRIKETHROUGH_DOUBLE_TILDE])
-    result = renderer.render(doc).gsub(/\n+\z/, '')
+    result = CGI.unescapeHTML(renderer.render(doc)).gsub(/\n+\z/, '')
     restore_multiple_newlines(result)
   end
 

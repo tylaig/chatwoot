@@ -184,15 +184,23 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
   <div class="flex relative justify-end items-center resolve-actions">
     <ButtonGroup
       class="flex-shrink-0 rounded-lg shadow outline-1 outline"
-      :class="!showOpenButton ? 'outline-n-container' : 'outline-transparent'"
+      :class="
+        isOpen
+          ? 'outline-emerald-600/70'
+          : !showOpenButton
+            ? 'outline-n-container'
+            : 'outline-transparent'
+      "
     >
       <Button
         v-if="isOpen"
         :label="t('CONVERSATION.HEADER.RESOLVE_ACTION')"
+        icon="i-lucide-circle-check"
         size="sm"
-        color="slate"
+        color="teal"
+        variant="faded"
         no-animation
-        class="ltr:rounded-r-none rtl:rounded-l-none !outline-0"
+        class="ltr:rounded-r-none rtl:rounded-l-none !outline-0 font-semibold"
         :is-loading="isLoading"
         @click="onCmdResolveConversation"
       />
@@ -223,7 +231,8 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
         size="sm"
         no-animation
         class="ltr:rounded-l-none rtl:rounded-r-none !outline-0"
-        color="slate"
+        :color="isOpen ? 'teal' : 'slate'"
+        :variant="isOpen ? 'faded' : 'solid'"
         trailing-icon
         @click="openDropdown"
       />

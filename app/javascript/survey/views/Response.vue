@@ -335,7 +335,7 @@ export default {
             v-if="isStarType"
             :selected-rating="selectedRating"
             :is-disabled="isFeedbackSubmitted || isUpdating"
-            class="[&>button>span]:text-4xl !justify-start !px-0"
+            class="[&_button>span]:text-4xl !px-0"
             @select-rating="selectRating"
           />
         </div>

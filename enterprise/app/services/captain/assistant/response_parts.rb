@@ -11,7 +11,7 @@ class Captain::Assistant::ResponseParts
   end
 
   def self.strip_internal_markers(text)
-    text.to_s.gsub(GENERIC_BOUNDARY_MARKER_REGEX, '').gsub(/\n{3,}/, "\n\n").strip
+    CGI.unescapeHTML(text.to_s).gsub(GENERIC_BOUNDARY_MARKER_REGEX, '').gsub(/\n{3,}/, "\n\n").strip
   end
 
   def self.from_response(response)
