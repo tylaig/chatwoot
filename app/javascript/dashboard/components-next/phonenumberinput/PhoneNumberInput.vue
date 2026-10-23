@@ -12,6 +12,7 @@ import {
 
 import Input from 'dashboard/components-next/input/Input.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
+import Flag from 'dashboard/components-next/flag/Flag.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 
 const props = defineProps({
@@ -92,7 +93,7 @@ const inputBorderClass = computed(() => {
   const errorClass =
     'outline-n-ruby-8 dark:outline-n-ruby-8 hover:outline-n-ruby-9 dark:hover:outline-n-ruby-9 disabled:outline-n-ruby-8 dark:disabled:outline-n-ruby-8';
   const focusClass =
-    'has-[:focus]:outline-n-brand dark:has-[:focus]:outline-n-brand';
+    'has-[:focus]:outline-[#10B981] dark:has-[:focus]:outline-[#10B981]';
 
   if (!props.showBorder) {
     if (hasError.value) return errorClass;
@@ -102,7 +103,7 @@ const inputBorderClass = computed(() => {
   if (hasError.value) {
     return errorClass;
   }
-  return `${focusClass} outline-n-weak dark:outline-n-weak hover:outline-n-slate-6 dark:hover:outline-n-slate-6 disabled:outline-n-weak dark:disabled:outline-n-weak`;
+  return `${focusClass} outline-[#1A303D] dark:outline-[#1A303D] hover:outline-[#10B981]/50 dark:hover:outline-[#10B981]/50 disabled:outline-[#1A303D] dark:disabled:outline-[#1A303D]`;
 });
 
 const phoneNumberError = computed(() => {
@@ -163,7 +164,7 @@ watch(
   <div>
     <div
       v-on-clickaway="() => closeCountryDropdown()"
-      class="relative flex items-center h-8 transition-all duration-500 ease-in-out outline outline-1 outline-offset-[-1px] rounded-lg bg-n-alpha-black2"
+      class="relative flex items-center h-10 transition-all duration-300 ease-in-out outline outline-1 outline-offset-[-1px] rounded-lg bg-[#050C10]"
       :class="[inputBorderClass, { 'cursor-not-allowed opacity-50': disabled }]"
     >
       <Input
@@ -171,13 +172,14 @@ watch(
         type="tel"
         :placeholder="placeholder"
         :disabled="disabled"
-        custom-input-class="!border-0 !outline-none h-8 !py-0.5 !bg-transparent ltr:!pl-1 rtl:!pr-1"
-        class="w-full !flex-row"
+        custom-input-class="!border-0 !outline-none !h-10 !py-0.5 !bg-transparent !text-white ltr:!pl-2.5 rtl:!pr-2.5"
+        class="w-full !flex-row items-center"
       >
         <template #prefix>
-          <div class="flex items-center flex-shrink-0">
+          <div
+            class="flex items-center flex-shrink-0 h-10 px-2.5 bg-[#09151C] border-r border-[#1A303D] rounded-l-lg"
+          >
             <Button
-              :label="activeCountry?.emoji || ''"
               color="slate"
               size="sm"
               :icon="
@@ -186,19 +188,18 @@ watch(
               trailing-icon
               :disabled="disabled"
               type="button"
-              class="!h-[1.875rem] top-1 ltr:ml-px rtl:mr-px !px-2 outline-0 !outline-none !rounded-lg border-0 ltr:!rounded-r-none rtl:!rounded-l-none"
+              class="!h-7 !px-1.5 !bg-transparent outline-0 !outline-none !rounded-md border-0"
               @click="toggleCountryDropdown"
             >
-              <span
-                v-if="activeCountry"
-                class="inline-flex justify-center text-sm whitespace-nowrap"
-              >
-                {{ activeCountry?.emoji }}
-              </span>
+              <Flag
+                v-if="activeCountry?.value"
+                :country="activeCountry.value"
+                class="size-4 rounded-[2px]"
+              />
             </Button>
             <span
               v-if="activeCountry"
-              class="text-sm left-[38px] top-2.5 text-n-slate-11 ltr:!pl-1 rtl:!pr-1"
+              class="text-sm font-medium text-slate-200 ltr:pl-1 rtl:pr-1"
             >
               {{ activeDialCode }}
             </span>
@@ -209,7 +210,7 @@ watch(
         v-if="showDropdown"
         :menu-items="filteredCountries"
         show-search
-        class="z-[100] w-48 mt-2 ltr:left-0 rtl:right-0 top-full max-h-52"
+        class="z-[100] w-56 mt-2 ltr:left-0 rtl:right-0 top-full max-h-52"
         @action="onSelectCountry"
       />
     </div>

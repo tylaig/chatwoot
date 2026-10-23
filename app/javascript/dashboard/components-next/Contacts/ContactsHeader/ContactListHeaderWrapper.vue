@@ -32,6 +32,7 @@ const props = defineProps({
   activeSort: { type: String, default: 'last_activity_at' },
   activeOrdering: { type: String, default: '' },
   headerTitle: { type: String, default: '' },
+  totalItems: { type: Number, default: 0 },
   segmentsId: { type: [String, Number], default: 0 },
   activeSegment: { type: Object, default: null },
   hasAppliedFilters: { type: Boolean, default: false },
@@ -298,6 +299,7 @@ defineExpose({
     :active-sort="activeSort"
     :active-ordering="activeOrdering"
     :header-title="headerTitle"
+    :total-items="totalItems"
     :is-segments-view="hasActiveSegments"
     :is-label-view="isLabelView"
     :is-active-view="isActiveView"

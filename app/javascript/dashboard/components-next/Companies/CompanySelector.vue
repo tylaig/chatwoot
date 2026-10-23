@@ -135,12 +135,7 @@ const handleSelect = value => {
     :placeholder="t('COMPANIES.SELECTOR.PLACEHOLDER')"
     :search-placeholder="t('COMPANIES.SEARCH_PLACEHOLDER')"
     use-api-results
-    class="[&>div>button]:h-8 [&>div>div_ul]:max-h-56"
-    :class="{
-      '[&>div>button]:bg-n-alpha-black2 [&>div>button:not(.focused)]:!outline-transparent':
-        !isDetailsView,
-      '[&>div>button]:!bg-n-alpha-black2': isDetailsView,
-    }"
+    class="[&>div>button]:!h-10 [&>div>div_ul]:max-h-56 [&>div>button]:!bg-[#050C10] [&>div>button]:!outline-[#1A303D] [&>div>button:hover]:!outline-[#10B981]/50"
     @open="handleOpen"
     @search="handleSearch"
     @update:model-value="handleSelect"

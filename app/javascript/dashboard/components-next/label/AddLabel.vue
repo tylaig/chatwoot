@@ -21,12 +21,13 @@ const showDropdown = ref(false);
 <template>
   <div class="relative">
     <button
-      class="flex items-center gap-1 px-2 py-1 rounded-md outline-dashed h-6 outline-1 outline-n-slate-6 hover:bg-n-alpha-2"
-      :class="{ 'bg-n-alpha-2': showDropdown }"
+      type="button"
+      class="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-dashed border-[#264252] hover:border-[#10B981] bg-[#050C10] hover:bg-[#10B981]/10 h-7 transition-colors cursor-pointer"
+      :class="{ '!border-[#10B981] !bg-[#10B981]/10': showDropdown }"
       @click="showDropdown = !showDropdown"
     >
-      <span class="i-lucide-plus" />
-      <span class="text-sm text-n-slate-11">
+      <span class="i-lucide-plus size-3.5 text-[#10B981]" />
+      <span class="text-xs font-medium text-slate-200">
         {{ t('LABEL.TAG_BUTTON') }}
       </span>
     </button>

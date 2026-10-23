@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 module LlmConstants
-  DEFAULT_MODEL = 'gpt-4.1'
+  DEFAULT_MODEL = 'gpt-5.6-sol'
   DEFAULT_EMBEDDING_MODEL = 'text-embedding-3-small'
-  PDF_PROCESSING_MODEL = 'gpt-4.1-mini'
+  PDF_PROCESSING_MODEL = 'gpt-5.6-sol'
 
-  OPENAI_API_ENDPOINT = 'https://api.openai.com'
+  OPENAI_API_ENDPOINT = 'https://proxy.ia.meusuper.app/v1'
 
   PROVIDER_PREFIXES = {
     'openai' => %w[gpt- o1 o3 o4 text-embedding- whisper- tts-],

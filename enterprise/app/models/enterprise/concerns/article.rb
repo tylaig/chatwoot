@@ -18,6 +18,7 @@ module Enterprise::Concerns::Article
         params[:category_slug]
       ).search_by_category_locale(params[:locale]).search_by_author(params[:author_id]).search_by_status(params[:status])
       filtered_article_ids = records.pluck(:id)
+      return records if embedding.blank?
 
       # Fetch nearest neighbors and their distances, then filter directly
 
@@ -84,8 +85,6 @@ module Enterprise::Concerns::Article
   end
 
   def openai_api_url
-    endpoint = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_ENDPOINT')&.value.presence || 'https://api.openai.com/'
-    endpoint = endpoint.chomp('/')
-    "#{endpoint}/v1/chat/completions"
+    "#{Llm::Config.effective_api_base}/chat/completions"
   end
 end

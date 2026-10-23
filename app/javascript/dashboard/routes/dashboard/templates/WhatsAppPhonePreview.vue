@@ -8,7 +8,7 @@ const props = defineProps({
   },
   contactName: {
     type: String,
-    default: 'WhatsApp',
+    default: 'WhatsApp Oficial',
   },
   avatarUrl: {
     type: String,
@@ -18,18 +18,18 @@ const props = defineProps({
     type: Object,
     default: () => ({
       1: 'Samuel',
-      2: '7420',
-      3: 'Concluído',
+      2: 'Meu Super App',
+      3: '14:30',
       nome_completo: 'Samuel Silva',
       primeiro_nome: 'Samuel',
       sobrenome: 'Silva',
       telefone: '+55 17 99117-3157',
       ddd: '17',
-      nome_indicador: 'Games Safari',
-      link_pedido: 'https://gamessafari.com',
-      valor_total: 'R$ 214,50',
-      codigo_rastreio: 'GS-8312-BR',
-      nome_produto: 'EA SPORTS FC 27',
+      nome_indicador: 'Meu Super App',
+      link_pedido: 'https://meusuper.app',
+      valor_total: 'R$ 497,00',
+      codigo_rastreio: 'MSC-8312-BR',
+      nome_produto: 'Raio-X Digital 360º',
       chave_ativacao: 'XXXX-YYYY-ZZZZ-WWWW',
     }),
   },
@@ -45,18 +45,18 @@ watch(
 
 const samples = computed(() => ({
   1: 'Samuel',
-  2: '7420',
-  3: 'Concluído',
+  2: 'Meu Super App',
+  3: '14:30',
   nome_completo: 'Samuel Silva',
   primeiro_nome: 'Samuel',
   sobrenome: 'Silva',
   telefone: '+55 17 99117-3157',
   ddd: '17',
-  nome_indicador: 'Games Safari',
-  link_pedido: 'https://gamessafari.com',
-  valor_total: 'R$ 214,50',
-  codigo_rastreio: 'GS-8312-BR',
-  nome_produto: 'EA SPORTS FC 27',
+  nome_indicador: 'Meu Super App',
+  link_pedido: 'https://meusuper.app',
+  valor_total: 'R$ 497,00',
+  codigo_rastreio: 'MSC-8312-BR',
+  nome_produto: 'Raio-X Digital 360º',
   chave_ativacao: 'XXXX-YYYY-ZZZZ-WWWW',
   ...props.sampleVariables,
 }));
@@ -89,10 +89,10 @@ const renderText = value => {
     const val = providedKey
       ? provided[providedKey] || `{{${key}}}`
       : samples.value[key] || samples.value[key.toLowerCase()] || `{{${key}}}`;
-    return `<span class="bg-n-amber-3 text-n-amber-12 font-semibold px-1 py-0.5 rounded text-xs inline-block">${escapeHtml(String(val))}</span>`;
+    return `<span class="bg-emerald-400/20 text-emerald-200 border border-emerald-400/35 font-semibold px-1.5 py-0.5 rounded-md text-xs inline-block">${escapeHtml(String(val))}</span>`;
   });
   return text
-    .replace(/\*([^*]+)\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<strong class="text-white font-bold">$1</strong>')
     .replace(/_([^_]+)_/g, '<em>$1</em>')
     .replace(/~([^~]+)~/g, '<del>$1</del>');
 };
@@ -126,7 +126,7 @@ const buttons = computed(() => {
   <div class="relative mx-auto w-full max-w-[340px] select-none">
     <!-- Phone Mockup Container -->
     <div
-      class="relative flex flex-col h-[28rem] sm:h-[36rem] lg:h-[40rem] w-full rounded-[44px] bg-[#1a1c22] p-3 shadow-2xl border-4 border-slate-800 ring-1 ring-white/10"
+      class="relative flex flex-col h-[28rem] sm:h-[36rem] lg:h-[40rem] w-full rounded-[44px] bg-[#070E13] p-3 shadow-[0_24px_60px_rgba(0,0,0,0.85),0_0_32px_rgba(16,185,129,0.12)] border-4 border-[#13222B] ring-1 ring-emerald-500/25"
     >
       <!-- Top Speaker / Dynamic Island Notch -->
       <div
@@ -140,38 +140,26 @@ const buttons = computed(() => {
 
       <!-- Phone Screen -->
       <div
-        class="relative flex flex-col flex-1 w-full overflow-hidden rounded-[34px] bg-[#EFEAE2] dark:bg-[#0b141a]"
+        class="relative flex flex-col flex-1 w-full overflow-hidden rounded-[34px] bg-[#0B141A]"
       >
         <!-- Status Bar -->
         <div
-          class="flex items-center justify-between px-6 pt-2 pb-1 text-[11px] font-semibold text-white bg-[#075E54] dark:bg-[#1f2c34] z-20"
+          class="flex items-center justify-between px-6 pt-2 pb-1 text-[11px] font-semibold text-white bg-[#111B21] z-20"
         >
-          <span>0:24</span>
+          <span>14:32</span>
           <div class="flex items-center gap-1.5 text-xs">
-            <span class="text-[10px]">5G</span>
+            <span class="text-[10px] text-emerald-400 font-bold">5G</span>
             <span class="i-lucide-signal size-3" />
-            <span class="i-lucide-battery-full size-3" />
+            <span class="i-lucide-battery-full size-3 text-emerald-400" />
           </div>
         </div>
 
         <!-- WhatsApp Chat Header -->
         <div
-          class="flex items-center gap-2 px-3 py-2 bg-[#075E54] dark:bg-[#1f2c34] text-white shadow-md z-20"
+          class="flex items-center gap-2.5 px-3 py-2.5 bg-[#111B21] border-b border-white/[0.06] text-white shadow-md z-20"
         >
-          <button type="button" class="text-white hover:opacity-80 p-0.5">
-            <svg
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2.5"
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+          <button type="button" class="text-slate-300 hover:text-white p-0.5">
+            <span class="i-lucide-chevron-left size-5" />
           </button>
 
           <div class="relative shrink-0">
@@ -179,11 +167,11 @@ const buttons = computed(() => {
               v-if="avatarUrl"
               :src="avatarUrl"
               alt=""
-              class="w-9 h-9 rounded-full object-cover bg-white border border-white/20"
+              class="w-9 h-9 rounded-full object-cover bg-emerald-500/20 border border-emerald-500/40"
             />
             <div
               v-else
-              class="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-xs font-semibold"
+              class="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-xs font-bold text-[#03120D] shadow-[0_0_12px_rgba(16,185,129,0.4)]"
             >
               {{ avatarInitials }}
             </div>
@@ -191,77 +179,47 @@ const buttons = computed(() => {
 
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-1">
-              <span class="font-semibold text-sm truncate leading-tight">{{
+              <span class="font-semibold text-xs sm:text-sm truncate leading-tight">{{
                 contactName
               }}</span>
-              <svg
-                class="w-3.5 h-3.5 text-green-400 shrink-0"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clip-rule="evenodd"
-                />
-              </svg>
+              <span
+                class="i-lucide-badge-check size-3.5 text-emerald-400 shrink-0"
+              />
             </div>
-            <p class="text-[10px] text-white/80 leading-tight">Online</p>
+            <p class="text-[10px] text-emerald-400/90 leading-tight font-medium">
+              Conta comercial oficial
+            </p>
           </div>
 
-          <div class="flex items-center gap-3 text-white/90">
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-              />
-            </svg>
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-              />
-            </svg>
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"
-              />
-            </svg>
+          <div class="flex items-center gap-2.5 text-slate-300">
+            <span class="i-lucide-video size-4" />
+            <span class="i-lucide-phone size-4" />
+            <span class="i-lucide-ellipsis-vertical size-4" />
           </div>
         </div>
 
         <!-- Chat Background Wallpaper & Messages Body -->
         <div
-          class="flex-1 overflow-y-auto p-3 flex flex-col justify-end gap-2 bg-[radial-gradient(rgba(0,0,0,0.06)_1px,transparent_1px)] bg-[length:16px_16px]"
+          class="flex-1 overflow-y-auto p-3 flex flex-col justify-end gap-2 bg-[#0B141A] bg-[radial-gradient(rgba(16,185,129,0.08)_1px,transparent_1px)] bg-[length:18px_18px]"
         >
-          <!-- WhatsApp Message Bubble -->
+          <div class="mx-auto mb-1 px-2.5 py-0.5 rounded-full bg-[#182229] border border-white/[0.06] text-[10px] font-medium text-slate-300">
+            Hoje
+          </div>
+
+          <!-- WhatsApp Message Bubble (Dark Mode Official Emerald Style) -->
           <div
-            class="relative max-w-[92%] self-start rounded-2xl rounded-tl-sm bg-white p-3 text-slate-900 shadow-sm dark:bg-[#1f2c34] dark:text-slate-100"
+            class="relative max-w-[94%] w-full self-start rounded-2xl rounded-tl-sm bg-gradient-to-br from-[#005C4B] to-[#04473B] border border-emerald-400/25 p-3.5 text-slate-100 shadow-[0_10px_28px_rgba(0,0,0,0.45)]"
           >
             <!-- Header section -->
             <div
               v-if="headerType === 'TEXT' && headerContent"
-              class="mb-2 font-bold text-sm text-slate-900 dark:text-white border-b pb-1 border-slate-100 dark:border-slate-700"
+              class="mb-2 font-bold text-xs sm:text-sm text-white border-b pb-1.5 border-white/10"
               v-html="formattedHeader"
             />
 
             <div
               v-else-if="headerType === 'IMAGE'"
-              class="mb-2 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 max-h-40 flex items-center justify-center"
+              class="mb-2.5 overflow-hidden rounded-xl bg-[#071F1A] border border-emerald-400/20 max-h-40 flex items-center justify-center"
             >
               <img
                 v-if="headerContent && !mediaBroken"
@@ -272,28 +230,16 @@ const buttons = computed(() => {
               />
               <div
                 v-else
-                class="h-32 flex flex-col items-center justify-center text-slate-400 gap-1"
+                class="h-32 flex flex-col items-center justify-center text-emerald-300/70 gap-1.5"
               >
-                <svg
-                  class="w-8 h-8"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                <span class="text-xs">Imagem do Cabeçalho</span>
+                <span class="i-lucide-image size-7" />
+                <span class="text-[11px] font-medium">Imagem do Cabeçalho</span>
               </div>
             </div>
 
             <div
               v-else-if="headerType === 'VIDEO'"
-              class="mb-2 overflow-hidden rounded-lg bg-slate-800 text-white h-32 flex flex-col items-center justify-center gap-1"
+              class="mb-2.5 overflow-hidden rounded-xl bg-[#071F1A] border border-emerald-400/20 text-white h-32 flex flex-col items-center justify-center gap-1.5"
             >
               <video
                 v-if="headerContent && !mediaBroken"
@@ -303,113 +249,73 @@ const buttons = computed(() => {
                 @error="mediaBroken = true"
               />
               <template v-else>
-                <svg
-                  class="w-10 h-10 text-white/80"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                <span class="text-xs text-white/70">Vídeo do Cabeçalho</span>
+                <span class="i-lucide-circle-play size-8 text-emerald-300/80" />
+                <span class="text-[11px] text-emerald-200/70">Vídeo do Cabeçalho</span>
               </template>
             </div>
 
             <div
               v-else-if="headerType === 'DOCUMENT'"
-              class="mb-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center gap-2 border border-slate-200 dark:border-slate-700"
+              class="mb-2.5 p-2.5 rounded-xl bg-[#071F1A]/90 flex items-center gap-2.5 border border-emerald-400/20"
             >
               <div
-                class="w-8 h-8 rounded bg-n-ruby-9 text-white flex items-center justify-center font-bold text-xs"
+                class="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 flex items-center justify-center font-bold text-[10px]"
               >
                 PDF
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold truncate">
+                <p class="text-xs font-semibold text-white truncate">
                   {{ fileName }}
                 </p>
-                <p class="text-[10px] text-slate-400">Documento Anexo</p>
+                <p class="text-[10px] text-emerald-200/70">Documento Anexo</p>
               </div>
             </div>
 
             <!-- Body Message Section -->
             <div
-              class="text-xs text-slate-800 dark:text-slate-100 leading-relaxed whitespace-pre-line"
+              class="text-xs text-slate-100 leading-relaxed whitespace-pre-line break-words"
               v-html="formattedBody"
             />
 
             <!-- Footer Section -->
             <div
               v-if="footerText"
-              class="mt-2 text-[11px] text-slate-400 dark:text-slate-400 italic"
+              class="mt-2 text-[11px] text-emerald-200/70 italic"
             >
               {{ footerText }}
             </div>
 
             <!-- Time and double check -->
             <div
-              class="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-400"
+              class="mt-1.5 flex items-center justify-end gap-1 text-[10px] text-emerald-200/75"
             >
-              <span>0:24</span>
-              <span class="i-lucide-check-check size-3.5 text-n-blue-11" />
+              <span>14:32</span>
+              <span class="i-lucide-check-check size-3.5 text-cyan-300" />
             </div>
 
             <!-- Action Buttons attached to message -->
             <div
               v-if="buttons.length"
-              class="mt-2 -mx-3 -mb-3 divide-y divide-slate-100 dark:divide-slate-700/80 border-t border-slate-100 dark:border-slate-700/80"
+              class="mt-2.5 pt-2 border-t border-white/15 space-y-1.5"
             >
               <div
                 v-for="(btn, idx) in buttons"
                 :key="idx"
-                class="py-2 px-3 text-center text-xs font-medium text-[#00A884] dark:text-green-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center justify-center gap-1.5 cursor-pointer"
+                class="py-2 px-3 rounded-xl bg-[#06352C]/90 border border-emerald-400/25 text-center text-xs font-semibold text-emerald-300 hover:bg-[#084237] flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
               >
-                <svg
+                <span
                   v-if="btn.type === 'URL'"
-                  class="w-3.5 h-3.5 text-current shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-                <svg
+                  class="i-lucide-external-link size-3.5 shrink-0"
+                />
+                <span
                   v-else-if="btn.type === 'PHONE_NUMBER'"
-                  class="w-3.5 h-3.5 text-current shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                  />
-                </svg>
-                <svg
+                  class="i-lucide-phone size-3.5 shrink-0"
+                />
+                <span
                   v-else
-                  class="w-3.5 h-3.5 text-current shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-                  />
-                </svg>
-                <span class="truncate">{{ btn.text || 'Botão' }}</span>
+                  class="i-lucide-reply size-3.5 shrink-0"
+                />
+                <span class="truncate">{{ btn.text || 'Botão de Ação' }}</span>
               </div>
             </div>
           </div>
@@ -417,45 +323,21 @@ const buttons = computed(() => {
 
         <!-- Chat Typing Input Bottom Bar -->
         <div
-          class="flex items-center gap-2 p-2 bg-[#F0F2F5] dark:bg-[#1f2c34] z-20"
+          class="flex items-center gap-2 p-2.5 bg-[#111B21] border-t border-white/[0.06] z-20"
         >
-          <button type="button" class="text-slate-500 hover:text-slate-700 p-1">
-            <svg
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
+          <button type="button" class="text-slate-400 hover:text-slate-200 p-1">
+            <span class="i-lucide-plus size-5" />
           </button>
           <div
-            class="flex-1 bg-white dark:bg-[#2a3942] rounded-full px-3 py-1.5 text-xs text-slate-400"
+            class="flex-1 bg-[#1F2C34] border border-white/[0.06] rounded-full px-3.5 py-1.5 text-xs text-slate-400"
           >
             Mensagem
           </div>
           <button
             type="button"
-            class="w-8 h-8 rounded-full bg-[#00A884] text-white flex items-center justify-center hover:opacity-90"
+            class="w-8 h-8 rounded-full bg-emerald-500 text-[#03120D] flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.4)]"
           >
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z"
-              />
-            </svg>
+            <span class="i-lucide-mic size-4" />
           </button>
         </div>
       </div>

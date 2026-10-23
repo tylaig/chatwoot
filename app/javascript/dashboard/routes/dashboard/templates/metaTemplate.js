@@ -61,12 +61,12 @@ const validateParameterText = (label, text, component, variables, errors) => {
 };
 
 const mediaSampleIssue = (url, requirePublicSample) => {
-  if (!url) return 'Envie um arquivo para o armazenamento do Chatwoot.';
+  if (!url) return 'Envie um arquivo para o armazenamento do Meu Super Chat.';
   if (!/^https?:\/\//i.test(url)) {
-    return 'O arquivo precisa estar no armazenamento do Chatwoot.';
+    return 'O arquivo precisa estar no armazenamento do Meu Super Chat.';
   }
   if (requirePublicSample && !/^https:\/\//i.test(url)) {
-    return 'Para enviar à Meta, o arquivo salvo no Chatwoot precisa de um endereço https público.';
+    return 'Para enviar à Meta, o arquivo salvo no Meu Super Chat precisa de um endereço https público.';
   }
   return '';
 };

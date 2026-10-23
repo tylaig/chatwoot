@@ -63,7 +63,8 @@ const handleContactAction = ({ action }) => {
       color="slate"
       variant="ghost"
       size="sm"
-      :class="showActionsDropdown ? 'bg-n-alpha-2' : ''"
+      class="!h-9 !w-9 !bg-[#081218] !border !border-[#1A303D] hover:!border-[#10B981]/50 rounded-lg"
+      :class="showActionsDropdown ? '!border-[#10B981] !bg-[#0D1E28]' : ''"
       @click="showActionsDropdown = !showActionsDropdown"
     />
     <DropdownMenu

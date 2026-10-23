@@ -336,8 +336,8 @@
       }
     },
     "TABLE": {
-      "LOADING_MESSAGE": "სტატიების ჩატვირთვა...",
       "404": "თქვენი ძიების შესაბამისი სტატიები არ მოიძებნა 🔍",
+      "LOADING_MESSAGE": "სტატიების ჩატვირთვა...",
       "NO_ARTICLES": "ხელმისაწვდომი სტატიები არ არის",
       "HEADERS": {
         "TITLE": "სათაური",
@@ -430,7 +430,7 @@
         "SLUG": {
           "LABEL": "სლაგი",
           "PLACEHOLDER": "კატეგორიის slug url-ებისთვის",
-          "HELP_TEXT": "app.chatwoot.com/hc/my-portal/ka-GE/categories/my-slug",
+          "HELP_TEXT": "chat.meusuper.app/hc/my-portal/ka-GE/categories/my-slug",
           "ERROR": "Slug-ის შეყვანა აუცილებელია"
         },
         "DESCRIPTION": {
@@ -461,7 +461,7 @@
         "SLUG": {
           "LABEL": "სლაგი",
           "PLACEHOLDER": "კატეგორიის სლაგი url-ებისთვის",
-          "HELP_TEXT": "app.chatwoot.com/hc/my-portal/ka-GE/categories/my-slug",
+          "HELP_TEXT": "chat.meusuper.app/hc/my-portal/ka-GE/categories/my-slug",
           "ERROR": "სლაგი აუცილებელია"
         },
         "DESCRIPTION": {
@@ -698,7 +698,7 @@
             "LABEL": "სლაგი",
             "PLACEHOLDER": "კატეგორიის სლაგი url-ებისთვის",
             "ERROR": "სლაგი აუცილებელია",
-            "HELP_TEXT": "app.chatwoot.com/hc/{portalSlug}/{localeCode}/categories/{categorySlug}"
+            "HELP_TEXT": "chat.meusuper.app/hc/{portalSlug}/{localeCode}/categories/{categorySlug}"
           },
           "DESCRIPTION": {
             "LABEL": "აღწერა",
@@ -859,7 +859,7 @@
       "CONFIRM_BUTTON_LABEL": "შექმნა",
       "NAME": {
         "LABEL": "სახელი",
-        "PLACEHOLDER": "მომხმარებლის სახელმძღვანელო | Chatwoot",
+        "PLACEHOLDER": "მომხმარებლის სახელმძღვანელო | Meu Super Chat",
         "MESSAGE": "აირჩიეთ პორტალის სახელი.",
         "ERROR": "სახელი აუცილებელია"
       },
@@ -933,7 +933,7 @@
           },
           "DNS_CONFIGURATION_DIALOG": {
             "HEADER": "DNS კონფიგურაცია",
-            "DESCRIPTION": "შესვლა თქვენს DNS პროვაიდერთან დაკავშირებულ ანგარიშში და დაამატეთ CNAME ჩანაწერი ქვედომენისთვის, რომელიც მიუთითებს chatwoot.help-ზე",
+            "DESCRIPTION": "შესვლა თქვენს DNS პროვაიდერთან დაკავშირებულ ანგარიშში და დაამატეთ CNAME ჩანაწერი ქვედომენისთვის, რომელიც მიუთითებს chat.meusuper.app-ზე",
             "COPY": "CNAME წარმატებით კოპირებულია",
             "SEND_INSTRUCTIONS": {
               "HEADER": "გაგზავნეთ ინსტრუქციები",
@@ -982,7 +982,7 @@
         "HEADER": "ინტეგრაციები",
         "DESCRIPTION": "Connect tools that extend what your help center can do.",
         "LIVE_CHAT": {
-          "TITLE": "Live chat with Chatwoot",
+          "TITLE": "Live chat with Meu Super Chat",
           "DESCRIPTION": "Show a live chat widget on your help center so visitors can reach you while they read.",
           "PLACEHOLDER": "აირჩიეთ ცოცხალი ჩატის ვიჯეტი",
           "NONE_OPTION": "ვიჯეტი არ არის"

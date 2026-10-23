@@ -1,6 +1,6 @@
 <script setup>
 import { computed, inject } from 'vue';
-import { BaseEdge, EdgeLabelRenderer, getBezierPath } from '@vue-flow/core';
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, Position } from '@vue-flow/core';
 
 const props = defineProps({
   id: { type: String, required: true },
@@ -16,16 +16,21 @@ const props = defineProps({
 
 const builder = inject('workflowBuilder', null);
 
-const path = computed(() =>
-  getBezierPath({
-    sourceX: props.sourceX,
-    sourceY: props.sourceY,
-    targetX: props.targetX,
-    targetY: props.targetY,
-    sourcePosition: props.sourcePosition,
-    targetPosition: props.targetPosition,
-  })
-);
+const path = computed(() => {
+  const sx = Number.isFinite(props.sourceX) ? props.sourceX : 0;
+  const sy = Number.isFinite(props.sourceY) ? props.sourceY : 0;
+  const tx = Number.isFinite(props.targetX) ? props.targetX : sx + 80;
+  const ty = Number.isFinite(props.targetY) ? props.targetY : sy;
+  return getBezierPath({
+    sourceX: sx,
+    sourceY: sy,
+    targetX: tx,
+    targetY: ty,
+    sourcePosition: props.sourcePosition || Position.Right,
+    targetPosition: props.targetPosition || Position.Left,
+    curvature: 0.25,
+  });
+});
 
 const isActive = computed(
   () => props.selected || builder?.hoveredEdgeId.value === props.id
@@ -33,7 +38,10 @@ const isActive = computed(
 
 const edgeStyle = computed(() => ({
   ...props.style,
-  strokeWidth: isActive.value ? 3 : 2,
+  strokeWidth: isActive.value ? 3.2 : 2.4,
+  filter: isActive.value
+    ? `drop-shadow(0 0 8px ${props.style?.stroke || '#10B981'})`
+    : `drop-shadow(0 0 4px ${props.style?.stroke || 'rgba(16, 185, 129, 0.45)'})`,
 }));
 </script>
 

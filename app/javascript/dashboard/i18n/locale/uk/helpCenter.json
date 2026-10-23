@@ -336,8 +336,8 @@
       }
     },
     "TABLE": {
-      "LOADING_MESSAGE": "Завантаження статей...",
       "404": "Немає статей, які відповідають вашому пошуку 🔍",
+      "LOADING_MESSAGE": "Завантаження статей...",
       "NO_ARTICLES": "Немає доступних статей",
       "HEADERS": {
         "TITLE": "Назва",
@@ -430,7 +430,7 @@
         "SLUG": {
           "LABEL": "Мітка",
           "PLACEHOLDER": "Мітка категорії для URL-адрес",
-          "HELP_TEXT": "app.chatwoot.com/hc/my-portal/en-US/categories/my-slug",
+          "HELP_TEXT": "chat.meusuper.app/hc/my-portal/en-US/categories/my-slug",
           "ERROR": "Необхідно вказати мітку"
         },
         "DESCRIPTION": {
@@ -461,7 +461,7 @@
         "SLUG": {
           "LABEL": "Мітка",
           "PLACEHOLDER": "Мітка категорії для URL-адрес",
-          "HELP_TEXT": "app.chatwoot.com/hc/my-portal/en-US/categories/my-slug",
+          "HELP_TEXT": "chat.meusuper.app/hc/my-portal/en-US/categories/my-slug",
           "ERROR": "Необхідно вказати мітку"
         },
         "DESCRIPTION": {
@@ -698,7 +698,7 @@
             "LABEL": "Мітка",
             "PLACEHOLDER": "Мітка категорії для URL-адрес",
             "ERROR": "Необхідно вказати мітку",
-            "HELP_TEXT": "app.chatwoot.com/hc/{portalSlug}/{localeCode}/categories/{categorySlug}"
+            "HELP_TEXT": "chat.meusuper.app/hc/{portalSlug}/{localeCode}/categories/{categorySlug}"
           },
           "DESCRIPTION": {
             "LABEL": "Опис",
@@ -859,7 +859,7 @@
       "CONFIRM_BUTTON_LABEL": "Створити",
       "NAME": {
         "LABEL": "Ім'я",
-        "PLACEHOLDER": "User Guide | Chatwoot",
+        "PLACEHOLDER": "User Guide | Meu Super Chat",
         "MESSAGE": "Choose an name for your portal.",
         "ERROR": "Назва обов'язкова"
       },
@@ -933,7 +933,7 @@
           },
           "DNS_CONFIGURATION_DIALOG": {
             "HEADER": "DNS configuration",
-            "DESCRIPTION": "Log in to the account you have with your DNS provider, and add a CNAME record for subdomain pointing to chatwoot.help",
+            "DESCRIPTION": "Log in to the account you have with your DNS provider, and add a CNAME record for subdomain pointing to chat.meusuper.app",
             "COPY": "Successfully copied CNAME",
             "SEND_INSTRUCTIONS": {
               "HEADER": "Send instructions",
@@ -982,7 +982,7 @@
         "HEADER": "Інтеграції",
         "DESCRIPTION": "Connect tools that extend what your help center can do.",
         "LIVE_CHAT": {
-          "TITLE": "Live chat with Chatwoot",
+          "TITLE": "Live chat with Meu Super Chat",
           "DESCRIPTION": "Show a live chat widget on your help center so visitors can reach you while they read.",
           "PLACEHOLDER": "Select live chat widget",
           "NONE_OPTION": "No widget"

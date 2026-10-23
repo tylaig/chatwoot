@@ -336,8 +336,8 @@
       }
     },
     "TABLE": {
-      "LOADING_MESSAGE": "Makaleler yükleniyor...",
       "404": "Arama kriterlerinize uygun makale bulunamadı 🔍",
+      "LOADING_MESSAGE": "Makaleler yükleniyor...",
       "NO_ARTICLES": "Uygun makale bulunmamaktadır",
       "HEADERS": {
         "TITLE": "Başlık",
@@ -430,7 +430,7 @@
         "SLUG": {
           "LABEL": "Slug",
           "PLACEHOLDER": "URL'ler için kategori slug'ı",
-          "HELP_TEXT": "app.chatwoot.com/hc/my-portal/en-US/categories/my-slug",
+          "HELP_TEXT": "chat.meusuper.app/hc/my-portal/en-US/categories/my-slug",
           "ERROR": "Slug gereklidir"
         },
         "DESCRIPTION": {
@@ -461,7 +461,7 @@
         "SLUG": {
           "LABEL": "Slug",
           "PLACEHOLDER": "URL'ler için kategori slug'ı",
-          "HELP_TEXT": "app.chatwoot.com/hc/my-portal/en-US/categories/my-slug",
+          "HELP_TEXT": "chat.meusuper.app/hc/my-portal/en-US/categories/my-slug",
           "ERROR": "Slug gereklidir"
         },
         "DESCRIPTION": {
@@ -698,7 +698,7 @@
             "LABEL": "Slug",
             "PLACEHOLDER": "URL'ler için kategori slug'ı",
             "ERROR": "Slug gereklidir",
-            "HELP_TEXT": "app.chatwoot.com/hc/{portalSlug}/{localeCode}/categories/{categorySlug}"
+            "HELP_TEXT": "chat.meusuper.app/hc/{portalSlug}/{localeCode}/categories/{categorySlug}"
           },
           "DESCRIPTION": {
             "LABEL": "Açıklama",
@@ -859,7 +859,7 @@
       "CONFIRM_BUTTON_LABEL": "Yarat",
       "NAME": {
         "LABEL": "İsim",
-        "PLACEHOLDER": "User Guide | Chatwoot",
+        "PLACEHOLDER": "User Guide | Meu Super Chat",
         "MESSAGE": "Choose an name for your portal.",
         "ERROR": "Ad gerekli"
       },
@@ -933,7 +933,7 @@
           },
           "DNS_CONFIGURATION_DIALOG": {
             "HEADER": "DNS configuration",
-            "DESCRIPTION": "DNS sağlayıcınızda sahip olduğunuz hesaba giriş yapın ve chatwoot.help adresine yönlendiren alt alan adı için bir CNAME kaydı ekleyin",
+            "DESCRIPTION": "DNS sağlayıcınızda sahip olduğunuz hesaba giriş yapın ve chat.meusuper.app adresine yönlendiren alt alan adı için bir CNAME kaydı ekleyin",
             "COPY": "CNAME başarıyla kopyalandı",
             "SEND_INSTRUCTIONS": {
               "HEADER": "Talimatları gönder",
@@ -982,7 +982,7 @@
         "HEADER": "Entegrasyonlar",
         "DESCRIPTION": "Connect tools that extend what your help center can do.",
         "LIVE_CHAT": {
-          "TITLE": "Live chat with Chatwoot",
+          "TITLE": "Live chat with Meu Super Chat",
           "DESCRIPTION": "Show a live chat widget on your help center so visitors can reach you while they read.",
           "PLACEHOLDER": "Select live chat widget",
           "NONE_OPTION": "Widget yok"

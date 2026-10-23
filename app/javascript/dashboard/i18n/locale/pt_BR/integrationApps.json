@@ -27,8 +27,8 @@
       },
       "CANCEL_BUTTON_TEXT": "Cancelar",
       "API": {
-        "SUCCESS_MESSAGE": "Webhook excluído com sucesso",
-        "ERROR_MESSAGE": "Não foi possível conectar ao servidor Woot, por favor tente novamente mais tarde"
+        "SUCCESS_MESSAGE": "Integração desconectada com sucesso",
+        "ERROR_MESSAGE": "Não foi possível conectar ao servidor do Meu Super Chat, tente novamente mais tarde"
       }
     },
     "LIST": {
@@ -45,13 +45,13 @@
           "LABEL": "Selecionar caixa de entrada",
           "PLACEHOLDER": "Selecionar caixa de entrada"
         },
-        "SUBMIT": "Criar",
-        "VALIDATING_OPENAI": "Validando com a OpenAI...",
+        "SUBMIT": "Conectar",
+        "VALIDATING_OPENAI": "Validando no Meu Super App Gateway...",
         "CANCEL": "Cancelar"
       },
       "API": {
-        "SUCCESS_MESSAGE": "Integração adicionada com sucesso",
-        "ERROR_MESSAGE": "Não foi possível conectar ao servidor Woot, por favor tente novamente mais tarde"
+        "SUCCESS_MESSAGE": "Integração com Meu Super App Gateway conectada com sucesso",
+        "ERROR_MESSAGE": "Não foi possível conectar ao servidor do Meu Super Chat, tente novamente mais tarde"
       }
     },
     "CONNECT": {

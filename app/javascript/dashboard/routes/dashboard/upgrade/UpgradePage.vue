@@ -84,9 +84,7 @@ const isLimitExceeded = computed(() => {
 });
 
 const isAccountPaywalled = computed(() => {
-  if (!isOnChatwootCloud.value) return false;
-  if (isTrialAccount.value) return false;
-  return isLimitExceeded.value;
+  return false;
 });
 
 const shouldShowUpgradePage = computed(() => {

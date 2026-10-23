@@ -61,13 +61,48 @@ export default {
         telegram: '',
       },
       socialProfileKeys: [
-        { key: 'facebook', prefixURL: 'https://facebook.com/' },
-        { key: 'twitter', prefixURL: 'https://twitter.com/' },
-        { key: 'linkedin', prefixURL: 'https://linkedin.com/' },
-        { key: 'github', prefixURL: 'https://github.com/' },
-        { key: 'telegram', prefixURL: 'https://t.me/' },
-        { key: 'whatsapp', prefixURL: '@' },
-        { key: 'tiktok', prefixURL: 'https://tiktok.com/@' },
+        {
+          key: 'facebook',
+          prefixURL: 'https://facebook.com/',
+          icon: 'i-ri-facebook-circle-fill',
+          badgeClass: 'bg-[#1877F2]/20 text-[#4599FF] border-[#1877F2]/40',
+        },
+        {
+          key: 'linkedin',
+          prefixURL: 'https://linkedin.com/',
+          icon: 'i-ri-linkedin-box-fill',
+          badgeClass: 'bg-[#0A66C2]/20 text-[#3897F0] border-[#0A66C2]/40',
+        },
+        {
+          key: 'twitter',
+          prefixURL: 'https://twitter.com/',
+          icon: 'i-ri-twitter-x-fill',
+          badgeClass: 'bg-slate-700/40 text-slate-200 border-slate-600/50',
+        },
+        {
+          key: 'github',
+          prefixURL: 'https://github.com/',
+          icon: 'i-ri-github-fill',
+          badgeClass: 'bg-slate-700/40 text-slate-200 border-slate-600/50',
+        },
+        {
+          key: 'telegram',
+          prefixURL: 'https://t.me/',
+          icon: 'i-ri-telegram-fill',
+          badgeClass: 'bg-[#229ED9]/20 text-[#38BDF8] border-[#229ED9]/40',
+        },
+        {
+          key: 'whatsapp',
+          prefixURL: 'wa.me/',
+          icon: 'i-ri-whatsapp-line',
+          badgeClass: 'bg-[#10B981]/20 text-[#34D399] border-[#10B981]/40',
+        },
+        {
+          key: 'tiktok',
+          prefixURL: 'https://tiktok.com/@',
+          icon: 'i-ri-tiktok-fill',
+          badgeClass: 'bg-slate-700/40 text-slate-200 border-slate-600/50',
+        },
       ],
       initialData: null,
     };
@@ -309,6 +344,18 @@ export default {
       this.avatarFile = file;
       this.avatarUrl = url;
     },
+    triggerAvatarInput() {
+      this.$refs.drawerAvatarInput?.click();
+    },
+    onNativeAvatarSelect(event) {
+      const [file] = event.target?.files || [];
+      if (file) {
+        this.handleImageUpload({
+          file,
+          url: URL.createObjectURL(file),
+        });
+      }
+    },
     async handleAvatarDelete() {
       try {
         if (this.contact?.id) {
@@ -332,150 +379,239 @@ export default {
 
 <template>
   <form
-    class="w-full px-8 pt-6 pb-8 contact--form"
+    class="flex flex-col h-full min-h-0 w-full contact--form"
     @submit.prevent="handleSubmit"
   >
-    <div class="flex flex-col mb-4 items-start gap-1 w-full">
-      <label class="mb-0.5 text-sm font-medium text-n-slate-12">
-        {{ $t('CONTACT_FORM.FORM.AVATAR.LABEL') }}
-      </label>
-      <Avatar
-        :src="avatarUrl"
-        :size="72"
-        :name="contact.name"
-        allow-upload
-        rounded-full
-        @upload="handleImageUpload"
-        @delete="handleAvatarDelete"
-      />
-    </div>
-    <div>
+    <div class="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-4">
+      <!-- ISS-03: Avatar do Contato -->
+      <div class="flex flex-col gap-2 w-full">
+        <label class="text-[13px] font-semibold text-slate-200 mb-0">
+          {{ $t('CONTACT_FORM.FORM.AVATAR.LABEL') }}
+        </label>
+        <div class="flex items-center gap-3.5">
+          <div class="relative shrink-0">
+            <Avatar
+              :src="avatarUrl"
+              :size="58"
+              :name="contact.name || name"
+              allow-upload
+              rounded-full
+              class="ring-2 ring-[#10B981] shadow-[0_0_18px_rgba(16,185,129,0.3)]"
+              @upload="handleImageUpload"
+              @delete="handleAvatarDelete"
+            />
+            <input
+              ref="drawerAvatarInput"
+              type="file"
+              accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
+              class="hidden"
+              @change="onNativeAvatarSelect"
+            />
+          </div>
+          <div class="flex items-center flex-wrap gap-2">
+            <button
+              type="button"
+              class="h-9 px-3 rounded-lg bg-[#0D1821] border border-[#1A303D] hover:border-[#10B981]/50 text-xs font-medium text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
+              @click="triggerAvatarInput"
+            >
+              <span class="i-lucide-image size-4 text-[#10B981]" />
+              <span>Alterar imagem</span>
+            </button>
+            <button
+              type="button"
+              class="h-9 px-3 rounded-lg bg-red-950/25 border border-red-500/30 hover:bg-red-950/45 text-xs font-medium text-red-400 flex items-center gap-1.5 transition-colors cursor-pointer"
+              @click="handleAvatarDelete"
+            >
+              <span class="i-lucide-trash-2 size-3.5 text-red-400" />
+              <span>Remover</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nome Completo -->
       <div class="w-full">
-        <label :class="{ error: v$.name.$error }">
+        <label
+          class="block text-[13px] font-semibold text-slate-200 mb-1.5"
+          :class="{ 'text-red-400': v$.name.$error }"
+        >
           {{ $t('CONTACT_FORM.FORM.NAME.LABEL') }}
           <input
             v-model="name"
             type="text"
+            class="!h-10 !mb-0 !mt-1.5 !px-3.5 !bg-[#0D1821] !border !border-[#1A303D] focus:!border-[#10B981] !rounded-lg !text-sm !text-white !outline-none transition-colors"
             :placeholder="$t('CONTACT_FORM.FORM.NAME.PLACEHOLDER')"
             @input="v$.name.$touch"
           />
         </label>
+      </div>
 
-        <label :class="{ error: v$.email.$error }">
+      <!-- Endereço de e-mail -->
+      <div class="w-full">
+        <label
+          class="block text-[13px] font-semibold text-slate-200 mb-1.5"
+          :class="{ 'text-red-400': v$.email.$error }"
+        >
           {{ $t('CONTACT_FORM.FORM.EMAIL_ADDRESS.LABEL') }}
           <input
             v-model="email"
             type="text"
+            class="!h-10 !mb-0 !mt-1.5 !px-3.5 !bg-[#0D1821] !border !border-[#1A303D] focus:!border-[#10B981] !rounded-lg !text-sm !text-white !outline-none transition-colors"
             :placeholder="$t('CONTACT_FORM.FORM.EMAIL_ADDRESS.PLACEHOLDER')"
             @input="v$.email.$touch"
           />
-          <span v-if="v$.email.$error" class="message">
+          <span v-if="v$.email.$error" class="message text-xs text-red-400 mt-1 block">
             {{ $t('CONTACT_FORM.FORM.EMAIL_ADDRESS.ERROR') }}
           </span>
         </label>
       </div>
-    </div>
-    <div class="w-full">
-      <label :class="{ error: v$.description.$error }">
-        {{ $t('CONTACT_FORM.FORM.BIO.LABEL') }}
-        <textarea
-          v-model="description"
-          type="text"
-          :placeholder="$t('CONTACT_FORM.FORM.BIO.PLACEHOLDER')"
-          @input="v$.description.$touch"
-        />
-      </label>
-    </div>
-    <div>
+
+      <!-- Descrição com contador -->
       <div class="w-full">
         <label
+          class="block text-[13px] font-semibold text-slate-200 mb-1.5"
+          :class="{ 'text-red-400': v$.description.$error }"
+        >
+          {{ $t('CONTACT_FORM.FORM.BIO.LABEL') }}
+          <textarea
+            v-model="description"
+            rows="2"
+            maxlength="500"
+            class="!mb-0 !mt-1.5 !p-3 !bg-[#0D1821] !border !border-[#1A303D] focus:!border-[#10B981] !rounded-lg !text-sm !text-white !outline-none transition-colors resize-y"
+            :placeholder="$t('CONTACT_FORM.FORM.BIO.PLACEHOLDER')"
+            @input="v$.description.$touch"
+          />
+        </label>
+        <div class="text-right text-[11px] text-slate-500 mt-1">
+          {{ (description || '').length }}/500
+        </div>
+      </div>
+
+      <!-- ISS-01: Número de Telefone Unificado -->
+      <div class="w-full">
+        <label
+          class="block text-[13px] font-semibold text-slate-200 mb-1.5"
           :class="{
-            error: isPhoneNumberNotValid,
+            'text-red-400': isPhoneNumberNotValid,
           }"
         >
           {{ $t('CONTACT_FORM.FORM.PHONE_NUMBER.LABEL') }}
-          <woot-phone-input
-            v-model="phoneNumber"
-            :value="phoneNumber"
-            :error="isPhoneNumberNotValid"
-            :placeholder="$t('CONTACT_FORM.FORM.PHONE_NUMBER.PLACEHOLDER')"
-            @blur="v$.phoneNumber.$touch"
-            @set-code="setPhoneCode"
-          />
-          <span v-if="isPhoneNumberNotValid" class="message">
+          <div class="mt-1.5">
+            <woot-phone-input
+              v-model="phoneNumber"
+              :value="phoneNumber"
+              :error="isPhoneNumberNotValid"
+              :placeholder="$t('CONTACT_FORM.FORM.PHONE_NUMBER.PLACEHOLDER')"
+              @blur="v$.phoneNumber.$touch"
+              @set-code="setPhoneCode"
+            />
+          </div>
+          <span v-if="isPhoneNumberNotValid" class="message text-xs text-red-400 mt-1 block">
             {{ phoneNumberError }}
           </span>
         </label>
         <div
           v-if="isPhoneNumberNotValid || !phoneNumber"
-          class="relative mx-0 mt-0 mb-2.5 p-2 rounded-md text-sm border border-solid border-n-amber-5 text-n-amber-12 bg-n-amber-3"
+          class="relative mx-0 mt-1 mb-1 p-2.5 rounded-lg text-xs border border-amber-500/30 text-amber-200 bg-amber-950/30"
         >
           {{ $t('CONTACT_FORM.FORM.PHONE_NUMBER.HELP') }}
         </div>
       </div>
-    </div>
-    <woot-input
-      v-model="companyName"
-      class="w-full"
-      :label="$t('CONTACT_FORM.FORM.COMPANY_NAME.LABEL')"
-      :placeholder="$t('CONTACT_FORM.FORM.COMPANY_NAME.PLACEHOLDER')"
-    />
-    <div class="w-full mb-4">
-      <label>
-        {{ $t('CONTACT_FORM.FORM.COUNTRY.LABEL') }}
-      </label>
-      <ComboBox
-        :model-value="country.id"
-        :options="
-          countries.map(c => ({
-            value: c.id,
-            label: countryNameWithCode(c),
-          }))
-        "
-        class="[&>div>button]:!bg-n-alpha-black2"
-        :placeholder="$t('CONTACT_FORM.FORM.COUNTRY.PLACEHOLDER')"
-        :search-placeholder="$t('CONTACT_FORM.FORM.COUNTRY.SELECT_PLACEHOLDER')"
-        @update:model-value="onCountryChange"
-      />
-    </div>
-    <woot-input
-      v-model="city"
-      class="w-full"
-      :label="$t('CONTACT_FORM.FORM.CITY.LABEL')"
-      :placeholder="$t('CONTACT_FORM.FORM.CITY.PLACEHOLDER')"
-    />
 
-    <div class="w-full">
-      <label>{{ $t('CONTACTS_PAGE.LIST.TABLE_HEADER.SOCIAL_PROFILES') }}</label>
-      <div
-        v-for="socialProfile in socialProfileKeys"
-        :key="socialProfile.key"
-        class="flex items-stretch w-full mb-4"
-      >
-        <span
-          class="flex items-center h-10 px-2 text-sm border-solid border-y ltr:border-l rtl:border-r ltr:rounded-l-md rtl:rounded-r-md bg-n-solid-3 text-n-slate-11 border-n-weak"
+      <!-- Nome da empresa -->
+      <div class="w-full">
+        <label class="block text-[13px] font-semibold text-slate-200 mb-1.5">
+          {{ $t('CONTACT_FORM.FORM.COMPANY_NAME.LABEL') }}
+          <input
+            v-model="companyName"
+            type="text"
+            class="!h-10 !mb-0 !mt-1.5 !px-3.5 !bg-[#0D1821] !border !border-[#1A303D] focus:!border-[#10B981] !rounded-lg !text-sm !text-white !outline-none transition-colors"
+            :placeholder="$t('CONTACT_FORM.FORM.COMPANY_NAME.PLACEHOLDER')"
+          />
+        </label>
+      </div>
+
+      <!-- ISS-04: Grid 2 Colunas para País e Cidade -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+        <div class="min-w-0">
+          <label class="block text-[13px] font-semibold text-slate-200 mb-1.5">
+            {{ $t('CONTACT_FORM.FORM.COUNTRY.LABEL') }}
+          </label>
+          <ComboBox
+            :model-value="country.id"
+            :options="
+              countries.map(c => ({
+                value: c.id,
+                label: countryNameWithCode(c),
+              }))
+            "
+            class="[&>div>button]:!h-10 [&>div>button]:!bg-[#0D1821] [&>div>button]:!outline-[#1A303D] [&>div>button:hover]:!outline-[#10B981]/50"
+            :placeholder="$t('CONTACT_FORM.FORM.COUNTRY.PLACEHOLDER')"
+            :search-placeholder="$t('CONTACT_FORM.FORM.COUNTRY.SELECT_PLACEHOLDER')"
+            @update:model-value="onCountryChange"
+          />
+        </div>
+        <div class="min-w-0">
+          <label class="block text-[13px] font-semibold text-slate-200 mb-1.5">
+            {{ $t('CONTACT_FORM.FORM.CITY.LABEL') }}
+          </label>
+          <input
+            v-model="city"
+            type="text"
+            class="!h-10 !mb-0 !px-3.5 !bg-[#0D1821] !border !border-[#1A303D] focus:!border-[#10B981] !rounded-lg !text-sm !text-white !outline-none transition-colors w-full"
+            :placeholder="$t('CONTACT_FORM.FORM.CITY.PLACEHOLDER')"
+          />
+        </div>
+      </div>
+
+      <!-- ISS-05: Perfis Sociais Unificados -->
+      <div class="w-full space-y-2.5 pt-1">
+        <label class="block text-[13px] font-semibold text-slate-200 mb-1">
+          {{ $t('CONTACTS_PAGE.LIST.TABLE_HEADER.SOCIAL_PROFILES') }}
+        </label>
+        <div
+          v-for="socialProfile in socialProfileKeys"
+          :key="socialProfile.key"
+          class="flex items-center h-10 w-full rounded-lg bg-[#0D1821] border border-[#1A303D] focus-within:border-[#10B981] overflow-hidden transition-colors"
         >
-          {{ socialProfile.prefixURL }}
-        </span>
-        <input
-          v-model="socialProfileUserNames[socialProfile.key]"
-          class="input-group-field ltr:!rounded-l-none rtl:!rounded-r-none !mb-0"
-          type="text"
-        />
+          <span
+            class="flex items-center gap-2 h-full px-3 text-xs bg-[#09131A] border-r border-[#1A303D] text-slate-300 shrink-0 select-none"
+          >
+            <span
+              class="w-5 h-5 rounded border flex items-center justify-center shrink-0"
+              :class="socialProfile.badgeClass"
+            >
+              <span :class="[socialProfile.icon, 'size-3.5']" />
+            </span>
+            <span class="text-slate-400">{{ socialProfile.prefixURL }}</span>
+          </span>
+          <input
+            v-model="socialProfileUserNames[socialProfile.key]"
+            class="!h-full !w-full !px-3 !bg-transparent !border-0 !outline-none !mb-0 !text-sm !text-white placeholder:text-slate-500"
+            type="text"
+            placeholder="usuario"
+          />
+        </div>
       </div>
     </div>
-    <div class="flex flex-row justify-start w-full gap-2 px-0 py-2">
-      <NextButton
-        type="submit"
-        :label="$t('CONTACT_FORM.FORM.SUBMIT')"
-        :is-loading="inProgress"
-      />
+
+    <!-- ISS-02: Sticky Footer com CTAs -->
+    <div
+      class="shrink-0 px-6 py-4 bg-[#060D12]/95 backdrop-blur-md border-t border-[#162936] grid grid-cols-2 gap-3"
+    >
       <NextButton
         faded
         slate
         type="reset"
+        class="!h-10 !w-full justify-center !bg-[#0D1821] !border !border-[#1A303D] !text-slate-200 hover:!bg-[#13222E]"
         :label="$t('CONTACT_FORM.FORM.CANCEL')"
         @click.prevent="onCancel"
+      />
+      <NextButton
+        type="submit"
+        class="!h-10 !w-full justify-center !bg-[#10B981] hover:!bg-[#059669] !text-[#031911] font-semibold shadow-[0_0_15px_rgba(16,185,129,0.25)]"
+        :label="$t('CONTACT_FORM.FORM.SUBMIT')"
+        :is-loading="inProgress"
       />
     </div>
   </form>

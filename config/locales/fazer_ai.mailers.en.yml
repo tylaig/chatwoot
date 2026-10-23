@@ -1,4 +1,4 @@
-# fazer.ai fork translations for Chatwoot mailer templates.
+# Meu Super Chat fork translations for Meu Super Chat mailer templates.
 #
 # Upstream ships these templates with the copy hardcoded in ERB, so the fork
 # extracted them into i18n keys to translate them. They are not our features:

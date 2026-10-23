@@ -26,13 +26,15 @@ const openConfirmDeleteContactDialog = () => {
 
 <template>
   <Policy :permissions="['administrator']">
-    <div class="flex flex-col items-start border-t border-n-strong px-6 py-5">
+    <div
+      class="flex flex-col items-start border-t border-[#142633] bg-[#14090D]/80 px-6 py-4 rounded-b-xl"
+    >
       <Button
         :label="t('CONTACTS_LAYOUT.DETAILS.DELETE_CONTACT')"
         sm
         link
         slate
-        class="hover:!no-underline text-n-slate-12"
+        class="hover:!no-underline !text-red-400 font-medium"
         icon="i-lucide-chevron-down"
         trailing-icon
         @click="toggleDeleteSection()"
@@ -47,13 +49,14 @@ const openConfirmDeleteContactDialog = () => {
         "
       >
         <div class="overflow-hidden min-h-0">
-          <span class="inline-flex text-n-slate-11 text-sm items-center gap-1">
+          <span class="inline-flex flex-wrap text-slate-300 text-xs sm:text-sm items-center gap-2">
             {{ t('CONTACTS_LAYOUT.CARD.DELETE_CONTACT.MESSAGE') }}
             <Button
               :label="t('CONTACTS_LAYOUT.CARD.DELETE_CONTACT.BUTTON')"
               sm
               ruby
               link
+              class="!text-red-400 font-semibold"
               @click="openConfirmDeleteContactDialog()"
             />
           </span>

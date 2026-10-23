@@ -19,6 +19,15 @@ class Llm::BaseAiService
   end
 
   def chat(model: @model, temperature: @temperature)
+    api_key = Llm::Config.effective_api_key(@llm_account)
+    if api_key.present?
+      context = RubyLLM.context do |config|
+        config.openai_api_key = api_key
+        config.openai_api_base = Llm::Config.effective_api_base
+      end
+      return context.chat(model: model, provider: :openai, assume_model_exists: true).with_temperature(temperature)
+    end
+
     RubyLLM.chat(model: model).with_temperature(temperature)
   end
 

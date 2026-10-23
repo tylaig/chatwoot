@@ -44,16 +44,12 @@ openai:
   settings_form_schema:
     [
       {
-        'label': 'API Key',
+        'label': 'Chave de API do Meu Super App Gateway',
         'type': 'text',
         'name': 'api_key',
+        'placeholder': 'Ex: API-123456',
+        'help': 'A URL base do Meu Super App Gateway já está configurada automaticamente pelo sistema.',
         'validation': 'required',
-      },
-      {
-        'label': 'Show label suggestions',
-        'type': 'checkbox',
-        'name': 'label_suggestion',
-        'validation': '',
       },
     ]
   visible_properties: ['label_suggestion']

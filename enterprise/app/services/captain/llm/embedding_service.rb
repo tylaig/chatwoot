@@ -26,8 +26,8 @@ class Captain::Llm::EmbeddingService
         RubyLLM.embed(content, model: model).vectors
       end
     rescue StandardError => llm_err
-      Rails.logger.error "Embedding API Error: #{llm_err.message}"
-      raise EmbeddingsError, "Failed to create an embedding: #{llm_err.message}"
+      Rails.logger.warn "Embedding API unavailable (graceful fallback): #{llm_err.message}"
+      nil
     end
   end
 
@@ -36,8 +36,8 @@ class Captain::Llm::EmbeddingService
   def fetch_local_embedding(content, model)
     uri = URI(LOCAL_EMBEDDING_URL)
     http = Net::HTTP.new(uri.host, uri.port)
-    http.open_timeout = 3
-    http.read_timeout = 10
+    http.open_timeout = 2
+    http.read_timeout = 5
     req = Net::HTTP::Post.new(uri.request_uri, { 'Content-Type' => 'application/json' })
     req.body = { input: content, model: model }.to_json
     res = http.request(req)

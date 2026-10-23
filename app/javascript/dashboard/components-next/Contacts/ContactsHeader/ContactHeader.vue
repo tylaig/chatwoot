@@ -10,6 +10,7 @@ defineProps({
   showSearch: { type: Boolean, default: true },
   searchValue: { type: String, default: '' },
   headerTitle: { type: String, required: true },
+  totalItems: { type: Number, default: 0 },
   buttonLabel: { type: String, default: '' },
   activeSort: { type: String, default: 'last_activity_at' },
   activeOrdering: { type: String, default: '' },
@@ -33,21 +34,34 @@ const emit = defineEmits([
 </script>
 
 <template>
-  <header class="sticky top-0 z-20 px-6">
+  <header
+    class="sticky top-0 z-20 px-4 sm:px-6 bg-[#050C10]/95 backdrop-blur-md border-b border-[#142633]"
+  >
     <div
-      class="flex items-start sm:items-center justify-between w-full py-6 gap-2 mx-auto max-w-5xl"
+      class="flex flex-col lg:flex-row lg:items-center justify-between w-full py-3.5 sm:py-4 gap-3 mx-auto max-w-5xl"
     >
-      <span class="text-xl font-medium truncate text-n-slate-12">
-        {{ headerTitle }}
-      </span>
-      <div class="flex items-center flex-col sm:flex-row flex-shrink-0 gap-4">
-        <div v-if="showSearch" class="flex items-center gap-2 w-full">
+      <div class="flex items-center gap-3 min-w-0">
+        <span class="text-xl font-bold tracking-tight truncate text-white">
+          {{ headerTitle }}
+        </span>
+        <span
+          v-if="totalItems"
+          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 shrink-0"
+        >
+          {{ totalItems }}
+        </span>
+      </div>
+      <div class="flex items-center flex-wrap sm:flex-nowrap justify-between lg:justify-end gap-2 sm:gap-2.5 w-full lg:w-auto">
+        <div
+          v-if="showSearch"
+          class="flex items-center gap-2 w-full sm:flex-1 lg:w-64 xl:w-72 min-w-0"
+        >
           <Input
             :model-value="searchValue"
             type="search"
             :placeholder="$t('CONTACTS_LAYOUT.HEADER.SEARCH_PLACEHOLDER')"
             :custom-input-class="[
-              'h-8 [&:not(.focus)]:!border-transparent bg-n-alpha-2 dark:bg-n-solid-1 ltr:!pl-8 !py-1 rtl:!pr-8',
+              'h-9 !bg-[#081218] !border !border-[#1A303D] focus:!border-[#10B981] !outline-none rounded-lg ltr:!pl-9 !py-1.5 rtl:!pr-9 text-sm text-white placeholder:text-slate-400',
             ]"
             class="w-full"
             @input="emit('search', $event.target.value)"
@@ -55,13 +69,13 @@ const emit = defineEmits([
             <template #prefix>
               <Icon
                 icon="i-lucide-search"
-                class="absolute -translate-y-1/2 text-n-slate-11 size-4 top-1/2 ltr:left-2 rtl:right-2"
+                class="absolute -translate-y-1/2 text-slate-400 size-4 top-1/2 ltr:left-3 rtl:right-3"
               />
             </template>
           </Input>
         </div>
-        <div class="flex items-center flex-shrink-0 gap-4">
-          <div class="flex items-center gap-2">
+        <div class="flex items-center flex-shrink-0 gap-2 sm:gap-2.5 ml-auto sm:ml-0">
+          <div class="flex items-center gap-1.5">
             <div
               v-if="
                 !isLabelView &&
@@ -77,13 +91,13 @@ const emit = defineEmits([
                 "
                 color="slate"
                 size="sm"
-                class="relative w-8"
+                class="relative !h-9 !w-9 !bg-[#081218] !border !border-[#1A303D] hover:!border-[#10B981]/50 rounded-lg"
                 variant="ghost"
                 @click="emit('filter')"
               >
                 <div
                   v-if="hasActiveFilters && !isSegmentsView"
-                  class="absolute top-0 right-0 w-2 h-2 rounded-full bg-n-brand"
+                  class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#10B981]"
                 />
               </Button>
               <slot name="filter" />
@@ -98,6 +112,7 @@ const emit = defineEmits([
               icon="i-lucide-save"
               color="slate"
               size="sm"
+              class="!h-9 !w-9 !bg-[#081218] !border !border-[#1A303D] hover:!border-[#10B981]/50 rounded-lg"
               variant="ghost"
               @click="emit('createSegment')"
             />
@@ -111,6 +126,7 @@ const emit = defineEmits([
               icon="i-lucide-trash"
               color="slate"
               size="sm"
+              class="!h-9 !w-9 !bg-[#081218] !border !border-[#1A303D] hover:!border-red-500/50 rounded-lg"
               variant="ghost"
               @click="emit('deleteSegment')"
             />
@@ -134,6 +150,7 @@ const emit = defineEmits([
               icon="i-lucide-info"
               color="slate"
               size="sm"
+              class="!h-9 !w-9 !bg-[#081218] !border !border-[#1A303D] rounded-lg"
               variant="ghost"
             />
             <ContactSortMenu
@@ -147,10 +164,15 @@ const emit = defineEmits([
               @export="emit('export')"
             />
           </div>
-          <div class="w-px h-4 bg-n-strong" />
+          <div class="w-px h-5 bg-[#1A303D]" />
           <ComposeConversation>
             <template #trigger>
-              <Button :label="buttonLabel" size="sm" />
+              <Button
+                :label="buttonLabel"
+                icon="i-lucide-send"
+                size="sm"
+                class="!h-9 !bg-[#10B981] hover:!bg-[#059669] !text-[#031911] font-semibold shadow-[0_0_14px_rgba(16,185,129,0.25)]"
+              />
             </template>
           </ComposeConversation>
         </div>

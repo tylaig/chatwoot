@@ -38,17 +38,18 @@ const showSpinner = computed(
 const { t } = useI18n();
 
 const CONTACT_TABS_OPTIONS = [
-  { key: 'ATTRIBUTES', value: 'attributes' },
-  { key: 'HISTORY', value: 'history' },
-  { key: 'NOTES', value: 'notes' },
-  { key: 'MEDIA', value: 'media' },
-  { key: 'MERGE', value: 'merge' },
+  { key: 'ATTRIBUTES', value: 'attributes', icon: 'i-lucide-list-filter' },
+  { key: 'HISTORY', value: 'history', icon: 'i-lucide-history' },
+  { key: 'NOTES', value: 'notes', icon: 'i-lucide-file-text' },
+  { key: 'MEDIA', value: 'media', icon: 'i-lucide-image' },
+  { key: 'MERGE', value: 'merge', icon: 'i-lucide-git-merge' },
 ];
 
 const tabs = computed(() => {
   return CONTACT_TABS_OPTIONS.map(tab => ({
     label: t(`CONTACTS_LAYOUT.SIDEBAR.TABS.${tab.key}`),
     value: tab.value,
+    icon: tab.icon,
   }));
 });
 
@@ -129,7 +130,7 @@ onMounted(() => {
 
 <template>
   <div
-    class="flex flex-col justify-between flex-1 h-full m-0 overflow-auto bg-n-surface-1"
+    class="flex flex-col justify-between flex-1 h-full m-0 overflow-hidden bg-[#04090D]"
   >
     <ContactsDetailsLayout
       :button-label="$t('CONTACTS_LAYOUT.HEADER.SEND_MESSAGE')"
@@ -152,14 +153,23 @@ onMounted(() => {
         @go-to-contacts-list="goToContactsList"
       />
       <template #sidebarHeader>
-        <div class="px-6 pt-6 pb-3">
-          <TabBar
-            :tabs="tabs"
-            :initial-active-tab="activeTabIndex"
-            class="w-full [&>button]:w-full bg-n-alpha-black2"
-            @tab-changed="handleTabChange"
-          />
-        </div>
+        <nav class="grid grid-cols-5 px-2 pt-2 bg-[#081218]">
+          <button
+            v-for="tab in tabs"
+            :key="tab.value"
+            type="button"
+            class="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 text-[11px] sm:text-xs font-medium border-b-2 transition-colors cursor-pointer"
+            :class="
+              activeTab === tab.value
+                ? 'text-[#10B981] border-[#10B981] bg-[#10B981]/5'
+                : 'text-slate-400 border-transparent hover:text-slate-200'
+            "
+            @click="handleTabChange(tab)"
+          >
+            <span :class="[tab.icon, 'size-4 shrink-0']" />
+            <span class="whitespace-nowrap">{{ tab.label }}</span>
+          </button>
+        </nav>
       </template>
       <template #sidebar>
         <div

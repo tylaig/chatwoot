@@ -1001,7 +1001,7 @@ onMounted(() => {
                         {{ form.header_media_name }}
                       </p>
                       <p class="text-[0.6875rem] text-n-slate-11">
-                        O arquivo fica no armazenamento do Chatwoot. JPEG ou PNG
+                        O arquivo fica no armazenamento do Meu Super Chat. JPEG ou PNG
                         até 5 MB, MP4 até 16 MB e PDF até 100 MB.
                       </p>
                     </div>

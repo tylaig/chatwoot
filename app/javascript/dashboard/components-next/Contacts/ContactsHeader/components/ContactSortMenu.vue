@@ -99,13 +99,14 @@ const handleOrderChange = value => {
       color="slate"
       size="sm"
       variant="ghost"
-      :class="isMenuOpen ? 'bg-n-alpha-2' : ''"
+      class="!h-9 !w-9 !bg-[#081218] !border !border-[#1A303D] hover:!border-[#10B981]/50 rounded-lg"
+      :class="isMenuOpen ? '!border-[#10B981] !bg-[#0D1E28]' : ''"
       @click="isMenuOpen = !isMenuOpen"
     />
     <div
       v-if="isMenuOpen"
       v-on-clickaway="() => (isMenuOpen = false)"
-      class="absolute top-full mt-1 ltr:-right-32 rtl:-left-32 sm:ltr:right-0 sm:rtl:left-0 flex flex-col gap-4 bg-n-alpha-3 backdrop-blur-[100px] border border-n-weak w-72 rounded-xl p-4 z-50"
+      class="absolute top-full mt-1 ltr:-right-32 rtl:-left-32 sm:ltr:right-0 sm:rtl:left-0 flex flex-col gap-4 bg-[#081218]/95 backdrop-blur-xl border border-[#1A303D] shadow-2xl w-72 rounded-xl p-4 z-50"
     >
       <div class="flex items-center justify-between gap-2">
         <span class="text-sm text-n-slate-12">

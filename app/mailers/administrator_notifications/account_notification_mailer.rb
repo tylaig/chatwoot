@@ -64,7 +64,7 @@ class AdministratorNotifications::AccountNotificationMailer < AdministratorNotif
   # administrator, so a subject reading "Chatwoot" over a body that says "Acme" is the account
   # being told its deletion by a name it does not use.
   def brand_name
-    brand.name.presence || 'Chatwoot'
+    brand.name.presence || 'Meu Super Chat'
   end
 
   def format_deletion_date(deletion_date_str)

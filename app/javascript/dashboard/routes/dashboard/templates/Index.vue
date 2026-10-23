@@ -475,16 +475,16 @@ const removeTemplate = async tpl => {
 <template>
   <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text, vue/html-closing-bracket-newline -->
   <div
-    class="flex flex-1 w-full h-full min-h-0 min-w-0 bg-n-background text-n-slate-12 overflow-hidden"
+    class="msc-templates-page flex flex-1 w-full h-full min-h-0 min-w-0 bg-[#04090D] text-n-slate-12 overflow-hidden"
   >
     <div class="flex flex-1 flex-col min-w-0 min-h-0">
       <header
-        class="px-6 py-5 border-b border-n-weak bg-n-solid-1 flex flex-wrap items-center justify-between gap-4"
+        class="px-5 py-4 sm:px-6 sm:py-5 border-b border-white/[0.06] bg-[#070E13]/95 flex flex-wrap items-center justify-between gap-4"
       >
         <div class="min-w-0">
-          <h1 class="text-xl font-semibold text-n-slate-12">Templates</h1>
+          <div class="flex items-center gap-2"><span class="i-lucide-message-square-text size-5 text-emerald-400" /><h1 class="text-xl font-semibold text-white">Templates</h1><span class="hidden sm:inline-flex rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">API Oficial • HSM</span></div>
           <p class="text-sm text-n-slate-11 mt-0.5">
-            Gerencie modelos de mensagens aprovados pela Meta para usar nos seus
+            Crie, gerencie e acompanhe seus templates de mensagens oficiais para usar nos seus
             workflows.
           </p>
         </div>
@@ -492,7 +492,7 @@ const removeTemplate = async tpl => {
         <div class="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            class="h-10 px-3.5 rounded-xl border border-n-weak bg-n-solid-1 hover:bg-n-alpha-2 text-sm font-medium text-n-slate-12 transition-colors flex items-center gap-1.5 disabled:opacity-60"
+            class="h-10 px-3.5 rounded-xl border border-white/10 bg-[#0A1319] hover:border-emerald-400/35 hover:bg-emerald-400/5 text-sm font-medium text-slate-200 transition-colors flex items-center gap-1.5 disabled:opacity-60"
             :disabled="isSyncing"
             @click="syncTemplates"
           >
@@ -505,7 +505,7 @@ const removeTemplate = async tpl => {
 
           <button
             type="button"
-            class="h-10 ps-3 pe-4 rounded-xl bg-n-brand hover:opacity-90 text-white text-sm font-semibold shadow-sm flex items-center gap-2"
+            class="msc-template-primary h-10 ps-3 pe-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#03120D] text-sm font-bold shadow-[0_0_22px_rgba(16,185,129,0.24)] flex items-center gap-2"
             @click="
               router.push({
                 name: 'whatsapp_templates_new',
@@ -522,7 +522,7 @@ const removeTemplate = async tpl => {
 
       <!-- CARDS DE MÉTRICAS E PILLS DE INBOX -->
       <div class="px-6 pt-4 pb-1 space-y-3">
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <button
             type="button"
             class="flex items-center justify-between p-3 rounded-xl border text-start transition-colors"
@@ -685,7 +685,7 @@ const removeTemplate = async tpl => {
 
         <div
           v-if="scopedServiceQuotas.length"
-          class="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1"
+          class="grid grid-cols-1 lg:grid-cols-3 gap-2.5 pt-1"
         >
           <div
             v-for="q in scopedServiceQuotas"
@@ -756,7 +756,7 @@ const removeTemplate = async tpl => {
       </div>
 
       <!-- BARRA DE PESQUISA E FILTROS HORIZONTAIS (ESTILO REFERENCE PACK) -->
-      <div class="px-6 py-3 flex flex-wrap items-center gap-3">
+      <div class="px-5 py-3 sm:px-6 flex flex-wrap items-center gap-2.5 border-b border-white/[0.04]">
         <div class="relative flex-1 min-w-[12rem]">
           <span
             class="i-lucide-search size-4 absolute start-3 top-1/2 -translate-y-1/2 text-n-slate-10"
@@ -765,7 +765,7 @@ const removeTemplate = async tpl => {
             v-model="searchQuery"
             type="text"
             placeholder="Buscar por nome, conteúdo ou caixa..."
-            class="reset-base w-full h-9 m-0 ps-9 pe-3 text-sm rounded-lg bg-n-solid-1 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12 placeholder:text-n-slate-10"
+            class="reset-base w-full h-9 m-0 ps-9 pe-3 text-sm rounded-xl bg-[#0A1319] border-0 outline outline-1 outline-white/10 focus:outline-emerald-400 text-slate-200 placeholder:text-slate-500"
           />
         </div>
 
@@ -845,16 +845,16 @@ const removeTemplate = async tpl => {
       </div>
 
       <!-- TABELA DE TEMPLATES -->
-      <div class="flex flex-1 flex-col min-h-0 min-w-0 px-6 pb-4">
+      <div class="flex flex-1 flex-col min-h-0 min-w-0 px-5 pb-4 sm:px-6">
         <div
-          class="min-h-0 min-w-0 flex-1 overflow-auto rounded-2xl border border-n-weak bg-n-solid-1"
+          class="msc-template-table-wrap min-h-0 min-w-0 flex-1 overflow-auto rounded-2xl border border-white/[0.08] bg-[#070E13]"
         >
-          <table class="w-full table-fixed text-left border-collapse text-sm">
+          <table class="w-full min-w-[860px] table-fixed text-left border-collapse text-sm">
             <thead>
               <tr
                 class="border-b border-n-weak text-[0.6875rem] font-semibold text-n-slate-11 uppercase tracking-wide"
               >
-                <th class="py-3 px-4">Nome do Template</th>
+                <th class="py-3 px-4 w-[32%]">Nome do Template</th>
                 <th class="py-3 px-4 w-44">Inbox</th>
                 <th class="py-3 px-4 w-28">Categoria</th>
                 <th class="py-3 px-4 w-20">Idioma</th>
@@ -1250,11 +1250,11 @@ const removeTemplate = async tpl => {
           </div>
           <div
             v-else
-            class="p-4 rounded-2xl bg-[#F6F1E7] border border-[#E6DCC8] text-slate-900 text-xs shadow-sm space-y-2 relative"
+            class="msc-template-message-preview p-4 rounded-2xl bg-[#0B141A] border border-emerald-400/20 text-slate-100 text-xs shadow-[0_10px_30px_rgba(0,0,0,0.25)] space-y-2 relative"
           >
             <p
               v-if="previewHeader"
-              class="font-bold text-slate-900 border-b border-[#E6DCC8] pb-1.5"
+              class="font-bold text-white border-b border-white/10 pb-1.5"
             >
               {{ previewHeader }}
             </p>
@@ -1273,7 +1273,7 @@ const removeTemplate = async tpl => {
               <div
                 v-for="label in previewActions"
                 :key="label"
-                class="w-full py-1.5 px-3 rounded-lg bg-white text-n-brand font-semibold text-center text-[11px]"
+                class="w-full py-1.5 px-3 rounded-lg bg-[#005C4B] border border-emerald-400/20 text-emerald-100 font-semibold text-center text-[11px]"
               >
                 {{ label }}
               </div>
@@ -1375,3 +1375,25 @@ const removeTemplate = async tpl => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.msc-templates-page {
+  background-image: radial-gradient(circle at 20% 0%, rgba(16, 185, 129, 0.07), transparent 30%), linear-gradient(rgba(16, 185, 129, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(16, 185, 129, 0.025) 1px, transparent 1px);
+  background-size: auto, 34px 34px, 34px 34px;
+}
+.msc-template-kpi {
+  border-color: rgba(255,255,255,.08);
+  background: rgba(10,19,25,.86);
+  box-shadow: inset 0 1px rgba(255,255,255,.025), 0 10px 26px rgba(0,0,0,.14);
+}
+.msc-template-kpi:first-child { border-color: rgba(6,182,212,.25); box-shadow: inset 0 1px rgba(6,182,212,.12), 0 0 22px rgba(6,182,212,.06); }
+.msc-template-kpi--approved { border-color: rgba(16,185,129,.25); }
+.msc-template-kpi--pending { border-color: rgba(245,158,11,.25); }
+.msc-template-kpi--rejected { border-color: rgba(244,63,94,.25); }
+.msc-template-table-wrap { box-shadow: inset 0 1px rgba(255,255,255,.025), 0 18px 45px rgba(0,0,0,.18); }
+.msc-template-message-preview { background-image: radial-gradient(rgba(16,185,129,.08) 1px, transparent 1px); background-size: 16px 16px; }
+@media (max-width: 639px) {
+  .msc-templates-page :deep(table) { min-width: 760px; }
+  .msc-templates-page :deep(.msc-template-table-wrap) { scrollbar-width: thin; }
+}
+</style>

@@ -65,18 +65,14 @@ RubyLLM::Models.prepend(RubyLlmGatewayCompat::AutoResolvePatch)
 RubyLLM::Models.singleton_class.prepend(RubyLlmGatewayCompat::AutoResolvePatch)
 
 Rails.application.config.after_initialize do
-  api_key = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_API_KEY')&.value
+  api_key = Llm::Config.effective_api_key
   model = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_MODEL')&.value.presence || LlmConstants::DEFAULT_MODEL
-  api_endpoint = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_ENDPOINT')&.value || LlmConstants::OPENAI_API_ENDPOINT
+  api_base = Llm::Config.effective_api_base
 
   if api_key.present?
     Agents.configure do |config|
       config.openai_api_key = api_key
-      if api_endpoint.present?
-        clean_endpoint = api_endpoint.chomp('/')
-        api_base = clean_endpoint.end_with?('/v1') ? clean_endpoint : "#{clean_endpoint}/v1"
-        config.openai_api_base = api_base
-      end
+      config.openai_api_base = api_base
       config.default_model = model
       config.debug = false
     end

@@ -79,9 +79,9 @@ const showPagination = computed(() => {
 
 <template>
   <section
-    class="flex w-full h-full gap-4 overflow-hidden justify-evenly bg-n-surface-1"
+    class="flex w-full h-full gap-4 overflow-hidden justify-evenly bg-[#04090D]"
   >
-    <div class="flex flex-col w-full h-full transition-all duration-300">
+    <div class="flex flex-col w-full h-full min-h-0 transition-all duration-300">
       <ContactListHeaderWrapper
         ref="contactListHeaderWrapper"
         :show-search="isNotSegmentView && !isActiveView"
@@ -89,6 +89,7 @@ const showPagination = computed(() => {
         :active-sort="activeSort"
         :active-ordering="activeOrdering"
         :header-title="headerTitle"
+        :total-items="totalItems"
         :active-segment="activeSegment"
         :segments-id="segmentsId"
         :has-applied-filters="hasAppliedFilters"
@@ -100,12 +101,12 @@ const showPagination = computed(() => {
         @clear-filters="emit('clearFilters')"
         @contact-created="emit('contactCreated')"
       />
-      <main class="flex-1 overflow-y-auto px-6">
+      <main class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 pb-6">
         <div class="w-full mx-auto max-w-5xl">
           <ContactsActiveFiltersPreview
             v-if="showActiveFiltersPreview"
             :active-segment="activeSegment"
-            class="mb-1"
+            class="mb-2"
             @clear-filters="emit('clearFilters')"
             @open-filter="openFilter"
           />
@@ -117,12 +118,15 @@ const showPagination = computed(() => {
           />
         </div>
       </main>
-      <footer v-if="showPagination" class="sticky bottom-0 z-0">
+      <footer
+        v-if="showPagination"
+        class="shrink-0 z-10 bg-[#050C10]/95 backdrop-blur-md border-t border-[#142633]"
+      >
         <PaginationFooter
           current-page-info="CONTACTS_LAYOUT.PAGINATION_FOOTER.SHOWING"
           :current-page="currentPage"
           :total-items="totalItems"
-          class="max-w-[67rem]"
+          class="max-w-5xl"
           :items-per-page="itemsPerPage"
           @update:current-page="updateCurrentPage"
         />

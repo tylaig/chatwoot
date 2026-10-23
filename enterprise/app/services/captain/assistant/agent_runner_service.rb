@@ -31,6 +31,7 @@ class Captain::Assistant::AgentRunnerService
   end
 
   def generate_response(message_history: [])
+    sync_gateway_credentials!
     message_to_process, context = run_payload(message_history)
     @last_run_result = runner.run(message_to_process, context: context, max_turns: 10)
     raise @last_run_result.error if @last_run_result.error
@@ -55,6 +56,21 @@ class Captain::Assistant::AgentRunnerService
   def handoff_completed? = @handoff_tool_completed == true
 
   private
+
+  def sync_gateway_credentials!
+    account = @assistant&.account || @conversation&.account
+    api_key = Llm::Config.effective_api_key(account)
+    api_base = Llm::Config.effective_api_base
+    return if api_key.blank?
+
+    Agents.configure do |config|
+      config.openai_api_key = api_key
+      config.openai_api_base = api_base
+      config.default_model = @assistant&.agent_model || LlmConstants::DEFAULT_MODEL
+    end
+  rescue StandardError => e
+    Rails.logger.warn "[Captain V2] Failed to sync gateway credentials: #{e.message}"
+  end
 
   def build_context(message_history)
     conversation_history = message_history.map do |msg|

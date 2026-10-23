@@ -124,94 +124,152 @@ const handleAvatarDelete = async () => {
 </script>
 
 <template>
-  <div class="flex flex-col items-start gap-8 pb-6">
-    <div class="flex flex-col items-start gap-3">
-      <Avatar
-        :src="avatarSrc || ''"
-        :name="selectedContact?.name || ''"
-        :size="72"
-        allow-upload
-        @upload="handleAvatarUpload"
-        @delete="handleAvatarDelete"
-      />
-      <div class="flex flex-col gap-1">
-        <h3 class="text-base font-medium text-n-slate-12">
-          {{ selectedContact?.name }}
-        </h3>
-        <div class="flex flex-col gap-1.5">
-          <span
-            v-if="selectedContact?.identifier"
-            class="inline-flex items-center gap-1 text-sm text-n-slate-11"
+  <div class="flex flex-col gap-5 pb-10 w-full">
+    <!-- Card 1: Profile Hero Card -->
+    <section
+      class="bg-[#081218] border border-[#132631] rounded-xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4 shadow-[0_4px_20px_rgba(0,0,0,0.28)]"
+    >
+      <div class="flex items-start gap-4 sm:gap-5 min-w-0">
+        <Avatar
+          :src="avatarSrc || ''"
+          :name="selectedContact?.name || ''"
+          :size="68"
+          rounded-full
+          allow-upload
+          class="ring-2 ring-[#10B981]/30 shrink-0"
+          @upload="handleAvatarUpload"
+          @delete="handleAvatarDelete"
+        />
+        <div class="flex flex-col gap-1.5 min-w-0">
+          <h1
+            class="text-lg sm:text-[22px] font-bold text-white tracking-tight truncate"
           >
-            <span class="i-ph-user-gear text-n-slate-10 size-4" />
-            {{ selectedContact?.identifier }}
-          </span>
-          <span class="inline-flex items-center gap-1 text-sm text-n-slate-11">
+            {{ selectedContact?.name }}
+          </h1>
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-slate-400">
             <span
               v-if="selectedContact?.identifier"
-              class="i-ph-activity text-n-slate-10 size-4"
-            />
-            <span
-              v-tooltip.top="{
-                content: exactTimestamp(contactData?.createdAt),
-                delay: { show: 500, hide: 0 },
-              }"
+              class="inline-flex items-center gap-1"
             >
-              {{
-                $t('CONTACTS_LAYOUT.DETAILS.CREATED_AT', { date: createdAt })
-              }}
+              <span class="i-ph-user-gear text-slate-400 size-4" />
+              {{ selectedContact?.identifier }}
             </span>
-            •
+            <span class="inline-flex flex-wrap items-center gap-1.5">
+              <span
+                v-if="selectedContact?.identifier"
+                class="i-ph-activity text-slate-400 size-4"
+              />
+              <span
+                v-tooltip.top="{
+                  content: exactTimestamp(contactData?.createdAt),
+                  delay: { show: 500, hide: 0 },
+                }"
+              >
+                {{
+                  $t('CONTACTS_LAYOUT.DETAILS.CREATED_AT', { date: createdAt })
+                }}
+              </span>
+              <span>•</span>
+              <span
+                v-tooltip.top="{
+                  content: exactTimestamp(contactData?.lastActivityAt),
+                  delay: { show: 500, hide: 0 },
+                }"
+              >
+                {{
+                  $t('CONTACTS_LAYOUT.DETAILS.LAST_ACTIVITY', {
+                    date: lastActivityAt,
+                  })
+                }}
+              </span>
+            </span>
+          </div>
+          <!-- Quick info pills -->
+          <div class="flex flex-wrap items-center gap-2 mt-1">
             <span
-              v-tooltip.top="{
-                content: exactTimestamp(contactData?.lastActivityAt),
-                delay: { show: 500, hide: 0 },
-              }"
+              v-if="selectedContact?.phoneNumber"
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#0D1D26] border border-[#1A303D] text-slate-200"
             >
-              {{
-                $t('CONTACTS_LAYOUT.DETAILS.LAST_ACTIVITY', {
-                  date: lastActivityAt,
-                })
-              }}
+              <span class="i-lucide-phone size-3.5 text-[#10B981]" />
+              {{ selectedContact.phoneNumber }}
             </span>
-          </span>
+            <span
+              v-if="selectedContact?.email"
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#0D1D26] border border-[#1A303D] text-slate-200 max-w-full truncate"
+            >
+              <span class="i-lucide-mail size-3.5 text-slate-400 shrink-0" />
+              <span class="truncate">{{ selectedContact.email }}</span>
+            </span>
+            <span
+              v-if="selectedContact?.additionalAttributes?.companyName"
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#0D1D26] border border-[#1A303D] text-slate-200"
+            >
+              <span class="i-ph-buildings size-3.5 text-[#10B981]" />
+              {{ selectedContact.additionalAttributes.companyName }}
+            </span>
+            <span
+              v-if="selectedContact?.additionalAttributes?.city"
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#0D1D26] border border-[#1A303D] text-slate-200"
+            >
+              <span class="i-lucide-map-pin size-3.5 text-slate-400" />
+              {{ selectedContact.additionalAttributes.city }}
+            </span>
+          </div>
         </div>
       </div>
-      <ContactLabels :contact-id="selectedContact?.id" />
-    </div>
-    <div class="flex flex-col items-start gap-6">
+      <div class="shrink-0">
+        <ContactLabels :contact-id="selectedContact?.id" />
+      </div>
+    </section>
+
+    <!-- Card 2: Edit Details & Social Networks -->
+    <section
+      class="bg-[#081218] border border-[#132631] rounded-xl p-5 sm:p-6 flex flex-col gap-6 shadow-[0_4px_20px_rgba(0,0,0,0.28)] w-full"
+    >
       <ContactsForm
         ref="contactsFormRef"
         :contact-data="contactData"
         is-details-view
         @update="handleFormUpdate"
       />
-      <Button
-        :label="t('CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.UPDATE_BUTTON')"
-        size="sm"
-        :is-loading="isUpdating"
-        :disabled="isUpdating || isFormInvalid"
-        @click="updateContact"
-      />
-    </div>
+      <div class="flex justify-end pt-2 border-t border-[#132631]">
+        <Button
+          :label="t('CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.UPDATE_BUTTON')"
+          icon="i-lucide-save"
+          size="sm"
+          class="!h-10 !px-5 !bg-[#10B981] hover:!bg-[#059669] !text-[#031911] font-semibold shadow-[0_0_15px_rgba(16,185,129,0.25)]"
+          :is-loading="isUpdating"
+          :disabled="isUpdating || isFormInvalid"
+          @click="updateContact"
+        />
+      </div>
+    </section>
+
+    <!-- Card 3: Danger Zone -->
     <Policy :permissions="['administrator']">
-      <div
-        class="flex flex-col items-start w-full gap-4 pt-6 border-t border-n-strong"
+      <section
+        class="bg-[#14090D] border border-red-500/30 rounded-xl px-5 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full"
       >
-        <div class="flex flex-col gap-2">
-          <h6 class="text-base font-medium text-n-slate-12">
-            {{ t('CONTACTS_LAYOUT.DETAILS.DELETE_CONTACT') }}
-          </h6>
-          <span class="text-sm text-n-slate-11">
-            {{ t('CONTACTS_LAYOUT.DETAILS.DELETE_CONTACT_DESCRIPTION') }}
-          </span>
+        <div class="flex items-start gap-3">
+          <span class="i-lucide-trash-2 size-5 text-red-500 mt-0.5 shrink-0" />
+          <div class="flex flex-col gap-0.5">
+            <h6 class="text-sm font-semibold text-red-400">
+              {{ t('CONTACTS_LAYOUT.DETAILS.DELETE_CONTACT') }}
+            </h6>
+            <span class="text-xs text-slate-400">
+              {{ t('CONTACTS_LAYOUT.DETAILS.DELETE_CONTACT_DESCRIPTION') }}
+            </span>
+          </div>
         </div>
         <Button
           :label="t('CONTACTS_LAYOUT.DETAILS.DELETE_CONTACT')"
+          icon="i-lucide-trash-2"
           color="ruby"
+          size="sm"
+          class="!bg-[#451219] hover:!bg-red-900/80 !border !border-red-500/40 !text-red-200 font-semibold shrink-0"
           @click="openConfirmDeleteContactDialog"
         />
-      </div>
+      </section>
       <ConfirmContactDeleteDialog
         ref="confirmDeleteContactDialogRef"
         :selected-contact="selectedContact"

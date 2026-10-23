@@ -73,29 +73,37 @@ const closeMobileSidebar = () => {
 
 <template>
   <section
-    class="flex w-full h-full overflow-hidden justify-evenly bg-n-surface-1"
+    class="flex w-full h-full overflow-hidden justify-evenly bg-[#04090D]"
   >
     <div
-      class="flex flex-col w-full h-full transition-all duration-300 ltr:2xl:ml-56 rtl:2xl:mr-56"
+      class="flex flex-col flex-1 min-w-0 h-full transition-all duration-300"
     >
-      <header class="sticky top-0 z-10 px-6 3xl:px-0">
-        <div class="w-full mx-auto max-w-[40.625rem]">
+      <header
+        class="sticky top-0 z-10 px-4 sm:px-6 lg:px-8 bg-[#050C10]/95 backdrop-blur-md border-b border-[#132631]"
+      >
+        <div class="w-full mx-auto max-w-[52rem]">
           <div
-            class="flex flex-col xs:flex-row items-start xs:items-center justify-between w-full py-7 gap-2"
+            class="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full py-3.5 sm:py-4 gap-3"
           >
-            <Breadcrumb
-              :items="breadcrumbItems"
-              @click="handleBreadcrumbClick"
-            />
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="i-lucide-users size-4 text-[#10B981] shrink-0" />
+              <Breadcrumb
+                :items="breadcrumbItems"
+                @click="handleBreadcrumbClick"
+              />
+            </div>
+            <div class="flex items-center flex-wrap sm:flex-nowrap gap-2 shrink-0">
               <Button
                 :label="
                   !isContactBlocked
                     ? $t('CONTACTS_LAYOUT.HEADER.BLOCK_CONTACT')
                     : $t('CONTACTS_LAYOUT.HEADER.UNBLOCK_CONTACT')
                 "
+                icon="i-lucide-ban"
                 size="sm"
                 slate
+                variant="outline"
+                class="!h-9 !bg-[#081218] !border-[#1A303D] hover:!border-red-500/50 !text-slate-200"
                 :is-loading="isUpdating"
                 :disabled="isUpdating"
                 @click="toggleBlock"
@@ -110,7 +118,9 @@ const closeMobileSidebar = () => {
                 <template #trigger>
                   <Button
                     :label="$t('CONTACTS_LAYOUT.HEADER.SEND_MESSAGE')"
+                    icon="i-lucide-send"
                     size="sm"
+                    class="!h-9 !bg-[#10B981] hover:!bg-[#059669] !text-[#031911] font-semibold shadow-[0_0_14px_rgba(16,185,129,0.25)]"
                   />
                 </template>
               </ComposeConversation>
@@ -118,8 +128,8 @@ const closeMobileSidebar = () => {
           </div>
         </div>
       </header>
-      <main class="flex-1 px-6 overflow-y-auto 3xl:px-px">
-        <div class="w-full py-4 mx-auto max-w-[40.625rem]">
+      <main class="flex-1 min-h-0 px-4 sm:px-6 lg:px-8 overflow-y-auto">
+        <div class="w-full py-6 mx-auto max-w-[52rem]">
           <slot name="default" />
         </div>
       </main>
@@ -128,12 +138,12 @@ const closeMobileSidebar = () => {
     <!-- Desktop sidebar -->
     <div
       v-if="slots.sidebar"
-      class="hidden lg:flex flex-col min-w-52 w-full max-w-md border-l border-n-weak bg-n-solid-2"
+      class="hidden lg:flex flex-col w-[380px] xl:w-[420px] shrink-0 border-l border-[#132631] bg-[#060E14]"
     >
-      <div class="shrink-0">
+      <div class="shrink-0 border-b border-[#132631] bg-[#081218]">
         <slot name="sidebarHeader" />
       </div>
-      <div class="flex-1 min-h-0 overflow-y-auto pb-6 pt-3">
+      <div class="flex-1 min-h-0 overflow-y-auto pb-6 pt-4">
         <slot name="sidebar" />
       </div>
     </div>
@@ -141,8 +151,8 @@ const closeMobileSidebar = () => {
     <!-- Mobile sidebar container -->
     <div
       v-if="slots.sidebar"
-      class="lg:hidden fixed top-0 ltr:right-0 rtl:left-0 h-full z-50 flex justify-end transition-all duration-200 ease-in-out"
-      :class="isContactSidebarOpen ? 'w-full' : 'w-16'"
+      class="lg:hidden fixed top-0 ltr:right-0 rtl:left-0 h-full z-50 flex justify-end transition-all duration-200 ease-in-out pointer-events-none"
+      :class="isContactSidebarOpen ? 'w-full pointer-events-auto bg-black/50 backdrop-blur-xs' : 'w-16'"
     >
       <!-- Toggle button -->
       <div
@@ -150,11 +160,11 @@ const closeMobileSidebar = () => {
           closeMobileSidebar,
           { ignore: ['#contact-sidebar-content'] },
         ]"
-        class="flex items-start p-1 w-fit h-fit relative order-1 xs:top-24 top-28 transition-all bg-n-solid-2 border border-n-weak duration-500 ease-in-out"
+        class="flex items-start p-1 w-fit h-fit relative order-1 xs:top-20 top-24 transition-all bg-[#081218] border border-[#1A303D] duration-300 ease-in-out pointer-events-auto shadow-lg"
         :class="[
           isContactSidebarOpen
             ? 'justify-end ltr:rounded-l-full rtl:rounded-r-full ltr:rounded-r-none rtl:rounded-l-none'
-            : 'justify-center rounded-full ltr:mr-6 rtl:ml-6',
+            : 'justify-center rounded-full ltr:mr-4 rtl:ml-4',
         ]"
       >
         <Button
@@ -162,7 +172,7 @@ const closeMobileSidebar = () => {
           slate
           sm
           class="!rounded-full rtl:rotate-180"
-          :class="{ 'bg-n-alpha-2': isContactSidebarOpen }"
+          :class="{ 'bg-[#10B981]/20 text-[#10B981]': isContactSidebarOpen }"
           :icon="
             isContactSidebarOpen
               ? 'i-lucide-panel-right-close'
@@ -184,12 +194,12 @@ const closeMobileSidebar = () => {
         <div
           v-if="isContactSidebarOpen"
           id="contact-sidebar-content"
-          class="order-2 w-[85%] sm:w-[50%] flex flex-col bg-n-solid-2 ltr:border-l rtl:border-r border-n-weak shadow-lg"
+          class="order-2 w-[88%] sm:w-[390px] flex flex-col bg-[#060E14] ltr:border-l rtl:border-r border-[#132631] shadow-2xl pointer-events-auto"
         >
-          <div class="shrink-0">
+          <div class="shrink-0 border-b border-[#132631] bg-[#081218]">
             <slot name="sidebarHeader" />
           </div>
-          <div class="flex-1 min-h-0 overflow-y-auto pb-6 pt-3">
+          <div class="flex-1 min-h-0 overflow-y-auto pb-6 pt-4">
             <slot name="sidebar" />
           </div>
         </div>

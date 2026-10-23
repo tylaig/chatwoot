@@ -14,7 +14,7 @@ class ApplicationMailer < ActionMailer::Base
     self.installation_branded_actions = actions.presence || :all
   end
 
-  default from: ENV.fetch('MAILER_SENDER_EMAIL', 'Chatwoot <accounts@chatwoot.com>')
+  default from: ENV.fetch('MAILER_SENDER_EMAIL', 'Meu Super Chat <contato@meusuper.app>')
   around_action :with_isolated_current
   around_action :switch_locale
   layout 'mailer/base'

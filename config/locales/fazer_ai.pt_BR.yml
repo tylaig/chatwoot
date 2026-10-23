@@ -1,4 +1,4 @@
-# fazer.ai fork translations.
+# Meu Super Chat fork translations.
 #
 # Rails deep-merges every config/locales/*.yml, so these keys land on top of
 # upstream's <locale>.yml without touching it. Keys for our own features go
@@ -83,7 +83,7 @@ pt_BR:
           client_outdated: O conector do WhatsApp está desatualizado e não consegue mais conectar. Atualize-o para restabelecer a conexão.
           quarantined: Muitas tentativas de reconexão falharam seguidas. Novas tentativas continuam em intervalos crescentes.
           connector_unavailable: O conector do WhatsApp não está respondendo. As mensagens só voltarão a ser enviadas quando ele retornar.
-          connector_incompatible: A versão do conector do WhatsApp é incompatível com esta versão do Chatwoot. Atualize o conector.
+          connector_incompatible: A versão do conector do WhatsApp é incompatível com esta versão do Meu Super Chat. Atualize o conector.
           connect_failure: O WhatsApp recusou a conexão. Novas tentativas continuam automaticamente.
           pairing_timed_out: O código expirou antes de o telefone concluir o pareamento. Inicie a conexão novamente para obter um novo.
           pairing_pair_error: O WhatsApp aceitou o código mas não concluiu a conexão do dispositivo. Inicie a conexão novamente.

@@ -155,7 +155,18 @@ const hasNoUsedAttributes = computed(() => usedAttributes.value.length === 0);
       </div>
     </div>
   </div>
-  <p v-else class="px-6 py-10 text-sm leading-6 text-center text-n-slate-11">
-    {{ t('CONTACTS_LAYOUT.SIDEBAR.ATTRIBUTES.EMPTY_STATE') }}
-  </p>
+  <div v-else class="px-6 py-4">
+    <div
+      class="border border-[#132631] bg-[#081218] rounded-xl p-7 flex flex-col items-center text-center shadow-[0_4px_20px_rgba(0,0,0,0.25)]"
+    >
+      <div
+        class="w-14 h-14 rounded-full border border-dashed border-[#1E3545] bg-[#050C10] flex items-center justify-center mb-4 text-[#10B981]"
+      >
+        <span class="i-lucide-file-sliders size-6" />
+      </div>
+      <p class="text-sm leading-relaxed text-slate-300 max-w-[270px]">
+        {{ t('CONTACTS_LAYOUT.SIDEBAR.ATTRIBUTES.EMPTY_STATE') }}
+      </p>
+    </div>
+  </div>
 </template>

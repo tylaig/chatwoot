@@ -238,7 +238,7 @@ const removeAttachment = index => {
         {{
           isUploading
             ? 'Enviando para o armazenamento...'
-            : 'Foto, vídeo, áudio e arquivo ficam no armazenamento do Chatwoot. Até 16 MB cada.'
+            : 'Foto, vídeo, áudio e arquivo ficam no armazenamento do Meu Super Chat. Até 16 MB cada.'
         }}
       </p>
     </div>

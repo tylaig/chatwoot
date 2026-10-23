@@ -71,20 +71,20 @@ const pageInfo = computed(() => {
 
 <template>
   <div
-    class="flex justify-between h-[3.375rem] w-full border-t border-n-weak mx-auto bg-n-surface-1 py-3 px-6 items-center before:absolute before:inset-x-0 before:-top-4 before:bg-gradient-to-t before:from-n-surface-1 before:from-0% before:to-transparent before:h-4 before:pointer-events-none"
+    class="relative flex justify-between h-[3.25rem] w-full mx-auto py-2.5 pl-14 pr-16 lg:px-6 items-center"
   >
-    <div class="flex items-center gap-3">
-      <span class="min-w-0 text-body-main line-clamp-1 text-n-slate-11">
+    <div class="flex items-center gap-3 min-w-0">
+      <span class="min-w-0 text-xs sm:text-sm font-medium line-clamp-1 text-slate-300">
         {{ currentPageInformation }}
       </span>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-1.5 sm:gap-2">
       <Button
         icon="i-lucide-chevrons-left"
         variant="ghost"
         size="sm"
         color="slate"
-        class="!w-8 !h-6"
+        class="!w-7 !h-7 !bg-[#081218] !border !border-[#1A303D] hover:!border-[#10B981]/50 rounded-md"
         :disabled="isFirstPage"
         @click="changePage(1)"
       />
@@ -93,17 +93,17 @@ const pageInfo = computed(() => {
         variant="ghost"
         color="slate"
         size="sm"
-        class="!w-8 !h-6"
+        class="!w-7 !h-7 !bg-[#081218] !border !border-[#1A303D] hover:!border-[#10B981]/50 rounded-md"
         :disabled="isFirstPage"
         @click="changePage(currentPage - 1)"
       />
-      <div class="inline-flex items-center gap-2 text-sm">
+      <div class="inline-flex items-center gap-2 text-xs sm:text-sm">
         <span
-          class="px-3 tabular-nums py-0.5 font-420 bg-n-input-background text-body-main text-n-slate-12 rounded-md"
+          class="px-2.5 tabular-nums py-0.5 font-semibold bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 rounded-md"
         >
           {{ formatFullNumber(currentPage) }}
         </span>
-        <span class="truncate text-body-main text-n-slate-11">
+        <span class="truncate text-slate-400">
           {{ pageInfo }}
         </span>
       </div>
@@ -112,7 +112,7 @@ const pageInfo = computed(() => {
         variant="ghost"
         color="slate"
         size="sm"
-        class="!w-8 !h-6"
+        class="!w-7 !h-7 !bg-[#081218] !border !border-[#1A303D] hover:!border-[#10B981]/50 rounded-md"
         :disabled="isLastPage"
         @click="changePage(currentPage + 1)"
       />
@@ -121,7 +121,7 @@ const pageInfo = computed(() => {
         variant="ghost"
         color="slate"
         size="sm"
-        class="!w-8 !h-6"
+        class="!w-7 !h-7 !bg-[#081218] !border !border-[#1A303D] hover:!border-[#10B981]/50 rounded-md"
         :disabled="isLastPage"
         @click="changePage(totalPages)"
       />

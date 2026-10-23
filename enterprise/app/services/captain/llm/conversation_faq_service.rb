@@ -63,7 +63,7 @@ class Captain::Llm::ConversationFaqService < Llm::BaseAiService
   end
 
   def likely_matches(relation, embedding)
-    return [] unless relation.exists?
+    return [] if embedding.blank? || !relation.exists?
 
     ApplicationRecord.transaction do
       # Force an exact search because IVFFlat can miss matches after relation filters.

@@ -48,8 +48,8 @@ help_center:
   enabled: true
   icon: 'icon-book-2-line'
 captain:
-  name: 'Captain'
-  description: 'Enable AI-powered conversations with your customers.'
+  name: 'Meu Super App Gateway & IA'
+  description: 'Configure a Base URL, modelo padrão e chave global do Meu Super App Gateway.'
   enabled: true
   icon: 'icon-captain'
   config_key: 'captain'

@@ -182,17 +182,17 @@ const issuesByNode = computed(() => {
 
 const minimapNodes = computed(() => {
   if (!nodes.value.length) return [];
-  const xs = nodes.value.map(node => node.position.x);
-  const ys = nodes.value.map(node => node.position.y);
+  const xs = nodes.value.map(node => node.position?.x || 0);
+  const ys = nodes.value.map(node => node.position?.y || 0);
   const minX = Math.min(...xs);
   const minY = Math.min(...ys);
-  const spanX = Math.max(Math.max(...xs) - minX, 1);
-  const spanY = Math.max(Math.max(...ys) - minY, 1);
+  const spanX = Math.max(...xs) - minX;
+  const spanY = Math.max(...ys) - minY;
 
   return nodes.value.map(node => ({
     id: node.id,
-    left: `${((node.position.x - minX) / spanX) * 72 + 8}%`,
-    top: `${((node.position.y - minY) / spanY) * 64 + 12}%`,
+    left: spanX > 10 ? `${((node.position.x - minX) / spanX) * 72 + 8}%` : '42%',
+    top: spanY > 10 ? `${((node.position.y - minY) / spanY) * 64 + 12}%` : '40%',
     color: getCategoryStyle(node.data?.type).hex,
     active: node.id === selectedNodeId.value,
   }));
@@ -205,7 +205,10 @@ const edgeColor = (sourceId, handleId) => {
   const output = getNodeOutputs(source.data?.type, source.data?.config).find(
     item => item.id === handleId
   );
-  return output ? getOutputColor(output) : OUTPUT_COLORS.default;
+  if (output && (output.color || output.type !== 'default')) {
+    return getOutputColor(output);
+  }
+  return getCategoryStyle(source.data?.type)?.hex || OUTPUT_COLORS.default;
 };
 
 const toFlowNode = raw => {
@@ -241,7 +244,7 @@ const toFlowEdge = raw => ({
   source: raw.source,
   target: raw.target,
   sourceHandle: raw.sourceHandle || 'output',
-  targetHandle: raw.targetHandle || null,
+  targetHandle: raw.targetHandle || 'input',
   type: 'workflow',
 });
 
@@ -422,7 +425,7 @@ const connect = ({ source, sourceHandle, target, targetHandle }) => {
       source,
       sourceHandle: handle,
       target,
-      targetHandle: targetHandle || null,
+      targetHandle: targetHandle || 'input',
       type: 'workflow',
       style: { stroke: edgeColor(source, handle) },
     },
@@ -956,26 +959,26 @@ const saveLabel = computed(
     class="flex flex-col flex-1 w-full h-full min-w-0 bg-n-background text-n-slate-12 overflow-hidden"
   >
     <header
-      class="h-16 px-4 border-b border-n-weak bg-n-solid-1 flex items-center justify-between gap-4 z-20 shrink-0"
+      class="min-h-[4rem] py-2 px-3 sm:px-4 border-b border-emerald-500/20 bg-[#070E13]/95 backdrop-blur-md flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-4 z-20 shrink-0"
     >
-      <div class="flex items-center gap-3 min-w-0">
+      <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
         <button
           type="button"
-          class="flex items-center justify-center size-8 rounded-lg text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2"
+          class="flex items-center justify-center size-8 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 shrink-0"
           title="Voltar para workflows"
           @click="router.push({ name: 'workflows_index' })"
         >
           <span class="i-lucide-arrow-left size-4" />
         </button>
 
-        <div class="min-w-0">
+        <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2 min-w-0">
             <input
               v-if="editingName"
               ref="nameInput"
               v-model="nameDraft"
               type="text"
-              class="reset-base h-7 m-0 px-2 text-sm font-semibold rounded-md bg-n-alpha-black2 border-0 outline outline-1 outline-n-brand text-n-slate-12"
+              class="reset-base h-7 m-0 px-2 text-sm font-semibold rounded-md bg-[#0A1319] border border-emerald-500/50 text-white"
               @keydown.enter="saveName"
               @keydown.esc="editingName = false"
               @blur="saveName"
@@ -983,17 +986,17 @@ const saveLabel = computed(
             <button
               v-else
               type="button"
-              class="group flex items-center gap-1.5 min-w-0 text-sm font-semibold text-n-slate-12 truncate"
+              class="group flex items-center gap-1.5 min-w-0 text-sm font-bold text-white truncate"
               title="Renomear"
               @click="startRename"
             >
               <span class="truncate">{{ workflow?.name || 'Workflow' }}</span>
               <span
-                class="i-lucide-pencil size-3 text-n-slate-10 opacity-0 group-hover:opacity-100"
+                class="i-lucide-pencil size-3 text-slate-400 opacity-0 group-hover:opacity-100 shrink-0"
               />
             </button>
             <span
-              class="shrink-0 px-2 py-0.5 rounded-md text-[0.6875rem] font-semibold"
+              class="shrink-0 px-2 py-0.5 rounded-full text-[0.6875rem] font-semibold whitespace-nowrap"
               :class="statusMeta.classes"
             >
               {{ statusMeta.label }}
@@ -1002,18 +1005,18 @@ const saveLabel = computed(
               </template>
             </span>
           </div>
-          <div class="flex items-center gap-3 mt-0.5 text-[0.6875rem]">
+          <div class="hidden lg:flex items-center gap-3 mt-0.5 text-[0.6875rem] whitespace-nowrap">
             <span
               class="flex items-center gap-1"
               :class="
-                saveState === 'error' ? 'text-n-ruby-11' : 'text-n-slate-10'
+                saveState === 'error' ? 'text-rose-400' : 'text-slate-400'
               "
             >
               <span
                 class="size-3"
                 :class="{
                   'i-lucide-loader-circle animate-spin': saveState === 'saving',
-                  'i-lucide-circle-check': saveState === 'saved',
+                  'i-lucide-circle-check text-emerald-400': saveState === 'saved',
                   'i-lucide-circle-alert': saveState === 'error',
                   'i-lucide-pencil': saveState === 'pending',
                 }"
@@ -1022,27 +1025,27 @@ const saveLabel = computed(
             </span>
             <span
               v-if="hasUnpublishedChanges"
-              class="flex items-center gap-1 text-n-amber-11 font-medium"
+              class="flex items-center gap-1 text-amber-400 font-medium"
             >
-              <span class="size-1.5 rounded-full bg-n-amber-9" />
+              <span class="size-1.5 rounded-full bg-amber-400" />
               Alterações não publicadas
             </span>
             <span
               v-else
-              class="flex items-center gap-1 text-green-600 dark:text-green-400"
+              class="flex items-center gap-1 text-emerald-400 font-medium"
             >
-              <span class="size-1.5 rounded-full bg-green-500" />
+              <span class="size-1.5 rounded-full bg-emerald-400" />
               Tudo publicado
             </span>
           </div>
         </div>
       </div>
 
-      <div class="flex items-center gap-2 shrink-0">
-        <div class="flex items-center p-0.5 rounded-lg border border-n-weak">
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div class="hidden lg:flex items-center p-0.5 rounded-xl bg-[#0A1319] border border-white/10">
           <button
             type="button"
-            class="flex items-center justify-center size-8 rounded-md text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 disabled:opacity-40 disabled:hover:bg-transparent"
+            class="flex items-center justify-center size-8 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 disabled:opacity-35 disabled:hover:bg-transparent"
             :disabled="!undoStack.length"
             title="Desfazer (Ctrl+Z)"
             @click="undo"
@@ -1051,7 +1054,7 @@ const saveLabel = computed(
           </button>
           <button
             type="button"
-            class="flex items-center justify-center size-8 rounded-md text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 disabled:opacity-40 disabled:hover:bg-transparent"
+            class="flex items-center justify-center size-8 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 disabled:opacity-35 disabled:hover:bg-transparent"
             :disabled="!redoStack.length"
             title="Refazer (Ctrl+Y)"
             @click="redo"
@@ -1063,36 +1066,39 @@ const saveLabel = computed(
         <button
           v-if="issues.length"
           type="button"
-          class="h-9 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-n-ruby-9/10 text-n-ruby-11 hover:bg-n-ruby-9/20"
+          class="h-9 px-2.5 sm:px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-rose-500/15 text-rose-300 border border-rose-500/35 hover:bg-rose-500/25"
           @click="showIssues = !showIssues"
         >
           <span class="i-lucide-circle-alert size-4" />
-          {{ issues.length }}
-          {{ issues.length === 1 ? 'problema' : 'problemas' }}
+          <span class="hidden sm:inline">
+            {{ issues.length }}
+            {{ issues.length === 1 ? 'problema' : 'problemas' }}
+          </span>
+          <span class="sm:hidden">{{ issues.length }}</span>
         </button>
 
         <button
           type="button"
-          class="h-9 px-3 rounded-lg border border-n-weak text-xs font-medium text-n-slate-12 hover:bg-n-alpha-2 flex items-center gap-1.5"
-          :class="testOpen ? 'bg-n-alpha-2' : ''"
+          class="h-9 px-2.5 sm:px-3 rounded-xl bg-[#0A1319] border border-white/10 text-xs font-semibold text-slate-200 hover:border-emerald-500/40 hover:text-emerald-300 flex items-center gap-1.5 transition-all"
+          :class="testOpen ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300' : ''"
           @click="testOpen ? closeTest() : openTest()"
         >
-          <span class="i-lucide-message-circle size-4 text-n-slate-11" />
-          Testar
+          <span class="i-lucide-message-circle size-4 text-emerald-400" />
+          <span class="hidden sm:inline">Testar</span>
         </button>
 
         <button
           type="button"
-          class="h-9 px-3 rounded-lg border border-n-weak text-xs font-medium text-n-slate-12 hover:bg-n-alpha-2 flex items-center gap-1.5"
+          class="hidden sm:flex h-9 px-3 rounded-xl bg-[#0A1319] border border-white/10 text-xs font-semibold text-slate-200 hover:border-emerald-500/40 hover:text-emerald-300 items-center gap-1.5 transition-all"
           @click="goToExecutions"
         >
-          <span class="i-lucide-chart-column size-4 text-n-slate-11" />
+          <span class="i-lucide-chart-column size-4 text-emerald-400" />
           Execuções
         </button>
 
         <button
           type="button"
-          class="h-9 px-4 rounded-lg bg-n-brand text-white text-xs font-semibold shadow-sm hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
+          class="msc-cta-emerald h-9 px-3 sm:px-4 rounded-xl bg-emerald-500 text-[#03120D] text-xs font-bold shadow-lg flex items-center gap-1.5 whitespace-nowrap"
           :disabled="
             isPublishing ||
             (!hasUnpublishedChanges && workflow?.status !== 'draft')
@@ -1194,7 +1200,10 @@ const saveLabel = computed(
     </header>
 
     <div class="flex flex-1 min-h-0 overflow-hidden relative">
-      <div ref="canvasRef" class="flex-1 h-full relative bg-n-background">
+      <div
+        ref="canvasRef"
+        class="msc-workflow-canvas flex-1 h-full relative bg-[#04090D]"
+      >
         <VueFlow
           v-model:nodes="nodes"
           v-model:edges="edges"
@@ -1206,7 +1215,7 @@ const saveLabel = computed(
           fit-view-on-init
           class="h-full w-full"
         >
-          <Background pattern-color="#94A3B8" :gap="20" :size="1.2" />
+          <Background pattern-color="#10B981" :gap="22" :size="1.25" />
 
           <template #node-custom="{ id, data }">
             <WorkflowNodeCard
@@ -1227,11 +1236,11 @@ const saveLabel = computed(
 
         <button
           type="button"
-          class="absolute end-6 top-6 z-20 h-11 ps-3 pe-4 rounded-xl bg-n-brand text-white text-sm font-semibold shadow-lg shadow-n-brand/30 hover:opacity-90 flex items-center gap-2 transition-all"
+          class="msc-cta-emerald absolute end-6 top-6 z-20 h-11 ps-3 pe-4 rounded-xl bg-emerald-500 text-[#03120D] text-sm font-bold shadow-lg flex items-center gap-2 transition-all"
           @click="openAddBlock"
         >
           <span
-            class="flex items-center justify-center size-6 rounded-lg bg-white/20"
+            class="flex items-center justify-center size-6 rounded-lg bg-[#041A13]/25 text-[#03120D]"
           >
             <span
               class="size-4"
@@ -1251,20 +1260,20 @@ const saveLabel = computed(
 
         <div
           v-if="showIssues && issues.length"
-          class="absolute start-6 top-6 z-30 w-80 max-h-[60%] flex flex-col rounded-2xl bg-n-solid-1 border border-n-weak shadow-2xl overflow-hidden"
+          class="absolute start-6 top-6 z-30 w-80 max-h-[60%] flex flex-col rounded-2xl bg-[#0A1319]/95 backdrop-blur-md border border-rose-500/35 shadow-2xl overflow-hidden"
         >
           <div
-            class="px-4 py-3 border-b border-n-weak flex items-center justify-between"
+            class="px-4 py-3 border-b border-white/10 flex items-center justify-between"
           >
             <p
-              class="flex items-center gap-1.5 text-sm font-semibold text-n-slate-12"
+              class="flex items-center gap-1.5 text-sm font-semibold text-white"
             >
-              <span class="i-lucide-circle-alert size-4 text-n-ruby-9" />
+              <span class="i-lucide-circle-alert size-4 text-rose-400" />
               Revisar antes de publicar
             </p>
             <button
               type="button"
-              class="flex items-center justify-center size-7 rounded-lg text-n-slate-11 hover:bg-n-alpha-2"
+              class="flex items-center justify-center size-7 rounded-lg text-slate-400 hover:bg-white/10"
               title="Fechar"
               @click="showIssues = false"
             >
@@ -1276,43 +1285,43 @@ const saveLabel = computed(
               v-for="(issue, index) in issues"
               :key="index"
               type="button"
-              class="w-full flex items-start gap-2 p-2 rounded-lg text-start hover:bg-n-alpha-2"
+              class="w-full flex items-start gap-2 p-2 rounded-lg text-start hover:bg-white/[0.06]"
               @click="focusNode(issue.nodeId)"
             >
               <span
-                class="i-lucide-triangle-alert size-3.5 mt-0.5 shrink-0 text-n-ruby-9"
+                class="i-lucide-triangle-alert size-3.5 mt-0.5 shrink-0 text-rose-400"
               />
-              <span class="text-xs text-n-slate-12">{{ issue.message }}</span>
+              <span class="text-xs text-slate-200">{{ issue.message }}</span>
             </button>
           </div>
         </div>
 
         <div
-          class="absolute start-6 bottom-6 z-10 flex items-center gap-0.5 p-1 bg-n-solid-1 border border-n-weak rounded-xl shadow-lg"
+          class="msc-builder-controls absolute start-16 sm:start-6 bottom-6 z-10 flex items-center gap-1 p-1.5 bg-[#0A1319]/90 backdrop-blur-md border border-emerald-500/25 rounded-xl shadow-2xl"
         >
           <button
             type="button"
-            class="flex items-center justify-center size-8 rounded-lg text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2"
+            class="flex items-center justify-center size-8 rounded-lg text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/15 transition-colors"
             title="Diminuir zoom"
             @click="zoomOut"
           >
             <span class="i-lucide-zoom-out size-4" />
           </button>
-          <span class="w-12 text-center text-xs font-mono text-n-slate-12">{{
+          <span class="w-12 text-center text-xs font-mono font-semibold text-emerald-300">{{
             zoomPercent
           }}</span>
           <button
             type="button"
-            class="flex items-center justify-center size-8 rounded-lg text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2"
+            class="flex items-center justify-center size-8 rounded-lg text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/15 transition-colors"
             title="Aumentar zoom"
             @click="zoomIn"
           >
             <span class="i-lucide-zoom-in size-4" />
           </button>
-          <div class="w-px h-5 bg-n-weak mx-0.5" />
+          <div class="w-px h-5 bg-emerald-500/20 mx-0.5" />
           <button
             type="button"
-            class="flex items-center justify-center size-8 rounded-lg text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2"
+            class="flex items-center justify-center size-8 rounded-lg text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/15 transition-colors"
             title="Enquadrar fluxo"
             @click="fitView({ padding: 0.25, maxZoom: 1, duration: 300 })"
           >
@@ -1321,18 +1330,21 @@ const saveLabel = computed(
         </div>
 
         <div
-          class="absolute end-6 bottom-6 z-10 w-40 h-24 rounded-xl bg-n-solid-1 border border-n-weak shadow-lg pointer-events-none overflow-hidden p-2"
+          class="msc-builder-minimap hidden sm:block absolute end-6 bottom-6 z-10 w-44 h-28 rounded-xl bg-[#0A1319]/90 backdrop-blur-md border border-emerald-500/30 shadow-2xl pointer-events-none overflow-hidden p-2.5"
         >
-          <div class="relative w-full h-full">
+          <div
+            class="relative w-full h-full rounded-lg border border-emerald-500/15 bg-[#050B0E]/80"
+          >
             <span
               v-for="item in minimapNodes"
               :key="item.id"
-              class="absolute w-4 h-2.5 rounded-sm"
-              :class="item.active ? 'ring-2 ring-n-brand' : ''"
+              class="absolute w-5 h-3 rounded-[4px] transition-all"
+              :class="item.active ? 'ring-2 ring-white scale-110' : ''"
               :style="{
                 left: item.left,
                 top: item.top,
                 backgroundColor: item.color,
+                boxShadow: `0 0 8px ${item.color}`,
               }"
             />
           </div>

@@ -34,25 +34,60 @@ const { t } = useI18n();
 const { currentAccount, isCloudFeatureEnabled } = useAccount();
 
 const FORM_CONFIG = {
-  FIRST_NAME: { field: 'firstName' },
-  LAST_NAME: { field: 'lastName' },
-  EMAIL_ADDRESS: { field: 'email' },
-  PHONE_NUMBER: { field: 'phoneNumber' },
-  CITY: { field: 'additionalAttributes.city' },
-  COUNTRY: { field: 'additionalAttributes.countryCode' },
-  BIO: { field: 'additionalAttributes.description' },
-  COMPANY_NAME: { field: 'additionalAttributes.companyName' },
+  FIRST_NAME: { field: 'firstName', label: 'Primeiro nome', required: true },
+  LAST_NAME: { field: 'lastName', label: 'Sobrenome' },
+  EMAIL_ADDRESS: { field: 'email', label: 'E-mail' },
+  PHONE_NUMBER: { field: 'phoneNumber', label: 'Telefone' },
+  CITY: { field: 'additionalAttributes.city', label: 'Cidade' },
+  COUNTRY: { field: 'additionalAttributes.countryCode', label: 'País' },
+  BIO: { field: 'additionalAttributes.description', label: 'Biografia / Cargo' },
+  COMPANY_NAME: {
+    field: 'additionalAttributes.companyName',
+    label: 'Empresa',
+  },
 };
 
 const SOCIAL_CONFIG = {
-  LINKEDIN: 'i-ri-linkedin-box-fill',
-  FACEBOOK: 'i-ri-facebook-circle-fill',
-  INSTAGRAM: 'i-ri-instagram-line',
-  WHATSAPP: 'i-ri-whatsapp-line',
-  TELEGRAM: 'i-ri-telegram-fill',
-  TIKTOK: 'i-ri-tiktok-fill',
-  TWITTER: 'i-ri-twitter-x-fill',
-  GITHUB: 'i-ri-github-fill',
+  LINKEDIN: {
+    icon: 'i-ri-linkedin-box-fill',
+    label: 'LinkedIn',
+    badgeClass: 'bg-[#0A66C2]/20 text-[#3897F0] border-[#0A66C2]/40',
+  },
+  FACEBOOK: {
+    icon: 'i-ri-facebook-circle-fill',
+    label: 'Facebook',
+    badgeClass: 'bg-[#1877F2]/20 text-[#4599FF] border-[#1877F2]/40',
+  },
+  INSTAGRAM: {
+    icon: 'i-ri-instagram-line',
+    label: 'Instagram',
+    badgeClass: 'bg-[#E1306C]/20 text-[#F472B6] border-[#E1306C]/40',
+  },
+  WHATSAPP: {
+    icon: 'i-ri-whatsapp-line',
+    label: 'WhatsApp',
+    badgeClass: 'bg-[#10B981]/20 text-[#34D399] border-[#10B981]/40',
+  },
+  TELEGRAM: {
+    icon: 'i-ri-telegram-fill',
+    label: 'Telegram',
+    badgeClass: 'bg-[#229ED9]/20 text-[#38BDF8] border-[#229ED9]/40',
+  },
+  TIKTOK: {
+    icon: 'i-ri-tiktok-fill',
+    label: 'TikTok',
+    badgeClass: 'bg-slate-700/40 text-slate-200 border-slate-600/50',
+  },
+  TWITTER: {
+    icon: 'i-ri-twitter-x-fill',
+    label: 'X (Twitter)',
+    badgeClass: 'bg-slate-700/40 text-slate-200 border-slate-600/50',
+  },
+  GITHUB: {
+    icon: 'i-ri-github-fill',
+    label: 'Github',
+    badgeClass: 'bg-slate-700/40 text-slate-200 border-slate-600/50',
+  },
 };
 
 const defaultState = {
@@ -170,8 +205,10 @@ const countryOptions = computed(() =>
 );
 
 const editDetailsForm = computed(() =>
-  Object.keys(FORM_CONFIG).map(key => ({
+  Object.entries(FORM_CONFIG).map(([key, config]) => ({
     key,
+    label: config.label,
+    required: Boolean(config.required),
     placeholder: t(
       `CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.FORM.${key}.PLACEHOLDER`
     ),
@@ -179,10 +216,12 @@ const editDetailsForm = computed(() =>
 );
 
 const socialProfilesForm = computed(() =>
-  Object.entries(SOCIAL_CONFIG).map(([key, icon]) => ({
+  Object.entries(SOCIAL_CONFIG).map(([key, meta]) => ({
     key,
+    label: meta.label,
+    icon: meta.icon,
+    badgeClass: meta.badgeClass,
     placeholder: t(`CONTACTS_LAYOUT.CARD.SOCIAL_MEDIA.FORM.${key}.PLACEHOLDER`),
-    icon,
   }))
 );
 
@@ -291,31 +330,42 @@ defineExpose({
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
-    <div class="flex flex-col items-start gap-2">
-      <span class="py-1 text-sm font-medium text-n-slate-12">
-        {{ t('CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.TITLE') }}
-      </span>
-      <div class="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
-        <template v-for="item in editDetailsForm" :key="item.key">
+  <div class="flex flex-col gap-6 w-full">
+    <div class="flex flex-col items-start gap-4 w-full">
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center gap-2">
+          <span class="i-lucide-user-cog size-4 text-[#10B981]" />
+          <span class="text-base font-semibold text-white">
+            {{ t('CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.TITLE') }}
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 pl-6 mb-0">
+          Atualize as informações básicas e comerciais do contato.
+        </p>
+      </div>
+      <div class="grid w-full grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+        <div
+          v-for="item in editDetailsForm"
+          :key="item.key"
+          class="flex flex-col gap-1.5 min-w-0"
+        >
+          <label class="text-[13px] font-medium text-slate-300">
+            {{ item.label }}
+            <span v-if="item.required" class="text-red-500">*</span>
+          </label>
           <ComboBox
             v-if="item.key === 'COUNTRY'"
             v-model="state.additionalAttributes.countryCode"
             :options="countryOptions"
             :placeholder="item.placeholder"
-            class="[&>div>button]:h-8"
-            :class="{
-              '[&>div>button]:bg-n-alpha-black2 [&>div>button:not(.focused)]:!outline-transparent':
-                !isDetailsView,
-              '[&>div>button]:!bg-n-alpha-black2': isDetailsView,
-            }"
+            class="[&>div>button]:!h-10 [&>div>button]:!bg-[#050C10] [&>div>button]:!outline-[#1A303D] [&>div>button:hover]:!outline-[#10B981]/50"
             @update:model-value="handleCountrySelection"
           />
           <PhoneNumberInput
             v-else-if="item.key === 'PHONE_NUMBER'"
             v-model="getFormBinding(item.key).value"
             :placeholder="item.placeholder"
-            :show-border="isDetailsView"
+            show-border
           />
           <CompanySelector
             v-else-if="item.key === 'COMPANY_NAME' && showCompanySelector"
@@ -329,11 +379,7 @@ defineExpose({
             v-model="getFormBinding(item.key).value"
             :placeholder="item.placeholder"
             :message-type="getMessageType(item.key)"
-            :custom-input-class="`h-8 !pt-1 !pb-1 ${
-              !isDetailsView
-                ? '[&:not(.error,.focus)]:!outline-transparent'
-                : ''
-            }`"
+            custom-input-class="!h-10 !pt-1 !pb-1 !bg-[#050C10] !outline-[#1A303D] focus:!outline-[#10B981] !text-white"
             class="w-full"
             @input="
               isValidationField(item.key) &&
@@ -344,34 +390,47 @@ defineExpose({
                 v$[getValidationKey(item.key)].$touch()
             "
           />
-        </template>
+        </div>
       </div>
     </div>
-    <div class="flex flex-col items-start gap-2">
-      <span class="py-1 text-sm font-medium text-n-slate-12">
-        {{ t('CONTACTS_LAYOUT.CARD.SOCIAL_MEDIA.TITLE') }}
-      </span>
-      <div class="flex flex-wrap gap-2">
+
+    <hr class="border-[#132631] w-full my-0" />
+
+    <div class="flex flex-col items-start gap-4 w-full">
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center gap-2">
+          <span class="i-lucide-share-2 size-4 text-[#10B981]" />
+          <span class="text-base font-semibold text-white">
+            {{ t('CONTACTS_LAYOUT.CARD.SOCIAL_MEDIA.TITLE') }}
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 pl-6 mb-0">
+          Adicione ou atualize os perfis de redes sociais do contato.
+        </p>
+      </div>
+      <div class="grid w-full grid-cols-1 gap-x-6 gap-y-3 xl:grid-cols-2">
         <div
           v-for="item in socialProfilesForm"
           :key="item.key"
-          class="flex items-center h-8 gap-2 px-2 rounded-lg"
-          :class="{
-            'bg-n-alpha-2 dark:bg-n-solid-2': isDetailsView,
-            'bg-n-alpha-2 dark:bg-n-solid-3': !isDetailsView,
-          }"
+          class="flex items-center gap-2.5 min-w-0"
         >
-          <Icon
-            :icon="item.icon"
-            class="flex-shrink-0 text-n-slate-11 size-4"
-          />
+          <div class="w-[112px] flex items-center gap-2 shrink-0">
+            <span
+              class="w-7 h-7 rounded-md border flex items-center justify-center shrink-0"
+              :class="item.badgeClass"
+            >
+              <Icon :icon="item.icon" class="size-4" />
+            </span>
+            <span class="text-[13px] font-medium text-slate-200 truncate">
+              {{ item.label }}
+            </span>
+          </div>
           <input
             v-model="
               state.additionalAttributes.socialProfiles[item.key.toLowerCase()]
             "
-            class="w-auto min-w-[100px] text-sm bg-transparent outline-none reset-base text-n-slate-12 dark:text-n-slate-12 placeholder:text-n-slate-10 dark:placeholder:text-n-slate-10"
+            class="flex-1 min-w-0 h-10 px-3 text-sm rounded-lg bg-[#050C10] border border-[#1A303D] focus:border-[#10B981] outline-none reset-base text-white placeholder:text-slate-500 transition-colors"
             :placeholder="item.placeholder"
-            :size="item.placeholder.length"
             @input="handleSocialProfileInput(item)"
           />
         </div>

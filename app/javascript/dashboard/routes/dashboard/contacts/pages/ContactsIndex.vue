@@ -501,7 +501,7 @@ onMounted(async () => {
 
 <template>
   <div
-    class="flex flex-col justify-between flex-1 h-full m-0 overflow-auto bg-n-surface-1"
+    class="flex flex-col justify-between flex-1 h-full m-0 overflow-hidden bg-[#04090D]"
   >
     <ContactsListLayout
       :search-value="searchValue"
@@ -565,7 +565,7 @@ onMounted(async () => {
           </span>
         </div>
 
-        <div v-else class="flex flex-col gap-4 pt-4 pb-6">
+        <div v-else class="flex flex-col gap-3 pt-4 pb-10">
           <ContactsList
             :contacts="contacts"
             :selected-contact-ids="selectedContactIds"

@@ -8,6 +8,22 @@ import {
   formatDistanceToNow,
   differenceInDays,
 } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+const getActiveDateFnsLocale = () => {
+  const htmlLang =
+    typeof document !== 'undefined' ? document.documentElement?.lang || '' : '';
+  const selectedLocale =
+    window?.chatwootConfig?.selectedLocale || htmlLang || 'pt_BR';
+  if (
+    String(selectedLocale)
+      .toLowerCase()
+      .startsWith('pt')
+  ) {
+    return ptBR;
+  }
+  return undefined;
+};
 
 /**
  * Formats a Unix timestamp into a human-readable time format.
@@ -59,7 +75,11 @@ export const relativeDayTimestamp = (time, yesterdayLabel) => {
  */
 export const dynamicTime = time => {
   const unixTime = fromUnixTime(time);
-  return formatDistanceToNow(unixTime, { addSuffix: true });
+  const locale = getActiveDateFnsLocale();
+  return formatDistanceToNow(unixTime, {
+    addSuffix: true,
+    ...(locale ? { locale } : {}),
+  });
 };
 
 /**

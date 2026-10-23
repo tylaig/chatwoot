@@ -143,12 +143,12 @@ onBeforeUnmount(() => window.removeEventListener('resize', keepInside));
   <div
     v-if="show"
     ref="panelRef"
-    class="absolute z-30 w-[26rem] h-[36rem] max-h-[calc(100%-1rem)] rounded-2xl bg-n-solid-1 border border-n-weak shadow-2xl overflow-hidden flex flex-col text-n-slate-12"
+    class="msc-node-selector-modal absolute z-30 w-[26rem] h-[36rem] max-h-[calc(100%-1rem)] rounded-2xl bg-[#0A1319]/95 backdrop-blur-xl border border-emerald-500/30 shadow-2xl overflow-hidden flex flex-col text-white"
     :style="{ left: `${position.x}px`, top: `${position.y}px` }"
     @keydown.esc="emit('close')"
   >
     <div
-      class="px-4 py-3 border-b border-n-weak flex items-center justify-between cursor-grab active:cursor-grabbing touch-none"
+      class="px-4 py-3 border-b border-white/[0.08] bg-gradient-to-r from-emerald-500/10 to-transparent flex items-center justify-between cursor-grab active:cursor-grabbing touch-none"
       @pointerdown="startDragging"
       @pointermove="onPointerMove"
       @pointerup="stopDragging"
@@ -156,16 +156,16 @@ onBeforeUnmount(() => window.removeEventListener('resize', keepInside));
     >
       <div>
         <h3
-          class="text-sm font-semibold text-n-slate-12 flex items-center gap-1.5"
+          class="text-sm font-bold text-white flex items-center gap-1.5"
         >
-          <span class="i-lucide-grip-horizontal size-4 text-n-slate-9" />
-          Adicionar bloco
+          <span class="i-lucide-grip-horizontal size-4 text-emerald-400" />
+          Adicionar bloco ao fluxo
         </h3>
-        <p class="text-xs text-n-slate-11">Clique para inserir no fluxo</p>
+        <p class="text-xs text-slate-400">Clique para inserir um passo no construtor</p>
       </div>
       <button
         type="button"
-        class="flex items-center justify-center size-7 rounded-lg text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2"
+        class="flex items-center justify-center size-7 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
         title="Fechar"
         @click="emit('close')"
       >
@@ -173,17 +173,17 @@ onBeforeUnmount(() => window.removeEventListener('resize', keepInside));
       </button>
     </div>
 
-    <div class="p-3 border-b border-n-weak">
+    <div class="p-3 border-b border-white/[0.08]">
       <div class="relative">
         <span
-          class="i-lucide-search size-4 absolute start-3 top-1/2 -translate-y-1/2 text-n-slate-10"
+          class="i-lucide-search size-4 absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
         />
         <input
           ref="searchInput"
           v-model="searchQuery"
           type="text"
           placeholder="Buscar blocos…"
-          class="reset-base w-full h-9 ps-9 pe-3 text-sm rounded-lg bg-n-alpha-black2 border-0 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12 placeholder:text-n-slate-10"
+          class="msc-wf-search-input reset-base w-full h-9 ps-10 pe-3 text-sm rounded-xl bg-[#060C10] border border-white/10 focus:border-emerald-500/50 text-white placeholder:text-slate-500"
         />
       </div>
       <div class="flex flex-wrap gap-1.5 mt-3">
@@ -191,11 +191,11 @@ onBeforeUnmount(() => window.removeEventListener('resize', keepInside));
           v-for="cat in categories"
           :key="cat.id"
           type="button"
-          class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors"
+          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all border"
           :class="
             selectedCategory === cat.id
-              ? 'bg-n-brand text-white'
-              : 'bg-n-alpha-1 text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2'
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/45 shadow-sm'
+              : 'bg-[#070E13] text-slate-400 border-white/10 hover:text-white hover:border-emerald-500/30'
           "
           @click="selectedCategory = cat.id"
         >
@@ -205,38 +205,50 @@ onBeforeUnmount(() => window.removeEventListener('resize', keepInside));
       </div>
     </div>
 
-    <div class="flex-1 min-h-0 p-2 overflow-y-auto space-y-1">
+    <div class="flex-1 min-h-0 p-2 overflow-y-auto space-y-1.5">
       <button
         v-for="node in filteredNodes"
         :key="node.type"
         type="button"
-        class="w-full p-2.5 rounded-xl hover:bg-n-alpha-2 transition-colors flex items-center gap-3 text-start group"
+        class="w-full p-2.5 rounded-xl bg-[#070E13]/80 border border-white/[0.06] hover:border-emerald-500/35 hover:bg-emerald-500/[0.06] transition-all flex items-center gap-3 text-start group"
         @click="emit('select', node)"
       >
         <div
-          class="size-9 rounded-xl flex items-center justify-center shrink-0"
+          class="size-9 rounded-xl flex items-center justify-center shrink-0 border"
           :class="[
             CATEGORY_STYLES[node.category].soft,
             CATEGORY_STYLES[node.category].text,
           ]"
+          :style="{
+            borderColor: CATEGORY_STYLES[node.category].borderHex,
+            boxShadow: `0 0 12px -3px ${CATEGORY_STYLES[node.category].glow}`,
+          }"
         >
           <span class="size-5" :class="node.icon" />
         </div>
         <div class="min-w-0 flex-1">
-          <h4 class="text-sm font-medium text-n-slate-12 truncate">
-            {{ node.title }}
-          </h4>
-          <p class="text-xs text-n-slate-11 truncate">
+          <div class="flex items-center gap-2">
+            <h4 class="text-sm font-semibold text-white truncate">
+              {{ node.title }}
+            </h4>
+            <span
+              class="px-1.5 py-px rounded text-[10px] font-bold uppercase tracking-wider shrink-0"
+              :class="CATEGORY_STYLES[node.category].badge"
+            >
+              {{ node.badge }}
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 truncate mt-0.5">
             {{ node.subtitle }}
           </p>
         </div>
         <span
-          class="i-lucide-plus size-4 text-n-brand opacity-0 group-hover:opacity-100 transition-opacity"
+          class="i-lucide-plus size-4 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity"
         />
       </button>
       <p
         v-if="!filteredNodes.length"
-        class="px-3 py-8 text-center text-sm text-n-slate-11"
+        class="px-3 py-8 text-center text-sm text-slate-400"
       >
         Nenhum bloco encontrado.
       </p>

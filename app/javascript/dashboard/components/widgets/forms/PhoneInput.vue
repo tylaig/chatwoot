@@ -175,26 +175,27 @@ export default {
 <template>
   <div class="relative phone-input--wrap">
     <div
-      class="flex items-center justify-start border-none outline outline-1 rounded-lg bg-n-alpha-black2"
+      class="flex items-center justify-start h-10 border border-[#1A303D] focus-within:border-[#10B981] rounded-lg bg-[#0D1821] overflow-hidden transition-colors"
       :class="
         error
-          ? 'outline-n-ruby-8 dark:outline-n-ruby-8 hover:outline-n-ruby-9 dark:hover:outline-n-ruby-9 mb-1'
-          : 'mb-4 outline-n-weak dark:outline-n-weak hover:outline-n-slate-6 dark:hover:outline-n-slate-6'
+          ? '!border-red-500/80 mb-1'
+          : 'mb-0 hover:border-[#10B981]/50'
       "
     >
       <div
-        class="cursor-pointer py-2 pr-1.5 pl-2 rounded-tl-lg rounded-bl-lg flex items-center justify-center gap-1.5 bg-n-solid-3 h-10 w-14"
+        class="cursor-pointer px-2.5 flex items-center justify-center gap-1.5 bg-[#09131A] border-r border-[#1A303D] h-full shrink-0 select-none"
         @click.prevent="toggleCountryDropdown"
       >
-        <h5 v-if="activeCountry" class="mb-0">
-          {{ activeCountry.emoji }}
-        </h5>
+        <span
+          v-if="activeCountry?.id"
+          :class="`fi fi-${activeCountry.id.toLowerCase()} size-4 rounded-[2px] shrink-0`"
+        />
         <fluent-icon v-else icon="globe" class="fluent-icon" size="16" />
-        <fluent-icon icon="chevron-down" class="fluent-icon" size="12" />
+        <fluent-icon icon="chevron-down" class="fluent-icon text-slate-400" size="12" />
       </div>
       <span
         v-if="activeDialCode"
-        class="flex py-2 ltr:pl-2 rtl:pr-2 text-base font-normal leading-normal text-n-slate-12"
+        class="flex items-center h-full ltr:pl-2.5 rtl:pr-2.5 text-sm font-medium text-slate-300 shrink-0 select-none"
       >
         {{ activeDialCode }}
       </span>
@@ -202,7 +203,7 @@ export default {
         ref="phoneNumberInput"
         :value="phoneNumber"
         type="tel"
-        class="no-margin !rounded-tl-none !rounded-bl-none !outline-none !border-0 font-normal !w-full !bg-transparent text-base !px-1.5 placeholder:font-normal"
+        class="no-margin !h-full !mb-0 !rounded-none !outline-none !border-0 !shadow-none font-normal !w-full !bg-transparent text-sm text-white !px-2 placeholder:text-slate-500 focus:!border-0 focus:!shadow-none focus:!outline-none"
         :placeholder="placeholder"
         :readonly="readonly"
         :style="styles"
@@ -215,7 +216,7 @@ export default {
       ref="dropdown"
       v-on-clickaway="onOutsideClick"
       tabindex="0"
-      class="z-10 absolute h-60 w-[12.5rem] shadow-md overflow-y-auto top-10 rounded-lg px-0 pt-0 pb-1 bg-n-alpha-3 backdrop-blur-[100px]"
+      class="z-50 absolute h-60 w-56 shadow-2xl overflow-y-auto top-11 rounded-lg px-0 pt-0 pb-1 bg-[#081218] border border-[#1A303D]"
       @keydown.prevent.up="moveUp"
       @keydown.prevent.down="moveDown"
       @keydown.prevent.enter="
@@ -245,7 +246,10 @@ export default {
         }"
         @click="onSelectCountry(country)"
       >
-        <span class="mr-1 text-base">{{ country.emoji }}</span>
+        <span
+          v-if="country.id"
+          :class="`fi fi-${country.id.toLowerCase()} mr-2 size-3.5 rounded-[2px] shrink-0`"
+        />
 
         <span
           class="max-w-[7.5rem] overflow-hidden text-ellipsis whitespace-nowrap"

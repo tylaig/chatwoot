@@ -1,6 +1,6 @@
 class InternalChat::Limits
   def self.unlimited?
-    false
+    true
   end
 
   def self.polls_enabled?

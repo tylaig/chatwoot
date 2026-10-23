@@ -14,6 +14,10 @@ defineProps({
     type: String,
     default: '',
   },
+  lucideIcon: {
+    type: String,
+    default: '',
+  },
   emoji: {
     type: String,
     default: '',
@@ -32,30 +36,47 @@ const onToggle = () => {
 </script>
 
 <template>
-  <div class="text-sm">
+  <div class="text-sm msc-accordion-item">
     <button
-      class="flex items-center select-none w-full rounded-lg bg-n-slate-2 outline outline-1 outline-n-weak m-0 cursor-grab justify-between py-2 px-4 drag-handle"
-      :class="{ 'rounded-bl-none rounded-br-none': isOpen }"
+      class="flex items-center select-none w-full rounded-xl bg-[#0B1216]/95 border border-emerald-500/20 hover:border-emerald-500/40 m-0 cursor-grab justify-between py-2.5 px-3.5 drag-handle transition-all duration-200 group"
+      :class="{
+        'rounded-bl-none rounded-br-none border-emerald-500/30 bg-[#0D171D]':
+          isOpen,
+      }"
       @click.stop="onToggle"
     >
-      <div class="flex justify-between">
-        <EmojiOrIcon class="inline-block w-5" :icon="icon" :emoji="emoji" />
-        <h5 class="text-n-slate-12 text-sm mb-0 py-0 pr-2 pl-0">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span
+          v-if="lucideIcon"
+          :class="lucideIcon"
+          class="text-base text-emerald-400 flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
+        />
+        <EmojiOrIcon
+          v-else-if="icon || emoji"
+          class="inline-block w-5 text-emerald-400 flex-shrink-0"
+          :icon="icon"
+          :emoji="emoji"
+        />
+        <h5
+          class="text-slate-100 group-hover:text-white text-sm font-medium mb-0 py-0 pr-2 pl-0 truncate"
+        >
           {{ title }}
         </h5>
       </div>
-      <div class="flex flex-row">
+      <div class="flex flex-row items-center gap-1.5 flex-shrink-0">
         <slot name="button" />
-        <div class="flex justify-end w-3 text-n-blue-11 cursor-pointer">
-          <fluent-icon v-if="isOpen" size="24" icon="subtract" type="solid" />
-          <fluent-icon v-else size="24" icon="add" type="solid" />
+        <div
+          class="flex items-center justify-center w-5 h-5 text-emerald-400/90 group-hover:text-emerald-300 cursor-pointer transition-colors"
+        >
+          <fluent-icon v-if="isOpen" size="20" icon="subtract" type="solid" />
+          <fluent-icon v-else size="20" icon="add" type="solid" />
         </div>
       </div>
     </button>
     <div
       v-if="isOpen"
-      class="outline outline-1 outline-n-weak -mt-[-1px] border-t-0 rounded-br-lg rounded-bl-lg"
-      :class="compact ? 'p-0' : 'px-2 py-4'"
+      class="bg-[#091014]/90 border border-t-0 border-emerald-500/20 rounded-br-xl rounded-bl-xl"
+      :class="compact ? 'p-0' : 'px-3 py-3.5'"
     >
       <slot />
     </div>

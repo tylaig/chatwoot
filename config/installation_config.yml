@@ -191,17 +191,19 @@
 
 # MARK: Captain Config
 - name: CAPTAIN_OPEN_AI_API_KEY
-  display_title: 'OpenAI API Key'
-  description: 'The API key used to authenticate requests to OpenAI services for Captain AI.'
+  display_title: 'Chave de API do Meu Super App Gateway'
+  description: 'Chave de API padrão usada para autenticar chamadas de IA no Meu Super App Gateway.'
   locked: false
   type: secret
 - name: CAPTAIN_OPEN_AI_MODEL
-  display_title: 'OpenAI Model'
-  description: 'The OpenAI model configured for use in Captain AI. Default: gpt-4.1-mini'
+  display_title: 'Modelo Padrão do Meu Super App Gateway'
+  description: 'Modelo de IA padrão configurado no Meu Super App Gateway. Padrão: gpt-5.6-sol'
+  value: 'gpt-5.6-sol'
   locked: false
 - name: CAPTAIN_OPEN_AI_ENDPOINT
-  display_title: 'OpenAI API Endpoint (optional)'
-  description: 'The OpenAI endpoint configured for use in Captain AI. Default: https://api.openai.com/'
+  display_title: 'Base URL do Meu Super App Gateway'
+  description: 'URL base nativa do Meu Super App Gateway. Padrão: https://proxy.ia.meusuper.app/v1'
+  value: 'https://proxy.ia.meusuper.app/v1'
   locked: false
 - name: CAPTAIN_EMBEDDING_MODEL
   display_title: 'Embedding Model (optional)'
