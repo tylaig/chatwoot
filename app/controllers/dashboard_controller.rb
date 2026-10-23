@@ -39,9 +39,45 @@ class DashboardController < ActionController::Base
   before_action :ensure_html_format
   layout 'vueapp'
 
-  def index; end
+  def index
+    return if handle_root_redirect
+  end
 
   private
+
+  def handle_root_redirect
+    return false unless request.path == '/'
+
+    user = resolve_cookie_authenticated_user
+    if user
+      account_id = user.account_users.order(active_at: :desc).pick(:account_id) || user.accounts.pick(:id) || 1
+      redirect_to "/app/accounts/#{account_id}/dashboard", status: :found
+    else
+      redirect_to '/lp', status: :found
+    end
+    true
+  end
+
+  def resolve_cookie_authenticated_user
+    raw_cookie = cookies['cw_d_session_info']
+    return nil if raw_cookie.blank?
+
+    parsed = JSON.parse(URI.decode_www_form_component(raw_cookie)) rescue nil
+    parsed ||= JSON.parse(raw_cookie) rescue nil
+    return nil unless parsed.is_a?(Hash)
+
+    uid = parsed['uid']
+    token = parsed['access-token']
+    client = parsed['client']
+    return nil if uid.blank? || token.blank? || client.blank?
+
+    user = User.find_by(uid: uid) || User.find_by(email: uid)
+    return nil unless user&.valid_token?(token, client)
+
+    user
+  rescue StandardError
+    nil
+  end
 
   def ensure_html_format
     render json: { error: 'Please use API routes instead of dashboard routes for JSON requests' }, status: :not_acceptable if request.format.json?
