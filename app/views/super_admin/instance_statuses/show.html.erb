@@ -1,23 +1,223 @@
 <% content_for(:title) do %>
-  Instance Status
+  Instance Status & Atualizações
 <% end %>
-<header class="main-content__header" role="banner">
+<header class="main-content__header" role="banner" style="display:flex;align-items:center;justify-content:space-between;">
   <h1 class="main-content__page-title" id="page-title">
     <%= content_for(:title) %>
   </h1>
+  <button
+    type="button"
+    id="sa-open-update-modal-btn"
+    style="background:#0d9488;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(13,148,136,0.25);"
+  >
+    🚀 Verificar Atualizações (<%= @update_info[:has_updates] ? "#{@update_info[:ahead_by]} nova(s)" : "Atualizado" %>)
+  </button>
 </header>
-<section class="main-content__body">
-  <table>
-  <tr>
-    <th>Metric</th>
-    <th>Value</th>
-  </tr>
-  <% @metrics.each do |key,value| %>
-   <tr>
-   <td> <%= key %> </td>
-   <td> <%= value %></td>
-  </tr>
-  <% end %>
-</table>
 
+<section class="main-content__body">
+  <div style="margin-bottom:24px;padding:18px 20px;border-radius:12px;border:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+    <div>
+      <div style="font-size:15px;font-weight:700;color:#0f172a;">
+        Central de Deploy — Branch <code><%= @update_info[:target_branch] %></code>
+      </div>
+      <div style="font-size:13px;color:#475569;margin-top:4px;">
+        Versão instalada: <code><%= @update_info[:current_short_sha] %></code> →
+        Última versão na branch: <code><%= @update_info[:latest_short_sha] %></code>
+        (<%= @update_info[:has_updates] ? "#{@update_info[:ahead_by]} commit(s) pendente(s)" : "Sincronizado" %>)
+      </div>
+      <div style="font-size:12px;color:#64748b;margin-top:4px;">
+        Horário de Brasília: <%= @update_info[:brasilia_time] %> • Regra: Auto-deploy fora do expediente (22h às 11h BRT)
+      </div>
+    </div>
+    <button
+      type="button"
+      onclick="document.getElementById('sa-open-update-modal-btn').click()"
+      style="background:#0f172a;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-weight:600;font-size:13px;cursor:pointer;"
+    >
+      Ver Diferenças (Diff) e Atualizar
+    </button>
+  </div>
+
+  <table>
+    <tr>
+      <th>Metric</th>
+      <th>Value</th>
+    </tr>
+    <% @metrics.each do |key,value| %>
+      <tr>
+        <td><%= key %></td>
+        <td><%= value %></td>
+      </tr>
+    <% end %>
+  </table>
 </section>
+
+<!-- Modal Popup de Atualizações no SuperAdmin -->
+<div id="sa-update-modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#ffffff;border-radius:16px;max-width:760px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,0.3);overflow:hidden;">
+    <div style="padding:18px 24px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <h3 style="margin:0;font-size:18px;font-weight:700;color:#0f172a;">Central de Atualizações (Games Safari)</h3>
+        <p style="margin:4px 0 0;font-size:13px;color:#64748b;">Revise os commits e diferenças de código da branch <code>prod/gamessafari</code> antes de aplicar.</p>
+      </div>
+      <button type="button" id="sa-close-update-modal" style="background:transparent;border:none;font-size:22px;cursor:pointer;color:#64748b;">&times;</button>
+    </div>
+
+    <div id="sa-update-modal-body" style="padding:20px 24px;overflow-y:auto;flex:1;font-size:13.5px;color:#1e293b;">
+      Carregando informações do GitHub...
+    </div>
+
+    <div style="padding:16px 24px;border-top:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <button type="button" id="sa-cancel-update-btn" style="padding:10px 18px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;color:#334155;font-weight:600;cursor:pointer;">
+        Fechar
+      </button>
+      <button type="button" id="sa-confirm-update-btn" style="padding:10px 22px;border-radius:8px;border:none;background:#0d9488;color:#fff;font-weight:700;cursor:pointer;">
+        ✅ Aceitar e Atualizar Agora
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var backdrop = document.getElementById('sa-update-modal-backdrop');
+  var openBtn = document.getElementById('sa-open-update-modal-btn');
+  var closeBtn = document.getElementById('sa-close-update-modal');
+  var cancelBtn = document.getElementById('sa-cancel-update-btn');
+  var confirmBtn = document.getElementById('sa-confirm-update-btn');
+  var bodyEl = document.getElementById('sa-update-modal-body');
+  var latestData = null;
+
+  function closeModal() {
+    backdrop.style.display = 'none';
+  }
+
+  function escapeHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function renderUpdateData(data) {
+    latestData = data;
+    var html = '';
+    html += '<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">';
+    html += '<div style="flex:1;min-width:160px;padding:12px;border-radius:10px;background:#f1f5f9;">';
+    html += '<div style="font-size:11px;color:#64748b;">Versão Instalada → Remota</div>';
+    html += '<div style="font-weight:700;margin-top:4px;"><code>' + escapeHtml(data.current_short_sha) + '</code> → <code>' + escapeHtml(data.latest_short_sha) + '</code></div>';
+    html += '</div>';
+    html += '<div style="flex:1;min-width:160px;padding:12px;border-radius:10px;background:#f1f5f9;">';
+    html += '<div style="font-size:11px;color:#64748b;">Commits Pendentes</div>';
+    html += '<div style="font-weight:700;margin-top:4px;color:' + (data.has_updates ? '#d97706' : '#0d9488') + ';">' + (data.has_updates ? data.ahead_by + ' commit(s) novo(s)' : '100% Atualizado') + '</div>';
+    html += '</div>';
+    html += '<div style="flex:1;min-width:160px;padding:12px;border-radius:10px;background:#f1f5f9;">';
+    html += '<div style="font-size:11px;color:#64748b;">Arquivos / Linhas</div>';
+    html += '<div style="font-weight:700;margin-top:4px;">' + (data.files_count || 0) + ' arq (<span style="color:#16a34a;">+' + (data.total_additions || 0) + '</span> / <span style="color:#dc2626;">-' + (data.total_deletions || 0) + '</span>)</div>';
+    html += '</div>';
+    html += '</div>';
+
+    if (data.within_support_hours) {
+      html += '<div style="padding:12px 14px;border-radius:10px;background:#fef3c7;border:1px solid #f59e0b;margin-bottom:16px;">';
+      html += '<div style="font-weight:700;color:#b45309;">⚠️ Horário Comercial Ativo (11h às 22h BRT)</div>';
+      html += '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:600;cursor:pointer;">';
+      html += '<input type="checkbox" id="sa-force-window-cb" /> Autorizo forçar a atualização de emergência agora mesmo';
+      html += '</label></div>';
+    }
+
+    html += '<h4 style="margin:12px 0 8px;font-size:14px;font-weight:700;">Commits incluídos (' + (data.commits ? data.commits.length : 0) + '):</h4>';
+    if (data.commits && data.commits.length) {
+      data.commits.forEach(function(c) {
+        html += '<div style="padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;">';
+        html += '<div style="display:flex;justify-content:space-between;gap:8px;"><strong>' + escapeHtml(c.title) + '</strong><code>' + escapeHtml(c.sha) + '</code></div>';
+        if (c.description) {
+          html += '<div style="font-size:12px;color:#475569;margin-top:4px;white-space:pre-line;">' + escapeHtml(c.description) + '</div>';
+        }
+        html += '</div>';
+      });
+    } else {
+      html += '<div style="padding:12px;color:#64748b;">Nenhum commit pendente.</div>';
+    }
+
+    if (data.files && data.files.length) {
+      html += '<h4 style="margin:16px 0 8px;font-size:14px;font-weight:700;">Diferenças de Arquivos (' + data.files.length + '):</h4>';
+      data.files.forEach(function(f) {
+        html += '<details style="border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px;padding:8px 12px;">';
+        html += '<summary style="cursor:pointer;font-family:monospace;font-size:12px;font-weight:600;">' + escapeHtml(f.filename) + ' <span style="color:#16a34a;">+' + f.additions + '</span> <span style="color:#dc2626;">-' + f.deletions + '</span></summary>';
+        if (f.patch) {
+          html += '<pre style="margin:8px 0 0;padding:10px;background:#0f172a;color:#e2e8f0;border-radius:6px;font-size:11px;overflow-x:auto;">' + escapeHtml(f.patch) + '</pre>';
+        }
+        html += '</details>';
+      });
+    }
+
+    bodyEl.innerHTML = html;
+  }
+
+  function loadUpdates() {
+    bodyEl.innerHTML = 'Consultando commits e diferenças na branch prod/gamessafari...';
+    fetch('/super_admin/instance_status/check_updates?refresh=true', {
+      headers: { 'Accept': 'application/json' },
+      credentials: 'same-origin'
+    })
+      .then(function(r) { return r.json(); })
+      .then(renderUpdateData)
+      .catch(function() {
+        bodyEl.innerHTML = 'Erro ao carregar informações do GitHub.';
+      });
+  }
+
+  openBtn.addEventListener('click', function() {
+    backdrop.style.display = 'flex';
+    loadUpdates();
+  });
+  closeBtn.addEventListener('click', closeModal);
+  cancelBtn.addEventListener('click', closeModal);
+
+  confirmBtn.addEventListener('click', function() {
+    var forceCb = document.getElementById('sa-force-window-cb');
+    var forceWindow = forceCb ? forceCb.checked : false;
+    if (latestData && latestData.within_support_hours && !forceWindow) {
+      alert('Marque a opção de autorização de emergência para atualizar durante o horário de atendimento (11h às 22h BRT).');
+      return;
+    }
+    confirmBtn.disabled = true;
+    confirmBtn.innerText = '⏳ Iniciando atualização...';
+    var csrf = document.querySelector('meta[name="csrf-token"]');
+    fetch('/super_admin/instance_status/apply_update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-Token': csrf ? csrf.getAttribute('content') : ''
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        target_sha: latestData ? latestData.latest_sha : '',
+        force_window: forceWindow
+      })
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (res.ok) {
+          bodyEl.innerHTML = '<div style="padding:18px;border-radius:12px;background:#ecfdf5;border:1px solid #10b981;color:#065f46;font-weight:600;">✅ ' + escapeHtml(res.message) + '<br><br>O servidor está aplicando as alterações e reiniciará os contêineres automaticamente em instantes.</div>';
+          confirmBtn.innerText = '🚀 Atualização em andamento...';
+          setTimeout(function() { window.location.reload(); }, 15000);
+        } else {
+          alert(res.error || 'Não foi possível iniciar a atualização.');
+          confirmBtn.disabled = false;
+          confirmBtn.innerText = '✅ Aceitar e Atualizar Agora';
+        }
+      })
+      .catch(function() {
+        alert('Erro de comunicação ao disparar atualização.');
+        confirmBtn.disabled = false;
+        confirmBtn.innerText = '✅ Aceitar e Atualizar Agora';
+      });
+  });
+
+  if (window.location.search.indexOf('open_updater=1') !== -1) {
+    openBtn.click();
+  }
+})();
+</script>

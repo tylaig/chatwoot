@@ -102,7 +102,7 @@ jobs:
           echo "Built ${IMAGE_NAME}@${IMAGE_DIGEST}"
 
   deploy:
-    name: Deploy to Games Safari VPS (Off-Hours Only: 22h-11h BRT)
+    name: "Deploy to Games Safari VPS (Off-Hours Only - 22h to 11h BRT)"
     needs: build-and-push
     runs-on: ubuntu-latest
     timeout-minutes: 45

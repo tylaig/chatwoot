@@ -182,16 +182,7 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
 
 <template>
   <div class="flex relative justify-end items-center resolve-actions">
-    <ButtonGroup
-      class="flex-shrink-0 rounded-lg shadow outline-1 outline"
-      :class="
-        isOpen
-          ? 'outline-emerald-600/70'
-          : !showOpenButton
-            ? 'outline-n-container'
-            : 'outline-transparent'
-      "
-    >
+    <ButtonGroup class="flex-shrink-0 rounded-lg shadow !outline-0 !border-0">
       <Button
         v-if="isOpen"
         :label="t('CONVERSATION.HEADER.RESOLVE_ACTION')"
@@ -200,7 +191,7 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
         color="teal"
         variant="faded"
         no-animation
-        class="ltr:rounded-r-none rtl:rounded-l-none !outline-0 font-semibold"
+        class="ltr:rounded-r-none rtl:rounded-l-none !outline-0 !border-0 font-semibold"
         :is-loading="isLoading"
         @click="onCmdResolveConversation"
       />

@@ -8,6 +8,22 @@ class SuperAdmin::InstanceStatusesController < SuperAdmin::ApplicationController
     chatwoot_edition
     instance_meta
     baileys_api_version
+    @update_info = SystemUpdateService.check_updates
+  end
+
+  def check_updates
+    render json: SystemUpdateService.check_updates(
+      force_refresh: ActiveModel::Type::Boolean.new.cast(params[:refresh])
+    )
+  end
+
+  def apply_update
+    result = SystemUpdateService.trigger_update!(
+      user: current_super_admin,
+      target_sha: params[:target_sha],
+      force_window: params[:force_window]
+    )
+    render json: result, status: result[:ok] ? :ok : :unprocessable_entity
   end
 
   def chatwoot_edition
