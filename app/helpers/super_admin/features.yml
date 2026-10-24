@@ -1,50 +1,49 @@
-# TODO: Move this values to features.yml itself
-# No need to replicate the same values in two places
+# Recursos e Módulos da Plataforma — Meu Super Chat
 
-# ------- Premium Features ------- #
+# ------- Recursos Enterprise ------- #
 saml:
   name: 'SAML SSO'
-  description: 'Configuration for controlling SAML Single Sign-On availability'
+  description: 'Configuração de autenticação corporativa Single Sign-On (SAML 2.0).'
   enabled: <%= ChatwootApp.enterprise? %>
   icon: 'icon-lock-line'
   config_key: 'saml'
   enterprise: true
 custom_branding:
-  name: 'Custom Branding'
-  description: 'Apply your own branding to this installation.'
+  name: 'Identidade Visual White-Label'
+  description: 'Personalize marca, cores, logotipos e domínio em toda a instalação do Meu Super Chat.'
   enabled: <%= (ChatwootHub.pricing_plan != 'community') %>
   icon: 'icon-paint-brush-line'
   config_key: 'custom_branding'
   enterprise: true
 agent_capacity:
-  name: 'Agent Capacity'
-  description: 'Set limits to auto-assigning conversations to your agents.'
+  name: 'Capacidade de Operadores'
+  description: 'Defina limites inteligentes para distribuição automática de conversas aos operadores.'
   enabled: <%= (ChatwootHub.pricing_plan != 'community') %>
   icon: 'icon-hourglass-line'
   enterprise: true
 audit_logs:
-  name: 'Audit Logs'
-  description: 'Track and trace account activities with ease with detailed audit logs.'
+  name: 'Logs de Auditoria'
+  description: 'Rastreie e audite todas as atividades operacionais e administrativas das contas.'
   enabled: <%= (ChatwootHub.pricing_plan != 'community') %>
   icon: 'icon-menu-search-line'
   enterprise: true
 disable_branding:
-  name: 'Disable Branding'
-  description: 'Disable branding on live-chat widget and external emails.'
+  name: 'Ocultar Assinatura no Widget'
+  description: 'Remova assinaturas externas no widget de chat ao vivo e nos e-mails transacionais.'
   enabled: <%= (ChatwootHub.pricing_plan != 'community') %>
   icon: 'icon-sailbot-fill'
   enterprise: true
 voice_calls:
-  name: 'Voice Calls'
-  description: 'Enable voice calling capabilities for your agents and customers.'
+  name: 'Chamadas de Voz'
+  description: 'Habilite recursos nativos de telefonia e chamadas de voz para operadores e clientes.'
   enabled: <%= (ChatwootHub.pricing_plan != 'community') %>
   icon: 'icon-voice-line'
   enterprise: true
 
-# ------- Product Features ------- #
+# ------- Recursos de Produto ------- #
 help_center:
-  name: 'Help Center'
-  description: 'Allow agents to create help center articles and publish them in a portal.'
+  name: 'Central de Ajuda'
+  description: 'Permita que operadores criem artigos de base de conhecimento e publiquem em um portal.'
   enabled: true
   icon: 'icon-book-2-line'
 captain:
@@ -54,99 +53,99 @@ captain:
   icon: 'icon-captain'
   config_key: 'captain'
 
-# ------- Communication Channels ------- #
+# ------- Canais de Comunicação ------- #
 live_chat:
-  name: 'Live Chat'
-  description: 'Improve your customer experience using a live chat on your website.'
+  name: 'Live Chat Web'
+  description: 'Atendimento em tempo real com widget customizável integrado ao seu site ou sistema.'
   enabled: true
   icon: 'icon-chat-smile-3-line'
 email:
-  name: 'Email'
-  description: 'Manage your email customer interactions from Chatwoot.'
+  name: 'E-mail'
+  description: 'Gerencie todas as interações de e-mail dos seus clientes direto no Meu Super Chat.'
   enabled: true
   icon: 'icon-mail-send-fill'
   config_key: 'email'
 sms:
   name: 'SMS'
-  description: 'Manage your SMS customer interactions from Chatwoot.'
+  description: 'Gerencie interações e notificações via SMS com seus clientes no Meu Super Chat.'
   enabled: true
   icon: 'icon-message-line'
 messenger:
   name: 'Messenger'
-  description: 'Stay connected with your customers on Facebook & Instagram.'
+  description: 'Conecte e atenda seus clientes no Facebook Messenger e Instagram Direct.'
   enabled: true
   icon: 'icon-messenger-line'
   config_key: 'facebook'
 instagram:
   name: 'Instagram'
-  description: 'Stay connected with your customers on Instagram'
+  description: 'Conecte sua conta comercial e responda mensagens e stories no Instagram.'
   enabled: true
   icon: 'icon-instagram'
   config_key: 'instagram'
 tiktok:
   name: 'TikTok'
-  description: 'Stay connected with your customers on TikTok'
+  description: 'Atenda leads e clientes diretamente pelo canal oficial do TikTok Business.'
   enabled: true
   icon: 'icon-tiktok'
   config_key: 'tiktok'
 whatsapp:
   name: 'WhatsApp'
-  description: 'Manage your WhatsApp business interactions from Chatwoot.'
+  description: 'Gerencie suas operações comerciais de WhatsApp Oficial e Baileys no Meu Super Chat.'
   enabled: true
   icon: 'icon-whatsapp-line'
 telegram:
   name: 'Telegram'
-  description: 'Manage your Telegram customer interactions from Chatwoot.'
+  description: 'Gerencie bots e atendimentos do Telegram diretamente no Meu Super Chat.'
   enabled: true
   icon: 'icon-telegram-line'
 line:
   name: 'Line'
-  description: 'Manage your Line customer interactions from Chatwoot.'
+  description: 'Gerencie interações de clientes via Line diretamente no Meu Super Chat.'
   enabled: true
   icon: 'icon-line-line'
 
-# ------- OAuth & Authentication ------- #
+# ------- OAuth & Autenticação ------- #
 google:
-  name: 'Google'
-  description: 'Configuration for setting up Google OAuth Integration'
+  name: 'Google OAuth & Agenda'
+  description: 'Configuração de credenciais Google OAuth e integração nativa de agendas.'
   enabled: true
   icon: 'icon-google'
   config_key: 'google'
 microsoft:
-  name: 'Microsoft'
-  description: 'Configuration for setting up Microsoft Email'
+  name: 'Microsoft Azure'
+  description: 'Configuração de autenticação OAuth para contas corporativas Microsoft 365 / Outlook.'
   enabled: true
   icon: 'icon-microsoft'
   config_key: 'microsoft'
 
-# ------- Third-party Integrations ------- #
+# ------- Integrações Corporativas ------- #
 linear:
   name: 'Linear'
-  description: 'Configuration for setting up Linear Integration'
+  description: 'Configuração da integração nativa com Linear para gestão de issues e engenharia.'
   enabled: true
   icon: 'icon-linear'
   config_key: 'linear'
 notion:
   name: 'Notion'
-  description: 'Configuration for setting up Notion Integration'
+  description: 'Configuração da integração com workspaces e bases de conhecimento do Notion.'
   enabled: true
   icon: 'icon-notion'
   config_key: 'notion'
 slack:
   name: 'Slack'
-  description: 'Configuration for setting up Slack Integration'
+  description: 'Configuração da integração bidirecional de notificações e canais com o Slack.'
   enabled: true
   icon: 'icon-slack'
   config_key: 'slack'
 whatsapp_embedded:
-  name: 'WhatsApp Embedded'
-  description: 'Configuration for setting up WhatsApp Embedded Integration'
+  name: 'WhatsApp Embedded Signup'
+  description: 'Configuração do fluxo oficial Meta Embedded Signup para WhatsApp Cloud API.'
   enabled: true
   icon: 'icon-whatsapp-line'
   config_key: 'whatsapp_embedded'
 shopify:
   name: 'Shopify'
-  description: 'Configuration for setting up Shopify Integration'
+  description: 'Configuração da integração nativa com lojas, pedidos e clientes da Shopify.'
   enabled: true
   icon: 'icon-shopify'
   config_key: 'shopify'

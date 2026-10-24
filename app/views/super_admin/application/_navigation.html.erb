@@ -1,15 +1,5 @@
-<%#
-# Navigation
-
-This partial is used to display the navigation in Administrate.
-By default, the navigation contains navigation links
-for all resources in the admin dashboard,
-as defined by the routes in the `admin/` namespace
-%>
-
 <%= vite_client_tag %>
 <%= vite_javascript_tag 'superadmin_pages' %>
-
 <%
   sidebar_icons = {
     accounts: 'icon-building-4-line',
@@ -18,42 +8,52 @@ as defined by the routes in the `admin/` namespace
     agent_bots: 'icon-robot-line',
     platform_banners: 'icon-megaphone-line',
   }
+  resource_labels = {
+    'accounts' => 'Contas',
+    'users' => 'Usuários',
+    'platform_apps' => 'Apps da Plataforma',
+    'agent_bots' => 'Agent Bots',
+    'platform_banners' => 'Banners da Plataforma',
+  }
+  hidden_resources = %w[account_users access_tokens installation_configs dashboard devise/sessions app_configs instance_statuses settings push_diagnostics]
 %>
-
-<div class="border-slate-100 border-r w-56 flex-shrink-0 justify-between h-full flex flex-col" role="navigation">
+<aside id="msc-sa-sidebar" class="msc-sa-sidebar" role="navigation" aria-label="Navegação do Super Admin">
   <div>
-    <div class="flex mx-4 mb-4 border-slate-100 border-b py-6">
-      <%= link_to image_tag('/brand-assets/logo_thumbnail.svg', alt: 'Meu Super Chat Admin Dashboard', class: 'h-10'), super_admin_root_url %>
-      <div class="flex flex-col ml-3">
-        <div class="text-sm">Meu Super Chat</div>
-        <div class="text-sm"><%= Chatwoot.config[:version] %></div>
-        <div class="text-xs text-slate-700 mt-0.5">Super Admin Console</div>
-      </div>
+    <div class="msc-sa-sidebar__brand">
+      <a href="<%= super_admin_root_path %>">
+        <span class="msc-sa-sidebar__logo"><img src="/brand-assets/logo_thumbnail.svg" alt="Meu Super Chat"></span>
+        <span class="msc-sa-sidebar__name">
+          <strong>Meu Super Chat</strong>
+          <small>Super Admin · v<%= Chatwoot.config[:version] %></small>
+        </span>
+      </a>
+      <button type="button" class="msc-sa-sidebar__close" aria-label="Fechar menu" onclick="document.body.classList.remove('msc-sa-drawer-open')">✕</button>
     </div>
 
-    <ul class="my-4">
-      <%= render partial: "nav_item", locals: { icon: 'icon-grid-line', url: super_admin_root_url, label: 'Dashboard' } %>
+    <div class="msc-sa-section">Governança</div>
+    <ul class="msc-sa-nav">
+      <%= render partial: "nav_item", locals: { icon: 'icon-grid-line', url: super_admin_root_path, label: 'Visão Geral' } %>
       <% Administrate::Namespace.new(namespace).resources.each do |resource| %>
-        <% next if ["account_users", "access_tokens", "installation_configs", "dashboard", "devise/sessions", "app_configs", "instance_statuses", "settings", "push_diagnostics"].include?  resource.resource %>
+        <% next if hidden_resources.include?(resource.resource) %>
         <% next if resource.resource == "platform_banners" && !ChatwootApp.chatwoot_cloud? %>
         <%= render partial: "nav_item", locals: {
-            icon: sidebar_icons[resource.resource.to_sym],
-            url: resource_index_route(resource),
-            label: display_resource_name(resource),
-          }
-        %>
-
+              icon: sidebar_icons[resource.resource.to_sym] || 'icon-grid-line',
+              url: resource_index_route(resource),
+              label: resource_labels[resource.resource] || display_resource_name(resource),
+            } %>
       <% end %>
       <%= render 'settings_menu', open: settings_open? %>
     </ul>
   </div>
-  <div>
-    <ul class="my-4">
-      <%= render partial: "nav_item", locals: { icon: 'icon-mist-fill', url: sidekiq_web_url, label: 'Sidekiq Dashboard' } %>
-      <%= render partial: "nav_item", locals: { icon: 'icon-health-book-line', url: super_admin_instance_status_url, label: 'Instance Health' } %>
-      <%= render partial: "nav_item", locals: { icon: 'icon-mail-send-fill', url: super_admin_push_diagnostics_url, label: 'Push Diagnostics' } %>
-      <%= render partial: "nav_item", locals: { icon: 'icon-dashboard-line', url: '/', label: 'Agent Dashboard' } %>
-      <%= render partial: "nav_item", locals: { icon: 'icon-logout-circle-r-line', url: super_admin_logout_url, label: 'Logout' } %>
+
+  <div class="msc-sa-sidebar__foot">
+    <div class="msc-sa-section">Infraestrutura</div>
+    <ul class="msc-sa-nav">
+      <%= render partial: "nav_item", locals: { icon: 'icon-mist-fill', url: sidekiq_web_path, label: 'Filas Sidekiq' } %>
+      <%= render partial: "nav_item", locals: { icon: 'icon-health-book-line', url: super_admin_instance_status_path, label: 'Saúde da Instância' } %>
+      <%= render partial: "nav_item", locals: { icon: 'icon-mail-send-fill', url: super_admin_push_diagnostics_path, label: 'Diagnóstico de Push' } %>
+      <%= render partial: "nav_item", locals: { icon: 'icon-dashboard-line', url: '/', label: 'Painel de Atendimento' } %>
+      <%= render partial: "nav_item", locals: { icon: 'icon-logout-circle-r-line', url: super_admin_logout_path, label: 'Sair' } %>
     </ul>
   </div>
-</div>
+</aside>

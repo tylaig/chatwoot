@@ -1,15 +1,12 @@
-<% if ENV.fetch('ENABLE_ACCOUNT_SEEDING', !Rails.env.production?)  %>
+<% if ENV.fetch('ENABLE_ACCOUNT_SEEDING', !Rails.env.production?) %>
 <section class="main-content__body">
- <hr/>
-  <%= form_for([:seed, namespace, page.resource], method: :post, html: { class: "form" }) do |f| %>
-
-  <div class="form-actions">
-    <div class="pb-3">
-      <p>Click the button to generate seed data into this account for demos.</p>
-      <p class="text-color-red">Note: This will clear all the existing data in this account.</p>
-    </div>
-  <%= f.submit 'Generate Seed Data' %>
+  <div class="msc-card">
+    <h2 class="msc-card__title">Dados de demonstração</h2>
+    <p class="msc-card__desc">Gera dados fictícios nesta conta para demonstrações.</p>
+    <div class="msc-alert msc-alert--err" style="margin:12px 0;">Atenção: todos os dados existentes nesta conta serão apagados.</div>
+    <%= form_for([:seed, namespace, page.resource], method: :post, html: { class: "form" }) do |f| %>
+      <div class="form-actions"><%= f.submit 'Gerar dados de demonstração', class: 'msc-btn-danger' %></div>
+    <% end %>
   </div>
-  <% end %>
 </section>
 <% end %>

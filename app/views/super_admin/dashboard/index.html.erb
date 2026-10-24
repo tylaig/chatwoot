@@ -1,5 +1,119 @@
-<% content_for(:title) do %>
-  Admin Dashboard
-<% end %>
+<% content_for(:title) { "Visão Geral" } %>
+<%
+  stats = Rails.cache.fetch('msc:super_admin:dashboard_stats:v2', expires_in: 10.minutes) do
+    conv_estimate = begin
+      v = ActiveRecord::Base.connection.select_value("SELECT reltuples::bigint FROM pg_class WHERE relname = 'conversations'").to_i
+      v.positive? ? v : Conversation.count
+    rescue StandardError
+      Conversation.count
+    end
+    chart = begin
+      Conversation.unscoped.where(created_at: 30.days.ago.beginning_of_day..Time.current)
+                  .group(Arel.sql('DATE(created_at)')).count
+                  .transform_keys { |k| k.to_date.iso8601 }
+    rescue StandardError
+      {}
+    end
+    {
+      accounts: Account.count, users: User.count, inboxes: Inbox.count, conversations: conv_estimate,
+      new_accounts_30: Account.where('created_at >= ?', 30.days.ago).count,
+      new_users_30: User.where('created_at >= ?', 30.days.ago).count,
+      chart: chart
+    }
+  end
+  days = (0..29).map { |i| (29 - i).days.ago.to_date }
+  series = days.map { |d| stats[:chart][d.iso8601].to_i }
+  max_v = [series.max.to_i, 1].max
+  total_30 = series.sum
+  recent_accounts = Account.order(created_at: :desc).limit(5)
+  redis_ok = begin; Redis.new(Redis::Config.app).ping == 'PONG'; rescue StandardError; false; end
+  pg_ok = begin; ActiveRecord::Base.connection.active?; rescue StandardError; false; end
+  fmt = ->(n) { number_with_delimiter(n.to_i, delimiter: '.') }
+  cards = [
+    { label: 'Contas', value: stats[:accounts], hint: "+#{fmt.(stats[:new_accounts_30])} nos últimos 30 dias", icon: 'icon-building-4-line', url: super_admin_accounts_path },
+    { label: 'Usuários', value: stats[:users], hint: "+#{fmt.(stats[:new_users_30])} nos últimos 30 dias", icon: 'icon-user-follow-line', url: super_admin_users_path },
+    { label: 'Caixas de Entrada', value: stats[:inboxes], hint: 'Canais conectados na instância', icon: 'icon-chat-smile-3-line', url: nil },
+    { label: 'Conversas', value: stats[:conversations], hint: "#{fmt.(total_30)} nos últimos 30 dias", icon: 'icon-message-line', url: nil },
+  ]
+%>
+<header class="main-content__header" role="banner">
+  <div>
+    <p class="msc-sa-eyebrow">Super Admin · Meu Super Chat</p>
+    <h1 class="main-content__page-title" id="page-title">Visão Geral da Plataforma</h1>
+    <p class="msc-sa-subtitle">Indicadores globais de contas, usuários e volume de atendimento da instância.</p>
+  </div>
+  <div class="msc-sa-header-actions">
+    <%= link_to 'Saúde da instância', super_admin_instance_status_path, class: 'msc-btn-ghost' %>
+    <%= link_to '+ Nova conta', new_super_admin_account_path, class: 'button' %>
+  </div>
+</header>
 
-<%= render_vue_component('DashboardIndex', {}) %>
+<section class="main-content__body">
+  <div class="msc-grid msc-grid--stats" data-testid="msc-stats">
+    <% cards.each do |c| %>
+      <div class="msc-card">
+        <div class="msc-row">
+          <span class="msc-stat__label"><%= c[:label] %></span>
+          <span class="msc-stat__icon"><svg aria-hidden="true"><use xlink:href="#<%= c[:icon] %>" /></svg></span>
+        </div>
+        <div class="msc-stat__value"><%= fmt.(c[:value]) %></div>
+        <div class="msc-stat__hint"><%= c[:hint] %></div>
+        <% if c[:url] %><div style="margin-top:12px;"><%= link_to 'Gerenciar →', c[:url], class: 'msc-link' %></div><% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="msc-grid msc-grid--wide" style="margin-top:18px;">
+    <div class="msc-card" style="grid-column:1/-1;">
+      <div class="msc-row">
+        <div>
+          <h2 class="msc-card__title">Conversas criadas por dia</h2>
+          <p class="msc-card__desc">Últimos 30 dias · total <strong><%= fmt.(total_30) %></strong> · pico diário <strong><%= fmt.(series.max) %></strong></p>
+        </div>
+        <span class="msc-badge msc-badge--ok">Cache de 10 min</span>
+      </div>
+      <div class="msc-chart" role="img" aria-label="Gráfico de conversas criadas por dia nos últimos 30 dias" style="margin-top:16px;">
+        <% days.each_with_index do |d, i| %>
+          <div class="msc-chart__bar" style="height:<%= [(series[i] * 100.0 / max_v).round(1), 1.2].max %>%;" title="<%= d.strftime('%d/%m') %>: <%= series[i] %> conversas"></div>
+        <% end %>
+      </div>
+      <div class="msc-chart__labels" aria-hidden="true">
+        <% days.each_with_index do |d, i| %><span><%= (i % 3).zero? ? d.strftime('%d/%m') : '' %></span><% end %>
+      </div>
+    </div>
+
+    <div class="msc-card">
+      <div class="msc-row"><h2 class="msc-card__title">Contas recentes</h2><%= link_to 'Ver todas →', super_admin_accounts_path, class: 'msc-link' %></div>
+      <ul class="msc-list">
+        <% recent_accounts.each do |acc| %>
+          <li class="msc-list__item">
+            <div class="msc-list__main">
+              <span class="msc-avatar"><%= acc.name.to_s.strip.first.to_s.upcase.presence || '#' %></span>
+              <div style="min-width:0;">
+                <%= link_to acc.name, super_admin_account_path(acc), class: 'msc-list__title' %>
+                <span class="msc-list__meta">ID <%= acc.id %> · criada em <%= acc.created_at.strftime('%d/%m/%Y') %></span>
+              </div>
+            </div>
+            <% active = !acc.respond_to?(:status) || acc.status.to_s == 'active' %>
+            <span class="msc-badge <%= active ? 'msc-badge--ok' : 'msc-badge--warn' %>"><%= active ? 'Ativa' : acc.status.to_s.humanize %></span>
+          </li>
+        <% end %>
+        <% if recent_accounts.empty? %><li class="msc-muted" style="padding:12px 0;">Nenhuma conta cadastrada.</li><% end %>
+      </ul>
+    </div>
+
+    <div class="msc-card msc-card--accent">
+      <h2 class="msc-card__title">Status dos serviços</h2>
+      <ul class="msc-list">
+        <li class="msc-list__item"><span>PostgreSQL</span><span class="msc-badge <%= pg_ok ? 'msc-badge--ok' : 'msc-badge--err' %>"><%= pg_ok ? 'Operacional' : 'Indisponível' %></span></li>
+        <li class="msc-list__item"><span>Redis</span><span class="msc-badge <%= redis_ok ? 'msc-badge--ok' : 'msc-badge--err' %>"><%= redis_ok ? 'Operacional' : 'Indisponível' %></span></li>
+        <li class="msc-list__item"><span>Versão</span><span class="msc-mono">v<%= Chatwoot.config[:version] %></span></li>
+        <li class="msc-list__item"><span>Edição</span><span class="msc-badge msc-badge--ok"><%= ChatwootApp.enterprise? ? 'Enterprise' : 'Community' %></span></li>
+      </ul>
+      <div class="form-actions" style="margin-top:14px !important;">
+        <%= link_to 'Filas Sidekiq', sidekiq_web_path, class: 'msc-btn-ghost' %>
+        <%= link_to 'Configurações', super_admin_settings_path, class: 'msc-btn-ghost' %>
+      </div>
+    </div>
+  </div>
+</section>

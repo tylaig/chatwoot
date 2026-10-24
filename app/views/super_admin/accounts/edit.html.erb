@@ -1,19 +1,13 @@
-<% content_for(:title) { t("administrate.actions.edit_resource", name: page.page_title) } %>
-
-<header class="main-content__header">
-  <h1 class="main-content__page-title">
-    <%= content_for(:title) %>
-  </h1>
-
+<% content_for(:title) { "Editar · #{page.page_title}" } %>
+<header class="main-content__header" role="banner">
   <div>
-    <%= link_to(
-          t("administrate.actions.show_resource", name: page.page_title),
-          [namespace, page.resource],
-          class: "button"
-        ) if accessible_action?(page.resource, :show) %>
+    <p class="msc-sa-eyebrow">Conta · ID <%= page.resource.id %></p>
+    <h1 class="main-content__page-title" id="page-title"><%= content_for(:title) %></h1>
+  </div>
+  <div class="msc-sa-header-actions">
+    <%= link_to("Ver conta", [namespace, page.resource], class: "msc-btn-ghost") if accessible_action?(page.resource, :show) %>
   </div>
 </header>
-
-<section class="main-content__body account-form [&_.field-unit]:border-b [&_.field-unit]:border-n-weak [&_.field-unit]:pb-6">
+<section class="main-content__body account-form">
   <%= render "form", page: page %>
 </section>

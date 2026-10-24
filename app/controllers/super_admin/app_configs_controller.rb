@@ -16,13 +16,10 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
   before_action :set_config
   before_action :allowed_configs
   def show
-    # ref: https://github.com/rubocop/rubocop/issues/7767
-    # rubocop:disable Style/HashTransformValues
     @app_config = InstallationConfig.where(name: @allowed_configs)
                                     .pluck(:name, :serialized_value)
                                     .map { |name, serialized_value| [name, serialized_value['value']] }
                                     .to_h
-    # rubocop:enable Style/HashTransformValues
     @installation_configs = ConfigLoader.new.general_configs.each_with_object({}) do |config_hash, result|
       result[config_hash['name']] = config_hash.except('name')
     end
@@ -87,10 +84,10 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
   end
 
   def success_notice
-    message = "#{@config.titleize} settings updated successfully"
+    message = "Configurações (#{@config.titleize}) atualizadas com sucesso"
     return message unless restart_required_config_saved?
 
-    "#{message.delete_suffix('.')}. Restart Chatwoot web and worker processes to apply this change everywhere."
+    "#{message}. Reinicie os processos web e worker do Meu Super Chat para aplicar esta alteração globalmente."
   end
 
   def success_flash

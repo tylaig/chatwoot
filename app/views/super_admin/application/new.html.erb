@@ -1,0 +1,9 @@
+<% content_for(:title) { "Novo registro · #{display_resource_name(page.resource_name, singular: true)}" } %>
+<header class="main-content__header" role="banner">
+  <div>
+    <p class="msc-sa-eyebrow">Criar · <%= display_resource_name(page.resource_name) %></p>
+    <h1 class="main-content__page-title" id="page-title"><%= content_for(:title) %></h1>
+  </div>
+  <div class="msc-sa-header-actions"><%= link_to "← Voltar", :back, class: "msc-btn-ghost" %></div>
+</header>
+<section class="main-content__body"><%= render "form", page: page %></section>

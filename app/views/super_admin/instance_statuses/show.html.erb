@@ -1,23 +1,39 @@
-<% content_for(:title) do %>
-  Instance Status
-<% end %>
+<% content_for(:title) { "Saúde da Instância" } %>
+<%
+  boolish = ->(v) { v.to_s == 'true' || v.to_s == 'concluídas' }
+  badish  = ->(v) { v.to_s == 'false' || v.to_s == 'pendente' }
+%>
 <header class="main-content__header" role="banner">
-  <h1 class="main-content__page-title" id="page-title">
-    <%= content_for(:title) %>
-  </h1>
+  <div>
+    <p class="msc-sa-eyebrow">Super Admin · Infraestrutura</p>
+    <h1 class="main-content__page-title" id="page-title">Saúde da Instância</h1>
+    <p class="msc-sa-subtitle">Métricas em tempo real de banco de dados, Redis, versão e integrações do Meu Super Chat.</p>
+  </div>
+  <div class="msc-sa-header-actions">
+    <%= link_to 'Atualizar', super_admin_instance_status_path, class: 'msc-btn-ghost' %>
+    <%= link_to 'Filas Sidekiq', sidekiq_web_path, class: 'button' %>
+  </div>
 </header>
 <section class="main-content__body">
-  <table>
-  <tr>
-    <th>Metric</th>
-    <th>Value</th>
-  </tr>
-  <% @metrics.each do |key,value| %>
-   <tr>
-   <td> <%= key %> </td>
-   <td> <%= value %></td>
-  </tr>
-  <% end %>
-</table>
-
+  <div class="msc-table-scroll">
+    <table aria-labelledby="page-title">
+      <thead><tr><th scope="col">Métrica</th><th scope="col">Valor</th></tr></thead>
+      <tbody>
+        <% @metrics.each do |key, value| %>
+          <tr>
+            <td style="color:#CBD5E1 !important;font-weight:500;"><%= key.to_s.gsub(/Chatwoot/i, 'Meu Super Chat') %></td>
+            <td>
+              <% if boolish.(value) %>
+                <span class="msc-badge msc-badge--ok"><%= value.to_s == 'true' ? 'Operacional' : value %></span>
+              <% elsif badish.(value) %>
+                <span class="msc-badge msc-badge--err"><%= value.to_s == 'false' ? 'Indisponível' : value %></span>
+              <% else %>
+                <span class="msc-mono" style="color:#F8FAFC;"><%= value.to_s.gsub(/Chatwoot/i, 'Meu Super Chat') %></span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
 </section>

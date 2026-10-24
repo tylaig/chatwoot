@@ -1,40 +1,98 @@
-<%#
-# Application Layout
-
-This view template is used as the layout
-for every page that Administrate generates.
-
-By default, it renders:
-- Navigation
-- Content for a search bar
-  (if provided by a `content_for` block in a nested page)
-- Flashes
-- Links to stylesheets and JavaScripts
-%>
-
 <!DOCTYPE html>
-<html lang="<%= I18n.locale %>" class="w-full h-full">
+<html lang="<%= I18n.locale %>" class="dark w-full" style="background-color:#04090D;color:#F8FAFC;">
 <head>
   <meta charset="utf-8">
   <meta name="robots" content="noindex">
-  <meta name="viewport" content="initial-scale=1">
-  <title>
-    <%= content_for(:title) %> - <%= application_title %>
-  </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+  <title><%= (content_for(:title).presence || 'Painel').to_s.gsub(/Chatwoot/i, 'Meu Super Chat').squish %> • Super Admin | Meu Super Chat</title>
+  <link rel="icon" href="/brand-assets/logo_thumbnail.svg">
   <%= render "stylesheet" %>
   <%= vite_client_tag %>
   <%= vite_javascript_tag 'superadmin' %>
   <%= csrf_meta_tags %>
+  <%= render "super_admin/application/obsidian_styles" %>
 </head>
-<body class="antialiased w-full h-full">
+<body class="antialiased w-full dark msc-sa-body">
   <%= render "icons" %>
-  <div class="flex w-full h-full">
+
+  <header class="msc-sa-topbar" role="banner">
+    <div class="msc-sa-topbar__left">
+      <button type="button" class="msc-sa-menu-btn" aria-label="Abrir menu administrativo" aria-controls="msc-sa-sidebar" onclick="document.body.classList.toggle('msc-sa-drawer-open')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <a href="<%= super_admin_root_path %>" class="msc-sa-brand">
+        <img src="/brand-assets/logo_thumbnail.svg" alt="Meu Super Chat" class="msc-sa-brand__logo">
+        <span class="msc-sa-brand__text">
+          <strong>Meu Super Chat</strong>
+          <small>Super Admin Console</small>
+        </span>
+      </a>
+    </div>
+    <a href="/" class="msc-sa-topbar__app">Painel ↗</a>
+  </header>
+
+  <div class="msc-sa-backdrop" onclick="document.body.classList.remove('msc-sa-drawer-open')"></div>
+
+  <div class="msc-sa-shell">
     <%= render "navigation" -%>
-    <main class="w-full overflow-auto" role="main">
+    <main class="msc-sa-main" role="main">
       <%= render "flashes" -%>
       <%= yield %>
+      <footer class="msc-sa-footer">Meu Super Chat • Console Super Admin • Ambiente seguro</footer>
     </main>
   </div>
+
   <%= render "javascript" %>
+  <script>
+    (function () {
+      var RX = /chatwoot|fazer\.ai|chwt\.app/i;
+      function clean(str) {
+        return str
+          .replace(/https?:\/\/(www\.)?(chwt\.app|chatwoot\.com)[^\s"')]*/gi, 'https://chat.meusuper.app/lp#faq')
+          .replace(/Chatwoot/gi, 'Meu Super Chat')
+          .replace(/fazer\.ai/gi, 'Meu Super Chat');
+      }
+      function sanitize(root) {
+        if (!root) return;
+        if (RX.test(document.title)) document.title = clean(document.title);
+        var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+        var node;
+        while ((node = walker.nextNode())) {
+          var p = node.parentNode && node.parentNode.nodeName;
+          if (p === 'SCRIPT' || p === 'STYLE' || p === 'TEXTAREA') continue;
+          if (RX.test(node.nodeValue)) node.nodeValue = clean(node.nodeValue);
+        }
+        root.querySelectorAll('[placeholder],[title],[alt]').forEach(function (el) {
+          ['placeholder', 'title', 'alt'].forEach(function (a) {
+            var v = el.getAttribute(a);
+            if (v && RX.test(v)) el.setAttribute(a, clean(v));
+          });
+        });
+      }
+      sanitize(document.body);
+      document.addEventListener('DOMContentLoaded', function () { sanitize(document.body); });
+      if (window.MutationObserver) {
+        var t;
+        new MutationObserver(function () {
+          clearTimeout(t);
+          t = setTimeout(function () { sanitize(document.body); }, 60);
+        }).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+      }
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') document.body.classList.remove('msc-sa-drawer-open');
+      });
+      window.addEventListener('resize', function () {
+        if (window.innerWidth >= 1024) document.body.classList.remove('msc-sa-drawer-open');
+      });
+      // Wrap any stray table that is not already in a scroll container
+      document.querySelectorAll('.msc-sa-main table').forEach(function (tbl) {
+        if (tbl.closest('.msc-table-scroll')) return;
+        var w = document.createElement('div');
+        w.className = 'msc-table-scroll';
+        tbl.parentNode.insertBefore(w, tbl);
+        w.appendChild(tbl);
+      });
+    })();
+  </script>
 </body>
 </html>
