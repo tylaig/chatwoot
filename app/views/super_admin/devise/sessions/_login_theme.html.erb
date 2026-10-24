@@ -1,0 +1,40 @@
+<%# Isolated login dual-theme: no admin layout/helper/locale/Sidekiq dependency. %>
+<style>
+:root { --msc-elevated:#0A151D; --msc-border-strong:#1B3544; --msc-muted:#94A3B8; --msc-text:#F8FAFC; --msc-volt:#C6FF00; --msc-emerald:#10B981; color-scheme:dark; }
+html[data-msc-theme="light"] { --msc-elevated:#E9F0ED; --msc-border-strong:#CBD5E1; --msc-muted:#475569; --msc-text:#0B1620; --msc-volt:#4D7C0F; --msc-emerald:#047857; color-scheme:light; background:#F4F7F6 !important; }
+.msc-theme-toggle { display:inline-flex; gap:4px; padding:3px; border-radius:999px; background:var(--msc-elevated); border:1px solid var(--msc-border-strong); }
+.msc-theme-toggle__btn { display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; padding:0; border:0; border-radius:999px; background:transparent; color:var(--msc-muted); cursor:pointer; }
+.msc-theme-toggle__btn.is-on { background:rgba(198,255,0,.14); color:var(--msc-volt); }
+.msc-theme-toggle__btn:focus-visible { outline:2px solid var(--msc-emerald); outline-offset:3px; }
+html[data-msc-theme="light"] .msc-theme-toggle__btn.is-on { background:#FFFFFF; color:var(--msc-emerald); }
+.msc-login__foot { color:#94A3B8; }
+.msc-field input::placeholder { color:#94A3B8; }
+.msc-field input { border-color:#334653; }
+html[data-msc-theme="light"] .msc-field input::placeholder { color:#64748B; }
+html[data-msc-theme="light"] .msc-login__foot a { color:#047857; }
+</style>
+<script>
+  (function () {
+    var KEY = 'msc-sa-theme';
+    function apply(theme) {
+      var root = document.documentElement;
+      root.setAttribute('data-msc-theme', theme);
+      root.classList.toggle('dark', theme === 'dark');
+      if (document.body) document.body.classList.toggle('dark', theme === 'dark');
+      document.querySelectorAll('[data-msc-theme]').forEach(function (b) {
+        if (b === root) return;
+        var on = b.getAttribute('data-msc-theme') === theme;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+    var saved = null;
+    try { saved = localStorage.getItem(KEY); } catch (e) {}
+    apply(saved === 'light' ? 'light' : 'dark');
+    window.mscSetTheme = function (theme) {
+      try { localStorage.setItem(KEY, theme); } catch (e) {}
+      apply(theme);
+    };
+    document.addEventListener('DOMContentLoaded', function () { apply(document.documentElement.getAttribute('data-msc-theme') || 'dark'); });
+  })();
+</script>

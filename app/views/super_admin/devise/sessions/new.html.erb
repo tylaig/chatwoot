@@ -35,6 +35,16 @@
       .msc-login__foot a:hover { text-decoration: underline; }
       @media (max-width: 479px) { .msc-login__card { padding: 22px 18px; } .msc-login__title { font-size: 1.35rem; } }
     </style>
+    <%= render "super_admin/devise/sessions/login_theme" %>
+    <style>
+      .msc-login__theme { display:flex; justify-content:center; margin-bottom:18px; }
+      html[data-msc-theme="light"] body, html[data-msc-theme="light"] .msc-login { background:#F4F7F6 !important; color:#0B1620 !important; }
+      html[data-msc-theme="light"] .msc-login__card { background:white; border-color:#E2E8F0; box-shadow:0 20px 60px #0f172a10; }
+      html[data-msc-theme="light"] .msc-login__title { color:#0B1620; }
+      html[data-msc-theme="light"] .msc-login__sub, html[data-msc-theme="light"] .msc-login__foot { color:#64748B; }
+      html[data-msc-theme="light"] .msc-field label { color:#334155; }
+      html[data-msc-theme="light"] .msc-field input { background:#F1F5F4; color:#0B1620; border-color:#CBD5E1; }
+    </style>
   </head>
   <body>
     <main class="msc-login">
@@ -45,6 +55,7 @@
           <h1 class="msc-login__title">Console de Administração</h1>
           <p class="msc-login__sub">Acesso restrito a administradores da plataforma.</p>
         </section>
+        <div class="msc-login__theme"><%= render "super_admin/application/theme_toggle" %></div>
         <section class="msc-login__card">
           <%= form_for(resource, as: resource_name, url: '/super_admin/sign_in') do |f| %>
             <% if flash[:error].present? || flash[:alert].present? %>
