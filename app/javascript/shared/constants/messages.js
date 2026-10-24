@@ -18,6 +18,7 @@ export const CONVERSATION_STATUS = {
   RESOLVED: 'resolved',
   PENDING: 'pending',
   SNOOZED: 'snoozed',
+  AWAITING_RESOLUTION: 'awaiting_resolution',
 };
 
 export const CONVERSATION_PRIORITY = {

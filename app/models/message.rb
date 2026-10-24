@@ -668,6 +668,7 @@ class Message < ApplicationRecord
     return if conversation.muted?
     return unless incoming?
     return if reaction?
+    return if conversation.awaiting_resolution?
     return unless conversation.snoozed? || conversation.resolved?
 
     conversation.check_assignee_team_on_reopen

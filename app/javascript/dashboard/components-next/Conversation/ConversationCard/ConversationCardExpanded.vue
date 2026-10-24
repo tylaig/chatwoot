@@ -49,6 +49,9 @@ const voiceCallData = computed(() => {
 });
 
 const unreadCount = computed(() => props.chat.unread_count);
+const isAwaitingResolution = computed(
+  () => props.chat?.status === 'awaiting_resolution'
+);
 const inboxColor = computed(() => props.inbox?.inbox_color || '');
 const shouldShowInboxBadge = computed(
   () =>
@@ -81,9 +84,13 @@ const selectedModel = computed({
     class="conversation relative cursor-pointer group grid gap-4 items-center px-3 h-12 border-b border-n-slate-3 hover:border-n-surface-1 hover:z-[1] before:content-[none] before:absolute before:-top-px before:inset-x-0 before:h-px before:bg-n-surface-1 before:pointer-events-none hover:before:content-['']"
     :class="{
       'active animate-card-select bg-n-alpha-1 dark:bg-n-alpha-3 !border-n-surface-1':
-        isActiveChat,
+        isActiveChat && !isAwaitingResolution,
+      'active animate-card-select bg-amber-500/25 dark:bg-amber-500/20 !border-amber-500/50':
+        isActiveChat && isAwaitingResolution,
+      'bg-amber-500/15 dark:bg-amber-500/15 hover:bg-amber-500/25 dark:hover:bg-amber-500/25 border-l-4 border-l-amber-500':
+        isAwaitingResolution && !selected,
       'selected bg-n-slate-2 dark:bg-n-slate-3 !border-n-surface-1': selected,
-      'hover:bg-n-alpha-1': !isActiveChat && !selected,
+      'hover:bg-n-alpha-1': !isActiveChat && !selected && !isAwaitingResolution,
       'grid-cols-[minmax(0,2fr)_minmax(0,1fr)]': showLabelsSection,
       'grid-cols-[minmax(0,2fr)_max-content]': !showLabelsSection,
     }"

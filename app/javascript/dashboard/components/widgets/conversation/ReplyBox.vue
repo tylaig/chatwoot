@@ -1678,6 +1678,13 @@ export default {
         status: wootConstants.STATUS_TYPE.PENDING,
       });
     },
+    onMarkAwaitingResolutionFromReplyBox() {
+      if (!this.currentChat?.id) return;
+      this.$store.dispatch('toggleStatus', {
+        conversationId: this.currentChat.id,
+        status: wootConstants.STATUS_TYPE.AWAITING_RESOLUTION,
+      });
+    },
   },
 };
 </script>
@@ -1887,6 +1894,9 @@ export default {
         @request-contact-info-template="openContactInfoTemplateModal"
         @resolve-conversation="onResolveFromReplyBox"
         @mark-pending-conversation="onMarkPendingFromReplyBox"
+        @mark-awaiting-resolution-conversation="
+          onMarkAwaitingResolutionFromReplyBox
+        "
       />
     </Transition>
 

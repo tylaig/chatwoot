@@ -94,7 +94,7 @@ class Conversation < ApplicationRecord
   validates :uuid, uniqueness: true
   validate :validate_referer_url
 
-  enum status: { open: 0, resolved: 1, pending: 2, snoozed: 3 }
+  enum status: { open: 0, resolved: 1, pending: 2, snoozed: 3, awaiting_resolution: 4 }
   enum priority: { low: 0, medium: 1, high: 2, urgent: 3 }
   enum group_type: { individual: 0, group: 1 }, _prefix: true
 
@@ -239,7 +239,7 @@ class Conversation < ApplicationRecord
   # the last save, and every status callback reads `saved_change_to_status?`
   # from it.
   def toggled_status
-    return :open if pending? || snoozed?
+    return :open if pending? || snoozed? || awaiting_resolution?
 
     open? ? :resolved : :open
   end

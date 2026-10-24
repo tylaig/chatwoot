@@ -33,6 +33,9 @@
       "snoozed": {
         "TEXT": "Snoozed"
       },
+      "awaiting_resolution": {
+        "TEXT": "On Hold – Awaiting Resolution"
+      },
       "all": {
         "TEXT": "All"
       }

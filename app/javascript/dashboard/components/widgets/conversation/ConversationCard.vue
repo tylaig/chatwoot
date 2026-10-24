@@ -58,11 +58,16 @@ const shouldShowInboxBadge = computed(
     Boolean(props.inbox?.inbox_color || props.inbox?.inbox_badge_label)
 );
 
+const isAwaitingResolution = computed(
+  () => props.chat?.status === 'awaiting_resolution'
+);
+
 const showMetaSection = computed(() => {
   return (
     shouldShowInboxBadge.value ||
     (props.showAssignee && props.assignee.name) ||
-    props.chat.priority
+    props.chat.priority ||
+    isAwaitingResolution.value
   );
 });
 
@@ -122,7 +127,11 @@ watch(
     class="relative flex items-start flex-grow-0 flex-shrink-0 w-auto max-w-full py-0 cursor-pointer conversation border-b border-n-slate-3 hover:border-n-surface-1 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-3 group hover:z-[1] before:content-[none] before:absolute before:-top-px before:inset-x-0 before:h-px before:bg-n-surface-1 before:pointer-events-none hover:before:content-['']"
     :class="{
       'active animate-card-select bg-n-background !border-n-surface-1':
-        isActiveChat,
+        isActiveChat && !isAwaitingResolution,
+      'active animate-card-select bg-amber-500/25 dark:bg-amber-500/20 !border-amber-500/50':
+        isActiveChat && isAwaitingResolution,
+      'bg-amber-500/15 dark:bg-amber-500/15 hover:bg-amber-500/25 dark:hover:bg-amber-500/25 border-l-4 border-l-amber-500':
+        isAwaitingResolution && !selected,
       'selected bg-n-slate-2 !border-n-surface-1': selected,
       'px-0': compact,
       'px-3': !compact,
@@ -181,6 +190,12 @@ watch(
             'flex-1 justify-between': !shouldShowInboxBadge,
           }"
         >
+          <span
+            v-if="isAwaitingResolution"
+            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-tight bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/40 flex-shrink-0"
+          >
+            {{ $t('CONVERSATION.HEADER.AWAITING_RESOLUTION_BADGE') }}
+          </span>
           <span
             v-if="showAssignee && assignee.name"
             class="text-n-slate-11 text-xs font-medium leading-3 py-0.5 px-0 inline-flex items-center gap-px truncate"

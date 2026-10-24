@@ -138,6 +138,7 @@
       "SNOOZED_UNTIL_TOMORROW": "Adiado até amanhã",
       "SNOOZED_UNTIL_NEXT_WEEK": "Adiada até a próxima semana",
       "SNOOZED_UNTIL_NEXT_REPLY": "Adiado até a próxima resposta",
+      "AWAITING_RESOLUTION_BADGE": "EM ESPERA – AGUARDANDO RESOLUÇÃO",
       "WHATSAPP_CALL": "Iniciar chamada no WhatsApp",
       "WHATSAPP_CALL_FAILED": "Não foi possível iniciar a chamada no WhatsApp.",
       "VOICE_CALL": "Iniciar chamada",
@@ -154,6 +155,7 @@
     },
     "RESOLVE_DROPDOWN": {
       "MARK_PENDING": "Deixar pendente",
+      "MARK_AWAITING_RESOLUTION": "Em Espera – Aguardando Resolução",
       "SNOOZE_UNTIL": "Adiar",
       "SNOOZE": {
         "TITLE": "Suspender até",
@@ -223,6 +225,7 @@
     },
     "CARD_CONTEXT_MENU": {
       "PENDING": "Deixar pendente",
+      "AWAITING_RESOLUTION": "Em Espera – Aguardando Resolução",
       "RESOLVED": "Encerrar atendimento",
       "MARK_AS_UNREAD": "Marcar como não lida",
       "MARK_AS_READ": "Marcar como lida",

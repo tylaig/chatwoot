@@ -55,7 +55,7 @@ module GroupConversationHandler # rubocop:disable Metrics/ModuleLength
   end
 
   def find_or_create_group_conversation(group_contact_inbox)
-    @conversation = group_contact_inbox.conversations.where(status: %i[open pending]).last
+    @conversation = group_contact_inbox.conversations.where(status: %i[open pending awaiting_resolution]).last
     if @conversation.present?
       @conversation.update!(group_type: :group) unless @conversation.group_type_group?
       return @conversation

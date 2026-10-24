@@ -157,6 +157,7 @@ export default {
     'requestContactInfoTemplate',
     'resolveConversation',
     'markPendingConversation',
+    'markAwaitingResolutionConversation',
   ],
   setup(props) {
     const { setSignatureFlagForInbox, fetchSignatureFlagFromUISettings } =
@@ -295,7 +296,8 @@ export default {
       return (
         !this.isNote &&
         this.isSendDisabled &&
-        this.conversationStatus === 'open'
+        (this.conversationStatus === 'open' ||
+          this.conversationStatus === 'awaiting_resolution')
       );
     },
   },
@@ -317,6 +319,9 @@ export default {
     },
     emitMarkPendingConversation() {
       this.$emit('markPendingConversation');
+    },
+    emitMarkAwaitingResolutionConversation() {
+      this.$emit('markAwaitingResolutionConversation');
     },
   },
 };
@@ -481,6 +486,14 @@ export default {
                 icon="i-lucide-circle-check"
                 :label="$t('CONVERSATION.HEADER.RESOLVE_ACTION')"
                 :click="emitResolveConversation"
+              />
+              <DropdownItem
+                v-if="conversationStatus !== 'awaiting_resolution'"
+                icon="i-lucide-hourglass"
+                :label="
+                  $t('CONVERSATION.RESOLVE_DROPDOWN.MARK_AWAITING_RESOLUTION')
+                "
+                :click="emitMarkAwaitingResolutionConversation"
               />
               <DropdownItem
                 icon="i-lucide-circle-dot-dashed"

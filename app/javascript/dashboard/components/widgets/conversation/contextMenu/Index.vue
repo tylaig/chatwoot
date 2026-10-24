@@ -128,6 +128,11 @@ export default {
           icon: 'arrow-redo',
         },
         {
+          key: wootConstants.STATUS_TYPE.AWAITING_RESOLUTION,
+          label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.AWAITING_RESOLUTION'),
+          icon: 'clock',
+        },
+        {
           key: wootConstants.STATUS_TYPE.PENDING,
           label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.PENDING'),
           icon: 'book-clock',

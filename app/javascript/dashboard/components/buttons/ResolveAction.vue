@@ -47,6 +47,10 @@ const isResolved = computed(
 const isSnoozed = computed(
   () => currentChat.value.status === wootConstants.STATUS_TYPE.SNOOZED
 );
+const isAwaitingResolution = computed(
+  () =>
+    currentChat.value.status === wootConstants.STATUS_TYPE.AWAITING_RESOLUTION
+);
 
 const showAdditionalActions = computed(
   () => !isPending.value && !isSnoozed.value
@@ -184,7 +188,7 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
   <div class="flex relative justify-end items-center resolve-actions">
     <ButtonGroup class="flex-shrink-0 rounded-lg shadow !outline-0 !border-0">
       <Button
-        v-if="isOpen"
+        v-if="isOpen || isAwaitingResolution"
         :label="t('CONVERSATION.HEADER.RESOLVE_ACTION')"
         icon="i-lucide-circle-check"
         size="sm"
@@ -222,8 +226,8 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
         size="sm"
         no-animation
         class="ltr:rounded-l-none rtl:rounded-r-none !outline-0"
-        :color="isOpen ? 'teal' : 'slate'"
-        :variant="isOpen ? 'faded' : 'solid'"
+        :color="isOpen || isAwaitingResolution ? 'teal' : 'slate'"
+        :variant="isOpen || isAwaitingResolution ? 'faded' : 'solid'"
         trailing-icon
         @click="openDropdown"
       />
@@ -234,6 +238,32 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
       class="border rounded-lg shadow-lg border-n-strong dark:border-n-strong box-content p-2 w-fit z-10 bg-n-alpha-3 backdrop-blur-[100px] absolute block left-auto top-full mt-0.5 start-0 xl:start-auto xl:end-0 max-w-[12.5rem] min-w-[9.75rem] [&_ul>li]:mb-0"
     >
       <WootDropdownMenu class="mb-0">
+        <WootDropdownItem v-if="isAwaitingResolution">
+          <Button
+            :label="t('CONVERSATION.HEADER.REOPEN_ACTION')"
+            ghost
+            slate
+            sm
+            start
+            icon="i-lucide-redo"
+            class="w-full"
+            @click="onCmdOpenConversation"
+          />
+        </WootDropdownItem>
+        <WootDropdownItem v-if="!isAwaitingResolution">
+          <Button
+            :label="t('CONVERSATION.RESOLVE_DROPDOWN.MARK_AWAITING_RESOLUTION')"
+            ghost
+            amber
+            sm
+            start
+            icon="i-lucide-hourglass"
+            class="w-full"
+            @click="
+              () => toggleStatus(wootConstants.STATUS_TYPE.AWAITING_RESOLUTION)
+            "
+          />
+        </WootDropdownItem>
         <WootDropdownItem v-if="!isPending">
           <Button
             :label="t('CONVERSATION.RESOLVE_DROPDOWN.SNOOZE_UNTIL')"

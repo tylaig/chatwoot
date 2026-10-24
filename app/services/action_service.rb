@@ -26,6 +26,10 @@ class ActionService
     @conversation.pending!
   end
 
+  def awaiting_resolution_conversation(_params)
+    @conversation.awaiting_resolution!
+  end
+
   def change_status(status)
     return open_for_people if status[0].to_s == 'open'
 

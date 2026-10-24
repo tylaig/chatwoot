@@ -32,6 +32,7 @@ module Enterprise::Message
   def reopen_conversation
     return if conversation.muted?
     return unless incoming?
+    return if conversation.awaiting_resolution?
 
     if conversation.snoozed?
       reopen_snoozed_conversation

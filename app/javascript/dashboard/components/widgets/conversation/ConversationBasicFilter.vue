@@ -61,6 +61,10 @@ const chatStatusOptions = computed(() => [
     value: 'open',
   },
   {
+    label: t('CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.awaiting_resolution.TEXT'),
+    value: 'awaiting_resolution',
+  },
+  {
     label: t('CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.resolved.TEXT'),
     value: 'resolved',
   },

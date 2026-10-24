@@ -72,7 +72,7 @@ module Workflows
         when 'update_conversation'
           if conversation.present?
             updates = {}
-            updates[:status] = config[:status] if config[:status].present? && %w[open resolved pending snoozed].include?(config[:status].to_s)
+            updates[:status] = config[:status] if config[:status].present? && %w[open resolved pending snoozed awaiting_resolution].include?(config[:status].to_s)
             updates[:priority] = config[:priority] if config[:priority].present? && %w[low medium high urgent].include?(config[:priority].to_s)
             conversation.update!(updates) if updates.present?
             result_data[:updated_conversation] = updates
