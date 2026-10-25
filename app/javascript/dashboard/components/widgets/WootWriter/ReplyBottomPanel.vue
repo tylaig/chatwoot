@@ -432,11 +432,13 @@ export default {
       <div v-if="showScheduleOptions && !isNote" class="flex">
         <NextButton
           :label="sendButtonText"
+          icon="i-lucide-corner-down-left"
+          trailing-icon
           type="submit"
           sm
           blue
           :disabled="isSendDisabled"
-          class="flex-shrink-0 !rounded-r-none"
+          class="flex-shrink-0 !rounded-r-none !bg-emerald-600 hover:enabled:!bg-emerald-700 !text-white font-semibold disabled:!opacity-90 shadow-xs"
           @click="onSend"
         />
         <DropdownContainer>
@@ -447,12 +449,15 @@ export default {
               blue
               icon="i-lucide-chevron-down"
               :disabled="isSendDisabled"
-              class="flex-shrink-0 !rounded-l-none !border-l border-l-white/20 !px-1.5"
-              :class="{ 'bg-n-blue-11': isOpen }"
+              class="flex-shrink-0 !rounded-l-none !border-l border-l-white/25 !px-2 !bg-emerald-600 hover:enabled:!bg-emerald-700 !text-white disabled:!opacity-90"
+              :class="{ '!bg-emerald-700': isOpen }"
               @click="toggle"
             />
           </template>
-          <DropdownBody class="bottom-11 -right-8 min-w-48 z-50" strong>
+          <DropdownBody
+            class="bottom-11 ltr:right-0 rtl:left-0 min-w-48 z-[100]"
+            strong
+          >
             <DropdownSection>
               <DropdownItem
                 icon="i-lucide-clock"
@@ -466,11 +471,18 @@ export default {
       <NextButton
         v-else
         :label="sendButtonText"
+        icon="i-lucide-corner-down-left"
+        trailing-icon
         type="submit"
         sm
         :color="isNote ? 'amber' : 'blue'"
         :disabled="isSendDisabled"
-        class="flex-shrink-0"
+        class="flex-shrink-0 font-semibold disabled:!opacity-90"
+        :class="
+          !isNote
+            ? '!bg-emerald-600 hover:enabled:!bg-emerald-700 !text-white'
+            : ''
+        "
         @click="onSend"
       />
     </div>

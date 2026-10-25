@@ -38,6 +38,7 @@ Rails.application.routes.draw do
     resource :slack_uploads, only: [:show]
     get '/agendar/sala/:uid', to: 'public_bookings#show_meeting', as: 'public_booking_meeting_room'
     get '/reuniao/:uid', to: 'public_bookings#show_meeting', as: 'public_meeting_room'
+    get '/agendar', to: redirect('/agendar/samuel-vicente')
     get '/agendar/:slug', to: 'public_bookings#show', as: 'public_booking_page'
     get '/agendar/equipe/:slug', to: 'public_bookings#show', as: 'public_team_booking_page'
   end

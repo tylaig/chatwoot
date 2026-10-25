@@ -1,4 +1,5 @@
 <script setup>
+/* eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text */
 // [TODO] This componet is too big and bulky to be in the same file, we can consider splitting this into multiple
 // composables and components, useVirtualChatList, useChatlistFilters
 import {
@@ -12,7 +13,7 @@ import {
   defineEmits,
 } from 'vue';
 import { useStore } from 'vuex';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import {
   useMapGetter,
   useFunctionGetter,
@@ -81,7 +82,6 @@ const emit = defineEmits(['conversationLoad']);
 const { uiSettings } = useUISettings();
 const { t } = useI18n();
 const router = useRouter();
-const route = useRoute();
 const store = useStore();
 const { buildConversationListPath } = useConversationRoutePath();
 
@@ -92,6 +92,10 @@ const activeStatus = ref(wootConstants.STATUS_TYPE.OPEN);
 const activeSortBy = ref(wootConstants.SORT_BY_TYPE.LAST_ACTIVITY_AT_DESC);
 const activeGroupType = ref('');
 const showAdvancedFilters = ref(false);
+const localSearchQuery = ref('');
+const openGlobalSearch = () => {
+  router.push({ name: 'search' });
+};
 // chatsOnView is to store the chats that are currently visible on the screen,
 // which mirrors the conversationList.
 const chatsOnView = ref([]);
@@ -393,6 +397,31 @@ const conversationList = computed(() => {
     activeSortBy.value === wootConstants.SORT_BY_TYPE.UNREAD
   ) {
     localConversationList = sortByUnreadStatus(localConversationList);
+  }
+
+  const query = localSearchQuery.value.trim().toLowerCase();
+  if (query) {
+    localConversationList = localConversationList.filter(conversation => {
+      const sender = conversation?.meta?.sender || {};
+      const name = String(sender.name || '').toLowerCase();
+      const phone = String(sender.phone_number || '').toLowerCase();
+      const email = String(sender.email || '').toLowerCase();
+      const idStr = String(conversation.id || '');
+      const labelsStr = (conversation.labels || []).join(' ').toLowerCase();
+      const lastMsg = String(
+        conversation?.last_non_activity_message?.content ||
+          conversation?.messages?.[conversation.messages.length - 1]?.content ||
+          ''
+      ).toLowerCase();
+      return (
+        name.includes(query) ||
+        phone.includes(query) ||
+        email.includes(query) ||
+        idStr.includes(query) ||
+        labelsStr.includes(query) ||
+        lastMsg.includes(query)
+      );
+    });
   }
 
   return localConversationList;
@@ -1033,7 +1062,7 @@ watch(appliedFilters, () => resetBulkActions());
 
 <template>
   <div
-    class="flex flex-col flex-shrink-0 conversations-list-wrap bg-n-surface-1 relative"
+    class="flex flex-col flex-shrink-0 conversations-list-wrap bg-n-surface-1 relative z-20"
     :class="[
       { hidden: !showConversationList },
       isOnExpandedLayout ? 'basis-full' : 'w-[340px] 2xl:w-[412px]',
@@ -1056,6 +1085,40 @@ watch(appliedFilters, () => resetBulkActions());
       @reset-filters="resetAndFetchData"
       @basic-filter-change="onBasicFilterChange"
     />
+
+    <div class="px-3 pb-2 pt-0.5">
+      <div class="relative flex items-center">
+        <span
+          class="i-lucide-search size-3.5 text-slate-400 dark:text-slate-500 absolute ltr:left-3 rtl:right-3 pointer-events-none z-10"
+        />
+        <input
+          v-model="localSearchQuery"
+          type="search"
+          placeholder="Buscar conversas..."
+          class="msc-chatlist-search-input w-full h-9 !pl-9 !pr-14 !mb-0 rounded-xl bg-slate-50 dark:bg-[#09131E] border border-slate-200/90 dark:border-white/10 text-[13px] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 transition-all"
+          @keydown.meta.k.prevent="openGlobalSearch"
+          @keydown.ctrl.k.prevent="openGlobalSearch"
+        />
+        <button
+          v-if="localSearchQuery"
+          type="button"
+          class="absolute ltr:right-2 rtl:left-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 z-10"
+          @click="localSearchQuery = ''"
+        >
+          <span class="i-lucide-x size-3.5" />
+        </button>
+        <button
+          v-else
+          type="button"
+          title="Busca avançada (Ctrl+K)"
+          class="absolute ltr:right-2 rtl:left-2 inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 rounded shadow-2xs hover:border-emerald-500/50 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors z-10"
+          @click="openGlobalSearch"
+        >
+          <span class="i-lucide-command size-2.5 shrink-0" />
+          <span>K</span>
+        </button>
+      </div>
+    </div>
 
     <TeleportWithDirection
       v-if="showAddFoldersModal"

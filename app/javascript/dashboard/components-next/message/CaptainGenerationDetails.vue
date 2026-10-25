@@ -189,12 +189,12 @@ const rowLayoutClass = computed(() => {
 const sparkleColorClass = computed(() => {
   if (variant.value === MESSAGE_VARIANTS.PRIVATE) {
     return isOpen.value
-      ? 'text-n-amber-12/80'
-      : 'text-n-amber-12/40 hover:text-n-amber-12/70';
+      ? 'text-amber-800 dark:text-amber-300'
+      : 'text-amber-700/80 dark:text-amber-300/75 hover:text-amber-900 dark:hover:text-amber-200';
   }
   return isOpen.value
-    ? 'text-n-slate-12'
-    : 'text-n-slate-11/60 hover:text-n-slate-12';
+    ? 'text-emerald-700 dark:text-emerald-300 font-semibold'
+    : 'text-emerald-600 dark:text-emerald-400 font-medium hover:text-emerald-700 dark:hover:text-emerald-300';
 });
 
 const popoverAlign = computed(() =>

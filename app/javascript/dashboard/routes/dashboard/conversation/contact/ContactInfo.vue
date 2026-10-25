@@ -213,7 +213,7 @@ export default {
             <div
               class="p-0.5 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-700 shadow-[0_0_18px_rgba(16,185,129,0.38)]"
             >
-              <div class="rounded-full bg-[#091318] p-0.5">
+              <div class="rounded-full bg-white dark:bg-[#091318] p-0.5">
                 <Avatar
                   :src="contact.thumbnail"
                   :name="contact.name"
@@ -225,7 +225,7 @@ export default {
               </div>
             </div>
             <span
-              class="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#0B1317] shadow-[0_0_8px_rgba(16,185,129,0.8)]"
+              class="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white dark:border-[#0B1317] shadow-[0_0_8px_rgba(16,185,129,0.8)]"
             />
           </div>
 
@@ -244,7 +244,7 @@ export default {
               />
               <h3
                 v-else
-                class="flex-shrink max-w-full min-w-0 my-0 text-base font-semibold tracking-tight leading-snug break-words text-slate-50 cursor-pointer hover:text-emerald-300 transition-colors"
+                class="flex-shrink max-w-full min-w-0 my-0 text-base font-semibold tracking-tight leading-snug break-words text-slate-900 dark:text-slate-50 cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-300 transition-colors"
                 :title="$t('CONTACT_PANEL.CLICK_TO_EDIT')"
                 @click="startEditingName"
               >
@@ -269,11 +269,15 @@ export default {
             <!-- Company Emerald Subtitle Pill -->
             <span
               v-if="additionalAttributes.company_name"
-              class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/12 text-emerald-300 border border-emerald-500/30 max-w-full truncate"
+              class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 max-w-full truncate"
               :title="additionalAttributes.company_name"
             >
-              <span class="i-lucide-building-2 text-xs text-emerald-400 flex-shrink-0" />
-              <span class="truncate">{{ additionalAttributes.company_name }}</span>
+              <span
+                class="i-lucide-building-2 text-xs text-emerald-600 dark:text-emerald-400 flex-shrink-0"
+              />
+              <span class="truncate">{{
+                additionalAttributes.company_name
+              }}</span>
             </span>
           </div>
         </div>
@@ -385,7 +389,7 @@ export default {
               class="flex-1 h-9 px-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 hover:border-emerald-400 flex items-center justify-center gap-1.5 text-xs font-medium transition-all"
             >
               <span class="i-ph-chat-circle-dots text-sm text-emerald-400" />
-              <span>Chat</span>
+              <span>{{ $t('CONTACT_PANEL.NEW_MESSAGE') }}</span>
             </button>
           </template>
         </ComposeConversation>
@@ -410,7 +414,7 @@ export default {
           @click="toggleEditModal"
         >
           <span class="i-ph-pencil-simple text-sm text-slate-300" />
-          <span>Editar</span>
+          <span>{{ $t('EDIT_CONTACT.BUTTON_LABEL') }}</span>
         </button>
 
         <ContactMergeModal :primary-contact="contact">
@@ -422,7 +426,7 @@ export default {
               class="flex-1 h-9 px-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-slate-200 hover:bg-white/[0.08] hover:border-emerald-500/35 flex items-center justify-center gap-1.5 text-xs font-medium transition-all disabled:opacity-50"
             >
               <span class="i-ph-arrows-merge text-sm text-slate-300" />
-              <span>Mesclar</span>
+              <span>{{ $t('CONTACT_PANEL.MERGE_CONTACT') }}</span>
             </button>
           </template>
         </ContactMergeModal>

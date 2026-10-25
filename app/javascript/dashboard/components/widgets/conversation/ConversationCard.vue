@@ -119,24 +119,25 @@ watch(
 
 <template>
   <div
-    class="relative flex items-start flex-grow-0 flex-shrink-0 w-auto max-w-full py-0 cursor-pointer conversation border-b border-n-slate-3 hover:border-n-surface-1 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-3 group hover:z-[1] before:content-[none] before:absolute before:-top-px before:inset-x-0 before:h-px before:bg-n-surface-1 before:pointer-events-none hover:before:content-['']"
-    :class="{
-      'active animate-card-select bg-n-background !border-n-surface-1':
-        isActiveChat,
-      'selected bg-n-slate-2 !border-n-surface-1': selected,
-      'px-0': compact,
-      'px-3': !compact,
-    }"
+    class="relative flex items-start gap-3 flex-grow-0 flex-shrink-0 w-auto max-w-full cursor-pointer conversation msc-conv-card mx-2 my-1.5 rounded-xl border transition-all duration-150 group"
+    :class="[
+      isActiveChat
+        ? 'active animate-card-select bg-emerald-50/80 dark:bg-emerald-500/12 border-emerald-200/90 dark:border-emerald-500/35 border-l-4 !border-l-emerald-500 dark:!border-l-emerald-400 shadow-xs'
+        : selected
+          ? 'selected bg-emerald-50/50 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/40'
+          : 'bg-white dark:bg-white/[0.015] border-slate-200/75 dark:border-white/[0.06] hover:bg-slate-50/90 dark:hover:bg-white/[0.035] hover:border-slate-300/80 dark:hover:border-emerald-500/25',
+      compact ? 'px-2.5 py-2.5' : 'px-3.5 py-3',
+    ]"
     @click="$emit('click', $event)"
     @contextmenu="$emit('contextmenu', $event)"
   >
     <span
-      v-if="inboxColor"
-      class="absolute inset-y-0.5 ltr:left-0 rtl:right-0 w-1 rounded-r-sm pointer-events-none z-10"
+      v-if="inboxColor && !isActiveChat"
+      class="absolute inset-y-2 ltr:left-0 rtl:right-0 w-1 rounded-r-sm pointer-events-none z-10"
       :style="{ backgroundColor: inboxColor }"
     />
     <div
-      class="relative"
+      class="relative shrink-0 mt-0.5"
       @mouseenter="onThumbnailHover"
       @mouseleave="onThumbnailLeave"
     >
@@ -144,9 +145,8 @@ watch(
         v-if="!hideThumbnail"
         :name="currentContact.name"
         :src="currentContact.thumbnail"
-        :size="32"
+        :size="38"
         :status="currentContact.availability_status"
-        :class="!shouldShowInboxBadge ? 'mt-4' : 'mt-8'"
         hide-offline-status
       >
         <template #overlay="{ size }">
@@ -161,111 +161,116 @@ watch(
         </template>
       </Avatar>
     </div>
-    <div class="px-0 py-3 flex-1 min-w-0 border-line">
-      <div
-        v-if="showMetaSection"
-        class="flex items-center min-w-0 gap-1"
-        :class="{
-          'ltr:ml-2 rtl:mr-2': !compact,
-          'mx-2': compact,
-        }"
-      >
-        <InboxName
-          v-if="shouldShowInboxBadge"
-          :inbox="inbox"
-          class="flex-1 min-w-0"
-        />
-        <div
-          class="flex items-baseline gap-2 flex-shrink-0"
-          :class="{
-            'flex-1 justify-between': !shouldShowInboxBadge,
-          }"
+    <div class="p-0 flex-1 min-w-0 border-line">
+      <div class="flex items-center justify-between gap-2 min-w-0">
+        <h4
+          class="conversation--user text-[15px] leading-snug my-0 capitalize text-ellipsis overflow-hidden whitespace-nowrap flex-1 min-w-0 text-slate-900 dark:text-slate-100"
+          :class="hasUnread || isActiveChat ? 'font-bold' : 'font-semibold'"
         >
-          <span
-            v-if="showAssignee && assignee.name"
-            class="text-n-slate-11 text-xs font-medium leading-3 py-0.5 px-0 inline-flex items-center gap-px truncate"
-          >
-            <Icon
-              :icon="isAIAssignee ? 'i-lucide-bot' : 'i-lucide-user-round'"
-              class="size-3 text-n-slate-11 flex-shrink-0"
-            />
-            <span class="truncate">{{ assignee.name }}</span>
-          </span>
+          {{ currentContact.name }}
+        </h4>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
           <CardPriorityIcon
             :priority="chat.priority"
             class="flex-shrink-0 !size-3.5"
           />
-        </div>
-      </div>
-      <h4
-        class="conversation--user text-sm my-0 mx-2 capitalize pt-0.5 text-ellipsis overflow-hidden whitespace-nowrap flex-1 min-w-0 ltr:pr-16 rtl:pl-16 text-n-slate-12"
-        :class="hasUnread ? 'font-semibold' : 'font-medium'"
-      >
-        {{ currentContact.name }}
-      </h4>
-      <VoiceCallStatus
-        v-if="voiceCallData.status"
-        key="voice-status-row"
-        :status="voiceCallData.status"
-        :direction="voiceCallData.direction"
-        :message-preview-class="messagePreviewClass"
-      />
-      <p
-        v-else-if="isAnyoneTyping"
-        key="typing-preview"
-        class="text-green-500 text-sm font-medium my-0 mx-2 leading-6 h-6 flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
-        :class="messagePreviewPaddingClass"
-      >
-        {{ typingPreview }}
-      </p>
-      <MessagePreview
-        v-else-if="lastMessageInChat"
-        key="message-preview"
-        :message="lastMessageInChat"
-        class="my-0 mx-2 leading-6 h-6 flex-1 min-w-0 text-sm"
-        :class="messagePreviewClass"
-      />
-      <p
-        v-else
-        key="no-messages"
-        class="text-n-slate-11 text-sm my-0 mx-2 leading-6 h-6 flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
-        :class="messagePreviewClass"
-      >
-        <fluent-icon
-          size="16"
-          class="-mt-0.5 align-middle inline-block text-n-slate-10"
-          icon="info"
-        />
-        <span class="mx-0.5">
-          {{ $t(`CHAT_LIST.NO_MESSAGES`) }}
-        </span>
-      </p>
-      <div
-        class="absolute flex flex-col ltr:right-3 rtl:left-3"
-        :class="showMetaSection ? 'top-8' : 'top-4'"
-      >
-        <span class="ml-auto font-normal leading-4 text-xxs">
+          <CardPinIcon v-if="isPinned" class="flex-shrink-0" />
           <TimeAgo
             :last-activity-timestamp="chat.timestamp"
             :created-at-timestamp="chat.created_at"
             :conversation-id="chat.id"
           />
+        </div>
+      </div>
+
+      <div
+        v-if="showMetaSection"
+        class="flex items-center min-w-0 gap-1.5 mt-0.5 text-[12.5px] font-medium text-slate-600 dark:text-slate-400"
+      >
+        <InboxName
+          v-if="shouldShowInboxBadge"
+          :inbox="inbox"
+          class="!mx-0 min-w-0 truncate"
+        />
+        <span
+          v-if="shouldShowInboxBadge && showAssignee && assignee.name"
+          class="text-slate-300 dark:text-slate-600 flex-shrink-0"
+        >
+          •
         </span>
+        <span
+          v-if="showAssignee && assignee.name"
+          class="text-slate-600 dark:text-slate-400 text-xs font-medium leading-4 py-0 px-0 inline-flex items-center gap-1 truncate"
+        >
+          <Icon
+            :icon="isAIAssignee ? 'i-lucide-bot' : 'i-lucide-user-round'"
+            class="size-3 flex-shrink-0"
+            :class="
+              isAIAssignee
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-slate-500 dark:text-slate-400'
+            "
+          />
+          <span class="truncate">{{ assignee.name }}</span>
+        </span>
+      </div>
+
+      <div class="flex items-center justify-between gap-2 mt-1 min-w-0">
+        <VoiceCallStatus
+          v-if="voiceCallData.status"
+          key="voice-status-row"
+          :status="voiceCallData.status"
+          :direction="voiceCallData.direction"
+          :message-preview-class="messagePreviewClass"
+        />
+        <p
+          v-else-if="isAnyoneTyping"
+          key="typing-preview"
+          class="text-emerald-600 dark:text-emerald-400 text-[13.5px] font-medium my-0 !mx-0 leading-5 h-5 flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+        >
+          {{ typingPreview }}
+        </p>
+        <MessagePreview
+          v-else-if="lastMessageInChat"
+          key="message-preview"
+          :message="lastMessageInChat"
+          class="my-0 !mx-0 leading-5 h-5 flex-1 min-w-0 text-[13.5px]"
+          :class="
+            hasUnread
+              ? 'font-semibold text-slate-900 dark:text-slate-100'
+              : 'text-slate-600 dark:text-slate-400'
+          "
+        />
+        <p
+          v-else
+          key="no-messages"
+          class="text-slate-500 dark:text-slate-400 text-[13.5px] my-0 !mx-0 leading-5 h-5 flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+        >
+          <fluent-icon
+            size="15"
+            class="-mt-0.5 align-middle inline-block text-slate-400"
+            icon="info"
+          />
+          <span class="mx-0.5">
+            {{ $t(`CHAT_LIST.NO_MESSAGES`) }}
+          </span>
+        </p>
+
         <UnreadBadge
           v-if="unreadCount > 0"
           :count="unreadCount"
-          class="ltr:ml-auto rtl:mr-auto mt-1"
+          class="flex-shrink-0 !bg-emerald-500 !text-white font-bold"
         />
         <span
           v-else-if="hasGroupActivity"
-          class="shadow-lg rounded-full ltr:ml-auto rtl:mr-auto mt-1 size-2 bg-n-teal-9"
+          class="shadow-sm rounded-full flex-shrink-0 size-2 bg-emerald-500"
         />
-        <CardPinIcon v-if="isPinned" class="ltr:ml-auto rtl:mr-auto mt-1" />
       </div>
+
       <CardLabels
         v-if="showLabelsSection"
         :conversation-labels="chat.labels"
-        class="mt-0.5 mx-2 mb-0"
+        class="mt-2 !mx-0 mb-0"
       >
         <template v-if="hasSlaPolicyId" #before>
           <SLACardLabel :chat="chat" class="ltr:mr-1 rtl:ml-1" />

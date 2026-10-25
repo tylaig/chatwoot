@@ -12,7 +12,7 @@ class Calendar::AvailabilityService
   # Returns available slots for a single date (YYYY-MM-DD) or range of dates across one or multiple professionals
   def available_slots(date_str:, days: 1)
     start_date = parse_date(date_str) || Time.current.in_time_zone(primary_timezone).to_date
-    days_count = days.to_i.clamp(1, 14)
+    days_count = days.to_i.clamp(1, 45)
     results = []
 
     @schedules.each do |schedule|

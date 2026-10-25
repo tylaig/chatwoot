@@ -87,6 +87,8 @@ class PublicBookingsController < ActionController::Base
     account = target[:account]
     schedule_id = params[:calendar_schedule_id].presence || target[:schedule]&.id
 
+    guest_emails = Array(params[:guest_emails]).map { |e| e.to_s.strip }.reject(&:blank?)
+
     appointment = Calendar::BookingService.new(account: account).create!(
       calendar_schedule_id: schedule_id,
       appointment_type_id: params[:appointment_type_id],
@@ -96,7 +98,10 @@ class PublicBookingsController < ActionController::Base
       customer_phone: params[:customer_phone],
       notes: params[:notes],
       source: 'public_link',
-      metadata: { booked_via_slug: params[:slug] }
+      metadata: {
+        booked_via_slug: params[:slug],
+        guest_emails: guest_emails.presence
+      }.compact
     )
 
     render json: {

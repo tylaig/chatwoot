@@ -3,875 +3,239 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agendar Horário • <%= @global_config['BRAND_NAME'].presence || 'Meu Super Chat' %></title>
-  <meta name="description" content="Escolha seu serviço, horário e confirme sua sessão na agenda inteligente do Meu Super Chat." />
+  <title>Agendar horário • <%= @global_config['BRAND_NAME'].presence || 'Meu Super Chat' %></title>
+  <meta name="description" content="Escolha sua data, horário e confirme sua sessão no Meu Super Chat." />
+  <meta name="theme-color" content="#04090D" />
   <link rel="icon" type="image/png" href="/favicon-32x32.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg-base: #04090D;
-      --bg-card: #081218;
-      --bg-elevated: #0A151D;
-      --border: #132631;
-      --border-strong: #162936;
-      --accent: #10B981;
-      --accent-bright: #00D68F;
-      --text: #F8FAFC;
-      --muted: #94A3B8;
-      --subtle: #64748B;
-    }
-    html, body {
-      min-height: 100%;
-      background: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.08) 0%, var(--bg-base) 55%);
-      color: var(--text);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-    }
-    .page-shell {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px 16px 40px;
-    }
-    .top-brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--muted);
-    }
-    .top-brand-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 12px rgba(16, 185, 129, 0.7);
-    }
-    .booking-container {
-      width: 100%;
-      max-width: 1040px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-strong);
-      border-radius: 20px;
-      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65);
-      overflow: hidden;
-      display: grid;
-      grid-template-columns: 310px 1fr 260px;
-    }
-    @media (max-width: 960px) {
-      .booking-container {
-        grid-template-columns: 1fr;
-        max-width: 640px;
-      }
-    }
-    @media (max-width: 520px) {
-      .page-shell {
-        justify-content: flex-start;
-        padding: 18px 16px 28px;
-      }
-      .top-brand {
-        width: 100%;
-        justify-content: center;
-        text-align: center;
-        line-height: 1.35;
-        margin-bottom: 14px;
-      }
-      .booking-container {
-        border-radius: 16px;
-      }
-    }
-    .col-info {
-      padding: 28px 24px;
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 20px;
-      background: rgba(4, 9, 13, 0.55);
-    }
-    @media (max-width: 960px) {
-      .col-info {
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        padding: 22px 20px;
-      }
-    }
-    .avatar-circle {
-      width: 48px;
-      height: 48px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 16px;
-      color: #04090D;
-      background: var(--accent);
-      flex-shrink: 0;
-    }
-    .prof-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .account-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--accent);
-      font-weight: 600;
-    }
-    .prof-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text);
-      margin-top: 2px;
-    }
-    .service-title {
-      font-size: 20px;
-      font-weight: 700;
-      line-height: 1.25;
-      color: var(--text);
-      margin-top: 14px;
-    }
-    .service-bio {
-      font-size: 13px;
-      line-height: 1.55;
-      color: var(--muted);
-      margin-top: 8px;
-    }
-    .meta-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 18px;
-      font-size: 13px;
-      color: #CBD5E1;
-    }
-    .meta-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .select-box {
-      width: 100%;
-      margin-top: 8px;
-      padding: 9px 11px;
-      border-radius: 10px;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border-strong);
-      color: var(--text);
-      font-size: 12px;
-      font-family: inherit;
-      outline: none;
-    }
-    .select-box:focus { border-color: var(--accent); }
-    .col-calendar {
-      padding: 28px 24px;
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    @media (max-width: 960px) {
-      .col-calendar {
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        padding: 22px 20px;
-      }
-    }
-    .cal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .cal-month-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text);
-    }
-    .nav-btn {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      border: 1px solid var(--border-strong);
-      background: var(--bg-elevated);
-      color: var(--text);
-      cursor: pointer;
-      font-size: 13px;
-    }
-    .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
-    .weekdays-grid, .days-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 6px;
-      text-align: center;
-    }
-    .weekdays-grid span {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--subtle);
-      padding-bottom: 4px;
-    }
-    .day-cell {
-      aspect-ratio: 1;
-      min-height: 38px;
-      border-radius: 10px;
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--subtle);
-      font-size: 13px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: default;
-      transition: all 0.15s ease;
-    }
-    .day-cell.available {
-      background: rgba(16, 185, 129, 0.12);
-      border-color: rgba(16, 185, 129, 0.28);
-      color: #A7F3D0;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .day-cell.available:hover {
-      background: rgba(16, 185, 129, 0.24);
-      border-color: var(--accent);
-    }
-    .day-cell.selected {
-      background: var(--accent) !important;
-      border-color: var(--accent) !important;
-      color: #04090D !important;
-      font-weight: 700;
-      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35);
-    }
-    .col-slots {
-      padding: 28px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      max-height: 540px;
-      overflow-y: auto;
-    }
-    @media (max-width: 960px) {
-      .col-slots {
-        max-height: none;
-        padding: 22px 20px;
-      }
-    }
-    .slots-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-    }
-    .slots-list {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 8px;
-    }
-    @media (max-width: 960px) {
-      .slots-list {
-        grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
-      }
-    }
-    .slot-btn {
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border-strong);
-      background: var(--bg-elevated);
-      color: var(--text);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .slot-btn:hover {
-      border-color: var(--accent);
-      background: rgba(16, 185, 129, 0.14);
-      color: #A7F3D0;
-    }
-    .slot-btn.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #04090D;
-    }
-    .form-panel {
-      grid-column: span 2;
-      padding: 28px 26px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    @media (max-width: 960px) {
-      .form-panel { grid-column: span 1; padding: 22px 20px; }
-    }
-    .field-group { display: flex; flex-direction: column; gap: 6px; }
-    .field-label { font-size: 12px; font-weight: 500; color: var(--muted); }
-    .field-input {
-      width: 100%;
-      padding: 11px 13px;
-      border-radius: 10px;
-      background: var(--bg-base);
-      border: 1px solid var(--border-strong);
-      color: var(--text);
-      font-size: 13px;
-      font-family: inherit;
-      outline: none;
-    }
-    .field-input:focus { border-color: var(--accent); }
-    .primary-btn {
-      padding: 12px 18px;
-      border-radius: 10px;
-      border: none;
-      background: var(--accent);
-      color: #04090D;
-      font-weight: 700;
-      font-size: 13px;
-      cursor: pointer;
-      transition: filter 0.15s;
-    }
-    .primary-btn:hover { filter: brightness(1.08); }
-    .primary-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-    .secondary-btn {
-      padding: 11px 16px;
-      border-radius: 10px;
-      border: 1px solid var(--border-strong);
-      background: var(--bg-elevated);
-      color: var(--text);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-    .success-box {
-      grid-column: span 2;
-      padding: 36px 28px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 14px;
-    }
-    @media (max-width: 960px) {
-      .success-box { grid-column: span 1; padding: 28px 20px; }
-    }
-    .badge-sync {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 10px;
-      border-radius: 999px;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #6EE7B7;
-      font-size: 11px;
-      font-weight: 600;
-    }
-    .error-banner {
-      padding: 10px 12px;
-      border-radius: 10px;
-      background: rgba(244, 63, 94, 0.15);
-      border: 1px solid rgba(244, 63, 94, 0.35);
-      color: #FDA4AF;
-      font-size: 12px;
-    }
-    .booking-stepper {
-      grid-column: 1 / -1;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 16px 22px;
-      border-bottom: 1px solid var(--border);
-      background: linear-gradient(90deg, rgba(16,185,129,.08), transparent 65%);
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .booking-stepper::-webkit-scrollbar { display: none; }
-    @media (max-width: 520px) {
-      .booking-stepper {
-        gap: 7px;
-        padding: 13px 14px;
-        justify-content: flex-start;
-      }
-      .booking-step {
-        font-size: 10px;
-        gap: 5px;
-      }
-      .booking-step::after { width: 18px; margin-left: 1px; }
-      .booking-step .step-number {
-        width: 26px;
-        height: 26px;
-        flex: 0 0 26px;
-      }
-    }
-    .booking-step {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      flex: 0 0 auto;
-      color: var(--subtle);
-      font-size: 11px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    .booking-step::after {
-      content: '';
-      width: 34px;
-      height: 1px;
-      margin-left: 4px;
-      background: var(--border-strong);
-    }
-    .booking-step:last-child::after { display: none; }
-    .booking-step .step-number {
-      width: 24px;
-      height: 24px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      border: 1px solid var(--border-strong);
-      background: var(--bg-elevated);
-      color: var(--muted);
-      font-family: 'JetBrains Mono', monospace;
-    }
-    .booking-step.active, .booking-step.done { color: #A7F3D0; }
-    .booking-step.active .step-number, .booking-step.done .step-number {
-      border-color: var(--accent);
-      background: rgba(16,185,129,.18);
-      color: var(--accent-bright);
-    }
-    .powered-footer {
-      font-size: 11px;
-      color: var(--subtle);
-      padding-top: 14px;
-      border-top: 1px solid var(--border);
-    }
-    .powered-footer strong { color: var(--accent); }
+    *,*::before,*::after{box-sizing:border-box}
+    :root{--bg:#04090D;--card:#081218;--elev:#0A151D;--elev2:#0D1B24;--line:#132631;--line2:#162936;--ink:#F8FAFC;--muted:#94A3B8;--soft:#CBD5E1;--accent:#10B981;--accent-hi:#34D399;--mint:#6EE7B7;--lime:#C6FF00}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;color-scheme:dark}
+    body{overflow-x:hidden;background:radial-gradient(1200px 520px at 50% -10%,rgba(16,185,129,.10),transparent 70%),var(--bg)}
+    button,input,textarea{font:inherit}
+    button{cursor:pointer}
+    button:disabled{cursor:not-allowed;opacity:.55}
+    a{color:var(--accent-hi)}
+    .site-header{height:64px;border-bottom:1px solid var(--line);background:rgba(8,18,24,.85);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:space-between;padding:0 32px;gap:16px;position:relative;z-index:10}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:var(--ink);text-decoration:none}
+    .brand-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px rgba(16,185,129,.8)}
+    .copy-link{height:44px;padding:0 18px;border:1px solid var(--line2);border-radius:12px;background:var(--elev);color:var(--soft);font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:8px;transition:.15s}
+    .copy-link:hover{border-color:rgba(16,185,129,.5);color:var(--mint)}
+    .copy-link svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+    .page{min-height:calc(100vh - 64px);display:flex;align-items:center;justify-content:center;padding:40px 24px 56px}
+    .booking-card{width:min(1060px,100%);min-height:600px;background:var(--card);border:1px solid var(--line2);border-radius:24px;box-shadow:0 30px 80px rgba(0,0,0,.55);position:relative;overflow:hidden;display:grid;grid-template-columns:340px 1fr}
+    .booking-card.single{display:block}
+    .info-panel{padding:36px 32px;border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;background:linear-gradient(180deg,rgba(16,185,129,.05),transparent 40%)}
+    .avatar{width:64px;height:64px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;color:#04090D;margin-bottom:18px;background:var(--accent);background-size:cover;background-position:center;box-shadow:0 8px 24px rgba(16,185,129,.25)}
+    .profile-name{font-size:15px;font-weight:600;color:var(--soft);margin-bottom:2px}
+    .profile-role{font-size:13px;color:var(--muted);margin-bottom:16px}
+    .meeting-title{font-size:26px;line-height:1.2;font-weight:800;color:var(--ink);margin:0 0 12px;letter-spacing:-.01em}
+    .meeting-desc{font-size:15px;line-height:1.55;color:var(--muted);margin:0 0 22px}
+    .meeting-meta{display:flex;flex-direction:column;gap:14px;font-size:15px;line-height:1.45;color:var(--soft)}
+    .meta-row{display:flex;align-items:flex-start;gap:10px}
+    .meta-row.highlight{color:var(--mint);font-weight:600}
+    .meta-icon{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 20px;color:var(--accent)}
+    .meta-icon svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
+    .type-chips{display:flex;flex-direction:column;gap:8px;margin:0 0 22px}
+    .type-chip{min-height:44px;text-align:left;padding:10px 14px;border-radius:12px;border:1px solid var(--line2);background:var(--elev);color:var(--soft);font-size:14px;font-weight:600;transition:.15s}
+    .type-chip:hover{border-color:rgba(16,185,129,.45)}
+    .type-chip.active{border-color:var(--accent);background:rgba(16,185,129,.12);color:var(--mint)}
+    .powered{margin-top:auto;padding-top:28px;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
+    .powered strong{color:var(--ink)}
+    .powered .brand-dot{width:8px;height:8px}
+    .right-panel{padding:36px 36px 32px;min-width:0}
+    .section-title{font-size:22px;font-weight:700;margin:0 0 24px;color:var(--ink)}
+    .calendar-layout{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:32px}
+    .calendar-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .month-label{font-size:17px;font-weight:700;color:var(--ink)}.month-label::first-letter{text-transform:uppercase}
+    .month-nav{display:flex;align-items:center;gap:8px}
+    .month-nav button{width:44px;height:44px;border-radius:12px;border:1px solid var(--line2);background:var(--elev);color:var(--soft);display:inline-flex;align-items:center;justify-content:center;transition:.15s}
+    .month-nav button:hover:not(:disabled){border-color:rgba(16,185,129,.5);color:var(--mint)}
+    .month-nav svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2}
+    .weekdays,.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;text-align:center}
+    .weekdays{margin-bottom:8px}
+    .weekdays span{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+    .days button,.days span{height:48px;border:0;background:transparent;color:#475569;font-size:15px;font-weight:500;padding:0;display:flex;align-items:center;justify-content:center;border-radius:14px;position:relative}
+    .days button:disabled{opacity:1;cursor:default}
+    .days button.available{color:var(--mint);background:rgba(16,185,129,.12);font-weight:700}
+    .days button.available:hover{background:rgba(16,185,129,.22)}
+    .days button.today::after{content:"";position:absolute;bottom:7px;width:5px;height:5px;border-radius:50%;background:var(--lime)}
+    .days button.selected{background:var(--accent);color:#04090D;font-weight:800;box-shadow:0 6px 18px rgba(16,185,129,.35)}
+    .tz{margin-top:22px;font-size:14px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+    .tz-label{font-weight:700;color:var(--soft)}
+    .tz-value{display:flex;align-items:center;gap:8px}
+    .tz-value svg{width:16px;height:16px;stroke:var(--accent);fill:none;stroke-width:1.8}
+    .slots-panel{min-width:0}
+    .selected-day{font-size:15px;font-weight:600;color:var(--soft);margin:12px 0 16px}.selected-day::first-letter{text-transform:uppercase}
+    .slots{display:flex;flex-direction:column;gap:10px;max-height:420px;overflow-y:auto;padding-right:4px}
+    .slots::-webkit-scrollbar{width:6px}.slots::-webkit-scrollbar-thumb{background:var(--line2);border-radius:6px}
+    .slot-button{width:100%;height:50px;border:1px solid rgba(16,185,129,.45);border-radius:12px;background:transparent;color:var(--mint);font-size:15px;font-weight:700;transition:.15s}
+    .slot-button:hover{background:rgba(16,185,129,.10);border-color:var(--accent)}
+    .slot-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .slot-button.selected{background:var(--elev2);border-color:var(--line2);color:var(--ink)}
+    .slot-next{height:50px;border:0;border-radius:12px;background:var(--accent);color:#04090D;font-size:15px;font-weight:800;transition:.15s}
+    .slot-next:hover{background:var(--accent-hi)}
+    .empty-slots{font-size:14px;color:var(--muted);line-height:1.55;padding:16px;border:1px dashed var(--line2);border-radius:12px}
+    .form-panel{padding:36px 40px;min-width:0}
+    .back-button{width:44px;height:44px;border:1px solid var(--line2);border-radius:12px;background:var(--elev);color:var(--soft);display:inline-flex;align-items:center;justify-content:center;margin-bottom:22px}
+    .back-button:hover{border-color:rgba(16,185,129,.5);color:var(--mint)}
+    .back-button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2}
+    .form-inner{max-width:520px}
+    .field{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+    .field label{font-size:14px;font-weight:600;color:var(--soft)}
+    .field label .req{color:var(--accent)}
+    .field input,.field textarea{width:100%;border:1px solid var(--line2);border-radius:12px;background:var(--elev);color:var(--ink);outline:0;padding:12px 14px;font-size:15px;transition:.15s}
+    .field input{height:48px}.field textarea{min-height:110px;resize:vertical;line-height:1.5}
+    .field input::placeholder,.field textarea::placeholder{color:#475569}
+    .field input:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(16,185,129,.18)}
+    .guest-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:-4px 0 18px}
+    .guest-button{min-height:44px;padding:0 16px;border:1px solid rgba(16,185,129,.5);background:transparent;color:var(--mint);border-radius:12px;font-size:14px;font-weight:600}
+    .guest-tag{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(16,185,129,.12);color:var(--mint);font-size:13px}
+    .form-hint{font-size:13px;line-height:1.6;color:var(--muted);margin:0 0 20px}
+    .primary-button{min-height:50px;border:0;border-radius:12px;background:var(--accent);color:#04090D;font-size:15px;font-weight:800;padding:0 28px;transition:.15s;box-shadow:0 8px 24px rgba(16,185,129,.25)}
+    .primary-button:hover:not(:disabled){background:var(--accent-hi)}
+    .form-error{background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.4);color:#FCA5A5;border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:18px}
+    .confirmed{display:flex;flex-direction:column;align-items:center;text-align:center;padding:64px 32px;min-height:600px;justify-content:center}
+    .confirm-badge{width:72px;height:72px;border-radius:22px;background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.4);display:flex;align-items:center;justify-content:center;margin-bottom:20px;color:var(--accent)}
+    .confirm-badge svg{width:36px;height:36px;stroke:currentColor;fill:none;stroke-width:2}
+    .confirm-title{font-size:28px;font-weight:800;margin:0 0 10px}
+    .confirm-subtitle{font-size:16px;color:var(--muted);margin:0 0 28px;max-width:460px;line-height:1.55}
+    .event-summary{width:min(460px,100%);border:1px solid var(--line2);background:var(--elev);border-radius:18px;padding:22px 24px;text-align:left;margin-bottom:24px}
+    .event-summary h3{font-size:18px;margin:0 0 14px;color:var(--ink)}
+    .event-line{display:flex;align-items:flex-start;gap:10px;font-size:15px;color:var(--soft);margin-top:12px}
+    .event-line svg{width:18px;height:18px;stroke:var(--accent);fill:none;stroke-width:1.8;flex:0 0 18px;margin-top:2px}
+    .confirm-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+    .ghost-button{min-height:50px;padding:0 22px;border:1px solid var(--line2);border-radius:12px;background:transparent;color:var(--soft);font-size:15px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center}
+    .ghost-button:hover{border-color:rgba(16,185,129,.5);color:var(--mint)}
+    .loading,.not-found{grid-column:1/-1;min-height:600px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:32px;color:var(--muted);font-size:16px;gap:14px}
+    .not-found h2{font-size:24px;color:var(--ink);margin:0}
+    .spinner{width:36px;height:36px;border-radius:50%;border:3px solid var(--line2);border-top-color:var(--accent);animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media (max-width:980px){.calendar-layout{grid-template-columns:1fr;gap:24px}.slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));max-height:none}.slot-choice{grid-column:1/-1}}
+    @media (max-width:860px){.site-header{padding:0 18px}.page{align-items:flex-start;padding:20px 14px 40px}.booking-card{grid-template-columns:1fr;min-height:0}.info-panel{border-right:0;border-bottom:1px solid var(--line);padding:28px 24px}.powered{padding-top:20px}.right-panel,.form-panel{padding:28px 24px}.confirmed{min-height:0;padding:48px 22px}}
+    @media (max-width:520px){.site-header{height:60px;padding:0 14px}.copy-link{padding:0 12px}.copy-link .label{display:none}.page{padding:14px 10px 32px}.booking-card{border-radius:20px}.info-panel,.right-panel,.form-panel{padding:22px 18px}.meeting-title{font-size:22px}.section-title{font-size:20px}.days{gap:4px}.days button,.days span{height:44px;font-size:15px;border-radius:12px}.slots{grid-template-columns:repeat(2,minmax(0,1fr))}.confirm-title{font-size:24px}}
   </style>
 </head>
 <body>
-  <div class="page-shell">
-    <div class="top-brand">
-      <span class="top-brand-dot"></span>
-      <span>Agendamento Online Sincronizado • <%= @global_config['BRAND_NAME'].presence || 'Meu Super Chat' %></span>
-    </div>
-
-    <div id="booking-root" class="booking-container">
-      <div style="grid-column: 1 / -1; padding: 48px; text-align: center; color: #94A3B8; font-size: 14px;">
-        Carregando agenda em tempo real...
-      </div>
-    </div>
-  </div>
+  <header class="site-header">
+    <a class="brand" href="/"><span class="brand-dot"></span><span><%= @global_config['BRAND_NAME'].presence || 'Meu Super Chat' %></span></a>
+    <button type="button" id="copy-link" class="copy-link" aria-label="Copiar link da página"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><span class="label">Copiar link</span></button>
+  </header>
+  <main class="page"><div id="booking-root" class="booking-card single"><div class="loading"><div class="spinner"></div>Carregando agenda...</div></div></main>
 
   <script>
-    (function() {
+    (function(){
       const slug = <%= raw @slug.to_json %>;
       const root = document.getElementById('booking-root');
-
-      const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-      const WEEKDAYS_SHORT = ['D','S','T','Q','Q','S','S'];
-
-      let state = {
-        loading: true,
-        notFound: false,
-        accountName: '',
-        mode: 'professional',
-        schedules: [],
-        selectedScheduleId: null,
-        appointmentTypes: [],
-        selectedTypeId: null,
-        currentMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        availabilityByDate: {},
-        selectedDate: null,
-        selectedSlot: null,
-        step: 'select_slot', // 'select_slot' | 'fill_form' | 'confirmed'
-        submitting: false,
-        errorMsg: '',
-        confirmedAppointment: null,
-        form: { name: '', email: '', phone: '', notes: '' }
+      const MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+      const WEEKDAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+      const WEEKDAYS_LONG = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+      const icons = {
+        clock:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+        video:'<svg viewBox="0 0 24 24"><path d="m15 10 5-3v10l-5-3z"/><rect x="3" y="6" width="12" height="12" rx="2"/></svg>',
+        globe:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>',
+        calendar:'<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16"/></svg>',
+        user:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+        check:'<svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>',
+        left:'<svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>',
+        right:'<svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>'
       };
+      let state = { loading:true, notFound:false, accountName:'', schedules:[], selectedScheduleId:null, appointmentTypes:[], selectedTypeId:null, currentMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1), availabilityByDate:{}, selectedDate:null, selectedSlot:null, step:'select_slot', submitting:false, errorMsg:'', confirmedAppointment:null, form:{name:'',email:'',phone:'',notes:'',guest_emails:[]} };
+      const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const iso = date => { const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0'); return `${y}-${m}-${d}`; };
+      const dateFromIso = value => { const [y,m,d]=String(value).split('-').map(Number); return new Date(y,m-1,d); };
+      const selectedSchedule = () => state.schedules.find(s => Number(s.id) === Number(state.selectedScheduleId)) || state.schedules[0];
+      const typeList = () => { const s=selectedSchedule(); return (s && s.appointment_types && s.appointment_types.length) ? s.appointment_types : state.appointmentTypes; };
+      const selectedType = () => { const list=typeList(); return list.find(t=>Number(t.id)===Number(state.selectedTypeId)) || list[0]; };
+      const formatDate = value => { if(!value) return ''; const d=dateFromIso(value); return `${WEEKDAYS_LONG[d.getDay()]}, ${d.getDate()} de ${MONTHS[d.getMonth()]}`; };
+      const formatDateLong = value => { if(!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return value || ''; const d=dateFromIso(value); return `${WEEKDAYS_LONG[d.getDay()]}, ${d.getDate()} de ${MONTHS[d.getMonth()]} de ${d.getFullYear()}`; };
+      const getDuration = () => Number(selectedType()?.duration_minutes || selectedSchedule()?.slot_duration_minutes || 30);
+      const selectedSlotDate = () => state.selectedSlot ? (state.selectedSlot.date || state.selectedDate) : state.selectedDate;
+      const tzNow = () => { try { return new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:selectedSchedule()?.timezone||'America/Sao_Paulo'}).format(new Date()); } catch(e){ return ''; } };
+      const initials = name => String(name||'MS').split(' ').filter(Boolean).map(n=>n[0]).slice(0,2).join('').toUpperCase();
+      const locationLabel = srv => (srv && srv.location_type === 'google_meet') ? 'Videochamada — link enviado após a confirmação' : 'Detalhes da reunião enviados após a confirmação';
 
-      function fmtIso(dateObj) {
-        const y = dateObj.getFullYear();
-        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const d = String(dateObj.getDate()).padStart(2, '0');
-        return y + '-' + m + '-' + d;
+      async function loadProfile(){
+        try{
+          const response=await fetch('/public/api/v1/bookings/'+encodeURIComponent(slug));
+          if(!response.ok) throw new Error('not found');
+          const data=await response.json();
+          state.accountName=data.account_name || 'Meu Super Chat'; state.schedules=data.schedules||[]; state.appointmentTypes=data.appointment_types||[];
+          if(state.schedules.length){state.selectedScheduleId=state.schedules[0].id; const types=state.schedules[0].appointment_types||[]; if(types.length) state.selectedTypeId=types[0].id;}
+          if(!state.selectedTypeId && state.appointmentTypes.length) state.selectedTypeId=state.appointmentTypes[0].id;
+          await loadSlots();
+        }catch(e){state.loading=false;state.notFound=true;render();}
       }
-
-      function getSelectedSchedule() {
-        return state.schedules.find(s => Number(s.id) === Number(state.selectedScheduleId)) || state.schedules[0] || null;
+      async function loadSlots(){
+        state.availabilityByDate={};
+        const today=new Date(); today.setHours(0,0,0,0);
+        const start=new Date(Math.max(state.currentMonth.getTime(),today.getTime()));
+        const qs=new URLSearchParams({date:iso(start),days:'35'}); if(state.selectedScheduleId) qs.set('schedule_id',state.selectedScheduleId); if(state.selectedTypeId) qs.set('appointment_type_id',state.selectedTypeId);
+        try{const response=await fetch('/public/api/v1/bookings/'+encodeURIComponent(slug)+'/slots?'+qs.toString()); const data=await response.json(); (data.availability||[]).forEach(entry=>{state.availabilityByDate[entry.date]=entry.slots||[];});}catch(e){}
+        const dates=Object.keys(state.availabilityByDate).filter(d=>(state.availabilityByDate[d]||[]).length).sort();
+        if(!state.selectedDate || !(state.availabilityByDate[state.selectedDate]||[]).length) state.selectedDate=dates[0]||null;
+        state.loading=false; render();
       }
+      function changeMonth(offset){state.currentMonth=new Date(state.currentMonth.getFullYear(),state.currentMonth.getMonth()+offset,1);state.selectedDate=null;state.selectedSlot=null;loadSlots();}
+      function chooseDate(date){state.selectedDate=date;state.selectedSlot=null;render();}
+      function chooseSlot(slot){state.selectedSlot=slot;state.step='select_slot';render();}
+      function chooseType(id){state.selectedTypeId=id;state.selectedSlot=null;loadSlots();}
+      function continueToForm(){if(!state.selectedSlot)return;state.step='fill_form';render();window.scrollTo({top:0,behavior:'smooth'});}
+      async function submitBooking(event){event.preventDefault(); if(!state.form.name.trim()||!state.form.email.trim()){state.errorMsg='Preencha nome e e-mail para continuar.';render();return;} state.submitting=true;state.errorMsg='';render(); try{const payload={calendar_schedule_id:state.selectedSlot.calendar_schedule_id||state.selectedScheduleId,appointment_type_id:state.selectedTypeId,starts_at:state.selectedSlot.starts_at,customer_name:state.form.name.trim(),customer_email:state.form.email.trim(),customer_phone:state.form.phone.trim(),notes:state.form.notes.trim(),guest_emails:state.form.guest_emails}; const response=await fetch('/public/api/v1/bookings/'+encodeURIComponent(slug)+'/book',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await response.json();if(!response.ok)throw new Error(data.error||'Não foi possível concluir o agendamento.');state.confirmedAppointment=data.appointment;state.step='confirmed';}catch(e){state.errorMsg=e.message||'Erro de conexão ao confirmar agendamento.';}finally{state.submitting=false;render();}}
 
-      function getSelectedType() {
-        const sched = getSelectedSchedule();
-        const list = (sched && sched.appointment_types && sched.appointment_types.length)
-          ? sched.appointment_types
-          : state.appointmentTypes;
-        return list.find(t => Number(t.id) === Number(state.selectedTypeId)) || list[0] || null;
+      function baseInfo(s,srv,formMode){
+        const duration=getDuration(); const color=s.color||'#10B981';
+        const avatar = s.avatar_url ? `<div class="avatar" style="background-image:url('${esc(s.avatar_url)}')"></div>` : `<div class="avatar" style="background:${esc(color)}">${esc(initials(s.name))}</div>`;
+        const types=typeList();
+        const chips = (!formMode && types.length>1) ? `<div class="type-chips">${types.map(t=>`<button type="button" class="type-chip ${Number(t.id)===Number(srv&&srv.id)?'active':''}" data-type="${t.id}">${esc(t.title)}</button>`).join('')}</div>` : '';
+        const slotInfo = (formMode && state.selectedSlot) ? `<div class="meta-row highlight"><span class="meta-icon">${icons.calendar}</span><span>${esc(state.selectedSlot.time)}${state.selectedSlot.end_time?' – '+esc(state.selectedSlot.end_time):''}, ${esc(formatDateLong(selectedSlotDate()))}</span></div>` : '';
+        return `<section class="info-panel"><div>${avatar}<div class="profile-name">${esc(s.name||'Meu Super Chat')}</div>${s.role_title?`<div class="profile-role">${esc(s.role_title)}</div>`:''}<h1 class="meeting-title">${esc((srv&&srv.title)||'Reunião de 30 minutos')}</h1>${srv&&srv.description?`<p class="meeting-desc">${esc(srv.description)}</p>`:''}${chips}<div class="meeting-meta"><div class="meta-row"><span class="meta-icon">${icons.clock}</span><span>${duration} min</span></div><div class="meta-row"><span class="meta-icon">${icons.video}</span><span>${locationLabel(srv)}</span></div>${slotInfo}<div class="meta-row"><span class="meta-icon">${icons.globe}</span><span>Horário de Brasília</span></div></div></div><footer class="powered"><span class="brand-dot"></span>Powered by <strong>Meu Super Chat</strong></footer></section>`;
       }
-
-      async function fetchProfile() {
-        try {
-          const res = await fetch('/public/api/v1/bookings/' + encodeURIComponent(slug));
-          if (!res.ok) {
-            state.notFound = true;
-            state.loading = false;
-            render();
-            return;
-          }
-          const data = await res.json();
-          state.accountName = data.account_name || 'Meu Super Chat';
-          state.mode = data.mode;
-          state.schedules = data.schedules || [];
-          state.appointmentTypes = data.appointment_types || [];
-          if (state.schedules.length) {
-            state.selectedScheduleId = state.schedules[0].id;
-            const stypes = state.schedules[0].appointment_types || [];
-            if (stypes.length) state.selectedTypeId = stypes[0].id;
-          }
-          if (!state.selectedTypeId && state.appointmentTypes.length) {
-            state.selectedTypeId = state.appointmentTypes[0].id;
-          }
-          state.loading = false;
-          await loadMonthSlots();
-        } catch (e) {
-          state.notFound = true;
-          state.loading = false;
-          render();
-        }
+      function renderSelection(s,srv){
+        const year=state.currentMonth.getFullYear(),month=state.currentMonth.getMonth(),first=new Date(year,month,1).getDay(),days=new Date(year,month+1,0).getDate();
+        const now=new Date(); const todayIso=iso(now); const isCurrentMonth=(year===now.getFullYear()&&month===now.getMonth());
+        let cells='';for(let i=0;i<first;i++)cells+='<span></span>';
+        for(let d=1;d<=days;d++){const value=iso(new Date(year,month,d)),available=(state.availabilityByDate[value]||[]).length>0,selected=state.selectedDate===value;cells+=`<button type="button" class="${available?'available':''} ${selected?'selected':''} ${value===todayIso?'today':''}" data-date="${value}" ${available?'':'disabled'} aria-label="${d} de ${MONTHS[month]}">${d}</button>`;}
+        const slots=state.selectedDate?(state.availabilityByDate[state.selectedDate]||[]):[];
+        const slotsHtml=slots.length?slots.map((slot,index)=>{const active=state.selectedSlot&&state.selectedSlot.starts_at===slot.starts_at;return active?`<div class="slot-choice"><button type="button" class="slot-button selected" data-slot="${index}">${esc(slot.time)}</button><button type="button" class="slot-next" id="slot-next">Próximo</button></div>`:`<button type="button" class="slot-button" data-slot="${index}">${esc(slot.time)}</button>`;}).join(''):'<p class="empty-slots">Nenhum horário livre neste mês. Use as setas para ver os próximos meses.</p>';
+        return `<div class="right-panel"><h2 class="section-title">Selecione data e horário</h2><div class="calendar-layout"><div><div class="calendar-top"><span class="month-label">${MONTHS[month]} ${year}</span><div class="month-nav"><button type="button" id="prev-month" aria-label="Mês anterior" ${isCurrentMonth?'disabled':''}>${icons.left}</button><button type="button" id="next-month" aria-label="Próximo mês">${icons.right}</button></div></div><div class="weekdays">${WEEKDAYS.map(d=>`<span>${d}</span>`).join('')}</div><div class="days">${cells}</div><div class="tz"><span class="tz-label">Fuso horário</span><span class="tz-value">${icons.globe} Horário de Brasília (${tzNow()})</span></div></div><div class="slots-panel"><p class="selected-day">${state.selectedDate?formatDate(state.selectedDate):'Escolha um dia'}</p><div class="slots">${slotsHtml}</div></div></div></div>`;
       }
-
-      async function loadMonthSlots() {
-        state.availabilityByDate = {};
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        const monthStart = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth(), 1);
-        const startCursor = monthStart < today ? today : monthStart;
-
-        const fetches = [];
-        for (let offset = 0; offset < 28; offset += 14) {
-          const d = new Date(startCursor);
-          d.setDate(d.getDate() + offset);
-          if (d.getMonth() !== state.currentMonth.getMonth() && offset > 0) break;
-          const qs = new URLSearchParams({
-            date: fmtIso(d),
-            days: '14'
-          });
-          if (state.selectedScheduleId) qs.set('schedule_id', state.selectedScheduleId);
-          if (state.selectedTypeId) qs.set('appointment_type_id', state.selectedTypeId);
-          fetches.push(fetch('/public/api/v1/bookings/' + encodeURIComponent(slug) + '/slots?' + qs.toString()).then(r => r.json()));
-        }
-
-        const chunks = await Promise.all(fetches);
-        chunks.forEach(chunk => {
-          (chunk.availability || []).forEach(entry => {
-            if (!state.availabilityByDate[entry.date]) {
-              state.availabilityByDate[entry.date] = [];
-            }
-            entry.slots.forEach(s => state.availabilityByDate[entry.date].push(s));
-          });
-        });
-
-        const availableDates = Object.keys(state.availabilityByDate).sort();
-        if (!state.selectedDate || !state.availabilityByDate[state.selectedDate]) {
-          state.selectedDate = availableDates[0] || null;
-        }
-        render();
+      function renderForm(){
+        const guests=state.form.guest_emails.map(g=>`<span class="guest-tag">${esc(g)}</span>`).join('');
+        return `<div class="form-panel"><button type="button" id="back" class="back-button" aria-label="Voltar">${icons.left}</button><div class="form-inner"><h2 class="section-title">Seus dados</h2>${state.errorMsg?`<div class="form-error">${esc(state.errorMsg)}</div>`:''}<form id="booking-form" novalidate><div class="field"><label for="name">Nome <span class="req">*</span></label><input id="name" required autocomplete="name" placeholder="Seu nome completo" value="${esc(state.form.name)}" /></div><div class="field"><label for="email">E-mail <span class="req">*</span></label><input id="email" required type="email" autocomplete="email" placeholder="voce@empresa.com" value="${esc(state.form.email)}" /></div><div class="field"><label for="phone">WhatsApp</label><input id="phone" type="tel" autocomplete="tel" placeholder="(11) 99999-9999" value="${esc(state.form.phone)}" /></div><div class="guest-row"><button type="button" id="add-guests" class="guest-button">+ Adicionar convidados</button>${guests}</div><div class="field"><label for="notes">Conte o que podemos preparar para a reunião</label><textarea id="notes" placeholder="Ex.: volume de atendimentos, canais que usa hoje, objetivos...">${esc(state.form.notes)}</textarea></div><p class="form-hint">Ao continuar, você concorda com os Termos de Uso e a Política de Privacidade do Meu Super Chat.</p><button class="primary-button" type="submit" ${state.submitting?'disabled':''}>${state.submitting?'Agendando...':'Confirmar agendamento'}</button></form></div></div>`;
       }
-
-      async function submitBooking(ev) {
-        ev.preventDefault();
-        if (!state.selectedSlot || !state.form.name.trim()) {
-          state.errorMsg = 'Informe seu nome completo para confirmar o agendamento.';
-          render();
-          return;
-        }
-        try {
-          state.submitting = true;
-          state.errorMsg = '';
-          render();
-
-          const payload = {
-            calendar_schedule_id: state.selectedSlot.calendar_schedule_id || state.selectedScheduleId,
-            appointment_type_id: state.selectedTypeId,
-            starts_at: state.selectedSlot.starts_at,
-            customer_name: state.form.name.trim(),
-            customer_email: state.form.email.trim(),
-            customer_phone: state.form.phone.trim(),
-            notes: state.form.notes.trim()
-          };
-
-          const res = await fetch('/public/api/v1/bookings/' + encodeURIComponent(slug) + '/book', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          const data = await res.json();
-          if (!res.ok) {
-            state.errorMsg = data.error || 'Não foi possível concluir o agendamento.';
-            state.submitting = false;
-            render();
-            return;
-          }
-          state.confirmedAppointment = data.appointment;
-          state.step = 'confirmed';
-          state.submitting = false;
-          render();
-        } catch (err) {
-          state.errorMsg = 'Erro de conexão ao confirmar agendamento.';
-          state.submitting = false;
-          render();
-        }
+      function renderConfirmed(s,srv){
+        const appt=state.confirmedAppointment||{};
+        const when=`${esc(appt.start_time||state.selectedSlot?.time||'')}${(appt.end_time||state.selectedSlot?.end_time)?' – '+esc(appt.end_time||state.selectedSlot?.end_time):''}, ${esc(formatDateLong(appt.date||selectedSlotDate()))}`;
+        const meet=appt.meeting_url?`<a class="primary-button" style="display:inline-flex;align-items:center;text-decoration:none" href="${esc(appt.meeting_url)}" target="_blank" rel="noopener">Abrir sala da reunião</a>`:'';
+        return `<div class="confirmed"><div class="confirm-badge">${icons.check}</div><h2 class="confirm-title">Agendamento confirmado!</h2><p class="confirm-subtitle">Enviamos o convite com todos os detalhes para o seu e-mail.</p><div class="event-summary"><h3>${esc((srv&&srv.title)||'Reunião')}</h3><div class="event-line">${icons.user}<span>${esc(appt.professional_name||s.name)}</span></div><div class="event-line">${icons.calendar}<span>${when}</span></div><div class="event-line">${icons.globe}<span>Horário de Brasília</span></div><div class="event-line">${icons.video}<span>${locationLabel(srv)}</span></div></div><div class="confirm-actions">${meet}<button type="button" id="book-another" class="ghost-button">Agendar outro horário</button></div></div>`;
       }
-
-      function escapeHtml(str) {
-        return String(str || '').replace(/[&<>"']/g, function(c) {
-          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-        });
+      function render(){
+        if(state.loading)return;
+        if(state.notFound||!state.schedules.length){root.className='booking-card single';root.innerHTML='<div class="not-found"><h2>Página de agendamento não encontrada</h2><p>Verifique o link enviado pelo profissional.</p></div>';return;}
+        const s=selectedSchedule(),srv=selectedType();
+        if(state.step==='fill_form'){root.className='booking-card';root.innerHTML=baseInfo(s,srv,true)+renderForm();bindForm();return;}
+        if(state.step==='confirmed'){root.className='booking-card single';root.innerHTML=renderConfirmed(s,srv);const again=document.getElementById('book-another');if(again)again.onclick=()=>{state.step='select_slot';state.selectedSlot=null;state.confirmedAppointment=null;loadSlots();};return;}
+        root.className='booking-card';root.innerHTML=baseInfo(s,srv,false)+renderSelection(s,srv);bindSelection();
       }
-
-      function render() {
-        if (state.loading) return;
-        if (state.notFound || !state.schedules.length) {
-          root.innerHTML = '<div style="grid-column:1/-1;padding:56px 24px;text-align:center;">' +
-            '<h2 style="font-size:20px;margin-bottom:8px;">Página de agendamento não encontrada</h2>' +
-            '<p style="color:#94A3B8;font-size:13px;">Verifique o link enviado pelo profissional ou solicite um novo horário pelo WhatsApp.</p>' +
-            '</div>';
-          return;
-        }
-
-        const sched = getSelectedSchedule();
-        const srv = getSelectedType();
-        const initials = (sched.name || 'MS').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-        const duration = (srv && srv.duration_minutes) || sched.slot_duration_minutes || 30;
-        const availableTypes = (sched.appointment_types && sched.appointment_types.length) ? sched.appointment_types : state.appointmentTypes;
-
-        const currentStep = state.step === 'confirmed' ? 3 : (state.step === 'fill_form' ? 2 : 1);
-        const stepperHtml = '<div class="booking-stepper" aria-label="Progresso do agendamento">' +
-          ['Escolha o serviço e horário', 'Seus dados', 'Confirmação'].map(function(label, index) {
-            const step = index + 1;
-            const status = step === currentStep ? 'active' : (step < currentStep ? 'done' : '');
-            return '<div class="booking-step ' + status + '"><span class="step-number">' + step + '</span><span>' + label + '</span></div>';
-          }).join('') + '</div>';
-
-        // Left column HTML
-        let leftHtml = '<div class="col-info"><div>' +
-          '<div class="prof-header">' +
-            '<div class="avatar-circle" style="background:' + escapeHtml(sched.color || '#10B981') + ';">' + escapeHtml(initials) + '</div>' +
-            '<div>' +
-              '<div class="account-label">' + escapeHtml(state.accountName) + '</div>' +
-              '<div class="prof-name">' + escapeHtml(sched.name) + '</div>' +
-            '</div>' +
-          '</div>';
-
-        if (state.schedules.length > 1) {
-          leftHtml += '<div style="margin-top:14px;"><label class="field-label">Escolher Profissional</label>' +
-            '<select id="prof-select" class="select-box">' +
-            state.schedules.map(s => '<option value="' + s.id + '" ' + (Number(s.id) === Number(sched.id) ? 'selected' : '') + '>' + escapeHtml(s.name) + (s.role_title ? ' • ' + escapeHtml(s.role_title) : '') + '</option>').join('') +
-            '</select></div>';
-        }
-
-        if (availableTypes.length > 1) {
-          leftHtml += '<div style="margin-top:12px;"><label class="field-label">Tipo de Atendimento</label>' +
-            '<select id="type-select" class="select-box">' +
-            availableTypes.map(t => '<option value="' + t.id + '" ' + (Number(t.id) === Number(srv?.id) ? 'selected' : '') + '>' + escapeHtml(t.title) + '</option>').join('') +
-            '</select></div>';
-        }
-
-        const icClock = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
-        const icVideo = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>';
-        const icGlobe = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
-        const icChat = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6EE7B7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>';
-        const icZap = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
-
-        leftHtml += '<h1 class="service-title">' + escapeHtml((srv && srv.title) || 'Sessão Estratégica & Atendimento') + '</h1>' +
-          '<p class="service-bio">' + escapeHtml((srv && srv.description) || sched.bio || 'Escolha o melhor dia e horário para sua reunião sincronizada em tempo real.') + '</p>' +
-          '<div class="meta-list">' +
-            '<div class="meta-item">' + icClock + ' <strong>' + duration + ' minutos</strong></div>' +
-            '<div class="meta-item">' + icVideo + ' <strong>Sala de Vídeo Meu Super Chat</strong> (link gerado na hora)</div>' +
-            '<div class="meta-item">' + icGlobe + ' <strong>' + escapeHtml(sched.timezone || 'America/Sao_Paulo') + '</strong></div>' +
-            '<div class="meta-item" style="color:#6EE7B7;">' + icChat + ' <strong>Confirmação & Lembrete WhatsApp</strong></div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="powered-footer">' +
-          '<div class="badge-sync" style="margin-bottom:10px;">' + icZap + ' Sincronizado em tempo real</div><br/>' +
-          'Powered by <strong>Meu Super Chat</strong>' +
-        '</div></div>';
-
-        // Step 3: Confirmed view
-        if (state.step === 'confirmed' && state.confirmedAppointment) {
-          const appt = state.confirmedAppointment;
-          root.innerHTML = stepperHtml + leftHtml +
-            '<div class="success-box">' +
-              '<div style="width:56px;height:56px;border-radius:50%;background:rgba(16,185,129,0.2);border:2px solid #10B981;display:flex;align-items:center;justify-content:center;color:#10B981;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>' +
-              '<h2 style="font-size:22px;font-weight:700;">Agendamento Confirmado!</h2>' +
-              '<p style="color:#94A3B8;font-size:13px;max-width:440px;">Seu horário foi reservado na agenda de <strong>' + escapeHtml(appt.professional_name) + '</strong> e o convite foi registrado.</p>' +
-              '<div style="width:100%;max-width:440px;background:#04090D;border:1px solid #162936;border-radius:14px;padding:16px;text-align:left;font-size:13px;display:flex;flex-direction:column;gap:8px;">' +
-                '<div><strong>Data:</strong> ' + escapeHtml(appt.date) + ' das <strong>' + escapeHtml(appt.start_time) + ' às ' + escapeHtml(appt.end_time) + '</strong></div>' +
-                '<div><strong>Profissional:</strong> ' + escapeHtml(appt.professional_name) + '</div>' +
-                '<div><strong>Código:</strong> <span style="font-family:monospace;color:#10B981;">' + escapeHtml(appt.uid) + '</span></div>' +
-                (appt.meeting_url ? '<div><strong>Link da Sala:</strong> <a href="' + escapeHtml(appt.meeting_url) + '" target="_blank" style="color:#10B981;">' + escapeHtml(appt.meeting_url) + '</a></div>' : '') +
-              '</div>' +
-              '<button id="book-another-btn" class="secondary-btn" style="margin-top:8px;">Agendar outro horário</button>' +
-            '</div>';
-          attachCommonListeners();
-          const btnAnother = document.getElementById('book-another-btn');
-          if (btnAnother) btnAnother.onclick = function() { state.step = 'select_slot'; state.selectedSlot = null; loadMonthSlots(); };
-          return;
-        }
-
-        // Step 2: Form fill view
-        if (state.step === 'fill_form' && state.selectedSlot) {
-          root.innerHTML = stepperHtml + leftHtml +
-            '<form id="booking-form" class="form-panel">' +
-              '<div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid #132631;flex-wrap:wrap;gap:8px;">' +
-                '<div>' +
-                  '<div style="font-size:15px;font-weight:700;">Finalize seus dados</div>' +
-                  '<div style="font-size:12px;color:#10B981;margin-top:2px;">Data selecionada: ' + escapeHtml(state.selectedSlot.date) + ' (' + escapeHtml(state.selectedSlot.weekday) + ') às ' + escapeHtml(state.selectedSlot.time) + '</div>' +
-                '</div>' +
-                '<button type="button" id="back-slots-btn" class="secondary-btn" style="padding:7px 12px;font-size:12px;">← Trocar horário</button>' +
-              '</div>' +
-              (state.errorMsg ? '<div class="error-banner">' + escapeHtml(state.errorMsg) + '</div>' : '') +
-              '<div class="field-group">' +
-                '<label class="field-label">Seu Nome Completo *</label>' +
-                '<input id="inp-name" type="text" required class="field-input" placeholder="Ex: Rafael Nogueira" value="' + escapeHtml(state.form.name) + '" />' +
-              '</div>' +
-              '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">' +
-                '<div class="field-group">' +
-                  '<label class="field-label">E-mail para confirmação e convite *</label>' +
-                  '<input id="inp-email" type="email" required class="field-input" placeholder="voce@empresa.com.br" value="' + escapeHtml(state.form.email) + '" />' +
-                '</div>' +
-                '<div class="field-group">' +
-                  '<label class="field-label">WhatsApp com DDD *</label>' +
-                  '<input id="inp-phone" type="tel" required class="field-input" placeholder="+55 11 99999-9999" value="' + escapeHtml(state.form.phone) + '" />' +
-                '</div>' +
-              '</div>' +
-              '<div class="field-group">' +
-                '<label class="field-label">Observações / Pauta (Opcional)</label>' +
-                '<textarea id="inp-notes" rows="3" class="field-input" placeholder="Conte brevemente sobre sua necessidade...">' + escapeHtml(state.form.notes) + '</textarea>' +
-              '</div>' +
-              '<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px;">' +
-                '<button type="submit" class="primary-btn" ' + (state.submitting ? 'disabled' : '') + '>' +
-                  (state.submitting ? 'Confirmando na agenda...' : 'Confirmar Agendamento →') +
-                '</button>' +
-              '</div>' +
-            '</form>';
-          attachCommonListeners();
-          document.getElementById('back-slots-btn').onclick = function() { state.step = 'select_slot'; render(); };
-          const formEl = document.getElementById('booking-form');
-          formEl.onsubmit = function(ev) {
-            state.form.name = document.getElementById('inp-name').value;
-            state.form.email = document.getElementById('inp-email').value;
-            state.form.phone = document.getElementById('inp-phone').value;
-            state.form.notes = document.getElementById('inp-notes').value;
-            submitBooking(ev);
-          };
-          return;
-        }
-
-        // Step 1: Calendar + Slots columns
-        const year = state.currentMonth.getFullYear();
-        const month = state.currentMonth.getMonth();
-        const firstWday = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-        let cellsHtml = '';
-        for (let b = 0; b < firstWday; b++) {
-          cellsHtml += '<div></div>';
-        }
-        for (let d = 1; d <= daysInMonth; d++) {
-          const iso = fmtIso(new Date(year, month, d));
-          const hasSlots = (state.availabilityByDate[iso] || []).length > 0;
-          const isSelected = state.selectedDate === iso;
-          const cls = 'day-cell' + (hasSlots ? ' available' : '') + (isSelected ? ' selected' : '');
-          cellsHtml += '<button type="button" data-date="' + iso + '" ' + (!hasSlots ? 'disabled' : '') + ' class="' + cls + '">' + d + '</button>';
-        }
-
-        const calHtml = '<div class="col-calendar">' +
-          '<div class="cal-header">' +
-            '<span class="cal-month-title">' + MONTHS_PT[month] + ' ' + year + '</span>' +
-            '<div style="display:flex;gap:6px;">' +
-              '<button type="button" id="prev-month" class="nav-btn" aria-label="Mês anterior"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>' +
-              '<button type="button" id="next-month" class="nav-btn" aria-label="Próximo mês"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>' +
-            '</div>' +
-          '</div>' +
-          '<div class="weekdays-grid">' + WEEKDAYS_SHORT.map(w => '<span>' + w + '</span>').join('') + '</div>' +
-          '<div class="days-grid">' + cellsHtml + '</div>' +
-        '</div>';
-
-        const daySlots = state.selectedDate ? (state.availabilityByDate[state.selectedDate] || []) : [];
-        let slotsHtml = '<div class="col-slots">' +
-          '<div class="slots-title">' + (state.selectedDate ? 'Horários • ' + state.selectedDate.split('-').reverse().join('/') : 'Selecione uma data') + '</div>';
-
-        if (!daySlots.length) {
-          slotsHtml += '<p style="font-size:12px;color:#64748B;margin-top:8px;">Nenhum horário livre nesta data. Escolha um dia destacado em verde.</p>';
-        } else {
-          slotsHtml += '<div class="slots-list">' +
-            daySlots.map((slot, idx) => '<button type="button" data-slot-idx="' + idx + '" class="slot-btn">' + escapeHtml(slot.time) + '</button>').join('') +
-          '</div>';
-        }
-        slotsHtml += '</div>';
-
-        root.innerHTML = stepperHtml + leftHtml + calHtml + slotsHtml;
-        attachCommonListeners();
-
-        document.getElementById('prev-month').onclick = function() {
-          state.currentMonth = new Date(year, month - 1, 1);
-          loadMonthSlots();
-        };
-        document.getElementById('next-month').onclick = function() {
-          state.currentMonth = new Date(year, month + 1, 1);
-          loadMonthSlots();
-        };
-        root.querySelectorAll('[data-date]').forEach(btn => {
-          btn.onclick = function() {
-            state.selectedDate = btn.getAttribute('data-date');
-            render();
-          };
-        });
-        root.querySelectorAll('[data-slot-idx]').forEach(btn => {
-          btn.onclick = function() {
-            const idx = Number(btn.getAttribute('data-slot-idx'));
-            state.selectedSlot = daySlots[idx];
-            state.step = 'fill_form';
-            render();
-          };
-        });
+      function bindSelection(){
+        const p=document.getElementById('prev-month'),n=document.getElementById('next-month');if(p)p.onclick=()=>changeMonth(-1);if(n)n.onclick=()=>changeMonth(1);
+        root.querySelectorAll('[data-date]').forEach(b=>b.onclick=()=>chooseDate(b.dataset.date));
+        root.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>chooseSlot((state.availabilityByDate[state.selectedDate]||[])[Number(b.dataset.slot)]));
+        root.querySelectorAll('[data-type]').forEach(b=>b.onclick=()=>chooseType(Number(b.dataset.type)));
+        const next=document.getElementById('slot-next');if(next)next.onclick=continueToForm;
       }
-
-      function attachCommonListeners() {
-        const profSel = document.getElementById('prof-select');
-        if (profSel) {
-          profSel.onchange = function() {
-            state.selectedScheduleId = Number(profSel.value);
-            const s = getSelectedSchedule();
-            if (s && s.appointment_types && s.appointment_types.length) {
-              state.selectedTypeId = s.appointment_types[0].id;
-            }
-            state.step = 'select_slot';
-            loadMonthSlots();
-          };
-        }
-        const typeSel = document.getElementById('type-select');
-        if (typeSel) {
-          typeSel.onchange = function() {
-            state.selectedTypeId = Number(typeSel.value);
-            state.step = 'select_slot';
-            loadMonthSlots();
-          };
-        }
+      function syncForm(){['name','email','phone','notes'].forEach(k=>{const el=document.getElementById(k);if(el)state.form[k]=el.value;});}
+      function bindForm(){
+        document.getElementById('back').onclick=()=>{syncForm();state.step='select_slot';state.errorMsg='';render();};
+        document.getElementById('add-guests').onclick=()=>{syncForm();const email=window.prompt('E-mail do convidado');if(email&&email.trim()){state.form.guest_emails.push(email.trim());render();}};
+        document.getElementById('booking-form').onsubmit=e=>{syncForm();submitBooking(e);};
       }
-
-      fetchProfile();
+      document.getElementById('copy-link').onclick=()=>{navigator.clipboard?.writeText(window.location.href);const l=document.querySelector('#copy-link .label');if(l){l.textContent='Link copiado!';setTimeout(()=>{l.textContent='Copiar link';},1800);}};
+      loadProfile();
     })();
   </script>
 </body>

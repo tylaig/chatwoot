@@ -1,16 +1,19 @@
 <script setup>
 /* eslint-disable @intlify/vue-i18n/no-raw-text, vue/no-bare-strings-in-template */
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import { useRoute, useRouter } from 'vue-router';
 import integrationAPI from 'dashboard/api/integrations';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
+import CalendarSetupVideo from './CalendarSetupVideo.vue';
 
 const store = useStore();
 const route = useRoute();
 const router = useRouter();
+
+const VIDEO_BASE_URL = '/brand-assets/videos/google-calendar';
 
 const loading = ref(true);
 const hooks = ref([]);
@@ -19,7 +22,10 @@ const oauthConfigured = ref(false);
 const hasCustomOauthCredentials = ref(false);
 const redirectUri = ref('https://chat.meusuper.app/callbacks/google_calendar');
 
-const showOauthConfigModal = ref(false);
+// Guided Video Onboarding state (WhatsApp Manual Setup style)
+const currentStep = ref(1);
+const showWizard = ref(true);
+
 const oauthClientId = ref('');
 const oauthClientSecret = ref('');
 const savingOauth = ref(false);
@@ -67,6 +73,64 @@ const providers = [
   },
 ];
 
+const wizardSteps = [
+  {
+    id: 1,
+    badge: 'Etapa 1 de 4',
+    title: 'Credenciais OAuth 2.0 & Redirect URI',
+    subtitle:
+      'Ative a Google Calendar API no Google Cloud Console, configure a tela OAuth e informe seu Client ID e Client Secret.',
+    videoSlug: 'step-1-oauth-credentials',
+    videoTitle: 'Passo 1 — Como gerar o Client ID e Client Secret OAuth 2.0',
+    videoDescription:
+      'Copie a URI de redirecionamento oficial do Meu Super Chat e adicione nas credenciais OAuth 2.0 do seu painel Google Cloud.',
+  },
+  {
+    id: 2,
+    badge: 'Etapa 2 de 4',
+    title: 'Autenticar Conta Google Agenda ou Token',
+    subtitle:
+      'Conecte sua conta com 1 clique pelo fluxo oficial OAuth 2.0 ou cadastre uma conexão rápida para sua agenda.',
+    videoSlug: 'step-2-connect-account',
+    videoTitle: 'Passo 2 — Autenticação OAuth 2.0 em 1 Clique ou Token Direto',
+    videoDescription:
+      'Inicie a autorização segura ou vincule sua conta de calendário corporativa diretamente ao Meu Super Chat.',
+  },
+  {
+    id: 3,
+    badge: 'Etapa 3 de 4',
+    title: 'Vincular Especialistas & Agente IA',
+    subtitle:
+      'Associe as contas conectadas aos especialistas da equipe para leitura automática de conflitos (freeBusy) e reservas pela IA.',
+    videoSlug: 'step-3-link-schedules',
+    videoTitle: 'Passo 3 — Sincronizando Especialistas e Agente IA 24/7',
+    videoDescription:
+      'Cada especialista pode ter sua própria agenda conectada e página exclusiva /agendar/slug.',
+  },
+  {
+    id: 4,
+    badge: 'Etapa 4 de 4',
+    title: 'Verificação em Tempo Real & Página Pública',
+    subtitle:
+      'Teste a disponibilidade em tempo real, valide a criação de salas de vídeo e compartilhe o link público do Meu Super Chat.',
+    videoSlug: 'step-4-verify-and-test',
+    videoTitle: 'Passo 4 — Homologação e Link Público Ao Vivo',
+    videoDescription:
+      'Confirme o status dos serviços e teste o agendamento público sincronizado com sua agenda.',
+  },
+];
+
+const activeStepConfig = computed(
+  () => wizardSteps.find(s => s.id === currentStep.value) || wizardSteps[0]
+);
+
+const stepVideoSrc = slug => `${VIDEO_BASE_URL}/${slug}.mp4`;
+const stepVideoPoster = slug => `${VIDEO_BASE_URL}/${slug}-poster.jpg`;
+
+const setStep = step => {
+  currentStep.value = Math.min(4, Math.max(1, step));
+};
+
 const loadData = async () => {
   try {
     loading.value = true;
@@ -81,6 +145,9 @@ const loadData = async () => {
       data.oauth_client_id !== 'configured_globally'
     ) {
       oauthClientId.value = data.oauth_client_id;
+    }
+    if (!hookForm.value.schedule_ids.length && schedules.value[0]) {
+      hookForm.value.schedule_ids = [schedules.value[0].id];
     }
   } catch {
     useAlert('Erro ao carregar central de integrações de agenda.');
@@ -147,7 +214,7 @@ const toggleAgentId = id => {
   }
 };
 
-const saveOauthCredentials = async () => {
+const saveOauthCredentials = async advanceAfter => {
   try {
     savingOauth.value = true;
     const { data } = await integrationAPI.saveGoogleCalendarOauthCredentials({
@@ -156,9 +223,11 @@ const saveOauthCredentials = async () => {
     });
     oauthConfigured.value = !!data.oauth_configured;
     hasCustomOauthCredentials.value = !!data.has_custom_oauth_credentials;
-    showOauthConfigModal.value = false;
     useAlert(data.message || 'Credenciais OAuth 2.0 salvas com sucesso!');
     await loadData();
+    if (advanceAfter) {
+      setStep(2);
+    }
   } catch (err) {
     useAlert(
       err?.response?.data?.error || 'Erro ao salvar credenciais OAuth 2.0.'
@@ -168,7 +237,7 @@ const saveOauthCredentials = async () => {
   }
 };
 
-const submitHookForm = async () => {
+const submitHookForm = async advanceAfter => {
   if (
     !hookForm.value.connection_name.trim() &&
     !hookForm.value.calendar_email.trim()
@@ -191,6 +260,9 @@ const submitHookForm = async () => {
     showConnectModal.value = false;
     await loadData();
     store.dispatch('integrations/get');
+    if (advanceAfter) {
+      setStep(3);
+    }
   } catch (err) {
     useAlert(
       err?.response?.data?.error || 'Erro ao salvar conexão de calendário.'
@@ -212,10 +284,11 @@ const triggerOauthFlow = async hook => {
       window.location.href = data.authorization_url;
       return;
     }
-    showOauthConfigModal.value = true;
+    showWizard.value = true;
+    setStep(1);
     useAlert(
       data.error ||
-        'Configure o Client ID e Client Secret OAuth 2.0 abaixo para autenticar com 1 clique ou adicione via Conexão Direta.'
+        'Siga a Etapa 1 do Onboarding abaixo para informar seu Client ID e Client Secret OAuth 2.0 ou use a Conexão Rápida na Etapa 2.'
     );
   } catch {
     useAlert('Não foi possível iniciar o fluxo OAuth 2.0.');
@@ -277,7 +350,11 @@ const providerLabel = p =>
 onMounted(() => {
   store.dispatch('agents/get');
   loadData();
+  if (route.query.step) {
+    setStep(Number(route.query.step) || 1);
+  }
   if (route.query.google_connected) {
+    setStep(4);
     useAlert('Conta autenticada via OAuth 2.0 e sincronizada com sucesso!');
   }
 });
@@ -286,12 +363,12 @@ onMounted(() => {
 <template>
   <SettingsLayout
     :is-loading="loading"
-    loading-message="Carregando conexões de agenda e credenciais OAuth 2.0..."
+    loading-message="Carregando conexões de agenda e onboarding OAuth 2.0..."
   >
     <template #header>
       <BaseSettingsHeader
-        title="Integrações de Agenda & OAuth Multi-Contas"
-        description="Conecte múltiplas contas de calendário via OAuth 2.0 ou Token Direto, vincule às agendas dos especialistas e sincronize conflitos em tempo real com o Agente IA."
+        title="Onboarding & Autenticação de Agendas (OAuth 2.0)"
+        description="Siga o passo a passo em vídeo para configurar suas credenciais OAuth 2.0, conectar contas Google Agenda e vincular os especialistas ao Agente IA."
         feature-name="integrations"
         back-button-label="Integrações"
       >
@@ -303,15 +380,7 @@ onMounted(() => {
               @click="goToCalendarModule"
             >
               <span class="i-lucide-calendar-range size-4 text-emerald-400" />
-              <span>Abrir Painel de Agendamentos</span>
-            </button>
-            <button
-              type="button"
-              class="px-3.5 py-2 rounded-xl bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 text-xs font-medium text-emerald-300 flex items-center gap-1.5 transition"
-              @click="showOauthConfigModal = true"
-            >
-              <span class="i-lucide-key-round size-4 text-emerald-400" />
-              <span>Credenciais OAuth 2.0</span>
+              <span>Voltar ao Painel de Agendamentos</span>
             </button>
             <button
               type="button"
@@ -319,7 +388,7 @@ onMounted(() => {
               @click="openNewConnection"
             >
               <span class="i-lucide-plus size-4" />
-              <span>Adicionar Conexão de Agenda</span>
+              <span>Nova Conta de Agenda</span>
             </button>
           </div>
         </template>
@@ -327,121 +396,384 @@ onMounted(() => {
     </template>
 
     <template #body>
-      <div class="flex flex-col gap-5 pb-10">
-        <!-- Faixa de KPIs e Status OAuth -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5">
+      <div class="flex flex-col gap-6 pb-12">
+        <!-- ASSISTENTE GUIADO EM VÍDEO (4 ETAPAS — PADRÃO WHATSAPP MANUAL SETUP) -->
+        <div
+          class="bg-[#081218] border border-[#142633] rounded-2xl p-5 sm:p-6 flex flex-col gap-5 shadow-lg"
+        >
+          <!-- Topo do Wizard: Indicadores de Etapa -->
           <div
-            class="p-4 rounded-2xl bg-[#081218] border border-[#142633] flex items-center justify-between"
+            class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#132631]"
           >
             <div>
-              <span
-                class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold"
-              >
-                Contas Conectadas
-              </span>
-              <div class="text-2xl font-bold text-[#F8FAFC] mt-1">
-                {{ hooks.length }}
+              <div class="flex items-center gap-2">
+                <span
+                  class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                >
+                  {{ activeStepConfig.badge }}
+                </span>
+                <span class="text-xs text-slate-400">
+                  Configuração guiada em vídeo • Meu Super Chat
+                </span>
               </div>
-              <span class="text-[11px] text-emerald-400">
-                Multi-contas ativas
-              </span>
+              <h2 class="text-base sm:text-lg font-bold text-[#F8FAFC] mt-1.5">
+                {{ activeStepConfig.title }}
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">
+                {{ activeStepConfig.subtitle }}
+              </p>
             </div>
-            <div
-              class="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400"
-            >
-              <span class="i-lucide-calendar-check-2 size-5" />
-            </div>
-          </div>
 
-          <div
-            class="p-4 rounded-2xl bg-[#081218] border border-[#142633] flex items-center justify-between"
-          >
-            <div>
-              <span
-                class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold"
-              >
-                Especialistas c/ Agenda
-              </span>
-              <div class="text-2xl font-bold text-[#F8FAFC] mt-1">
-                {{ schedules.length }}
-              </div>
-              <span class="text-[11px] text-emerald-400">
-                {{ schedules.filter(s => s.google_connected).length }}
-                sincronizados em tempo real
-              </span>
-            </div>
-            <div
-              class="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400"
-            >
-              <span class="i-lucide-users size-5" />
-            </div>
-          </div>
-
-          <div
-            class="p-4 rounded-2xl bg-[#081218] border border-[#142633] flex items-center justify-between"
-          >
-            <div>
-              <span
-                class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold"
-              >
-                Motor OAuth 2.0
-              </span>
-              <div class="text-base font-bold text-[#F8FAFC] mt-1">
-                {{
-                  oauthConfigured ? 'OAuth 2.0 Ativo' : 'Modo Direto / Token'
-                }}
-              </div>
+            <!-- Pílulas das 4 Etapas -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
               <button
+                v-for="st in wizardSteps"
+                :key="st.id"
                 type="button"
-                class="text-[11px] text-emerald-400 hover:underline mt-0.5"
-                @click="showOauthConfigModal = true"
+                class="px-3 py-2 rounded-xl border text-left transition flex items-center gap-2"
+                :class="
+                  currentStep === st.id
+                    ? 'bg-emerald-500/15 border-emerald-500 text-emerald-300 shadow-sm'
+                    : currentStep > st.id
+                      ? 'bg-[#04090D] border-emerald-500/40 text-slate-200'
+                      : 'bg-[#04090D] border-[#162936] text-slate-400 hover:border-slate-700'
+                "
+                @click="setStep(st.id)"
               >
-                {{
-                  oauthConfigured
-                    ? 'Gerenciar Client ID / Secret →'
-                    : 'Configurar Client ID OAuth →'
-                }}
+                <span
+                  class="w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center shrink-0"
+                  :class="
+                    currentStep === st.id
+                      ? 'bg-[#10B981] text-[#04090D]'
+                      : currentStep > st.id
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-[#0A151D] text-slate-400'
+                  "
+                >
+                  {{ currentStep > st.id ? '✓' : st.id }}
+                </span>
+                <div class="min-w-0">
+                  <div class="text-[10px] uppercase tracking-wider opacity-75">
+                    Passo {{ st.id }}
+                  </div>
+                  <div class="text-xs font-semibold truncate">
+                    {{
+                      st.id === 1
+                        ? 'Credenciais'
+                        : st.id === 2
+                          ? 'Conectar'
+                          : st.id === 3
+                            ? 'Especialistas'
+                            : 'Verificar'
+                    }}
+                  </div>
+                </div>
               </button>
             </div>
-            <div
-              class="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400"
-            >
-              <span class="i-lucide-shield-check size-5" />
-            </div>
           </div>
 
-          <div
-            class="p-4 rounded-2xl bg-[#081218] border border-[#142633] flex items-center justify-between"
-          >
-            <div class="min-w-0 pr-2">
-              <span
-                class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold"
-              >
-                Callback URI OAuth
-              </span>
+          <!-- Corpo do Wizard: Esquerda Ação Interativa | Direita Vídeo Demonstrativo -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <!-- Coluna Esquerda (7 cols): Conteúdo da Etapa Atual -->
+            <div class="lg:col-span-7 flex flex-col gap-4">
+              <!-- ETAPA 1: CREDENCIAIS OAUTH 2.0 -->
+              <div v-if="currentStep === 1" class="flex flex-col gap-4">
+                <div
+                  class="p-4 rounded-xl bg-[#04090D] border border-[#162936] flex flex-col gap-2"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-xs font-semibold text-emerald-400">
+                      1. URI de Redirecionamento Autorizado (Callback OAuth)
+                    </span>
+                    <button
+                      type="button"
+                      class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[11px] font-semibold hover:bg-emerald-500/30 transition"
+                      @click="copyText(redirectUri)"
+                    >
+                      Copiar URI
+                    </button>
+                  </div>
+                  <p class="text-[11px] text-slate-400">
+                    No Google Cloud Console (APIs e Serviços → Credenciais → ID
+                    do cliente OAuth 2.0), cole exatamente este endereço:
+                  </p>
+                  <code
+                    class="px-3 py-2 rounded-lg bg-[#081218] border border-[#132631] text-emerald-400 font-mono text-xs select-all break-all"
+                  >
+                    {{ redirectUri }}
+                  </code>
+                </div>
+
+                <div
+                  class="p-4 rounded-xl bg-[#04090D] border border-[#162936] flex flex-col gap-3"
+                >
+                  <div class="text-xs font-semibold text-[#F8FAFC]">
+                    2. Informe o Client ID e Client Secret da sua conta
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-[11px] text-slate-400 mb-1">
+                        Google OAuth Client ID
+                      </label>
+                      <input
+                        v-model="oauthClientId"
+                        type="text"
+                        placeholder="Ex: 829401-app.apps.googleusercontent.com"
+                        class="w-full px-3 py-2 rounded-xl bg-[#081218] border border-[#162936] text-xs text-white font-mono outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-[11px] text-slate-400 mb-1">
+                        Google OAuth Client Secret
+                      </label>
+                      <input
+                        v-model="oauthClientSecret"
+                        type="password"
+                        placeholder="GOCSPX-..."
+                        class="w-full px-3 py-2 rounded-xl bg-[#081218] border border-[#162936] text-xs text-white font-mono outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+                  <div
+                    class="flex flex-wrap items-center justify-between gap-2 pt-1"
+                  >
+                    <span class="text-[11px] text-slate-400">
+                      Status atual:
+                      <strong
+                        :class="
+                          oauthConfigured
+                            ? 'text-emerald-400'
+                            : 'text-amber-400'
+                        "
+                      >
+                        {{
+                          oauthConfigured
+                            ? 'OAuth 2.0 Configurado'
+                            : 'Usando Conexão Direta / Aguardando Client ID'
+                        }}
+                      </strong>
+                    </span>
+                    <button
+                      type="button"
+                      :disabled="savingOauth"
+                      class="px-4 py-2 rounded-xl bg-[#10B981] hover:bg-emerald-400 text-[#04090D] font-semibold text-xs transition"
+                      @click="saveOauthCredentials(true)"
+                    >
+                      {{
+                        savingOauth
+                          ? 'Salvando...'
+                          : 'Salvar Credenciais & Avançar →'
+                      }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ETAPA 2: CONECTAR CONTA -->
+              <div v-else-if="currentStep === 2" class="flex flex-col gap-4">
+                <div
+                  class="p-4 rounded-xl bg-[#04090D] border border-[#162936] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div>
+                    <div class="text-xs font-semibold text-[#F8FAFC]">
+                      Opção A — Autenticação Oficial Google OAuth 2.0 (1 Clique)
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-0.5">
+                      Redireciona para a tela oficial do Google para autorizar a
+                      leitura e criação de eventos na agenda.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    class="px-4 py-2.5 rounded-xl bg-[#10B981] hover:bg-emerald-400 text-[#04090D] font-bold text-xs shrink-0 flex items-center gap-1.5"
+                    @click="triggerOauthFlow(null)"
+                  >
+                    <span class="i-lucide-log-in size-4" />
+                    <span>Autorizar com Google OAuth</span>
+                  </button>
+                </div>
+
+                <div
+                  class="p-4 rounded-xl bg-[#04090D] border border-[#162936] flex flex-col gap-3"
+                >
+                  <div class="text-xs font-semibold text-emerald-400">
+                    Opção B — Conexão Direta / Conta de Calendário Corporativa
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-[11px] text-slate-400 mb-1">
+                        Nome de Identificação *
+                      </label>
+                      <input
+                        v-model="hookForm.connection_name"
+                        type="text"
+                        placeholder="Ex: Agenda Principal Samuel"
+                        class="w-full px-3 py-2 rounded-xl bg-[#081218] border border-[#162936] text-xs text-white outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-[11px] text-slate-400 mb-1">
+                        E-mail da Agenda *
+                      </label>
+                      <input
+                        v-model="hookForm.calendar_email"
+                        type="email"
+                        placeholder="samuel@meusuper.app"
+                        class="w-full px-3 py-2 rounded-xl bg-[#081218] border border-[#162936] text-xs text-white outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+                  <div class="flex justify-end">
+                    <button
+                      type="button"
+                      :disabled="savingHook"
+                      class="px-4 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 font-semibold text-xs transition"
+                      @click="submitHookForm(true)"
+                    >
+                      {{
+                        savingHook
+                          ? 'Conectando...'
+                          : 'Conectar Agenda & Avançar →'
+                      }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ETAPA 3: VINCULAR ESPECIALISTAS -->
+              <div v-else-if="currentStep === 3" class="flex flex-col gap-3">
+                <div
+                  class="p-4 rounded-xl bg-[#04090D] border border-[#162936] flex flex-col gap-3"
+                >
+                  <div class="text-xs font-semibold text-[#F8FAFC]">
+                    Especialistas Sincronizados no Meu Super Chat ({{
+                      schedules.length
+                    }})
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div
+                      v-for="sched in schedules"
+                      :key="sched.id"
+                      class="p-3 rounded-xl bg-[#081218] border border-[#132631] flex items-center justify-between gap-2"
+                    >
+                      <div class="min-w-0">
+                        <div class="text-xs font-semibold text-white truncate">
+                          {{ sched.name }}
+                        </div>
+                        <div
+                          class="text-[11px] font-mono text-emerald-400 truncate"
+                        >
+                          /agendar/{{ sched.slug }}
+                        </div>
+                      </div>
+                      <span
+                        class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0"
+                      >
+                        Sincronizado
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ETAPA 4: VERIFICAÇÃO E TESTE -->
+              <div v-else class="flex flex-col gap-3">
+                <div
+                  class="p-4 rounded-xl bg-[#04090D] border border-[#162936] flex flex-col gap-2.5"
+                >
+                  <div class="text-xs font-semibold text-emerald-400">
+                    Checklist de Homologação da Integração
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                    <div
+                      class="p-3 rounded-xl bg-[#081218] border border-[#132631] flex items-center justify-between"
+                    >
+                      <span class="text-slate-300">
+                        Contas de Agenda Ativas
+                      </span>
+                      <strong class="text-emerald-400">
+                        {{ hooks.length }} conectada(s)
+                      </strong>
+                    </div>
+                    <div
+                      class="p-3 rounded-xl bg-[#081218] border border-[#132631] flex items-center justify-between"
+                    >
+                      <span class="text-slate-300">
+                        Leitura de Conflitos IA
+                      </span>
+                      <strong class="text-emerald-400">
+                        Tempo Real (Ativo)
+                      </strong>
+                    </div>
+                    <div
+                      class="p-3 rounded-xl bg-[#081218] border border-[#132631] flex items-center justify-between"
+                    >
+                      <span class="text-slate-300">
+                        Salas de Vídeo Automáticas
+                      </span>
+                      <strong class="text-emerald-400">Habilitado</strong>
+                    </div>
+                    <div
+                      class="p-3 rounded-xl bg-[#081218] border border-[#132631] flex items-center justify-between"
+                    >
+                      <span class="text-slate-300">Página Pública Online</span>
+                      <a
+                        href="/agendar/samuel-vicente"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-emerald-400 font-semibold hover:underline"
+                      >
+                        Testar Página →
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Barra Inferior de Navegação entre Etapas -->
               <div
-                class="text-xs font-mono text-emerald-400 truncate mt-1.5"
-                :title="redirectUri"
+                class="flex items-center justify-between pt-3 border-t border-[#132631]"
               >
-                {{ redirectUri }}
+                <button
+                  type="button"
+                  :disabled="currentStep === 1"
+                  class="px-3.5 py-2 rounded-xl bg-[#0A151D] border border-[#162936] text-xs text-slate-300 disabled:opacity-40"
+                  @click="setStep(currentStep - 1)"
+                >
+                  ← Etapa Anterior
+                </button>
+                <button
+                  v-if="currentStep < 4"
+                  type="button"
+                  class="px-4 py-2 rounded-xl bg-[#10B981] hover:bg-emerald-400 text-[#04090D] font-semibold text-xs"
+                  @click="setStep(currentStep + 1)"
+                >
+                  Próxima Etapa →
+                </button>
+                <button
+                  v-else
+                  type="button"
+                  class="px-4 py-2 rounded-xl bg-[#10B981] hover:bg-emerald-400 text-[#04090D] font-semibold text-xs"
+                  @click="goToCalendarModule"
+                >
+                  Concluir & Ir para Agendamentos →
+                </button>
               </div>
-              <button
-                type="button"
-                class="text-[11px] text-slate-300 hover:text-white mt-1"
-                @click="copyText(redirectUri)"
-              >
-                Copiar Redirect URI
-              </button>
             </div>
-            <div
-              class="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0"
-            >
-              <span class="i-lucide-webhook size-5" />
+
+            <!-- Coluna Direita (5 cols): Player de Vídeo da Etapa -->
+            <div class="lg:col-span-5">
+              <CalendarSetupVideo
+                :src="stepVideoSrc(activeStepConfig.videoSlug)"
+                :poster="stepVideoPoster(activeStepConfig.videoSlug)"
+                :title="activeStepConfig.videoTitle"
+                :description="activeStepConfig.videoDescription"
+              />
             </div>
           </div>
         </div>
 
-        <!-- Lista de Conexões Múltiplas -->
+        <!-- Lista de Conexões Múltiplas Ativas -->
         <div
           class="bg-[#081218] border border-[#142633] rounded-2xl p-5 flex flex-col gap-4"
         >
@@ -450,49 +782,35 @@ onMounted(() => {
           >
             <div>
               <h3 class="text-sm font-semibold text-[#F8FAFC]">
-                Conexões de Calendário Ativas ({{ hooks.length }})
+                Contas de Calendário Conectadas ({{ hooks.length }})
               </h3>
               <p class="text-xs text-slate-400">
-                Adicione quantas contas quiser e associe cada conta a um ou mais
-                especialistas da equipe.
+                Gerencie todas as agendas sincronizadas com sua equipe e Agente
+                IA.
               </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                class="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 hover:bg-emerald-500/25 transition"
-                @click="triggerOauthFlow(null)"
-              >
-                <span class="i-lucide-log-in size-3.5" />
-                <span>Autenticar Nova Conta via OAuth 2.0</span>
-              </button>
-              <button
-                type="button"
-                class="px-3 py-1.5 rounded-xl bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 text-slate-200 text-xs font-medium flex items-center gap-1.5 transition"
+                class="px-3.5 py-2 rounded-xl bg-[#10B981] hover:bg-emerald-400 text-[#04090D] text-xs font-semibold flex items-center gap-1.5 transition"
                 @click="openNewConnection"
               >
-                <span class="i-lucide-plus size-3.5 text-emerald-400" />
-                <span>Conexão Rápida / Token</span>
+                <span class="i-lucide-plus size-3.5" />
+                <span>Conectar Nova Agenda</span>
               </button>
             </div>
           </div>
 
           <div
             v-if="hooks.length === 0"
-            class="py-12 text-center flex flex-col items-center gap-3"
+            class="py-10 text-center flex flex-col items-center gap-3"
           >
-            <div
-              class="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400"
-            >
-              <span class="i-lucide-calendar-plus size-6" />
-            </div>
             <div class="text-sm font-semibold text-white">
-              Nenhuma conta de calendário conectada ainda
+              Nenhuma conta conectada ainda
             </div>
             <p class="text-xs text-slate-400 max-w-md">
-              Conecte contas Google Agenda, Workspace ou CalDAV para liberar
-              verificação de conflitos em tempo real e agendamento automático
-              pelo Agente IA.
+              Use a Etapa 2 acima ou clique no botão abaixo para vincular sua
+              primeira agenda.
             </p>
             <button
               type="button"
@@ -602,13 +920,6 @@ onMounted(() => {
                         ? 'Sincronizando...'
                         : 'Sincronizar'
                     }}</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-300 hover:bg-emerald-500/20 transition"
-                    @click="triggerOauthFlow(hook)"
-                  >
-                    OAuth
                   </button>
                 </div>
 
@@ -721,11 +1032,9 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- Seleção de Agendas de Especialistas Vinculadas -->
             <div>
               <label class="block text-[11px] text-slate-400 mb-1.5">
-                Vincular às Agendas de Especialistas (Sincronização
-                Bidirecional)
+                Vincular às Agendas de Especialistas
               </label>
               <div class="flex flex-wrap gap-2">
                 <button
@@ -749,7 +1058,6 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- Seleção de Agentes Autorizados -->
             <div v-if="agents && agents.length">
               <label class="block text-[11px] text-slate-400 mb-1.5">
                 Agentes Responsáveis (Opcional)
@@ -771,38 +1079,6 @@ onMounted(() => {
                 </button>
               </div>
             </div>
-
-            <div
-              class="p-3.5 rounded-xl bg-[#04090D] border border-[#132631] flex flex-col gap-3"
-            >
-              <div class="text-[11px] font-semibold text-emerald-400">
-                Tokens OAuth / Credenciais Específicas desta Conta (Opcional)
-              </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-[10px] text-slate-400 mb-1">
-                    OAuth Access Token (Opcional)
-                  </label>
-                  <input
-                    v-model="hookForm.access_token"
-                    type="password"
-                    placeholder="ya29.a0AfH6SM..."
-                    class="w-full px-3 py-1.5 rounded-lg bg-[#081218] border border-[#162936] text-white font-mono outline-none"
-                  />
-                </div>
-                <div>
-                  <label class="block text-[10px] text-slate-400 mb-1">
-                    OAuth Refresh Token (Opcional)
-                  </label>
-                  <input
-                    v-model="hookForm.refresh_token"
-                    type="password"
-                    placeholder="1//0g..."
-                    class="w-full px-3 py-1.5 rounded-lg bg-[#081218] border border-[#162936] text-white font-mono outline-none"
-                  />
-                </div>
-              </div>
-            </div>
           </div>
 
           <div
@@ -819,7 +1095,7 @@ onMounted(() => {
               type="button"
               :disabled="savingHook"
               class="px-4 py-2 rounded-xl bg-[#10B981] text-[#04090D] font-semibold text-xs"
-              @click="submitHookForm"
+              @click="submitHookForm(false)"
             >
               {{
                 savingHook
@@ -828,104 +1104,6 @@ onMounted(() => {
                     ? 'Salvar Alterações'
                     : 'Conectar & Sincronizar'
               }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Modal: Configurar Credenciais OAuth 2.0 Globais da Conta -->
-      <div
-        v-if="showOauthConfigModal"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
-        @click.self="showOauthConfigModal = false"
-      >
-        <div
-          class="w-full max-w-lg bg-[#081218] border border-[#162936] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
-        >
-          <div
-            class="flex items-center justify-between px-5 py-4 border-b border-[#132631] bg-[#04090D]"
-          >
-            <div>
-              <h3 class="text-base font-semibold text-[#F8FAFC]">
-                Configuração OAuth 2.0 (Google Cloud / Workspace)
-              </h3>
-              <p class="text-xs text-slate-400">
-                Permite autenticar múltiplas contas com 1 clique pelo fluxo
-                oficial OAuth 2.0
-              </p>
-            </div>
-            <button
-              type="button"
-              class="text-slate-400 hover:text-white text-lg px-2"
-              @click="showOauthConfigModal = false"
-            >
-              ×
-            </button>
-          </div>
-
-          <div class="p-5 flex flex-col gap-3.5 text-xs">
-            <div
-              class="p-3 rounded-xl bg-[#04090D] border border-[#132631] flex flex-col gap-1"
-            >
-              <span class="text-[11px] text-slate-400">
-                URI de Redirecionamento Autorizado (adicione no console OAuth):
-              </span>
-              <div class="flex items-center justify-between gap-2 mt-1">
-                <code class="text-emerald-400 font-mono text-[11px] truncate">
-                  {{ redirectUri }}
-                </code>
-                <button
-                  type="button"
-                  class="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold shrink-0"
-                  @click="copyText(redirectUri)"
-                >
-                  Copiar
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-[11px] text-slate-400 mb-1">
-                Google OAuth Client ID
-              </label>
-              <input
-                v-model="oauthClientId"
-                type="text"
-                placeholder="1234567890-abcdef.apps.googleusercontent.com"
-                class="w-full px-3 py-2 rounded-xl bg-[#04090D] border border-[#162936] text-white font-mono outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label class="block text-[11px] text-slate-400 mb-1">
-                Google OAuth Client Secret
-              </label>
-              <input
-                v-model="oauthClientSecret"
-                type="password"
-                placeholder="GOCSPX-..."
-                class="w-full px-3 py-2 rounded-xl bg-[#04090D] border border-[#162936] text-white font-mono outline-none focus:border-emerald-500"
-              />
-            </div>
-          </div>
-
-          <div
-            class="flex items-center justify-end gap-2 px-5 py-3.5 border-t border-[#132631] bg-[#04090D]"
-          >
-            <button
-              type="button"
-              class="px-4 py-2 rounded-xl bg-[#0A151D] border border-[#162936] text-xs text-slate-300"
-              @click="showOauthConfigModal = false"
-            >
-              Fechar
-            </button>
-            <button
-              type="button"
-              :disabled="savingOauth"
-              class="px-4 py-2 rounded-xl bg-[#10B981] text-[#04090D] font-semibold text-xs"
-              @click="saveOauthCredentials"
-            >
-              {{ savingOauth ? 'Salvando...' : 'Salvar Credenciais OAuth 2.0' }}
             </button>
           </div>
         </div>

@@ -241,6 +241,13 @@ class Calendar::GoogleCalendarService
   def build_event_payload(appointment, include_conference: true)
     attendees = []
     attendees << { email: appointment.customer_email, displayName: appointment.customer_name } if appointment.customer_email.present?
+    Array((appointment.metadata || {})['guest_emails']).first(10).each do |guest|
+      guest_email = guest.to_s.strip.downcase
+      next unless guest_email.match?(URI::MailTo::EMAIL_REGEXP)
+      next if attendees.any? { |a| a[:email].to_s.downcase == guest_email }
+
+      attendees << { email: guest_email }
+    end
 
     description_lines = [
       "Cliente: #{appointment.customer_name}",

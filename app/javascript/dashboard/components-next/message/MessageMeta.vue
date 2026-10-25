@@ -179,6 +179,7 @@ const isDelivered = computed(() => {
     isAnInstagramChannel.value ||
     isATiktokChannel.value
   ) {
+    if (!sourceId.value && status.value === MESSAGE_STATUS.SENT) return true;
     return sourceId.value && status.value === MESSAGE_STATUS.DELIVERED;
   }
   // API inbox messages use real delivered status from the external system.
@@ -204,6 +205,16 @@ const isRead = computed(() => {
     isAnInstagramChannel.value ||
     isATiktokChannel.value
   ) {
+    if (
+      !sourceId.value &&
+      [
+        MESSAGE_STATUS.SENT,
+        MESSAGE_STATUS.DELIVERED,
+        MESSAGE_STATUS.READ,
+      ].includes(status.value)
+    ) {
+      return true;
+    }
     return sourceId.value && status.value === MESSAGE_STATUS.READ;
   }
 

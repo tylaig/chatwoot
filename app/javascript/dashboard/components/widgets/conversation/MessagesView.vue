@@ -1042,7 +1042,7 @@ export default {
       />
     </div>
     <div
-      class="relative flex-shrink flex-grow basis-px flex flex-col min-h-0 overflow-hidden bg-n-surface-1"
+      class="relative z-0 flex-shrink flex-grow basis-px flex flex-col min-h-0 overflow-hidden bg-n-surface-1"
     >
       <div
         v-if="chatBackgroundUrl"
@@ -1118,7 +1118,7 @@ export default {
         </template>
       </MessageList>
     </div>
-    <div class="flex relative flex-col bg-n-surface-1">
+    <div class="flex relative z-20 flex-col bg-n-surface-1">
       <div
         v-if="isAnyoneTyping"
         class="absolute flex items-center w-full h-0 -top-7"

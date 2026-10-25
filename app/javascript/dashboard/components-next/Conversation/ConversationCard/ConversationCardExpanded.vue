@@ -78,12 +78,13 @@ const selectedModel = computed({
 
 <template>
   <div
-    class="conversation relative cursor-pointer group grid gap-4 items-center px-3 h-12 border-b border-n-slate-3 hover:border-n-surface-1 hover:z-[1] before:content-[none] before:absolute before:-top-px before:inset-x-0 before:h-px before:bg-n-surface-1 before:pointer-events-none hover:before:content-['']"
+    class="conversation relative cursor-pointer group grid gap-4 items-center px-3 h-12 border-b border-slate-200/80 dark:border-white/[0.06] hover:z-[1] transition-colors"
     :class="{
-      'active animate-card-select bg-n-alpha-1 dark:bg-n-alpha-3 !border-n-surface-1':
+      'active animate-card-select bg-emerald-50/80 dark:bg-emerald-500/12 border-l-4 !border-l-emerald-500 dark:!border-l-emerald-400':
         isActiveChat,
-      'selected bg-n-slate-2 dark:bg-n-slate-3 !border-n-surface-1': selected,
-      'hover:bg-n-alpha-1': !isActiveChat && !selected,
+      'selected bg-emerald-50/40 dark:bg-emerald-500/10': selected,
+      'hover:bg-slate-50 dark:hover:bg-white/[0.03]':
+        !isActiveChat && !selected,
       'grid-cols-[minmax(0,2fr)_minmax(0,1fr)]': showLabelsSection,
       'grid-cols-[minmax(0,2fr)_max-content]': !showLabelsSection,
     }"

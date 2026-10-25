@@ -183,35 +183,45 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
 <template>
   <div class="flex relative justify-end items-center resolve-actions">
     <ButtonGroup
-      class="flex-shrink-0 rounded-lg shadow outline-1 outline"
-      :class="!showOpenButton ? 'outline-n-container' : 'outline-transparent'"
+      class="flex-shrink-0 rounded-lg shadow-xs outline-1 outline"
+      :class="
+        isOpen
+          ? 'outline-emerald-600/30'
+          : !showOpenButton
+            ? 'outline-n-container'
+            : 'outline-transparent'
+      "
     >
       <Button
         v-if="isOpen"
         :label="t('CONVERSATION.HEADER.RESOLVE_ACTION')"
+        icon="i-lucide-check"
         size="sm"
-        color="slate"
+        color="teal"
         no-animation
-        class="ltr:rounded-r-none rtl:rounded-l-none !outline-0"
+        class="ltr:rounded-r-none rtl:rounded-l-none !outline-0 !bg-emerald-500 hover:enabled:!bg-emerald-600 !text-white font-semibold shadow-2xs"
         :is-loading="isLoading"
         @click="onCmdResolveConversation"
       />
       <Button
         v-else-if="isResolved"
         :label="t('CONVERSATION.HEADER.REOPEN_ACTION')"
+        icon="i-lucide-rotate-ccw"
         size="sm"
         color="slate"
         no-animation
-        class="ltr:rounded-r-none rtl:rounded-l-none !outline-0"
+        class="ltr:rounded-r-none rtl:rounded-l-none !outline-0 font-semibold"
         :is-loading="isLoading"
         @click="onCmdOpenConversation"
       />
       <Button
         v-else-if="showOpenButton"
         :label="t('CONVERSATION.HEADER.OPEN_ACTION')"
+        icon="i-lucide-check"
         size="sm"
-        color="slate"
+        color="teal"
         no-animation
+        class="!bg-emerald-500 hover:enabled:!bg-emerald-600 !text-white font-semibold"
         :is-loading="isLoading"
         @click="onCmdOpenConversation"
       />
@@ -223,7 +233,12 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
         size="sm"
         no-animation
         class="ltr:rounded-l-none rtl:rounded-r-none !outline-0"
-        color="slate"
+        :class="
+          isOpen
+            ? '!bg-emerald-500 hover:enabled:!bg-emerald-600 !text-white border-l border-white/25'
+            : ''
+        "
+        :color="isOpen ? 'teal' : 'slate'"
         trailing-icon
         @click="openDropdown"
       />
@@ -231,7 +246,7 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
     <div
       v-if="showActionsDropdown"
       v-on-clickaway="closeDropdown"
-      class="border rounded-lg shadow-lg border-n-strong dark:border-n-strong box-content p-2 w-fit z-10 bg-n-alpha-3 backdrop-blur-[100px] absolute block left-auto top-full mt-0.5 start-0 xl:start-auto xl:end-0 max-w-[12.5rem] min-w-[9.75rem] [&_ul>li]:mb-0"
+      class="border rounded-xl shadow-xl border-slate-200 dark:border-white/10 box-content p-1.5 w-fit z-[100] bg-white dark:bg-[#0B1522] absolute block left-auto top-full mt-1.5 end-0 max-w-[13.5rem] min-w-[11rem] [&_ul>li]:mb-0"
     >
       <WootDropdownMenu class="mb-0">
         <WootDropdownItem v-if="!isPending">

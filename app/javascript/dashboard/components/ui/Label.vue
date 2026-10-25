@@ -64,6 +64,11 @@ export default {
           border: `1px solid ${this.bgColor}`,
         };
       }
+      if (this.variant === 'smooth' && this.color) {
+        return {
+          '--msc-label-color': this.color,
+        };
+      }
       return {};
     },
     anchorStyle() {
@@ -113,10 +118,10 @@ export default {
 
 <style scoped lang="scss">
 .label {
-  @apply items-center font-medium text-xs rounded-[4px] gap-1 p-1 bg-n-slate-3 text-n-slate-12 border border-solid border-n-strong h-6;
+  @apply items-center font-semibold text-xs rounded-full gap-1.5 py-0.5 px-2.5 bg-n-slate-3 text-n-slate-12 border border-solid border-n-strong h-6;
 
   &.small {
-    @apply text-xs py-0.5 px-1 leading-tight h-5;
+    @apply text-[11.5px] py-0.5 px-2 leading-tight h-5;
   }
 
   &.small .label--icon,
@@ -184,7 +189,40 @@ export default {
   }
 
   &.smooth {
-    @apply bg-transparent text-n-slate-11 dark:text-n-slate-12 border border-solid border-n-strong;
+    @apply border border-solid;
+    background: color-mix(
+      in srgb,
+      var(--msc-label-color, #10b981) 14%,
+      #ffffff
+    ) !important;
+    border-color: color-mix(
+      in srgb,
+      var(--msc-label-color, #10b981) 34%,
+      transparent
+    ) !important;
+    color: color-mix(
+      in srgb,
+      var(--msc-label-color, #10b981) 76%,
+      #0f172a
+    ) !important;
+  }
+
+  :global(.dark) &.smooth {
+    background: color-mix(
+      in srgb,
+      var(--msc-label-color, #10b981) 20%,
+      #09131d
+    ) !important;
+    border-color: color-mix(
+      in srgb,
+      var(--msc-label-color, #10b981) 42%,
+      transparent
+    ) !important;
+    color: color-mix(
+      in srgb,
+      var(--msc-label-color, #10b981) 55%,
+      #f8fafc
+    ) !important;
   }
 
   &.dashed {
@@ -205,9 +243,9 @@ export default {
 }
 
 .label-color-dot {
-  @apply inline-block w-3 h-3 rounded-sm shadow-sm;
+  @apply inline-block w-2.5 h-2.5 rounded-full shadow-sm;
 }
 .label.small .label-color-dot {
-  @apply w-2 h-2 rounded-sm shadow-sm;
+  @apply w-2 h-2 rounded-full shadow-sm;
 }
 </style>

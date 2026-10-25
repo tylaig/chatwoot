@@ -2,7 +2,7 @@
   "CHAT_LIST": {
     "LOADING": "Buscando conversas",
     "LOAD_MORE_CONVERSATIONS": "Carregar mais conversas",
-    "EOF": "Todas as conversas carregadas 🎉",
+    "EOF": "Todas as conversas carregadas",
     "LIST": {
       "404": "Não há conversas ativas neste grupo."
     },

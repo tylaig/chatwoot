@@ -15,11 +15,7 @@ const getActiveDateFnsLocale = () => {
     typeof document !== 'undefined' ? document.documentElement?.lang || '' : '';
   const selectedLocale =
     window?.chatwootConfig?.selectedLocale || htmlLang || 'pt_BR';
-  if (
-    String(selectedLocale)
-      .toLowerCase()
-      .startsWith('pt')
-  ) {
+  if (String(selectedLocale).toLowerCase().startsWith('pt')) {
     return ptBR;
   }
   return undefined;
@@ -33,7 +29,11 @@ const getActiveDateFnsLocale = () => {
  */
 export const messageStamp = (time, dateFormat = 'h:mm a') => {
   const unixTime = fromUnixTime(time);
-  return format(unixTime, dateFormat);
+  const locale = getActiveDateFnsLocale();
+  if (locale && dateFormat === 'h:mm a') {
+    return format(unixTime, 'HH:mm', { locale });
+  }
+  return format(unixTime, dateFormat, ...(locale ? [{ locale }] : []));
 };
 
 /**
@@ -45,11 +45,43 @@ export const messageStamp = (time, dateFormat = 'h:mm a') => {
 export const messageTimestamp = (time, dateFormat = 'MMM d, yyyy') => {
   const messageTime = fromUnixTime(time);
   const now = new Date();
-  const messageDate = format(messageTime, dateFormat);
+  const locale = getActiveDateFnsLocale();
+  if (locale && dateFormat === 'LLL d, h:mm a') {
+    return format(messageTime, 'HH:mm', { locale });
+  }
+  const messageDate = format(
+    messageTime,
+    dateFormat,
+    ...(locale ? [{ locale }] : [])
+  );
   if (!isSameYear(messageTime, now)) {
-    return format(messageTime, 'LLL d y, h:mm a');
+    return format(
+      messageTime,
+      'LLL d y, h:mm a',
+      ...(locale ? [{ locale }] : [])
+    );
   }
   return messageDate;
+};
+
+/**
+ * Formats a Unix timestamp into a localized date divider label (e.g., "Hoje, 22 de Outubro").
+ * @param {number} time - Unix timestamp.
+ * @returns {string} Formatted date divider label.
+ */
+export const formatMessageDateDivider = time => {
+  if (!time) return '';
+  const date = fromUnixTime(time);
+  const locale = getActiveDateFnsLocale() || ptBR;
+  const day = format(date, 'd', { locale });
+  const rawMonth = format(date, 'MMMM', { locale });
+  const month = rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1);
+  const dayAndMonth = `${day} de ${month}`;
+
+  if (isToday(date)) return `Hoje, ${dayAndMonth}`;
+  if (isYesterday(date)) return `Ontem, ${dayAndMonth}`;
+  if (isSameYear(date, new Date())) return dayAndMonth;
+  return `${dayAndMonth} de ${format(date, 'yyyy', { locale })}`;
 };
 
 /**
@@ -62,10 +94,27 @@ export const messageTimestamp = (time, dateFormat = 'MMM d, yyyy') => {
  */
 export const relativeDayTimestamp = (time, yesterdayLabel) => {
   const date = fromUnixTime(time);
-  if (isToday(date)) return format(date, 'h:mm a');
+  const locale = getActiveDateFnsLocale();
+  if (isToday(date)) {
+    return format(
+      date,
+      locale ? 'HH:mm' : 'h:mm a',
+      ...(locale ? [{ locale }] : [])
+    );
+  }
   if (isYesterday(date)) return yesterdayLabel;
-  if (isThisYear(date)) return format(date, 'MMM d');
-  return format(date, 'MMM d, yyyy');
+  if (isThisYear(date)) {
+    return format(
+      date,
+      locale ? "d 'de' MMM" : 'MMM d',
+      ...(locale ? [{ locale }] : [])
+    );
+  }
+  return format(
+    date,
+    locale ? "d 'de' MMM, yyyy" : 'MMM d, yyyy',
+    ...(locale ? [{ locale }] : [])
+  );
 };
 
 /**
@@ -100,6 +149,41 @@ export const dateFormat = (time, df = 'MMM d, yyyy') => {
  * @returns {string} Shortened time description.
  */
 export const shortTimestamp = (time, withAgo = false) => {
+  if (!time || typeof time !== 'string') return '';
+  const trimmed = time.trim();
+
+  // Portuguese (pt-BR) relative time compacting (e.g. "há 7 min", "há 7h", "há 2d")
+  if (
+    trimmed.startsWith('há ') ||
+    trimmed.startsWith('em ') ||
+    trimmed.includes('minuto') ||
+    trimmed.includes('hora') ||
+    trimmed.includes('mês') ||
+    trimmed.includes('meses')
+  ) {
+    if (trimmed.includes('menos de um minuto')) return 'agora';
+    const normalized = trimmed
+      .replace(/^há\s+(?:cerca de|mais de|quase)\s+/i, 'há ')
+      .replace(/^cerca de\s+/i, 'há ');
+
+    return normalized
+      .replace(/^há\s+um\s+minuto$/i, 'há 1 min')
+      .replace(/^há\s+1\s+minuto$/i, 'há 1 min')
+      .replace(/^há\s+(\d+)\s+minutos?$/i, 'há $1 min')
+      .replace(/^há\s+uma\s+hora$/i, 'há 1h')
+      .replace(/^há\s+1\s+hora$/i, 'há 1h')
+      .replace(/^há\s+(\d+)\s+horas?$/i, 'há $1h')
+      .replace(/^há\s+um\s+dia$/i, 'há 1d')
+      .replace(/^há\s+1\s+dia$/i, 'há 1d')
+      .replace(/^há\s+(\d+)\s+dias?$/i, 'há $1d')
+      .replace(/^há\s+um\s+mês$/i, 'há 1m')
+      .replace(/^há\s+1\s+mês$/i, 'há 1m')
+      .replace(/^há\s+(\d+)\s+meses$/i, 'há $1m')
+      .replace(/^há\s+um\s+ano$/i, 'há 1a')
+      .replace(/^há\s+1\s+ano$/i, 'há 1a')
+      .replace(/^há\s+(\d+)\s+anos?$/i, 'há $1a');
+  }
+
   // This function takes a time string and converts it to a short time string
   // with the following format: 1m, 1h, 1d, 1mo, 1y
   // The function also takes an optional boolean parameter withAgo

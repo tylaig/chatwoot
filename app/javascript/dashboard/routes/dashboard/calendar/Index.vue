@@ -483,12 +483,12 @@ onMounted(() => {
 
             <button
               type="button"
-              class="px-3 py-2 rounded-xl bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 text-xs font-medium text-slate-200 flex items-center gap-1.5 transition"
-              title="Gerenciar múltiplas conexões OAuth de calendário"
+              class="px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/40 hover:bg-emerald-500/25 text-xs font-semibold text-emerald-300 flex items-center gap-1.5 transition"
+              title="Abrir Onboarding em Vídeo & Autenticação OAuth 2.0"
               @click="goToIntegrationsHub"
             >
-              <span class="i-lucide-blocks size-3.5 text-emerald-400" />
-              <span class="hidden sm:inline">Integrações OAuth</span>
+              <span class="i-lucide-play-circle size-3.5 text-emerald-400" />
+              <span class="hidden sm:inline">Autenticar Agenda (OAuth)</span>
             </button>
 
             <button

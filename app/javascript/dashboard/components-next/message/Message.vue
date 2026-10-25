@@ -289,42 +289,39 @@ const isGroupIncoming = computed(() => {
 });
 
 const showGroupSenderAvatar = computed(() => {
-  return isGroupIncoming.value && !props.groupWithPrevious;
+  return (
+    orientation.value === ORIENTATION.LEFT &&
+    props.messageType !== MESSAGE_TYPES.ACTIVITY &&
+    !props.groupWithPrevious
+  );
 });
 
 const gridClass = computed(() => {
-  if (orientation.value === ORIENTATION.LEFT && isGroupIncoming.value) {
-    return 'grid grid-cols-[24px_1fr]';
+  if (
+    orientation.value === ORIENTATION.LEFT &&
+    props.messageType !== MESSAGE_TYPES.ACTIVITY
+  ) {
+    return 'grid grid-cols-[28px_1fr]';
   }
 
-  const map = {
-    [ORIENTATION.LEFT]: 'grid grid-cols-1fr',
-    [ORIENTATION.RIGHT]: 'grid grid-cols-[1fr_24px]',
-  };
-
-  return map[orientation.value];
+  return 'grid grid-cols-1fr';
 });
 
 const gridTemplate = computed(() => {
-  if (orientation.value === ORIENTATION.LEFT && isGroupIncoming.value) {
+  if (
+    orientation.value === ORIENTATION.LEFT &&
+    props.messageType !== MESSAGE_TYPES.ACTIVITY
+  ) {
     return `
       "avatar bubble"
       "spacer meta"
     `;
   }
 
-  const map = {
-    [ORIENTATION.LEFT]: `
-      "bubble"
-      "meta"
-    `,
-    [ORIENTATION.RIGHT]: `
-      "bubble avatar"
-      "meta spacer"
-    `,
-  };
-
-  return map[orientation.value];
+  return `
+    "bubble"
+    "meta"
+  `;
 });
 
 const shouldGroupWithNext = computed(() => {
@@ -334,10 +331,7 @@ const shouldGroupWithNext = computed(() => {
 });
 
 const shouldShowAvatar = computed(() => {
-  if (props.messageType === MESSAGE_TYPES.ACTIVITY) return false;
-  if (orientation.value === ORIENTATION.LEFT) return false;
-
-  return true;
+  return false;
 });
 
 const componentToRender = computed(() => {
@@ -767,22 +761,28 @@ provideMessageContext({
     >
       <div
         v-if="showGroupSenderAvatar"
-        class="[grid-area:avatar] flex items-end"
+        class="[grid-area:avatar] flex items-start pt-0.5"
       >
         <Avatar
           v-tooltip.right-end="avatarTooltip"
           v-bind="avatarInfo"
-          :size="24"
-          class="cursor-pointer"
+          :size="28"
+          rounded-full
+          class="cursor-pointer shadow-2xs"
           @click="navigateToGroupSender($event)"
         />
       </div>
       <div
         v-if="!shouldGroupWithNext && shouldShowAvatar"
         v-tooltip.left-end="avatarTooltip"
-        class="[grid-area:avatar] flex items-end"
+        class="[grid-area:avatar] flex items-end pb-0.5"
       >
-        <Avatar v-bind="avatarInfo" :size="24" />
+        <Avatar
+          v-bind="avatarInfo"
+          :size="28"
+          rounded-full
+          class="shadow-2xs"
+        />
       </div>
       <div class="[grid-area:bubble]" @contextmenu="openContextMenu($event)">
         <span

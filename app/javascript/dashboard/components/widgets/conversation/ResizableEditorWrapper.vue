@@ -15,8 +15,8 @@ const props = defineProps({
   containerHeight: { type: Number, default: 0 },
 });
 
-const DEFAULT_HEIGHT = 120;
-const MIN_HEIGHT = 80;
+const DEFAULT_HEIGHT = 76;
+const MIN_HEIGHT = 56;
 const MIN_MESSAGES_HEIGHT = 200;
 const EXPAND_RATIO = 0.5;
 const RESET_DELAY_MS = 120;
@@ -185,8 +185,8 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
     @apply overflow-auto;
 
     height: clamp(
-      var(--editor-min-allowed, 5rem),
-      var(--editor-height, 5rem),
+      var(--editor-min-allowed, 3.5rem),
+      var(--editor-height, 4.75rem),
       var(--editor-max-allowed, 7.5rem)
     );
     transition:

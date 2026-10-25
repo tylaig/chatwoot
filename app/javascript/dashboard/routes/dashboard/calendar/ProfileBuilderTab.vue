@@ -264,37 +264,6 @@ const saveProfile = async () => {
   }
 };
 
-const connectGoogleCalendar = async () => {
-  if (!activeSchedule.value) {
-    useAlert('Salve o perfil do especialista primeiro para conectar a agenda.');
-    return;
-  }
-  try {
-    const { data } = await CalendarAPI.getGoogleAuthUrl(
-      activeSchedule.value.id
-    );
-    if (data.oauth_configured && data.authorization_url) {
-      window.location.href = data.authorization_url;
-      return;
-    }
-    if (form.value.google_email.trim()) {
-      await CalendarAPI.updateSchedule(activeSchedule.value.id, {
-        ...form.value,
-        google_connected: true,
-      });
-      useAlert('Conta de calendário vinculada e sincronizada com sucesso!');
-      emit('saved', activeSchedule.value.id);
-    } else {
-      useAlert(
-        data.message ||
-          'Informe o e-mail da agenda ou gerencie múltiplas contas em Configurações → Integrações.'
-      );
-    }
-  } catch {
-    useAlert('Não foi possível iniciar a sincronização da agenda.');
-  }
-};
-
 const syncAgendaNow = async () => {
   if (!activeSchedule.value) return;
   try {
@@ -439,11 +408,11 @@ const locationLabel = loc => {
       <div class="flex flex-wrap items-center gap-2.5">
         <button
           type="button"
-          class="px-3.5 py-2 rounded-xl bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 text-xs text-slate-200 transition flex items-center gap-1.5"
+          class="px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/40 hover:bg-emerald-500/25 text-xs font-semibold text-emerald-300 transition flex items-center gap-1.5"
           @click="openIntegrationsHub"
         >
-          <span class="i-lucide-blocks size-3.5 text-emerald-400" />
-          <span>Hub OAuth Multi-Contas</span>
+          <span class="i-lucide-play-circle size-3.5 text-emerald-400" />
+          <span>Onboarding & Autenticação OAuth</span>
         </button>
         <a
           v-if="activeSchedule && !isCreatingNew"
@@ -710,37 +679,29 @@ const locationLabel = loc => {
             </div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <button
               type="button"
-              class="px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 text-xs font-semibold transition flex items-center justify-center gap-1.5"
-              @click="connectGoogleCalendar"
+              class="px-3.5 py-2.5 rounded-xl bg-[#10B981] hover:bg-emerald-400 text-[#04090D] text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm"
+              @click="openIntegrationsHub"
             >
-              <span class="i-lucide-settings-2 size-3.5" />
-              <span>Gerenciar Conexão</span>
+              <span class="i-lucide-play-circle size-4" />
+              <span>
+                Abrir Onboarding OAuth ({{
+                  integrationHooksCount || schedules.length
+                }}) ativas
+              </span>
             </button>
             <button
               type="button"
               :disabled="syncingNow"
-              class="px-3 py-2 rounded-xl bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 text-slate-200 text-xs font-medium transition flex items-center justify-center gap-1.5"
+              class="px-3.5 py-2.5 rounded-xl bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 text-slate-200 text-xs font-medium transition flex items-center justify-center gap-1.5"
               @click="syncAgendaNow"
             >
               <span class="i-lucide-refresh-cw size-3.5 text-emerald-400" />
               <span>{{
                 syncingNow ? 'Sincronizando...' : 'Sincronizar Agora'
               }}</span>
-            </button>
-            <button
-              type="button"
-              class="px-3 py-2 rounded-xl bg-[#0A151D] border border-[#162936] hover:border-emerald-500/40 text-slate-200 text-xs font-medium transition flex items-center justify-center gap-1.5"
-              @click="openIntegrationsHub"
-            >
-              <span class="i-lucide-layers size-3.5 text-emerald-400" />
-              <span
-                >Multi-Contas ({{
-                  integrationHooksCount || schedules.length
-                }})</span
-              >
             </button>
           </div>
 

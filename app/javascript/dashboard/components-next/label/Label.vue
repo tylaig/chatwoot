@@ -41,22 +41,30 @@ const labelColor = computed(() => {
   return isStringLabel.value ? null : props.label.color;
 });
 
+const labelStyle = computed(() => {
+  if (!labelColor.value) return {};
+  return {
+    '--msc-label-color': labelColor.value,
+  };
+});
+
 const colorClasses = computed(() => COLOR_CLASSES[props.color]);
 </script>
 
 <template>
   <div
     :title="labelDescription"
-    class="rounded-lg -outline-offset-1 outline outline-1 inline-flex items-center flex-shrink-0"
+    :style="labelStyle"
+    class="rounded-full -outline-offset-1 outline outline-1 inline-flex items-center flex-shrink-0 font-semibold msc-label-pill"
     :class="[
       colorClasses,
-      compact ? 'px-1.5 h-6 gap-1 rounded-md' : 'px-2.5 h-8 gap-1.5 rounded-lg',
+      compact ? 'px-2 h-5.5 gap-1.5 text-[11px]' : 'px-2.5 h-7 gap-1.5 text-xs',
     ]"
   >
     <span
       v-if="labelColor"
-      class="rounded-sm flex-shrink-0"
-      :class="compact ? 'size-1.5' : 'size-2'"
+      class="rounded-full flex-shrink-0"
+      :class="compact ? 'size-2' : 'size-2.5'"
       :style="{ background: labelColor }"
     />
     <slot v-else name="icon" />
@@ -69,3 +77,41 @@ const colorClasses = computed(() => COLOR_CLASSES[props.color]);
     <slot name="action" />
   </div>
 </template>
+
+<style scoped>
+.msc-label-pill {
+  background: color-mix(
+    in srgb,
+    var(--msc-label-color, #10b981) 14%,
+    #ffffff
+  ) !important;
+  outline-color: color-mix(
+    in srgb,
+    var(--msc-label-color, #10b981) 34%,
+    transparent
+  ) !important;
+  color: color-mix(
+    in srgb,
+    var(--msc-label-color, #10b981) 76%,
+    #0f172a
+  ) !important;
+}
+
+:global(.dark) .msc-label-pill {
+  background: color-mix(
+    in srgb,
+    var(--msc-label-color, #10b981) 20%,
+    #09131d
+  ) !important;
+  outline-color: color-mix(
+    in srgb,
+    var(--msc-label-color, #10b981) 42%,
+    transparent
+  ) !important;
+  color: color-mix(
+    in srgb,
+    var(--msc-label-color, #10b981) 55%,
+    #f8fafc
+  ) !important;
+}
+</style>

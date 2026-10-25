@@ -516,10 +516,7 @@ export default {
       if (this.isPrivate) {
         sendMessageText = this.$t('CONVERSATION.REPLYBOX.CREATE');
       }
-      const keyLabel = this.isEditorHotKeyEnabled('cmd_enter')
-        ? `(${this.shortcutKey})`
-        : '(↵)';
-      return `${sendMessageText} ${keyLabel}`;
+      return sendMessageText;
     },
     replyBoxClass() {
       return {
@@ -1762,7 +1759,7 @@ export default {
           :is-private="isOnPrivateNote"
           :placeholder="messagePlaceHolder"
           :update-selection-with="updateEditorSelectionWith"
-          :min-height="4"
+          :min-height="2.5"
           :disabled="isEditorDisabled"
           enable-insert-events
           :enable-macros="isMacrosEnabled"
@@ -1922,10 +1919,18 @@ export default {
 }
 
 .reply-box {
-  @apply relative mb-2 mx-2 border border-n-weak rounded-xl bg-n-solid-1;
+  @apply relative mb-3 mx-3 border border-slate-200/95 dark:border-emerald-500/20 rounded-2xl bg-white dark:bg-[#08111C] shadow-sm transition-all duration-150;
+
+  &:focus-within {
+    @apply border-emerald-500/70 ring-2 ring-emerald-500/15;
+  }
 
   &.is-private {
-    @apply bg-n-solid-amber dark:border-n-amber-3/10 border-n-amber-12/5;
+    @apply bg-amber-50/90 dark:bg-amber-950/30 dark:border-amber-500/30 border-amber-300/70;
+
+    &:focus-within {
+      @apply border-amber-500/70 ring-2 ring-amber-500/15;
+    }
   }
 }
 
@@ -1938,11 +1943,11 @@ export default {
 }
 
 .emoji-dialog {
-  @apply top-[unset] -bottom-10 ltr:-left-80 ltr:right-[unset] rtl:left-[unset] rtl:-right-80;
+  @apply top-[unset] bottom-2 ltr:left-0 ltr:right-[unset] rtl:right-0 rtl:left-[unset] absolute z-[100] max-w-[calc(100vw-2rem)];
 
   &::before {
     filter: drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.08));
-    @apply ltr:-right-4 bottom-2 rtl:-left-4 ltr:rotate-[270deg] rtl:rotate-[90deg];
+    @apply ltr:left-2 bottom-2 rtl:right-2;
   }
 }
 

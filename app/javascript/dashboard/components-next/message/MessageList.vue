@@ -5,6 +5,7 @@ import { MESSAGE_TYPES } from './constants.js';
 import { useCamelCase } from 'dashboard/composables/useTransformKeys';
 import { useMapGetter } from 'dashboard/composables/store.js';
 import MessageApi from 'dashboard/api/inbox/message.js';
+import { formatMessageDateDivider } from 'shared/helpers/timeHelper';
 
 /**
  * Props definition for the component
@@ -281,12 +282,37 @@ const getInReplyToMessage = parentMessage => {
 
   return replyMessage ? useCamelCase(replyMessage) : null;
 };
+
+const shouldShowDateSeparator = (index, searchList) => {
+  const current = searchList[index];
+  if (!current?.createdAt) return false;
+  if (index === 0) return true;
+  const previous = searchList[index - 1];
+  if (!previous?.createdAt) return true;
+  const currentDay = new Date(current.createdAt * 1000).toDateString();
+  const previousDay = new Date(previous.createdAt * 1000).toDateString();
+  return currentDay !== previousDay;
+};
+
+const getDateSeparatorText = message => {
+  return formatMessageDateDivider(message?.createdAt);
+};
 </script>
 
 <template>
   <ul class="px-4 bg-n-surface-1">
     <slot name="beforeAll" />
     <template v-for="(message, index) in visibleMessages" :key="message.id">
+      <li
+        v-if="shouldShowDateSeparator(index, visibleMessages)"
+        class="list-none flex items-center justify-center my-3 select-none"
+      >
+        <div
+          class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white dark:bg-[#0B1726] border border-slate-200/90 dark:border-emerald-500/25 text-[11.5px] font-semibold text-slate-600 dark:text-slate-300 shadow-2xs"
+        >
+          <span>{{ getDateSeparatorText(message) }}</span>
+        </div>
+      </li>
       <slot
         v-if="effectiveFirstUnreadId && message.id === effectiveFirstUnreadId"
         name="unreadBadge"

@@ -112,8 +112,8 @@ export default {
       popperClass: 'whitespace-pre-line',
       delay: { show: 1000, hide: 0 },
     }"
-    class="ml-auto leading-4 text-xxs text-n-slate-10 hover:text-n-slate-11"
+    class="ml-auto leading-4 text-[11.5px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 whitespace-nowrap"
   >
-    <span>{{ `${createdAtTime} • ${lastActivityTime}` }}</span>
+    <span>{{ lastActivityTime || createdAtTime }}</span>
   </div>
 </template>

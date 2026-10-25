@@ -168,7 +168,7 @@ onUnmounted(() => {
       <DropdownMenu
         v-if="showActionsDropdown"
         :menu-items="actionMenuItems"
-        class="mt-1 ltr:right-0 rtl:left-0 top-full"
+        class="mt-1.5 ltr:right-0 rtl:left-0 top-full z-[100] !bg-white dark:!bg-[#0B1522] border border-slate-200 dark:border-white/10 shadow-xl"
         @action="handleActionClick"
       />
     </div>

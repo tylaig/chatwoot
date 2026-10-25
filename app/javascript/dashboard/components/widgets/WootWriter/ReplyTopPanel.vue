@@ -152,7 +152,7 @@ export default {
 
 <template>
   <div
-    class="flex justify-between gap-2 h-[3.25rem] items-center ltr:pl-3 ltr:pr-2 rtl:pr-3 rtl:pl-2"
+    class="flex justify-between gap-1.5 sm:gap-2 h-[3.25rem] items-center ltr:pl-2.5 sm:ltr:pl-3 ltr:pr-2 rtl:pr-2.5 sm:rtl:pr-3 rtl:pl-2 min-w-0"
   >
     <EditorModeToggle
       :mode="mode"
@@ -160,22 +160,31 @@ export default {
       :is-reply-restricted="isReplyRestricted"
       @toggle-mode="handleModeToggle"
     />
-    <div class="flex items-center mx-4 my-0">
-      <div v-if="isMessageLengthReachingThreshold" class="text-xs">
+    <div
+      v-if="isMessageLengthReachingThreshold"
+      class="flex items-center mx-1 my-0 shrink-0"
+    >
+      <div class="text-xs">
         <span :class="charLengthClass">
           {{ characterLengthWarning }}
         </span>
       </div>
     </div>
-    <div v-if="captainTasksEnabled" class="flex items-center gap-2">
+    <div
+      v-if="captainTasksEnabled"
+      class="flex items-center gap-1 sm:gap-1.5 shrink-0"
+    >
       <div class="relative">
         <NextButton
           ref="copilotToggleRef"
           ghost
           :disabled="disabled || isEditorDisabled"
+          label="Copiloto IA"
           :class="{
-            'text-n-violet-9 hover:enabled:!bg-n-violet-3': !showCopilotMenu,
-            'text-n-violet-9 bg-n-violet-3': showCopilotMenu,
+            'text-violet-700 dark:text-emerald-300 bg-violet-50/90 dark:bg-emerald-500/15 border border-violet-200/90 dark:border-emerald-500/30 hover:enabled:!bg-violet-100 dark:hover:enabled:!bg-emerald-500/25 font-semibold !rounded-xl !px-2 sm:!px-3 text-xs sm:text-[13px] whitespace-nowrap':
+              !showCopilotMenu,
+            'text-violet-800 dark:text-emerald-200 bg-violet-100 dark:bg-emerald-500/25 border border-violet-300 dark:border-emerald-500/45 font-semibold !rounded-xl !px-2 sm:!px-3 text-xs sm:text-[13px] whitespace-nowrap':
+              showCopilotMenu,
           }"
           sm
           icon="i-ph-sparkle-fill"
@@ -190,13 +199,13 @@ export default {
           :has-selection="false"
           :has-content="hasContent"
           :conversation-id="conversationId"
-          class="ltr:right-0 rtl:left-0 bottom-full mb-2"
+          class="ltr:right-0 rtl:left-0 bottom-full mb-2 z-[100]"
           @execute-copilot-action="handleCopilotAction"
         />
       </div>
       <NextButton
         ghost
-        class="text-n-slate-11"
+        class="text-n-slate-11 hidden sm:inline-flex"
         sm
         icon="i-lucide-maximize-2"
         @click="$emit('toggleEditorSize')"

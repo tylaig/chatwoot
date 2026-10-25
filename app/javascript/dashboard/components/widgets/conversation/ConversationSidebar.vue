@@ -4,7 +4,6 @@ import ContactPanel from 'dashboard/routes/dashboard/conversation/ContactPanel.v
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useWindowSize } from '@vueuse/core';
 import { vOnClickOutside } from '@vueuse/components';
-import wootConstants from 'dashboard/constants/globals';
 
 defineProps({
   currentChat: {
@@ -25,9 +24,7 @@ const activeTab = computed(() => {
   return null;
 });
 
-const isSmallScreen = computed(
-  () => windowWidth.value < wootConstants.SMALL_SCREEN_BREAKPOINT
-);
+const isSmallScreen = computed(() => windowWidth.value < 1280);
 
 const closeContactPanel = () => {
   if (isSmallScreen.value && uiSettings.value?.is_contact_sidebar_open) {
@@ -51,11 +48,11 @@ const closeContactPanel = () => {
         ],
       },
     ]"
-    class="bg-n-surface-2 h-full overflow-hidden flex flex-col fixed top-0 z-40 w-full max-w-sm transition-transform duration-300 ease-in-out ltr:right-0 rtl:left-0 md:static md:w-[320px] md:min-w-[320px] ltr:border-l rtl:border-r border-n-weak 2xl:min-w-[360px] 2xl:w-[360px] shadow-lg md:shadow-none"
+    class="bg-n-surface-2 h-full overflow-hidden flex flex-col fixed top-0 z-40 w-full max-w-sm transition-transform duration-300 ease-in-out ltr:right-0 rtl:left-0 xl:static xl:w-[320px] xl:min-w-[320px] ltr:border-l rtl:border-r border-n-weak 2xl:min-w-[360px] 2xl:w-[360px] shadow-lg xl:shadow-none"
     :class="[
       {
-        'md:flex': activeTab === 0,
-        'md:hidden': activeTab !== 0,
+        flex: activeTab === 0,
+        hidden: activeTab !== 0,
       },
     ]"
   >

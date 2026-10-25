@@ -14,9 +14,12 @@ const readableTime = computed(() =>
 <template>
   <BaseBubble
     v-tooltip.top="readableTime"
-    class="px-3 py-1 !rounded-xl flex min-w-0 items-center gap-2"
+    class="px-3.5 py-1 !rounded-full flex min-w-0 items-center gap-1.5"
     data-bubble-name="activity"
   >
+    <span
+      class="i-lucide-info size-3.5 text-slate-400 dark:text-slate-400 shrink-0"
+    />
     <span :title="content">{{ content }}</span>
   </BaseBubble>
 </template>
