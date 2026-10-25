@@ -128,9 +128,9 @@ watch(
     :class="{
       'active animate-card-select bg-n-background !border-n-surface-1':
         isActiveChat && !isAwaitingResolution,
-      'active animate-card-select bg-amber-500/25 dark:bg-amber-500/20 !border-amber-500/50':
+      'active animate-card-select bg-n-amber-4 !border-n-amber-8':
         isActiveChat && isAwaitingResolution,
-      'bg-amber-500/15 dark:bg-amber-500/15 hover:bg-amber-500/25 dark:hover:bg-amber-500/25 border-l-4 border-l-amber-500':
+      'bg-n-amber-3 hover:bg-n-amber-4 border-l-4 border-l-n-amber-9':
         isAwaitingResolution && !selected,
       'selected bg-n-slate-2 !border-n-surface-1': selected,
       'px-0': compact,
@@ -192,7 +192,7 @@ watch(
         >
           <span
             v-if="isAwaitingResolution"
-            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-tight bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/40 flex-shrink-0"
+            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-tight bg-n-amber-3 text-n-amber-11 border border-n-amber-7 flex-shrink-0"
           >
             {{ $t('CONVERSATION.HEADER.AWAITING_RESOLUTION_BADGE') }}
           </span>

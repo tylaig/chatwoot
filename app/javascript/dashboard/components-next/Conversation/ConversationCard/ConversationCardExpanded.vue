@@ -85,9 +85,9 @@ const selectedModel = computed({
     :class="{
       'active animate-card-select bg-n-alpha-1 dark:bg-n-alpha-3 !border-n-surface-1':
         isActiveChat && !isAwaitingResolution,
-      'active animate-card-select bg-amber-500/25 dark:bg-amber-500/20 !border-amber-500/50':
+      'active animate-card-select bg-n-amber-4 !border-n-amber-8':
         isActiveChat && isAwaitingResolution,
-      'bg-amber-500/15 dark:bg-amber-500/15 hover:bg-amber-500/25 dark:hover:bg-amber-500/25 border-l-4 border-l-amber-500':
+      'bg-n-amber-3 hover:bg-n-amber-4 border-l-4 border-l-n-amber-9':
         isAwaitingResolution && !selected,
       'selected bg-n-slate-2 dark:bg-n-slate-3 !border-n-surface-1': selected,
       'hover:bg-n-alpha-1': !isActiveChat && !selected && !isAwaitingResolution,

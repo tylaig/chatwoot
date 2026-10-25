@@ -108,11 +108,17 @@ const toggleConversationLayout = () => {
         class="px-2 py-1 my-0.5 mx-1 rounded-md capitalize text-xxs shrink-0"
         :class="
           activeStatus === 'awaiting_resolution'
-            ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40 font-semibold'
+            ? 'bg-n-amber-3 text-n-amber-11 border border-n-amber-7 font-semibold'
             : 'bg-n-slate-3 text-n-slate-12'
         "
       >
-        {{ $t(`CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.${activeStatus}.TEXT`) }}
+        {{
+          isAwaitingResolutionView
+            ? $t(
+                'CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.awaiting_resolution.SHORT_TEXT'
+              )
+            : $t(`CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.${activeStatus}.TEXT`)
+        }}
       </span>
     </div>
     <div class="flex items-center gap-1">

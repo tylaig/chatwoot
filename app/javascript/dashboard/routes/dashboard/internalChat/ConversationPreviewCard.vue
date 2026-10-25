@@ -115,7 +115,7 @@ const statusConfig = computed(() => {
     },
     awaiting_resolution: {
       label: t('CONVERSATION.HEADER.AWAITING_RESOLUTION_BADGE'),
-      class: 'bg-amber-500/20 text-amber-700 dark:text-amber-300',
+      class: 'bg-n-amber-3 text-n-amber-11',
     },
   };
   return map[status.value] || map.open;
