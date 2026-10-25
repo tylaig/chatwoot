@@ -1,15 +1,19 @@
 <% user_mode = local_assigns.fetch(:user_mode, false) %>
-<div class="msc-table-scroll">
+<% res_name = collection_presenter.resource_name %>
+<% can_edit = existing_action?(res_name, :edit) %>
+<% can_destroy = existing_action?(res_name, :destroy) %>
+<div class="msc-table-scroll msc-table--cards">
   <table aria-labelledby="<%= table_title %>">
     <thead>
       <tr>
         <% collection_presenter.attribute_types.each do |attr_name, attr_type| %>
+          <% next if msc_skip_column?(attr_name) %>
           <th class="cell-label cell-label--<%= attr_type.html_class %> cell-label--<%= collection_presenter.ordered_html_class(attr_name) %>"
               scope="col" role="columnheader"
               aria-sort="<%= sort_order(collection_presenter.ordered_html_class(attr_name)) %>">
             <%= link_to(sanitized_order_params(page, collection_field_name).merge(
                   collection_presenter.order_params_for(attr_name, key: collection_field_name))) do %>
-              <%= t("helpers.label.#{collection_presenter.resource_name}.#{attr_name}", default: attr_name.to_s).titleize %>
+              <%= msc_column_label(res_name, attr_name) %>
               <% if collection_presenter.ordered_by?(attr_name) %>
                 <span class="cell-label__sort-indicator cell-label__sort-indicator--<%= collection_presenter.ordered_html_class(attr_name) %>">
                   <svg aria-hidden="true"><use xlink:href="#icon-up-caret" /></svg>
@@ -18,39 +22,61 @@
             <% end %>
           </th>
         <% end %>
-        <% [existing_action?(collection_presenter.resource_name, :edit),
-            existing_action?(collection_presenter.resource_name, :destroy)].count(true).times do %>
-          <th scope="col" aria-label="Ações"></th>
+        <% if can_edit || can_destroy %>
+          <th scope="col" class="msc-th-actions">Ações</th>
         <% end %>
       </tr>
     </thead>
     <tbody>
       <% if resources.respond_to?(:empty?) && resources.empty? %>
-        <tr><td colspan="99" style="text-align:center;padding:36px 16px !important;color:#94A3B8 !important;">Nenhum registro encontrado.</td></tr>
+        <tr class="msc-empty-row">
+          <td colspan="99">
+            <div class="msc-empty">
+              <strong>Nenhum registro encontrado</strong>
+              <span>Ajuste os filtros ou a busca para ver outros resultados.</span>
+            </div>
+          </td>
+        </tr>
       <% end %>
       <% resources.each do |resource| %>
         <% target = user_mode ? resource.becomes(User) : resource %>
+        <% show_path = authorized_action?(resource, :show) ? polymorphic_path([namespace, target]) : nil %>
         <tr class="js-table-row" tabindex="0"
-            <% if existing_action? collection_presenter.resource_name, :show %>
+            <% if existing_action?(res_name, :show) %>
               <%= %(role=link data-url=#{polymorphic_path([namespace, target])}) %>
             <% end %>>
           <% collection_presenter.attributes_for(resource).each do |attribute| %>
-            <td class="cell-data cell-data--<%= attribute.html_class %>">
-              <% if authorized_action? resource, :show -%>
-                <a href="<%= polymorphic_path([namespace, target]) -%>" class="action-show"><%= render_field attribute %></a>
+            <% next if msc_skip_column?(attribute.name) %>
+            <% label = msc_column_label(res_name, attribute.name) %>
+            <% rich = msc_rich_cell(attribute, resource) %>
+            <td class="cell-data cell-data--<%= attribute.html_class %> msc-col-<%= attribute.name %>" data-label="<%= label %>">
+              <% if show_path -%>
+                <a href="<%= show_path -%>" class="action-show"><%= rich || render_field(attribute) %></a>
               <% else %>
-                <%= render_field attribute %>
+                <%= rich || render_field(attribute) %>
               <% end -%>
             </td>
           <% end %>
-          <% if existing_action? collection_presenter.resource_name, :edit %>
-            <td style="width:1%;"><%= link_to("Editar", [:edit, namespace, target], class: "action-edit") if authorized_action? resource, :edit %></td>
-          <% end %>
-          <% if existing_action? collection_presenter.resource_name, :destroy %>
-            <td style="width:1%;"><%= link_to("Excluir",
-                  [namespace, (user_mode && collection_presenter.resource_name != 'account_user') ? target : resource],
-                  class: "text-color-red", method: :delete,
-                  data: { confirm: "Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita." }) if authorized_action? resource, :destroy %></td>
+          <% if can_edit || can_destroy %>
+            <td class="msc-td-actions" data-label="Ações">
+              <div class="msc-row-actions">
+                <% if can_edit && authorized_action?(resource, :edit) %>
+                  <%= link_to([:edit, namespace, target], class: "action-edit", 'aria-label': "Editar registro ##{resource.id}") do %>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                    <span>Editar</span>
+                  <% end %>
+                <% end %>
+                <% if can_destroy && authorized_action?(resource, :destroy) %>
+                  <%= link_to([namespace, (user_mode && res_name != 'account_user') ? target : resource],
+                        class: "text-color-red action-destroy", method: :delete,
+                        'aria-label': "Excluir registro ##{resource.id}",
+                        data: { confirm: "Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita." }) do %>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                    <span>Excluir</span>
+                  <% end %>
+                <% end %>
+              </div>
+            </td>
           <% end %>
         </tr>
       <% end %>

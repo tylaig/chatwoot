@@ -9,7 +9,7 @@
     <select id="filter-select" onchange="mscApplyFilter(this.value)">
       <option value="">Todos os registros</option>
       <% dashboard_class::COLLECTION_FILTERS.each do |filter_name, _| %>
-        <option value="<%= filter_name %>" <%= 'selected' if filter_name.to_s == current_filter %>><%= filter_name.to_s.humanize %></option>
+        <option value="<%= filter_name %>" <%= 'selected' if filter_name.to_s == current_filter %>><%= msc_filter_label(filter_name) %></option>
       <% end %>
     </select>
     <% if current_filter %>

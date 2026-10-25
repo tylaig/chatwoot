@@ -20,7 +20,7 @@
       <dl class="msc-attrs">
         <% attributes.each do |attribute| %>
           <div class="msc-attr-row">
-            <dt class="attribute-label" id="<%= attribute.name %>"><%= t("helpers.label.#{resource_name}.#{attribute.name}", default: page.resource.class.human_attribute_name(attribute.name)) %></dt>
+            <dt class="attribute-label" id="<%= attribute.name %>"><%= msc_column_label(page.resource_name, attribute.name) %></dt>
             <dd class="attribute-data attribute-data--<%= attribute.html_class %>"><%= render_field attribute, page: page %></dd>
           </div>
         <% end %>

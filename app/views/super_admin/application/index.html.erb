@@ -1,4 +1,4 @@
-<% content_for(:title) do %><%= display_resource_name(page.resource_name) %><% end %>
+<% content_for(:title) do %><%= msc_resource_label(page.resource_name) %><% end %>
 
 <header class="main-content__header" role="banner">
   <div>
@@ -8,9 +8,15 @@
   <div class="msc-sa-header-actions">
     <% if show_search_bar %>
       <%= render("filters", page: page) %>
-      <%= render("search", search_term: search_term, resource_name: display_resource_name(page.resource_name)) %>
+      <%= render("search", search_term: search_term, resource_name: msc_resource_label(page.resource_name)) %>
     <% end %>
-    <%= link_to("+ Novo registro", [:new, namespace, page.resource_path.to_sym], class: "button") if accessible_action?(new_resource, :new) %>
+    <%= render "theme_toggle" %>
+    <% if accessible_action?(new_resource, :new) %>
+      <%= link_to([:new, namespace, page.resource_path.to_sym], class: "button msc-cta") do %>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        <span><%= msc_new_label(page.resource_name) %></span>
+      <% end %>
+    <% end %>
   </div>
 </header>
 
