@@ -11,6 +11,7 @@
   <%= vite_javascript_tag 'superadmin' %>
   <%= csrf_meta_tags %>
   <%= render "super_admin/application/obsidian_styles" %>
+  <%= render "super_admin/application/obsidian_v2" %>
 </head>
 <body class="antialiased w-full dark msc-sa-body">
   <%= render "icons" %>
@@ -21,14 +22,17 @@
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
       <a href="<%= super_admin_root_path %>" class="msc-sa-brand">
-        <img src="/brand-assets/logo_thumbnail.svg" alt="Meu Super Chat" class="msc-sa-brand__logo">
+        <span class="msc-sa-sidebar__logo msc-sa-brand__logo" role="img" aria-label="Meu Super Chat"><svg aria-hidden="true"><use xlink:href="#icon-bolt-fill" /></svg></span>
         <span class="msc-sa-brand__text">
           <strong>Meu Super Chat</strong>
           <small>Super Admin Console</small>
         </span>
       </a>
     </div>
-    <a href="/" class="msc-sa-topbar__app">Painel ↗</a>
+    <div class="msc-sa-topbar__right">
+      <%= render "super_admin/application/theme_toggle" %>
+      <a href="/" class="msc-sa-topbar__app">Painel ↗</a>
+    </div>
   </header>
 
   <div class="msc-sa-backdrop" onclick="document.body.classList.remove('msc-sa-drawer-open')"></div>
