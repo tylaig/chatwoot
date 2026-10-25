@@ -9,6 +9,7 @@ import {
   isOnMentionsView,
   isOnParticipatingView,
   isOnUnattendedView,
+  isOnAwaitingResolutionView,
   isOnFoldersView,
 } from 'dashboard/store/modules/conversations/helpers/actionHelpers';
 import wootConstants from 'dashboard/constants/globals';
@@ -33,6 +34,8 @@ export function useConversationRoutePath() {
       conversationType = 'participating';
     } else if (isOnUnattendedView({ route: { name } })) {
       conversationType = 'unattended';
+    } else if (isOnAwaitingResolutionView({ route: { name } })) {
+      conversationType = 'awaiting_resolution';
     }
 
     const isOnFolder = isOnFoldersView({ route: { name } });
@@ -64,6 +67,8 @@ export function useConversationRoutePath() {
       conversationType = CONVERSATION_TYPE.PARTICIPATING;
     } else if (isOnUnattendedView({ route: { name } })) {
       conversationType = CONVERSATION_TYPE.UNATTENDED;
+    } else if (isOnAwaitingResolutionView({ route: { name } })) {
+      conversationType = CONVERSATION_TYPE.AWAITING_RESOLUTION;
     }
 
     const isOnFolder = isOnFoldersView({ route: { name } });

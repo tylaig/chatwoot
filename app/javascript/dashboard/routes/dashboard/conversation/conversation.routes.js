@@ -211,6 +211,31 @@ export default {
       }),
     },
     {
+      path: frontendURL(
+        'accounts/:accountId/awaiting_resolution/conversations'
+      ),
+      name: 'conversation_awaiting_resolution',
+      meta: {
+        permissions: CONVERSATION_PERMISSIONS,
+      },
+      component: ConversationView,
+      props: () => ({ conversationType: 'awaiting_resolution' }),
+    },
+    {
+      path: frontendURL(
+        'accounts/:accountId/awaiting_resolution/conversations/:conversationId'
+      ),
+      name: 'conversation_through_awaiting_resolution',
+      meta: {
+        permissions: CONVERSATION_PERMISSIONS,
+      },
+      component: ConversationView,
+      props: route => ({
+        conversationId: route.params.conversationId,
+        conversationType: 'awaiting_resolution',
+      }),
+    },
+    {
       path: frontendURL('accounts/:accountId/participating/conversations'),
       name: 'conversation_participating',
       meta: {

@@ -4,6 +4,7 @@ class Conversations::UnreadCounts::FilteredCounter
     mentions_count: 0,
     participating_count: 0,
     unattended_count: 0,
+    awaiting_resolution_count: 0,
     folders: {}
   }.freeze
 
@@ -33,7 +34,7 @@ class Conversations::UnreadCounts::FilteredCounter
     ) { build_built_in_counts!(versions) }
   end
 
-  def counts_from_built_in_snapshot(snapshot) = snapshot&.fetch(:counts, nil)&.slice(:mentions_count, :participating_count, :unattended_count)
+  def counts_from_built_in_snapshot(snapshot) = snapshot&.fetch(:counts, nil)&.slice(:mentions_count, :participating_count, :unattended_count, :awaiting_resolution_count)
 
   def folder_counts
     folder_index = folder_index_snapshot
@@ -99,8 +100,19 @@ class Conversations::UnreadCounts::FilteredCounter
     {
       mentions_count: count_relation(mentioned_unread_conversations),
       participating_count: count_relation(participating_unread_conversations),
-      unattended_count: count_relation(unread_open_accessible_conversations.unattended)
+      unattended_count: count_relation(unread_open_accessible_conversations.unattended),
+      awaiting_resolution_count: count_relation(awaiting_resolution_accessible_conversations)
     }
+  end
+
+  def awaiting_resolution_accessible_conversations
+    Conversations::PermissionFilterService.new(
+      account.conversations
+             .awaiting_resolution
+             .where("COALESCE(conversations.additional_attributes ->> 'workflow_test', 'false') <> 'true'"),
+      user,
+      account
+    ).perform
   end
 
   def mentioned_unread_conversations

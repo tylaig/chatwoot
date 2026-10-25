@@ -52,7 +52,12 @@ const handleSelect = value => {
       color="slate"
       variant="faded"
       class="!w-fit max-w-40"
-      :class="{ 'dark:!bg-n-alpha-2 !bg-n-slate-9/20': isOpen }"
+      :class="[
+        { 'dark:!bg-n-alpha-2 !bg-n-slate-9/20': isOpen },
+        modelValue === 'awaiting_resolution'
+          ? '!bg-amber-500/20 !text-amber-800 dark:!text-amber-300 border border-amber-500/40'
+          : '',
+      ]"
       :label="labelValue"
       @click="toggleMenu"
     />
@@ -77,7 +82,12 @@ const handleSelect = value => {
         color="slate"
         trailing-icon
         class="!justify-end !px-2.5 !h-7"
-        :class="{ '!bg-n-alpha-2': option.value === modelValue }"
+        :class="[
+          { '!bg-n-alpha-2': option.value === modelValue },
+          option.value === 'awaiting_resolution'
+            ? '!bg-amber-500/15 hover:!bg-amber-500/25 !text-amber-800 dark:!text-amber-300 font-medium'
+            : '',
+        ]"
         @click="handleSelect(option.value)"
       />
     </div>

@@ -23,6 +23,7 @@ class Conversations::UnreadCounts::Counter
 
     {
       all_count: inbox_counts.values.sum,
+      awaiting_resolution_count: awaiting_resolution_count,
       inboxes: inbox_counts,
       labels: unread_label_counts,
       teams: unread_team_counts
@@ -200,7 +201,17 @@ class Conversations::UnreadCounts::Counter
   end
 
   def empty_counts
-    { all_count: 0, inboxes: {}, labels: {}, teams: {} }
+    { all_count: 0, awaiting_resolution_count: 0, inboxes: {}, labels: {}, teams: {} }
+  end
+
+  def awaiting_resolution_count
+    Conversations::PermissionFilterService.new(
+      account.conversations
+             .awaiting_resolution
+             .where("COALESCE(conversations.additional_attributes ->> 'workflow_test', 'false') <> 'true'"),
+      user,
+      account
+    ).perform.unscope(:order).count
   end
 
   def store
