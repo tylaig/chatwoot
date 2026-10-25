@@ -25,10 +25,61 @@ const editingHookId = ref(null);
 const storeName = ref('');
 const storeUrl = ref('');
 const shopifyAdminKey = ref('');
+const selectedProvider = ref('shopify');
+const wooConsumerKey = ref('');
+const wooConsumerSecret = ref('');
+const lojaIntegradaAppKey = ref('');
+const lojaIntegradaUserKey = ref('');
 const selectedInboxIds = ref([]);
 const selectedAgentIds = ref([]);
 const isSubmitting = ref(false);
 const formError = ref('');
+
+// Hub de Plataformas de E-commerce
+const activeHubPlatform = ref('all'); // 'all' | 'shopify' | 'woocommerce' | 'lojaintegrada' | 'nuvemshop'
+
+const platformDefinitions = [
+  {
+    id: 'shopify',
+    name: 'Shopify',
+    status: 'active',
+    statusLabel: 'Ativo & Pronto',
+    badgeClass:
+      'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+    icon: 'i-lucide-shopping-bag',
+    desc: 'Admin API Token (shpat_...), sincronização de produtos, pedidos na Inbox e modo Mock.',
+  },
+  {
+    id: 'woocommerce',
+    name: 'WooCommerce (WordPress)',
+    status: 'ready',
+    statusLabel: 'Conector REST v3 Preparado',
+    badgeClass:
+      'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
+    icon: 'i-lucide-store',
+    desc: 'Conexão via WordPress REST API v3 (Consumer Key ck_ e Consumer Secret cs_).',
+  },
+  {
+    id: 'lojaintegrada',
+    name: 'Loja Integrada',
+    status: 'ready',
+    statusLabel: 'Conector Chave API Preparado',
+    badgeClass:
+      'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+    icon: 'i-lucide-box',
+    desc: 'Chave de API + Chave de Aplicação para consulta de pedidos e clientes.',
+  },
+  {
+    id: 'nuvemshop',
+    name: 'Nuvemshop & Custom API',
+    status: 'coming_soon',
+    statusLabel: 'Em Breve / API Aberta',
+    badgeClass:
+      'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20',
+    icon: 'i-lucide-cloud',
+    desc: 'Webhooks de pedidos e integração universal de e-commerce via REST/GraphQL.',
+  },
+];
 
 const testingHookId = ref(null);
 const syncingHookId = ref(null);
@@ -68,17 +119,29 @@ const normalizeStoreDomain = rawUrl => {
 
 const resetForm = () => {
   editingHookId.value = null;
+  selectedProvider.value = 'shopify';
   storeName.value = '';
   storeUrl.value = '';
   shopifyAdminKey.value = '';
+  wooConsumerKey.value = '';
+  wooConsumerSecret.value = '';
+  lojaIntegradaAppKey.value = '';
+  lojaIntegradaUserKey.value = '';
   selectedInboxIds.value = [];
   selectedAgentIds.value = [];
   formError.value = '';
   isSubmitting.value = false;
 };
 
-const openCreateDialog = () => {
+const getHookProviderMeta = hook => {
+  const provider = (hook?.settings?.provider || 'shopify').toLowerCase();
+  const def = platformDefinitions.find(p => p.id === provider);
+  return def || platformDefinitions[0];
+};
+
+const openCreateDialog = (initialProvider = 'shopify') => {
   resetForm();
+  selectedProvider.value = initialProvider;
   if (dialogRef.value) {
     dialogRef.value.open();
   }
@@ -87,6 +150,7 @@ const openCreateDialog = () => {
 const openEditDialog = hook => {
   resetForm();
   editingHookId.value = hook.id;
+  selectedProvider.value = hook.settings?.provider || 'shopify';
   storeName.value = hook.settings?.store_name || hook.reference_id || '';
   storeUrl.value = hook.reference_id || '';
   shopifyAdminKey.value = '';
@@ -150,39 +214,45 @@ const handleStoreSubmit = async () => {
   try {
     formError.value = '';
     const trimmedName = storeName.value.trim();
-    const cleanDomain = normalizeStoreDomain(
-      storeUrl.value.trim() || trimmedName
-    );
+    let cleanDomain = '';
 
-    if (!cleanDomain) {
-      formError.value = t('INTEGRATION_SETTINGS.SHOPIFY.STORE_URL.INVALID_URL');
-      return;
+    if (selectedProvider.value === 'shopify') {
+      cleanDomain = normalizeStoreDomain(storeUrl.value.trim() || trimmedName);
+      if (!cleanDomain) {
+        formError.value = t(
+          'INTEGRATION_SETTINGS.SHOPIFY.STORE_URL.INVALID_URL'
+        );
+        return;
+      }
+    } else {
+      const raw = (storeUrl.value.trim() || trimmedName)
+        .replace(/^https?:\/\//i, '')
+        .replace(/\/.*$/, '');
+      cleanDomain = raw || 'loja-virtual';
     }
 
     storeUrl.value = cleanDomain;
     isSubmitting.value = true;
 
+    const payload = {
+      storeName:
+        trimmedName || cleanDomain.replace(/\.myshopify\.(com|io)$/i, ''),
+      shopDomain: cleanDomain,
+      shopifyAdminKey: shopifyAdminKey.value.trim(),
+      inboxIds: selectedInboxIds.value,
+      agentIds: selectedAgentIds.value,
+      provider: selectedProvider.value,
+    };
+
     if (editingHookId.value) {
       await integrationAPI.updateShopifyHook({
         hookId: editingHookId.value,
-        storeName:
-          trimmedName || cleanDomain.replace(/\.myshopify\.(com|io)$/i, ''),
-        shopDomain: cleanDomain,
-        shopifyAdminKey: shopifyAdminKey.value.trim(),
-        inboxIds: selectedInboxIds.value,
-        agentIds: selectedAgentIds.value,
+        ...payload,
       });
       await store.dispatch('integrations/get', 'shopify');
       useAlert(t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.UPDATED_SUCCESS'));
     } else {
-      await integrationAPI.connectShopifyToken({
-        storeName:
-          trimmedName || cleanDomain.replace(/\.myshopify\.(com|io)$/i, ''),
-        shopDomain: cleanDomain,
-        shopifyAdminKey: shopifyAdminKey.value.trim(),
-        inboxIds: selectedInboxIds.value,
-        agentIds: selectedAgentIds.value,
-      });
+      await integrationAPI.connectShopifyToken(payload);
       await store.dispatch('integrations/get', 'shopify');
       useAlert(t('INTEGRATION_SETTINGS.SHOPIFY.MULTI_STORE.CONNECTED_SUCCESS'));
     }
@@ -312,7 +382,7 @@ onMounted(() => {
     <template #header>
       <BaseSettingsHeader
         :title="$t('INTEGRATION_SETTINGS.SHOPIFY.HEADER')"
-        description="Gerencie as lojas Shopify conectadas, teste conexões, sincronize o catálogo de produtos e defina quais agentes têm acesso aos pedidos de cada loja."
+        description="Central Multi-E-commerce: conecte suas lojas virtuais (Shopify, WordPress / WooCommerce, Loja Integrada, Nuvemshop), teste conexões, consulte pedidos na Inbox e sincronize catálogos de produtos."
         feature-name="shopify"
         :back-button-label="$t('INTEGRATION_SETTINGS.HEADER')"
       >
@@ -352,8 +422,8 @@ onMounted(() => {
 
             <Button
               icon="i-lucide-plus"
-              label="Adicionar Loja Shopify"
-              @click="openCreateDialog"
+              label="Conectar Nova Loja Virtual"
+              @click="openCreateDialog('shopify')"
             />
           </div>
         </template>
@@ -361,30 +431,115 @@ onMounted(() => {
     </template>
 
     <template #body>
-      <div class="flex flex-col gap-5">
+      <div class="flex flex-col gap-6">
+        <!-- SELETOR DE PLATAFORMA DE E-COMMERCE (MULTI-STORE HUB) -->
+        <div
+          class="flex flex-col gap-3 p-4 sm:p-5 rounded-2xl border border-n-weak bg-n-solid-2 shadow-sm"
+        >
+          <div
+            class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-n-weak"
+          >
+            <div class="flex items-center gap-2">
+              <span class="i-lucide-shopping-bag size-4 text-n-brand" />
+              <h3 class="text-sm font-semibold text-n-slate-12">
+                Hub Multi-E-commerce & Conectores de Lojas Virtuais
+              </h3>
+            </div>
+            <span class="text-xs text-n-slate-11">
+              {{ hooks.length }} loja(s) conectada(s) • Suporte a múltiplas
+              plataformas
+            </span>
+          </div>
+
+          <div
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1"
+          >
+            <div
+              v-for="platform in platformDefinitions"
+              :key="platform.id"
+              class="flex flex-col justify-between p-3.5 rounded-xl border transition-all cursor-pointer"
+              :class="
+                activeHubPlatform === platform.id
+                  ? 'border-n-brand bg-n-brand/5 shadow-sm'
+                  : 'border-n-weak bg-n-surface-1 hover:border-n-slate-6 hover:bg-n-alpha-1'
+              "
+              @click="
+                activeHubPlatform =
+                  activeHubPlatform === platform.id ? 'all' : platform.id
+              "
+            >
+              <div class="flex flex-col gap-2">
+                <div class="flex items-start justify-between gap-1.5">
+                  <div class="flex items-center gap-2">
+                    <span
+                      :class="platform.icon"
+                      class="size-4 text-n-slate-12"
+                    />
+                    <span
+                      class="text-xs font-bold text-n-slate-12 leading-tight"
+                    >
+                      {{ platform.name }}
+                    </span>
+                  </div>
+                  <span
+                    class="px-1.5 py-0.5 text-[10px] font-semibold rounded border whitespace-nowrap"
+                    :class="platform.badgeClass"
+                  >
+                    {{ platform.status === 'active' ? 'Ativo' : 'Preparado' }}
+                  </span>
+                </div>
+                <p
+                  class="text-[11px] text-n-slate-11 line-clamp-2 leading-relaxed"
+                >
+                  {{ platform.desc }}
+                </p>
+              </div>
+
+              <div
+                class="flex items-center justify-between pt-3 mt-2 border-t border-n-weak/60"
+              >
+                <span class="text-[10px] font-medium text-n-slate-10">
+                  {{
+                    platform.status === 'active'
+                      ? `${hooks.filter(h => (h.settings?.provider || 'shopify') === platform.id).length} loja(s)`
+                      : 'REST / Webhook'
+                  }}
+                </span>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 text-[11px] font-semibold text-n-brand hover:underline"
+                  @click.stop="openCreateDialog(platform.id)"
+                >
+                  <span>Conectar</span>
+                  <span class="i-lucide-arrow-right size-3" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Empty state -->
         <div
           v-if="!hooks.length"
           class="flex flex-col items-center justify-center p-10 text-center rounded-2xl border border-dashed border-n-weak bg-n-solid-2"
         >
-          <Avatar
-            src="/dashboard/images/integrations/shopify.png"
-            name="Shopify"
-            :size="56"
-            rounded-full
-            class="mb-3"
-          />
+          <div
+            class="flex items-center justify-center size-14 rounded-2xl bg-n-brand/10 text-n-brand mb-3"
+          >
+            <span class="i-lucide-store size-7" />
+          </div>
           <h4 class="text-base font-semibold text-n-slate-12 mb-1">
-            Nenhuma loja Shopify cadastrada
+            Nenhuma loja virtual cadastrada
           </h4>
           <p class="text-sm text-n-slate-11 max-w-lg mb-4">
-            Cadastre suas lojas Shopify (com Admin API Token ou em Modo Mock de
-            teste), sincronize os produtos e escolha quais agentes terão acesso.
+            Conecte suas lojas virtuais (Shopify, WordPress / WooCommerce, Loja
+            Integrada ou Nuvemshop), sincronize catálogos de produtos e consulte
+            pedidos direto na Inbox.
           </p>
           <Button
             icon="i-lucide-plus"
-            label="Adicionar Primeira Loja"
-            @click="openCreateDialog"
+            label="Conectar Primeira Loja Virtual"
+            @click="openCreateDialog('shopify')"
           />
         </div>
 
@@ -398,8 +553,9 @@ onMounted(() => {
               <tr
                 class="border-b border-n-weak bg-n-alpha-1 text-xs font-semibold uppercase tracking-wide text-n-slate-11"
               >
-                <th class="py-3.5 px-4">Loja Shopify</th>
-                <th class="py-3.5 px-4">Domínio (.myshopify.com)</th>
+                <th class="py-3.5 px-4">Loja Virtual</th>
+                <th class="py-3.5 px-4">Plataforma</th>
+                <th class="py-3.5 px-4">Domínio / Host</th>
                 <th class="py-3.5 px-4">Status / Modo</th>
                 <th class="py-3.5 px-4">Agentes com Acesso</th>
                 <th class="py-3.5 px-4">Caixas de Entrada</th>
@@ -428,6 +584,18 @@ onMounted(() => {
                         </span>
                       </div>
                     </div>
+                  </td>
+                  <td class="py-3.5 px-4">
+                    <span
+                      class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded border whitespace-nowrap"
+                      :class="getHookProviderMeta(hook).badgeClass"
+                    >
+                      <span
+                        :class="getHookProviderMeta(hook).icon"
+                        class="size-3"
+                      />
+                      <span>{{ getHookProviderMeta(hook).name }}</span>
+                    </span>
                   </td>
                   <td class="py-3.5 px-4 font-mono text-xs text-n-slate-11">
                     {{ hook.reference_id }}
@@ -551,7 +719,7 @@ onMounted(() => {
 
                 <!-- Linha de Catálogo Expandido da Loja -->
                 <tr v-if="isProductsExpanded(hook.id)" class="bg-n-surface-1">
-                  <td colspan="7" class="p-4 border-b border-n-weak">
+                  <td colspan="8" class="p-4 border-b border-n-weak">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div
                         v-for="product in getStoreProducts(hook)"
@@ -607,6 +775,16 @@ onMounted(() => {
                     >
                       {{ hook.settings?.store_name || hook.reference_id }}
                     </h3>
+                    <span
+                      class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded border whitespace-nowrap"
+                      :class="getHookProviderMeta(hook).badgeClass"
+                    >
+                      <span
+                        :class="getHookProviderMeta(hook).icon"
+                        class="size-3"
+                      />
+                      <span>{{ getHookProviderMeta(hook).name }}</span>
+                    </span>
                     <span
                       class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded-full"
                       :class="
@@ -979,48 +1157,190 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Modal Adicionar / Editar Loja + Agentes com Acesso -->
+      <!-- Modal Adicionar / Editar Loja Virtual + Seletor de Plataforma + Agentes -->
       <Dialog
         ref="dialogRef"
         :title="
           editingHookId
-            ? 'Editar Loja Shopify e Permissões de Agentes'
-            : 'Adicionar Nova Loja Shopify'
+            ? 'Editar Loja Virtual e Permissões de Agentes'
+            : 'Conectar Nova Loja Virtual'
         "
         :is-loading="isSubmitting"
         @confirm="handleStoreSubmit"
         @close="handleDialogClose"
       >
         <form class="flex flex-col gap-4" @submit.prevent="handleStoreSubmit">
+          <!-- Seletor de Plataforma no Modal -->
+          <div class="flex flex-col gap-1.5">
+            <label
+              class="text-xs font-semibold uppercase tracking-wider text-n-slate-11"
+            >
+              Plataforma de E-commerce
+            </label>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <button
+                v-for="platform in platformDefinitions"
+                :key="`modal-${platform.id}`"
+                type="button"
+                class="flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all"
+                :class="
+                  selectedProvider === platform.id
+                    ? 'border-n-brand bg-n-brand/10 text-n-brand shadow-sm font-semibold'
+                    : 'border-n-weak bg-n-alpha-1 text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2'
+                "
+                @click="selectedProvider = platform.id"
+              >
+                <span :class="platform.icon" class="size-5 mb-1" />
+                <span class="text-xs leading-snug">{{
+                  platform.name.split('(')[0].trim()
+                }}</span>
+                <span
+                  class="mt-1 text-[9px] px-1 py-0.2 rounded font-medium"
+                  :class="
+                    platform.status === 'active'
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-n-alpha-2 text-n-slate-10'
+                  "
+                >
+                  {{ platform.status === 'active' ? 'Ativo' : 'Preparado' }}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Campos Comuns -->
           <Input
             v-model="storeName"
             label="Nome de identificação da Loja"
             placeholder="Ex: Games Safari, Barba Games, GameBox Brasil"
           />
 
-          <Input
-            v-model="storeUrl"
-            label="Domínio .myshopify.com"
-            placeholder="Ex: gamessafari.myshopify.com"
-            :message="
-              formError ||
-              'Você pode informar o domínio .myshopify.com ou apenas o nome da loja'
-            "
-            :message-type="formError ? 'error' : 'info'"
-          />
+          <!-- Campos Específicos por Plataforma -->
+          <template v-if="selectedProvider === 'shopify'">
+            <Input
+              v-model="storeUrl"
+              label="Domínio .myshopify.com"
+              placeholder="Ex: gamessafari.myshopify.com"
+              :message="
+                formError ||
+                'Você pode informar o domínio .myshopify.com ou apenas o nome da loja'
+              "
+              :message-type="formError ? 'error' : 'info'"
+            />
 
-          <Input
-            v-model="shopifyAdminKey"
-            type="password"
-            label="Admin API Access Token (shpat_...)"
-            :placeholder="
-              editingHookId
-                ? 'Deixe em branco para manter o token/modo atual'
-                : 'Opcional: deixe em branco para usar em Modo Mock de teste'
-            "
-            message="Se deixado em branco no cadastro, a loja funcionará em Modo Mock com catálogo e pedidos simulados."
-            message-type="info"
-          />
+            <Input
+              v-model="shopifyAdminKey"
+              type="password"
+              label="Admin API Access Token (shpat_...)"
+              :placeholder="
+                editingHookId
+                  ? 'Deixe em branco para manter o token/modo atual'
+                  : 'Opcional: deixe em branco para usar em Modo Mock de teste'
+              "
+              message="Se deixado em branco no cadastro, a loja funcionará em Modo Mock com catálogo e pedidos simulados."
+              message-type="info"
+            />
+          </template>
+
+          <template v-else-if="selectedProvider === 'woocommerce'">
+            <div
+              class="p-3 rounded-xl border border-purple-500/30 bg-purple-500/5 flex flex-col gap-1.5 text-xs text-n-slate-12"
+            >
+              <div
+                class="flex items-center gap-1.5 font-semibold text-purple-600 dark:text-purple-400"
+              >
+                <span class="i-lucide-store size-4" />
+                <span>Conector REST v3 WordPress / WooCommerce Preparado</span>
+              </div>
+              <p class="text-[11px] text-n-slate-11">
+                Conecte sua loja WordPress via WooCommerce REST API v3. As
+                credenciais podem ser geradas em WooCommerce -> Configurações ->
+                Avançado -> REST API.
+              </p>
+            </div>
+
+            <Input
+              v-model="storeUrl"
+              label="URL da Loja WordPress"
+              placeholder="Ex: https://minhaloja.com.br"
+            />
+
+            <Input
+              v-model="wooConsumerKey"
+              label="Consumer Key (ck_...)"
+              placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              message="Chave de leitura da API REST do WooCommerce."
+              message-type="info"
+            />
+
+            <Input
+              v-model="wooConsumerSecret"
+              type="password"
+              label="Consumer Secret (cs_...)"
+              placeholder="cs_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              message="Segredo da API REST do WooCommerce."
+              message-type="info"
+            />
+          </template>
+
+          <template v-else-if="selectedProvider === 'lojaintegrada'">
+            <div
+              class="p-3 rounded-xl border border-blue-500/30 bg-blue-500/5 flex flex-col gap-1.5 text-xs text-n-slate-12"
+            >
+              <div
+                class="flex items-center gap-1.5 font-semibold text-blue-600 dark:text-blue-400"
+              >
+                <span class="i-lucide-box size-4" />
+                <span>Conector Chave API Loja Integrada Preparado</span>
+              </div>
+              <p class="text-[11px] text-n-slate-11">
+                Conecte sua Loja Integrada usando a Chave de API e a Chave de
+                Aplicação geradas no painel da Loja Integrada.
+              </p>
+            </div>
+
+            <Input
+              v-model="storeUrl"
+              label="URL da Loja Integrada"
+              placeholder="Ex: https://minhaloja.lojaintegrada.com.br"
+            />
+
+            <Input
+              v-model="lojaIntegradaAppKey"
+              label="Chave de Aplicação"
+              placeholder="Ex: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            />
+
+            <Input
+              v-model="lojaIntegradaUserKey"
+              type="password"
+              label="Chave de API / Token"
+              placeholder="Chave de API da Loja Integrada"
+            />
+          </template>
+
+          <template v-else>
+            <div
+              class="p-3 rounded-xl border border-sky-500/30 bg-sky-500/5 flex flex-col gap-1.5 text-xs text-n-slate-12"
+            >
+              <div
+                class="flex items-center gap-1.5 font-semibold text-sky-600 dark:text-sky-400"
+              >
+                <span class="i-lucide-cloud size-4" />
+                <span>Nuvemshop & Conector Webhook Customizado</span>
+              </div>
+              <p class="text-[11px] text-n-slate-11">
+                Integração via Webhook de pedidos ou API GraphQL/REST. Cadastre
+                a URL para associar as caixas de atendimento.
+              </p>
+            </div>
+
+            <Input
+              v-model="storeUrl"
+              label="URL da Loja Nuvemshop ou Webhook"
+              placeholder="Ex: https://minhaloja.lojavirtualnuvem.com.br"
+            />
+          </template>
 
           <!-- Seleção de Agentes com Acesso -->
           <div class="flex flex-col gap-2">

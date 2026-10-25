@@ -1,28 +1,29 @@
 {
   "INTEGRATION_SETTINGS": {
     "SHOPIFY": {
-      "HEADER": "Shopify",
+      "HEADER": "Orders & Online Stores",
+      "DESCRIPTION": "Multi-Store E-commerce Hub: connect your online stores (Shopify, WordPress / WooCommerce, Loja Integrada, Nuvemshop), track orders in the Inbox, and sync catalogs.",
       "DELETE": {
-        "TITLE": "Delete Shopify Integration",
-        "MESSAGE": "Are you sure you want to delete the Shopify integration?"
+        "TITLE": "Delete Store Connection",
+        "MESSAGE": "Are you sure you want to remove this online store?"
       },
       "STORE_URL": {
-        "TITLE": "Connect Shopify Store",
-        "LABEL": "Store URL (.myshopify.com)",
-        "PLACEHOLDER": "your-store.myshopify.com",
-        "HELP": "Enter your Shopify store's myshopify.com URL",
-        "INVALID_URL": "Please enter a valid Shopify store URL (e.g., your-store.myshopify.com)",
+        "TITLE": "Connect Online Store",
+        "LABEL": "Store Domain or URL",
+        "PLACEHOLDER": "your-store.myshopify.com or https://store.com",
+        "HELP": "Enter your store's myshopify.com URL or WordPress/WooCommerce site URL",
+        "INVALID_URL": "Please enter a valid online store URL or domain",
         "CANCEL": "Cancel",
         "SUBMIT": "Connect Store"
       },
       "MULTI_STORE": {
-        "ADD_BUTTON": "Add Store",
+        "ADD_BUTTON": "Add Online Store",
         "CONNECTED_STORES": "Connected Stores",
-        "SWITCH_STORE": "Switch between your Shopify stores",
-        "NEW_STORE": "New Store",
+        "SWITCH_STORE": "Switch between your online stores",
+        "NEW_STORE": "New Online Store",
         "ALL_STORES": "All Stores",
-        "EMPTY_LIST": "No stores connected yet.",
-        "STORE_CONFIG_DESC": "Configure the store display name, linked inboxes, and optional Admin API token (leave blank for Demo/Mock mode).",
+        "EMPTY_LIST": "No online stores connected yet.",
+        "STORE_CONFIG_DESC": "Configure store provider (Shopify, WooCommerce, Loja Integrada), display name, linked inboxes, and API credentials.",
         "MOCK_BADGE": "Demo / Mock Mode",
         "MOCK_SHORT": "Mock",
         "LIVE_BADGE": "Connected (Live API)",
@@ -32,25 +33,25 @@
         "LINKED_INBOXES": "Linked Inboxes",
         "ALL_INBOXES": "All Inboxes",
         "EDIT": "Edit",
-        "EDIT_TITLE": "Edit Shopify Store",
+        "EDIT_TITLE": "Edit Online Store",
         "STORE_NAME_LABEL": "Store Display Name",
         "STORE_NAME_PLACEHOLDER": "e.g. Games Safari, Barba Games",
-        "ACCESS_TOKEN_LABEL": "Admin API Access Token (shpat_...) — Optional",
-        "ACCESS_TOKEN_PLACEHOLDER": "Leave blank to use Demo/Mock mode, or paste shpat_...",
-        "ACCESS_TOKEN_KEEP_PLACEHOLDER": "Leave blank to keep current mode/token, or paste shpat_...",
-        "ACCESS_TOKEN_HELP": "You can add the store right now without keys (it will run in Demo/Mock mode with sample orders). Whenever you have your Shopify Admin API token (shpat_...), paste it here to switch to Live mode.",
+        "ACCESS_TOKEN_LABEL": "Admin API Token / Key (Optional)",
+        "ACCESS_TOKEN_PLACEHOLDER": "Leave blank to use Demo/Mock mode, or paste API token",
+        "ACCESS_TOKEN_KEEP_PLACEHOLDER": "Leave blank to keep current mode/token, or paste new token",
+        "ACCESS_TOKEN_HELP": "You can add the store right now without keys (it will run in Demo/Mock mode with sample orders). When you have API credentials, paste them here to switch to Live mode.",
         "INBOXES_LABEL": "Link to Inboxes (Optional)",
         "INBOXES_HELP": "Select which inboxes belong to this store to prioritize orders in the sidebar and Captain AI.",
-        "CONNECTED_SUCCESS": "Shopify store saved successfully!",
-        "UPDATED_SUCCESS": "Shopify store updated successfully!",
-        "DELETED_SUCCESS": "Shopify store removed successfully!",
+        "CONNECTED_SUCCESS": "Online store saved successfully!",
+        "UPDATED_SUCCESS": "Online store updated successfully!",
+        "DELETED_SUCCESS": "Online store removed successfully!",
         "CONFIRM_DELETE": "Are you sure you want to remove the store {store}?"
       },
       "HELP_TEXT": {
-        "TITLE": "How to use the Shopify Integration?",
-        "BODY": "With this integration, your Shopify store ***{storeDomain}*** is connected to your Meu Super Chat workspace. Here's what you can do:\n\n**Track orders in conversations:** When you open a conversation, the Shopify sidebar will automatically display recent orders for the customer based on their email address. This gives your support team instant context without switching tabs.\n\n**Access order details:** View order status, fulfillment status, and total amount directly within the conversation panel."
+        "TITLE": "How to use Orders & Online Stores?",
+        "BODY": "With this integration, your online stores are connected to your Meu Super Chat workspace. Here's what you can do:\n\n**Track orders in conversations:** When you open a conversation, the Orders sidebar will automatically display recent orders for the customer based on their email or phone. This gives your support team instant context without switching tabs.\n\n**Multi-Platform support:** Connect Shopify, WooCommerce (WordPress), Loja Integrada and more to manage unified customer orders in one place."
       },
-      "ERROR": "There was an error connecting to Shopify. Please try again or contact support if the issue persists."
+      "ERROR": "There was an error connecting to the online store. Please try again or contact support if the issue persists."
     },
     "HEADER": "Integrations",
     "DESCRIPTION": "Meu Super Chat integrates with multiple tools and services to improve your team's efficiency. Explore the list below to configure your favorite apps.",

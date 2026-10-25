@@ -1,28 +1,29 @@
 {
   "INTEGRATION_SETTINGS": {
     "SHOPIFY": {
-      "HEADER": "Shopify",
+      "HEADER": "Pedidos & Lojas Virtuais",
+      "DESCRIPTION": "Central Multi-E-commerce: conecte suas lojas virtuais (Shopify, WordPress / WooCommerce, Loja Integrada, Nuvemshop), consulte pedidos na Inbox e sincronize catálogos.",
       "DELETE": {
-        "TITLE": "Excluir Integração com o Shopify",
-        "MESSAGE": "Tem certeza que você deseja excluir a integração com o Shopify?"
+        "TITLE": "Excluir Conexão da Loja",
+        "MESSAGE": "Tem certeza que você deseja excluir esta loja virtual?"
       },
       "STORE_URL": {
-        "TITLE": "Conectar Loja Shopify",
-        "LABEL": "Domínio da Loja (.myshopify.com)",
-        "PLACEHOLDER": "sua-loja.myshopify.com",
-        "HELP": "Insira o domínio interno .myshopify.com da sua loja Shopify",
-        "INVALID_URL": "Por favor, insira um domínio válido da Shopify (ex: sua-loja.myshopify.com)",
+        "TITLE": "Conectar Loja Virtual",
+        "LABEL": "Domínio ou URL da Loja",
+        "PLACEHOLDER": "sua-loja.myshopify.com ou https://loja.com.br",
+        "HELP": "Insira o domínio interno .myshopify.com ou a URL base da sua loja virtual",
+        "INVALID_URL": "Por favor, insira um domínio ou URL válido para a loja virtual",
         "CANCEL": "Cancelar",
         "SUBMIT": "Conectar Loja"
       },
       "MULTI_STORE": {
-        "ADD_BUTTON": "Adicionar Loja",
+        "ADD_BUTTON": "Adicionar Loja Virtual",
         "CONNECTED_STORES": "Lojas Conectadas",
-        "SWITCH_STORE": "Alterne entre as suas lojas Shopify",
-        "NEW_STORE": "Nova Loja",
+        "SWITCH_STORE": "Alterne entre suas lojas virtuais",
+        "NEW_STORE": "Nova Loja Virtual",
         "ALL_STORES": "Todas as Lojas",
-        "EMPTY_LIST": "Nenhuma loja conectada ainda.",
-        "STORE_CONFIG_DESC": "Configure o nome da loja, caixas de entrada vinculadas e a chave Admin API (opcional para testes em modo Mock).",
+        "EMPTY_LIST": "Nenhuma loja virtual conectada ainda.",
+        "STORE_CONFIG_DESC": "Configure o nome da loja, provedor (Shopify, WooCommerce, Loja Integrada), caixas de entrada vinculadas e credenciais de API.",
         "MOCK_BADGE": "Modo Mock / Simulação",
         "MOCK_SHORT": "Mock",
         "LIVE_BADGE": "API Real Conectada",
@@ -32,21 +33,21 @@
         "LINKED_INBOXES": "Caixas de Entrada Vinculadas",
         "ALL_INBOXES": "Todas as Caixas de Entrada",
         "EDIT": "Editar",
-        "EDIT_TITLE": "Editar Loja Shopify",
+        "EDIT_TITLE": "Editar Loja Virtual",
         "STORE_NAME_LABEL": "Nome de Exibição da Loja",
         "STORE_NAME_PLACEHOLDER": "Ex: Games Safari, Barba Games, GameBox Brasil",
-        "ACCESS_TOKEN_LABEL": "Admin API Access Token (shpat_...) — Opcional",
-        "ACCESS_TOKEN_PLACEHOLDER": "Deixe em branco para Modo Mock/Teste ou cole o token shpat_...",
-        "ACCESS_TOKEN_KEEP_PLACEHOLDER": "Deixe em branco para manter atual ou cole um token shpat_... para ativar API real",
-        "ACCESS_TOKEN_HELP": "Você pode cadastrar a loja agora sem precisar da chave (ela funcionará em Modo Mock com dados de teste). Quando tiver o token shpat_..., basta colar aqui.",
+        "ACCESS_TOKEN_LABEL": "Admin API Token / Chave de Acesso (Opcional)",
+        "ACCESS_TOKEN_PLACEHOLDER": "Deixe em branco para Modo Mock/Teste ou cole a chave de API",
+        "ACCESS_TOKEN_KEEP_PLACEHOLDER": "Deixe em branco para manter atual ou cole uma nova chave para ativar API real",
+        "ACCESS_TOKEN_HELP": "Você pode cadastrar a loja agora sem precisar da chave (ela funcionará em Modo Mock com dados de teste). Quando tiver as credenciais de API, basta colar aqui.",
         "INBOXES_LABEL": "Vincular às Caixas de Entrada (Opcional)",
         "INBOXES_HELP": "Selecione as caixas de entrada desta loja para priorizar os pedidos na barra lateral e no assistente Leo.",
-        "CONNECTED_SUCCESS": "Loja Shopify adicionada com sucesso!",
-        "UPDATED_SUCCESS": "Loja Shopify atualizada com sucesso!",
-        "DELETED_SUCCESS": "Loja Shopify removida com sucesso!",
+        "CONNECTED_SUCCESS": "Loja virtual adicionada com sucesso!",
+        "UPDATED_SUCCESS": "Loja virtual atualizada com sucesso!",
+        "DELETED_SUCCESS": "Loja virtual removida com sucesso!",
         "CONFIRM_DELETE": "Tem certeza que deseja remover a loja {store}?"
       },
-      "ERROR": "Ocorreu um erro ao tentar conectar com o Shopify. Por favor, tente novamente ou entre em contato com o suporte se o problema persistir."
+      "ERROR": "Ocorreu um erro ao processar a integração da loja virtual. Por favor, tente novamente ou entre em contato com o suporte se o problema persistir."
     },
     "HEADER": "Integrações",
     "DESCRIPTION": "Meu Super Chat se integra com várias ferramentas e serviços para melhorar a eficiência de seu time. Explore a lista abaixo para configurar seus aplicativos favoritos.",

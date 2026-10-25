@@ -83,7 +83,7 @@ const activeStoreDisplayName = computed(() => {
   return (
     selectedHook.value.settings?.store_name ||
     selectedHook.value.reference_id ||
-    'Loja Shopify'
+    'Loja Virtual'
   );
 });
 
@@ -678,7 +678,7 @@ onMounted(async () => {
                             <h5
                               class="text-sm font-medium text-n-slate-12 leading-none"
                             >
-                              Alternar Loja Shopify
+                              Alternar Loja Virtual
                             </h5>
                             <span class="text-xs text-n-slate-11">
                               Lojas liberadas para seu acesso ({{
@@ -827,7 +827,7 @@ onMounted(async () => {
                   </template>
                   <template v-else>
                     Visualizando pedidos, clientes e produtos consolidados das
-                    lojas Shopify liberadas para você
+                    lojas virtuais liberadas para você
                   </template>
                 </span>
               </div>

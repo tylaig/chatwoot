@@ -790,7 +790,7 @@ const menuItems = computed(() => {
     },
     {
       name: 'ShopifyOrders',
-      label: 'Shopify',
+      label: 'Pedidos & Lojas',
       icon: 'i-lucide-shopping-bag',
       activeOn: ['shopify_orders_index'],
       to: accountScopedRoute('shopify_orders_index'),

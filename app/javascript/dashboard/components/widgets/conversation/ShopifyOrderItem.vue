@@ -51,6 +51,46 @@ const formatCurrency = (amount, currency) => {
   }
 };
 
+const platformMeta = computed(() => {
+  const provider = (
+    props.order.provider ||
+    props.order.platform ||
+    'shopify'
+  ).toLowerCase();
+  const map = {
+    shopify: {
+      name: 'Shopify',
+      icon: 'i-lucide-shopping-bag',
+      badgeClass:
+        'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+    },
+    woocommerce: {
+      name: 'WooCommerce',
+      icon: 'i-lucide-store',
+      badgeClass:
+        'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
+    },
+    lojaintegrada: {
+      name: 'Loja Integrada',
+      icon: 'i-lucide-box',
+      badgeClass:
+        'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+    },
+    nuvemshop: {
+      name: 'Nuvemshop',
+      icon: 'i-lucide-cloud',
+      badgeClass:
+        'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20',
+    },
+    custom: {
+      name: 'Loja Virtual',
+      icon: 'i-lucide-globe',
+      badgeClass: 'bg-n-brand/10 text-n-brand border-n-brand/20',
+    },
+  };
+  return map[provider] || map.shopify;
+});
+
 const storeMeta = computed(() => {
   const rawName = (
     props.order.store_name ||
@@ -213,7 +253,7 @@ const copyText = async (val, label) => {
             target="_blank"
             rel="noopener noreferrer"
             class="font-extrabold text-sm font-mono text-n-slate-12 hover:text-n-brand hover:underline flex items-center gap-1"
-            title="Abrir pedido na Shopify"
+            title="Abrir pedido na loja"
           >
             <span>{{ orderDisplayTitle }}</span>
             <i class="i-lucide-external-link text-[11px] text-n-slate-10" />
@@ -226,6 +266,14 @@ const copyText = async (val, label) => {
           >
             <i class="i-lucide-copy text-[11px]" />
           </button>
+          <!-- Badge da Plataforma (Shopify / WooCommerce / Loja Integrada / Nuvemshop) -->
+          <span
+            class="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded border whitespace-nowrap"
+            :class="platformMeta.badgeClass"
+          >
+            <i :class="platformMeta.icon" class="text-[10px]" />
+            <span>{{ platformMeta.name }}</span>
+          </span>
           <span
             v-if="recentOrderBadge"
             class="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md bg-n-amber-3 text-n-amber-11 font-bold whitespace-nowrap"

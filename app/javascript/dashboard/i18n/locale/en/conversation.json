@@ -479,7 +479,7 @@
       "PREVIOUS_CONVERSATION": "Previous Conversations",
       "MACROS": "Macros",
       "LINEAR_ISSUES": "Linked Linear Issues",
-      "SHOPIFY_ORDERS": "Shopify Orders",
+      "SHOPIFY_ORDERS": "Orders & Stores",
       "SHARED_FILES": "Attachments"
     },
     "SHARED_FILES": {
@@ -501,7 +501,7 @@
       "SEARCH_PLACEHOLDER": "Email, #order or phone...",
       "SEARCH_BUTTON": "Search",
       "CLEAR_BUTTON": "Clear",
-      "SEARCH_HINT": "Type customer email or #order number above to search across all connected Shopify stores.",
+      "SEARCH_HINT": "Type customer email or #order number above to search across all connected online stores (Shopify, WooCommerce, Loja Integrada).",
       "SYNC_EMAIL_LABEL": "Save email to contact profile",
       "FINANCIAL_STATUS": {
         "PENDING": "Pending",

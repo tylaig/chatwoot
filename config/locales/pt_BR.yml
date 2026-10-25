@@ -414,9 +414,9 @@ pt_BR:
       short_description: 'Integre banco de dados, documentos e páginas diretamente com o Capitão.'
       description: 'Conecte o seu espaço de trabalho Notion para permitir que o Capitão acesse e gere respostas inteligentes usando o conteúdo de seus bancos de dados, documentos e páginas para fornecer suporte ao cliente mais contextual.'
     shopify:
-      name: 'Shopify'
-      short_description: 'Acessar detalhes do pedido e dados de clientes da sua loja Shopify.'
-      description: 'Conecte sua loja Shopify para acessar detalhes de pedidos, informações de clientes e dados de produtos diretamente em suas conversas e ajudar sua equipe de suporte a fornecer um atendimento mais rápido e contextual aos seus clientes.'
+      name: 'Pedidos & Lojas Virtuais'
+      short_description: 'Central Multi-E-commerce: conecte suas lojas virtuais (Shopify, WordPress / WooCommerce, Loja Integrada, Nuvemshop), consulte pedidos na Inbox e sincronize catálogos.'
+      description: 'Central Multi-E-commerce: conecte suas lojas virtuais (Shopify, WordPress / WooCommerce, Loja Integrada, Nuvemshop), consulte detalhes de pedidos em tempo real diretamente na Inbox das conversas e mantenha o catálogo de produtos sincronizado para seus atendentes e agentes de IA.'
     leadsquared:
       name: 'LeadSquared'
       short_description: 'Sincronize seus contatos e conversas com LeadSquared CRM.'
