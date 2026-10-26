@@ -34,6 +34,9 @@ module Enterprise::Message
     return unless incoming?
     return if conversation.awaiting_resolution?
 
+    conversation.check_assignee_team_on_reopen
+    conversation.check_assignee_online_on_reopen
+
     if conversation.snoozed?
       reopen_snoozed_conversation
       return

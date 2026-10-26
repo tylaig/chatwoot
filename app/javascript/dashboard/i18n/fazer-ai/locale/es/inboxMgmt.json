@@ -191,6 +191,22 @@
       "REOPEN_TEAM": {
         "TITLE": "Al reabrir, mantener al responsable solo si está en el equipo de la conversación",
         "DESCRIPTION": "Cuando el mensaje de un cliente reabre una conversación resuelta o pospuesta que tiene equipo, el responsable la conserva solo si es miembro de ese equipo. Si no, la conversación pasa a Sin asignar, con su equipo y etiquetas."
+      },
+      "REOPEN_OFFLINE": {
+        "TITLE": "Al reabrir, redistribuir si el agente está Desconectado",
+        "DESCRIPTION": "Cuando se reabre una conversación resuelta o pospuesta y el agente asignado está Desconectado, se desasigna para entregarla a un agente en línea (o pasa a Sin asignar si no hay nadie en línea)."
+      },
+      "REOPEN_BUSY": {
+        "TITLE": "Al reabrir, redistribuir si el agente está Ocupado",
+        "DESCRIPTION": "Cuando se reabre una conversación resuelta o pospuesta y el agente asignado tiene estado Ocupado, se desasigna y se redistribuye a un agente en línea disponible."
+      },
+      "REPLY_OPEN_OFFLINE": {
+        "TITLE": "En conversación abierta, redistribuir si el cliente responde y el agente está Desconectado",
+        "DESCRIPTION": "Si la conversación ya está abierta pero el agente asignado está Desconectado cuando el cliente envía un mensaje nuevo, se desasigna y se redistribuye a un agente en línea."
+      },
+      "REPLY_OPEN_BUSY": {
+        "TITLE": "En conversación abierta, redistribuir si el cliente responde y el agente está Ocupado",
+        "DESCRIPTION": "Si la conversación ya está abierta pero el agente asignado está marcado como Ocupado cuando el cliente envía un mensaje nuevo, se desasigna y se redistribuye a un agente en línea."
       }
     },
     "CSAT": {

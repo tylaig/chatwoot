@@ -141,6 +141,9 @@ en:
       unknown_agent: Unknown
       assignee:
         removed_not_in_conversation_team: "Conversation unassigned from %{assignee_name} because they are not a member of the conversation's team %{team_name}"
+        removed_offline_on_reopen: "Conversation unassigned from %{assignee_name} (offline) so an online agent can take it"
+        removed_busy_on_reopen: "Conversation unassigned from %{assignee_name} (busy) on reopen so an online agent can take it"
+        removed_busy_on_reply: "Conversation unassigned from %{assignee_name} (busy) on customer reply so an online agent can take it"
         handed_to_agent_bot_on_reopen: "Conversation handed from %{assignee_name} to %{bot_name} because the customer wrote again"
   contacts:
     group:

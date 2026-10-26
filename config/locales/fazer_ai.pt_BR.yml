@@ -141,6 +141,9 @@ pt_BR:
       unknown_agent: Desconhecido
       assignee:
         removed_not_in_conversation_team: "Conversa desatribuída de %{assignee_name} porque não é membro do time da conversa, %{team_name}"
+        removed_offline_on_reopen: "Conversa desatribuída de %{assignee_name} (offline) para redistribuição aos atendentes online"
+        removed_busy_on_reopen: "Conversa desatribuída de %{assignee_name} (ocupado) ao ser reaberta para redistribuição aos atendentes online"
+        removed_busy_on_reply: "Conversa desatribuída de %{assignee_name} (ocupado) após resposta do cliente para redistribuição aos atendentes online"
         handed_to_agent_bot_on_reopen: "Conversa passada de %{assignee_name} para %{bot_name} porque o cliente escreveu de novo"
   contacts:
     group:

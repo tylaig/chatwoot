@@ -7,6 +7,7 @@ class RoomChannel < ApplicationCable::Channel
     ensure_stream
     update_subscription
     broadcast_presence
+    enqueue_auto_assignment_on_connect
   end
 
   def update_presence
@@ -33,6 +34,19 @@ class RoomChannel < ApplicationCable::Channel
     return if @current_account.blank?
 
     ::OnlineStatusTracker.update_presence(@current_account.id, @current_user.class.name, @current_user.id)
+  end
+
+  def enqueue_auto_assignment_on_connect
+    return if @current_account.blank? || !@current_user.is_a?(User)
+    return unless @current_account.feature_enabled?('assignment_v2')
+    return unless ::OnlineStatusTracker.get_available_users(@current_account.id)[@current_user.id.to_s] == 'online'
+
+    @current_account.inboxes
+                    .where(enable_auto_assignment: true)
+                    .joins(:inbox_members)
+                    .where(inbox_members: { user_id: @current_user.id })
+                    .pluck(:id)
+                    .each { |inbox_id| AutoAssignment::AssignmentJob.enqueue_for_inbox(inbox_id) }
   end
 
   def pubsub_token

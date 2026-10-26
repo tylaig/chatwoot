@@ -191,6 +191,22 @@
       "REOPEN_TEAM": {
         "TITLE": "Na reabertura, manter o responsável só se ele estiver no time da conversa",
         "DESCRIPTION": "Quando a mensagem de um cliente reabre uma conversa resolvida ou adiada que tem time, o responsável continua com ela só se for membro desse time. Se não for, a conversa vai para Não atribuídas, com o time e as etiquetas de antes."
+      },
+      "REOPEN_OFFLINE": {
+        "TITLE": "Na reabertura, redistribuir se o atendente estiver Offline",
+        "DESCRIPTION": "Quando uma conversa resolvida ou adiada é reaberta e o responsável está Offline, remove a atribuição dele e entrega automaticamente para um atendente Online (ou envia para Não atribuídas se ninguém estiver online)."
+      },
+      "REOPEN_BUSY": {
+        "TITLE": "Na reabertura, redistribuir se o atendente estiver Ocupado",
+        "DESCRIPTION": "Quando uma conversa resolvida ou adiada é reaberta e o responsável está com status Ocupado, remove a atribuição dele e entrega automaticamente para um atendente Online disponível."
+      },
+      "REPLY_OPEN_OFFLINE": {
+        "TITLE": "Em conversa aberta, redistribuir se o cliente responder e o atendente estiver Offline",
+        "DESCRIPTION": "Se a conversa já estiver aberta mas o responsável tiver ficado Offline quando o cliente enviar uma nova mensagem, desatribui e redistribui para um atendente Online."
+      },
+      "REPLY_OPEN_BUSY": {
+        "TITLE": "Em conversa aberta, redistribuir se o cliente responder e o atendente estiver Ocupado",
+        "DESCRIPTION": "Se a conversa já estiver aberta mas o responsável tiver marcado o status como Ocupado quando o cliente enviar uma nova mensagem, desatribui e redistribui para um atendente Online."
       }
     },
     "CSAT": {

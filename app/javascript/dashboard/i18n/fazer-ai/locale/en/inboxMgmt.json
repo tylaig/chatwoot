@@ -191,6 +191,22 @@
       "REOPEN_TEAM": {
         "TITLE": "Keep the assignee on reopen only if they are in the conversation's team",
         "DESCRIPTION": "When a customer's message reopens a resolved or snoozed conversation that has a team, the assignee keeps it only if they are a member of that team. Otherwise the conversation goes to Unassigned, keeping its team and labels."
+      },
+      "REOPEN_OFFLINE": {
+        "TITLE": "On reopen, redistribute if the assignee is Offline",
+        "DESCRIPTION": "When a resolved or snoozed conversation reopens and the current assignee is Offline, unassign it so an online agent can take it (or move it to Unassigned if no one is online)."
+      },
+      "REOPEN_BUSY": {
+        "TITLE": "On reopen, redistribute if the assignee is Busy",
+        "DESCRIPTION": "When a resolved or snoozed conversation reopens and the current assignee is marked as Busy, unassign it and redistribute to an available online agent."
+      },
+      "REPLY_OPEN_OFFLINE": {
+        "TITLE": "In open conversations, redistribute on customer reply if the assignee is Offline",
+        "DESCRIPTION": "If an already-open conversation receives a new customer message while the assignee is Offline, unassign and redistribute it to an online agent."
+      },
+      "REPLY_OPEN_BUSY": {
+        "TITLE": "In open conversations, redistribute on customer reply if the assignee is Busy",
+        "DESCRIPTION": "If an already-open conversation receives a new customer message while the assignee is marked as Busy, unassign and redistribute it to an online agent."
       }
     },
     "CSAT": {

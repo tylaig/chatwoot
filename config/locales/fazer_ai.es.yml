@@ -141,6 +141,9 @@ es:
       unknown_agent: Desconocido
       assignee:
         removed_not_in_conversation_team: "Conversación desasignada de %{assignee_name} porque no es miembro del equipo de la conversación, %{team_name}"
+        removed_offline_on_reopen: "Conversación desasignada de %{assignee_name} (desconectado) para redistribuirla a un agente en línea"
+        removed_busy_on_reopen: "Conversación desasignada de %{assignee_name} (ocupado) al reabrirse para redistribuirla a un agente en línea"
+        removed_busy_on_reply: "Conversación desasignada de %{assignee_name} (ocupado) tras respuesta del cliente para redistribuirla a un agente en línea"
         handed_to_agent_bot_on_reopen: "Conversación pasada de %{assignee_name} a %{bot_name} porque el cliente volvió a escribir"
   contacts:
     group:

@@ -80,6 +80,18 @@ class AccountUser < ApplicationRecord
 
   def update_presence_in_redis
     OnlineStatusTracker.set_status(account.id, user.id, availability)
+    enqueue_auto_assignment_for_online_agent if online?
+  end
+
+  def enqueue_auto_assignment_for_online_agent
+    return unless account.feature_enabled?('assignment_v2')
+
+    account.inboxes
+           .where(enable_auto_assignment: true)
+           .joins(:inbox_members)
+           .where(inbox_members: { user_id: user_id })
+           .pluck(:id)
+           .each { |inbox_id| AutoAssignment::AssignmentJob.enqueue_for_inbox(inbox_id) }
   end
 
   def add_to_public_internal_chat_channels
