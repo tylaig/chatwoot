@@ -584,6 +584,12 @@ Rails.application.routes.draw do
               post :retry, action: :retry_execution
             end
           end
+          resource :system_updates, only: [] do
+            collection do
+              get :check
+              post :apply
+            end
+          end
         end
       end
       # end of account scoped api routes
@@ -644,12 +650,6 @@ Rails.application.routes.draw do
         end
         resources :inbox_members, only: [:index]
         resources :labels, only: [:create, :destroy]
-        resource :system_updates, only: [] do
-          collection do
-            get :check
-            post :apply
-          end
-        end
         namespace :integrations do
           resource :dyte, controller: 'dyte', only: [] do
             collection do
