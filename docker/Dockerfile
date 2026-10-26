@@ -89,14 +89,18 @@ RUN if [ "$RAILS_ENV" = "production" ]; then \
   && rm -rf spec node_modules tmp/cache; \
   fi
 
-# Generate .git_sha file with current commit hash
-RUN git rev-parse HEAD > /app/.git_sha
+# Generate .git_sha file with current commit hash (safe fallback for tarball builds without .git)
+ARG GIT_SHA=""
+RUN if [ -n "$GIT_SHA" ]; then echo "$GIT_SHA" > /app/.git_sha; \
+    elif git rev-parse HEAD >/dev/null 2>&1; then git rev-parse HEAD > /app/.git_sha; \
+    elif [ -s /app/.git_sha ]; then true; \
+    else echo "unknown" > /app/.git_sha; fi
 
 # Remove unnecessary files
 RUN rm -rf /gems/ruby/3.4.0/cache/*.gem \
   && find /gems/ruby/3.4.0/gems/ \( -name "*.c" -o -name "*.o" \) -delete \
   && rm -rf .git \
-  && rm .gitignore
+  && rm -f .gitignore
 
 # final build stage
 FROM ruby:3.4.4-alpine3.21
