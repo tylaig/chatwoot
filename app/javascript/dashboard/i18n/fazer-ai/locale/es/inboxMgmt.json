@@ -78,7 +78,7 @@
             },
             "MARK_AS_READ": {
               "LABEL": "Marcar mensajes como leídos en WhatsApp",
-              "DESCRIPTION": "Al responder desde Meu Super Chat, la conversación también aparece como leída en el teléfono."
+              "DESCRIPTION": "Al responder desde Chatwoot, la conversación también aparece como leída en el teléfono."
             },
             "PRESENCE_SUBSCRIBE": {
               "LABEL": "Mostrar cuándo el contacto está en línea",
@@ -145,7 +145,7 @@
       "WHATSAPP_PROVIDER_URL_PLACEHOLDER": "Introduzca la URL del proveedor",
       "WHATSAPP_PROVIDER_URL_ERROR": "Introduzca una URL válida",
       "WHATSAPP_MARK_AS_READ_TITLE": "Confirmaciones de lectura",
-      "WHATSAPP_MARK_AS_READ_SUBHEADER": "Si está desactivado, cuando un mensaje se vea en Meu Super Chat no se enviará confirmación de lectura al remitente. Sus mensajes seguirán pudiendo recibir confirmaciones de lectura del remitente.",
+      "WHATSAPP_MARK_AS_READ_SUBHEADER": "Si está desactivado, cuando un mensaje se vea en Chatwoot no se enviará confirmación de lectura al remitente. Sus mensajes seguirán pudiendo recibir confirmaciones de lectura del remitente.",
       "WHATSAPP_MARK_AS_READ_LABEL": "Enviar confirmaciones de lectura",
       "WHATSAPP_PRESENCE_SUBSCRIBE_TITLE": "Indicador de escritura del contacto",
       "WHATSAPP_PRESENCE_SUBSCRIBE_SUBHEADER": "Si está activado, verá en la conversación cuando un contacto de WhatsApp esté escribiendo o grabando audio. Es necesario reconectar el canal para que surta efecto.",
@@ -191,6 +191,22 @@
       "REOPEN_TEAM": {
         "TITLE": "Al reabrir, mantener al responsable solo si está en el equipo de la conversación",
         "DESCRIPTION": "Cuando el mensaje de un cliente reabre una conversación resuelta o pospuesta que tiene equipo, el responsable la conserva solo si es miembro de ese equipo. Si no, la conversación pasa a Sin asignar, con su equipo y etiquetas."
+      },
+      "REOPEN_OFFLINE": {
+        "TITLE": "Al reabrir, redistribuir si el agente está Desconectado",
+        "DESCRIPTION": "Cuando se reabre una conversación resuelta o pospuesta y el agente asignado está Desconectado, se desasigna para entregarla a un agente en línea (o pasa a Sin asignar si no hay nadie en línea)."
+      },
+      "REOPEN_BUSY": {
+        "TITLE": "Al reabrir, redistribuir si el agente está Ocupado",
+        "DESCRIPTION": "Cuando se reabre una conversación resuelta o pospuesta y el agente asignado tiene estado Ocupado, se desasigna y se redistribuye a un agente en línea disponible."
+      },
+      "REPLY_OPEN_OFFLINE": {
+        "TITLE": "En conversación abierta, redistribuir si el cliente responde y el agente está Desconectado",
+        "DESCRIPTION": "Si la conversación ya está abierta pero el agente asignado está Desconectado cuando el cliente envía un mensaje nuevo, se desasigna y se redistribuye a un agente en línea."
+      },
+      "REPLY_OPEN_BUSY": {
+        "TITLE": "En conversación abierta, redistribuir si el cliente responde y el agente está Ocupado",
+        "DESCRIPTION": "Si la conversación ya está abierta pero el agente asignado está marcado como Ocupado cuando el cliente envía un mensaje nuevo, se desasigna y se redistribuye a un agente en línea."
       }
     },
     "CSAT": {
@@ -251,7 +267,7 @@
         "CONNECTOR_WITHOUT_CALLS": "El conector de WhatsApp de esta instalación no lleva la voz de las llamadas. Para activar las llamadas, define WAC_CALLS_UDP_PORT (por ejemplo 40000) y publica ese puerto en UDP en el contenedor donde corre el conector (el worker de Sidekiq, en modo embebido). Detrás de NAT, define también WAC_CALLS_PUBLIC_IP con la IP pública del servidor."
       },
       "INBOUND_PHONE": {
-        "DESCRIPTION": "Permite que los clientes llamen a este número y que la llamada suene para los agentes aquí. Si está desactivado, Meu Super Chat no suena y la llamada sigue sonando solo en el teléfono vinculado. Los agentes aún pueden hacer llamadas salientes."
+        "DESCRIPTION": "Permite que los clientes llamen a este número y que la llamada suene para los agentes aquí. Si está desactivado, Chatwoot no suena y la llamada sigue sonando solo en el teléfono vinculado. Los agentes aún pueden hacer llamadas salientes."
       }
     }
   }

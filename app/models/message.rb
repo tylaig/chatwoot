@@ -443,6 +443,7 @@ class Message < ApplicationRecord
   def execute_after_create_commit_callbacks
     # rails issue with order of active record callbacks being executed https://github.com/rails/rails/issues/20911
     reopen_conversation
+    redistribute_open_conversation_from_unavailable_assignee
     mark_pending_conversation_as_open_for_human_response
     set_conversation_activity
     dispatch_create_events
@@ -671,7 +672,18 @@ class Message < ApplicationRecord
     return unless conversation.snoozed? || conversation.resolved?
 
     conversation.check_assignee_team_on_reopen
+    conversation.check_assignee_online_on_reopen
     conversation.snoozed? ? conversation.open! : reopen_resolved_conversation
+  end
+
+  def redistribute_open_conversation_from_unavailable_assignee
+    return if conversation.muted?
+    return unless incoming?
+    return if private?
+    return if reaction?
+    return unless conversation.open?
+
+    conversation.redistribute_if_assignee_unavailable!
   end
 
   def mark_pending_conversation_as_open_for_human_response

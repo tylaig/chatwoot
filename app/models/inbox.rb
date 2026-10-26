@@ -55,7 +55,9 @@ class Inbox < ApplicationRecord
   validate :acceptable_chat_background_image, if: -> { chat_background_image.changed? }
   store_accessor :auto_assignment_config, :inbox_color, :inbox_badge_label, :chat_background_opacity,
                  :anti_spam_enabled, :anti_spam_max_messages, :anti_spam_window_seconds,
-                 :anti_spam_cooldown_seconds, :anti_spam_warning_message
+                 :anti_spam_cooldown_seconds, :anti_spam_warning_message,
+                 :unassign_on_reopen_when_offline, :unassign_on_reopen_when_busy,
+                 :redistribute_open_on_reply_when_offline, :redistribute_open_on_reply_when_busy
 
   # Not allowing characters:
   validates :name, presence: true
@@ -223,6 +225,30 @@ class Inbox < ApplicationRecord
 
   def auto_assignment_v2_enabled?
     account.feature_enabled?('assignment_v2')
+  end
+
+  def unassign_on_reopen_when_offline?
+    return enable_auto_assignment? if unassign_on_reopen_when_offline.nil?
+
+    ActiveModel::Type::Boolean.new.cast(unassign_on_reopen_when_offline)
+  end
+
+  def unassign_on_reopen_when_busy?
+    return enable_auto_assignment? if unassign_on_reopen_when_busy.nil?
+
+    ActiveModel::Type::Boolean.new.cast(unassign_on_reopen_when_busy)
+  end
+
+  def redistribute_open_on_reply_when_offline?
+    return enable_auto_assignment? if redistribute_open_on_reply_when_offline.nil?
+
+    ActiveModel::Type::Boolean.new.cast(redistribute_open_on_reply_when_offline)
+  end
+
+  def redistribute_open_on_reply_when_busy?
+    return enable_auto_assignment? if redistribute_open_on_reply_when_busy.nil?
+
+    ActiveModel::Type::Boolean.new.cast(redistribute_open_on_reply_when_busy)
   end
 
   def auto_assignment_config=(value)

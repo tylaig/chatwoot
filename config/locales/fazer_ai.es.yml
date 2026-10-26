@@ -1,4 +1,4 @@
-# Meu Super Chat fork translations.
+# fazer.ai fork translations.
 #
 # Rails deep-merges every config/locales/*.yml, so these keys land on top of
 # upstream's <locale>.yml without touching it. Keys for our own features go
@@ -83,7 +83,7 @@ es:
           client_outdated: El conector de WhatsApp está desactualizado y ya no puede conectarse. Actualícelo para restablecer la conexión.
           quarantined: Demasiados intentos de reconexión fallidos seguidos. Los nuevos intentos continúan a intervalos cada vez mayores.
           connector_unavailable: El conector de WhatsApp no responde. Los mensajes volverán a enviarse cuando esté disponible.
-          connector_incompatible: La versión del conector de WhatsApp es incompatible con esta versión de Meu Super Chat. Actualice el conector.
+          connector_incompatible: La versión del conector de WhatsApp es incompatible con esta versión de Chatwoot. Actualice el conector.
           connect_failure: WhatsApp rechazó la conexión. Los nuevos intentos continúan automáticamente.
           pairing_timed_out: El código expiró antes de que el teléfono completara la vinculación. Inicie la conexión de nuevo para obtener uno nuevo.
           pairing_pair_error: WhatsApp aceptó el código pero no terminó de vincular el dispositivo. Inicie la conexión de nuevo.
@@ -141,6 +141,9 @@ es:
       unknown_agent: Desconocido
       assignee:
         removed_not_in_conversation_team: "Conversación desasignada de %{assignee_name} porque no es miembro del equipo de la conversación, %{team_name}"
+        removed_offline_on_reopen: "Conversación desasignada de %{assignee_name} (desconectado) para redistribuirla a un agente en línea"
+        removed_busy_on_reopen: "Conversación desasignada de %{assignee_name} (ocupado) al reabrirse para redistribuirla a un agente en línea"
+        removed_busy_on_reply: "Conversación desasignada de %{assignee_name} (ocupado) tras respuesta del cliente para redistribuirla a un agente en línea"
         handed_to_agent_bot_on_reopen: "Conversación pasada de %{assignee_name} a %{bot_name} porque el cliente volvió a escribir"
   contacts:
     group:

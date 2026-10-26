@@ -16,6 +16,7 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import TagInput from 'dashboard/components-next/taginput/TagInput.vue';
 import assignmentPoliciesAPI from 'dashboard/api/assignmentPolicies';
 import ReopenTeamAssigneeToggle from './ReopenTeamAssigneeToggle.vue';
+import UnavailableAssigneeRedistributionToggles from './UnavailableAssigneeRedistributionToggles.vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
@@ -698,6 +699,12 @@ onMounted(() => {
       />
 
       <ReopenTeamAssigneeToggle :inbox="inbox" class="mt-4" />
+
+      <UnavailableAssigneeRedistributionToggles
+        v-if="enableAutoAssignment"
+        :inbox="inbox"
+        class="mt-4"
+      />
     </SettingsAccordion>
 
     <woot-modal

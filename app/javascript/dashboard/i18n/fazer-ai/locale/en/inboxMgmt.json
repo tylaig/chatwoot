@@ -78,7 +78,7 @@
             },
             "MARK_AS_READ": {
               "LABEL": "Mark messages as read on WhatsApp",
-              "DESCRIPTION": "Replying from Meu Super Chat also marks the conversation read on the phone."
+              "DESCRIPTION": "Replying from Chatwoot also marks the conversation read on the phone."
             },
             "PRESENCE_SUBSCRIBE": {
               "LABEL": "Show when the contact is online",
@@ -145,7 +145,7 @@
       "WHATSAPP_PROVIDER_URL_PLACEHOLDER": "Enter the provider URL",
       "WHATSAPP_PROVIDER_URL_ERROR": "Please enter a valid URL",
       "WHATSAPP_MARK_AS_READ_TITLE": "Read receipts",
-      "WHATSAPP_MARK_AS_READ_SUBHEADER": "If turned off, when a message is viewed in Meu Super Chat, a read receipt will not be sent to the sender. Your messages will still be able to receive read receipts from the sender.",
+      "WHATSAPP_MARK_AS_READ_SUBHEADER": "If turned off, when a message is viewed in Chatwoot, a read receipt will not be sent to the sender. Your messages will still be able to receive read receipts from the sender.",
       "WHATSAPP_MARK_AS_READ_LABEL": "Send read receipts",
       "WHATSAPP_PRESENCE_SUBSCRIBE_TITLE": "Contact typing indicators",
       "WHATSAPP_PRESENCE_SUBSCRIBE_SUBHEADER": "When enabled, you will see typing indicators in the conversation when a WhatsApp contact is typing or recording audio. Requires reconnecting the channel to take effect.",
@@ -191,6 +191,22 @@
       "REOPEN_TEAM": {
         "TITLE": "Keep the assignee on reopen only if they are in the conversation's team",
         "DESCRIPTION": "When a customer's message reopens a resolved or snoozed conversation that has a team, the assignee keeps it only if they are a member of that team. Otherwise the conversation goes to Unassigned, keeping its team and labels."
+      },
+      "REOPEN_OFFLINE": {
+        "TITLE": "On reopen, redistribute if the assignee is Offline",
+        "DESCRIPTION": "When a resolved or snoozed conversation reopens and the current assignee is Offline, unassign it so an online agent can take it (or move it to Unassigned if no one is online)."
+      },
+      "REOPEN_BUSY": {
+        "TITLE": "On reopen, redistribute if the assignee is Busy",
+        "DESCRIPTION": "When a resolved or snoozed conversation reopens and the current assignee is marked as Busy, unassign it and redistribute to an available online agent."
+      },
+      "REPLY_OPEN_OFFLINE": {
+        "TITLE": "In open conversations, redistribute on customer reply if the assignee is Offline",
+        "DESCRIPTION": "If an already-open conversation receives a new customer message while the assignee is Offline, unassign and redistribute it to an online agent."
+      },
+      "REPLY_OPEN_BUSY": {
+        "TITLE": "In open conversations, redistribute on customer reply if the assignee is Busy",
+        "DESCRIPTION": "If an already-open conversation receives a new customer message while the assignee is marked as Busy, unassign and redistribute it to an online agent."
       }
     },
     "CSAT": {
@@ -251,7 +267,7 @@
         "CONNECTOR_WITHOUT_CALLS": "This installation's WhatsApp connector does not carry call voice. To turn calls on, set WAC_CALLS_UDP_PORT (for example 40000) and publish that port over UDP on the container the connector runs in (the Sidekiq worker, when embedded). Behind NAT, also set WAC_CALLS_PUBLIC_IP to the server's public IP."
       },
       "INBOUND_PHONE": {
-        "DESCRIPTION": "Let customers call this number and ring the agents here. When disabled, Meu Super Chat does not ring and calls keep ringing on the paired phone only. Agents can still place outbound calls."
+        "DESCRIPTION": "Let customers call this number and ring the agents here. When disabled, Chatwoot does not ring and calls keep ringing on the paired phone only. Agents can still place outbound calls."
       }
     }
   }

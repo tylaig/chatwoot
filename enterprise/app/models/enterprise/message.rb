@@ -33,6 +33,9 @@ module Enterprise::Message
     return if conversation.muted?
     return unless incoming?
 
+    conversation.check_assignee_team_on_reopen
+    conversation.check_assignee_online_on_reopen
+
     if conversation.snoozed?
       reopen_snoozed_conversation
       return

@@ -1,4 +1,4 @@
-# Meu Super Chat fork translations.
+# fazer.ai fork translations.
 #
 # Rails deep-merges every config/locales/*.yml, so these keys land on top of
 # upstream's <locale>.yml without touching it. Keys for our own features go
@@ -83,7 +83,7 @@ en:
           client_outdated: The WhatsApp connector is out of date and can no longer connect. Update it to restore the connection.
           quarantined: Too many failed reconnection attempts in a row. New attempts continue at increasing intervals.
           connector_unavailable: The WhatsApp connector is not responding. Messages will only be sent again once it is back.
-          connector_incompatible: The WhatsApp connector version is incompatible with this Meu Super Chat version. Update the connector.
+          connector_incompatible: The WhatsApp connector version is incompatible with this Chatwoot version. Update the connector.
           connect_failure: WhatsApp refused the connection. New attempts continue automatically.
           pairing_timed_out: The code expired before the phone finished pairing. Start the connection again to get a new one.
           pairing_pair_error: WhatsApp accepted the code but did not finish linking the device. Start the connection again.
@@ -141,6 +141,9 @@ en:
       unknown_agent: Unknown
       assignee:
         removed_not_in_conversation_team: "Conversation unassigned from %{assignee_name} because they are not a member of the conversation's team %{team_name}"
+        removed_offline_on_reopen: "Conversation unassigned from %{assignee_name} (offline) so an online agent can take it"
+        removed_busy_on_reopen: "Conversation unassigned from %{assignee_name} (busy) on reopen so an online agent can take it"
+        removed_busy_on_reply: "Conversation unassigned from %{assignee_name} (busy) on customer reply so an online agent can take it"
         handed_to_agent_bot_on_reopen: "Conversation handed from %{assignee_name} to %{bot_name} because the customer wrote again"
   contacts:
     group:
