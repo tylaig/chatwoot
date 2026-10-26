@@ -25,11 +25,11 @@ const modelValue = defineModel({ type: Boolean, default: false });
 
 <template>
   <div
-    class="flex flex-col items-start outline outline-1 -outline-offset-1 outline-n-weak rounded-xl [interpolate-size:allow-keywords]"
+    class="flex flex-col items-start w-full min-w-0 outline outline-1 -outline-offset-1 outline-n-weak rounded-xl [interpolate-size:allow-keywords]"
   >
-    <div class="flex flex-col gap-1 items-start w-full py-3">
-      <div class="flex items-center gap-3 w-full justify-between px-4">
-        <span class="text-heading-3 text-n-slate-12">
+    <div class="flex flex-col gap-1 items-start w-full min-w-0 py-3">
+      <div class="flex items-center gap-3 w-full min-w-0 justify-between px-4">
+        <span class="text-heading-3 text-n-slate-12 min-w-0 break-words">
           {{ header }}
         </span>
         <template v-if="hideToggle">

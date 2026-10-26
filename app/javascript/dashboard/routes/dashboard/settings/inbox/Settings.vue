@@ -990,9 +990,10 @@ export default {
   </div>
   <div
     v-else
-    class="grid grid-rows-[auto_1fr] h-full flex-grow flex-shrink pr-0 pl-0 w-full min-w-0 settings"
+    class="grid grid-cols-1 grid-rows-[auto_1fr] h-full flex-grow flex-shrink pr-0 pl-0 w-full min-w-0 settings"
   >
     <SettingIntroBanner
+      class="min-w-0"
       :header-image="inbox.avatarUrl"
       :header-title="inboxName"
       :header-identifier="inboxIdentifier"
@@ -1013,7 +1014,7 @@ export default {
         />
       </woot-tabs>
     </SettingIntroBanner>
-    <section class="w-full overflow-auto py-8">
+    <section class="w-full min-w-0 overflow-auto py-8">
       <div class="max-w-7xl mx-auto w-full">
         <WhatsappServiceQuotaCard
           v-if="isAWhatsAppCloudChannel && selectedTabKey === 'inbox-settings'"

@@ -17,6 +17,14 @@ class SystemUpdateService
           else
             ''
           end
+    if (sha.blank? || sha == 'unknown') && File.exist?(STATUS_FILE)
+      begin
+        status_data = JSON.parse(File.read(STATUS_FILE))
+        sha = status_data['target_sha'].to_s.strip if status_data['state'] == 'completed' && status_data['target_sha'].present?
+      rescue StandardError
+        nil
+      end
+    end
     sha.present? ? sha : 'unknown'
   end
 
