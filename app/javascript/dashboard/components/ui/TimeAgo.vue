@@ -33,6 +33,7 @@ export default {
     return {
       lastActivityAtTimeAgo: dynamicTime(this.lastActivityTimestamp),
       createdAtTimeAgo: dynamicTime(this.createdAtTimestamp),
+      nowTick: Date.now(),
       timer: null,
     };
   },
@@ -42,6 +43,12 @@ export default {
     },
     createdAtTime() {
       return shortTimestamp(this.createdAtTimeAgo);
+    },
+    createdAtColorClass() {
+      return this.getTimeUrgencyColorClass(this.createdAtTimestamp);
+    },
+    lastActivityColorClass() {
+      return this.getTimeUrgencyColorClass(this.lastActivityTimestamp);
     },
     createdAt() {
       return `${this.$t(
@@ -60,14 +67,17 @@ export default {
   watch: {
     lastActivityTimestamp() {
       this.lastActivityAtTimeAgo = dynamicTime(this.lastActivityTimestamp);
+      this.nowTick = Date.now();
     },
     createdAtTimestamp() {
       this.createdAtTimeAgo = dynamicTime(this.createdAtTimestamp);
+      this.nowTick = Date.now();
     },
     conversationId() {
       // Reset display values and timer when the row is recycled to a different conversation.
       this.lastActivityAtTimeAgo = dynamicTime(this.lastActivityTimestamp);
       this.createdAtTimeAgo = dynamicTime(this.createdAtTimestamp);
+      this.nowTick = Date.now();
       if (this.isAutoRefreshEnabled) {
         clearTimeout(this.timer);
         this.createTimer();
@@ -83,10 +93,27 @@ export default {
     clearTimeout(this.timer);
   },
   methods: {
+    getTimeUrgencyColorClass(timestamp) {
+      // Reference nowTick so Vue recomputes color classes on timer ticks
+      const currentMs = this.nowTick || Date.now();
+      const tsSeconds = Number(timestamp);
+      if (!tsSeconds || Number.isNaN(tsSeconds)) {
+        return 'text-n-slate-10';
+      }
+      const elapsedMinutes = Math.max(0, (currentMs - tsSeconds * 1000) / MINUTE_IN_MILLI_SECONDS);
+      if (elapsedMinutes < 15) {
+        return 'text-green-500 dark:text-green-400 font-medium';
+      }
+      if (elapsedMinutes < 30) {
+        return 'text-amber-500 dark:text-amber-400 font-medium';
+      }
+      return 'text-red-500 dark:text-red-400 font-semibold';
+    },
     createTimer() {
       this.timer = setTimeout(() => {
         this.lastActivityAtTimeAgo = dynamicTime(this.lastActivityTimestamp);
         this.createdAtTimeAgo = dynamicTime(this.createdAtTimestamp);
+        this.nowTick = Date.now();
         this.createTimer();
       }, this.refreshTime());
     },
@@ -114,6 +141,6 @@ export default {
     }"
     class="ml-auto leading-4 text-xxs text-n-slate-10 hover:text-n-slate-11"
   >
-    <span>{{ `${createdAtTime} • ${lastActivityTime}` }}</span>
+    <span :class="createdAtColorClass">{{ createdAtTime }}</span><span :class="createdAtColorClass"> • </span><span :class="lastActivityColorClass">{{ lastActivityTime }}</span>
   </div>
 </template>
