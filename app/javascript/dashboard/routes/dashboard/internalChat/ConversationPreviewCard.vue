@@ -113,6 +113,10 @@ const statusConfig = computed(() => {
       label: t('INTERNAL_CHAT.CONVERSATION_MENTION.STATUS.SNOOZED'),
       class: 'bg-n-blue-3 text-n-blue-11',
     },
+    awaiting_resolution: {
+      label: t('CONVERSATION.HEADER.AWAITING_RESOLUTION_BADGE'),
+      class: 'bg-amber-500/20 text-amber-700 dark:text-amber-300',
+    },
   };
   return map[status.value] || map.open;
 });

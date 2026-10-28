@@ -58,11 +58,16 @@ const shouldShowInboxBadge = computed(
     Boolean(props.inbox?.inbox_color || props.inbox?.inbox_badge_label)
 );
 
+const isAwaitingResolution = computed(
+  () => props.chat?.status === 'awaiting_resolution'
+);
+
 const showMetaSection = computed(() => {
   return (
     shouldShowInboxBadge.value ||
     (props.showAssignee && props.assignee.name) ||
-    props.chat.priority
+    props.chat.priority ||
+    isAwaitingResolution.value
   );
 });
 
@@ -121,11 +126,15 @@ watch(
   <div
     class="relative flex items-start gap-3 flex-grow-0 flex-shrink-0 w-auto max-w-full cursor-pointer conversation msc-conv-card mx-2 my-1.5 rounded-xl border transition-all duration-150 group"
     :class="[
-      isActiveChat
-        ? 'active animate-card-select bg-emerald-50/80 dark:bg-emerald-500/12 border-emerald-200/90 dark:border-emerald-500/35 border-l-4 !border-l-emerald-500 dark:!border-l-emerald-400 shadow-xs'
-        : selected
-          ? 'selected bg-emerald-50/50 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/40'
-          : 'bg-white dark:bg-white/[0.015] border-slate-200/75 dark:border-white/[0.06] hover:bg-slate-50/90 dark:hover:bg-white/[0.035] hover:border-slate-300/80 dark:hover:border-emerald-500/25',
+      isActiveChat && isAwaitingResolution
+        ? 'active animate-card-select bg-n-amber-4 dark:bg-n-amber-4 border-n-amber-7 border-l-4 !border-l-n-amber-9 shadow-xs'
+        : isActiveChat
+          ? 'active animate-card-select bg-emerald-50/80 dark:bg-emerald-500/12 border-emerald-200/90 dark:border-emerald-500/35 border-l-4 !border-l-emerald-500 dark:!border-l-emerald-400 shadow-xs'
+          : isAwaitingResolution && !selected
+            ? 'bg-n-amber-3 dark:bg-n-amber-3 hover:bg-n-amber-4 dark:hover:bg-n-amber-4 border-n-amber-6 border-l-4 !border-l-n-amber-9'
+            : selected
+              ? 'selected bg-emerald-50/50 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/40'
+              : 'bg-white dark:bg-white/[0.015] border-slate-200/75 dark:border-white/[0.06] hover:bg-slate-50/90 dark:hover:bg-white/[0.035] hover:border-slate-300/80 dark:hover:border-emerald-500/25',
       compact ? 'px-2.5 py-2.5' : 'px-3.5 py-3',
     ]"
     @click="$emit('click', $event)"
@@ -170,6 +179,12 @@ watch(
           {{ currentContact.name }}
         </h4>
         <div class="flex items-center gap-1.5 flex-shrink-0">
+          <span
+            v-if="isAwaitingResolution"
+            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-tight bg-n-amber-4 text-n-amber-11 border border-n-amber-7 flex-shrink-0"
+          >
+            {{ $t('CONVERSATION.HEADER.AWAITING_RESOLUTION_BADGE') }}
+          </span>
           <CardPriorityIcon
             :priority="chat.priority"
             class="flex-shrink-0 !size-3.5"

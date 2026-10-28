@@ -151,6 +151,7 @@
       "SNOOZED_UNTIL_TOMORROW": "Snoozed until tomorrow",
       "SNOOZED_UNTIL_NEXT_WEEK": "Snoozed until next week",
       "SNOOZED_UNTIL_NEXT_REPLY": "Snoozed until next reply",
+      "AWAITING_RESOLUTION_BADGE": "ON HOLD – AWAITING RESOLUTION",
       "WHATSAPP_CALL": "Start WhatsApp call",
       "WHATSAPP_CALL_FAILED": "Could not start the WhatsApp call.",
       "VOICE_CALL": "Start call",
@@ -167,6 +168,7 @@
     },
     "RESOLVE_DROPDOWN": {
       "MARK_PENDING": "Mark as pending",
+      "MARK_AWAITING_RESOLUTION": "On Hold – Awaiting Resolution",
       "SNOOZE_UNTIL": "Snooze",
       "SNOOZE": {
         "TITLE": "Snooze until",
@@ -236,6 +238,7 @@
     },
     "CARD_CONTEXT_MENU": {
       "PENDING": "Mark as pending",
+      "AWAITING_RESOLUTION": "On Hold – Awaiting Resolution",
       "RESOLVED": "Mark as resolved",
       "MARK_AS_UNREAD": "Mark as unread",
       "MARK_AS_READ": "Mark as read",

@@ -45,6 +45,9 @@ export default function useAutomationValues() {
       open: {
         TEXT: t('CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.open.TEXT'),
       },
+      awaiting_resolution: {
+        TEXT: t('CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.awaiting_resolution.TEXT'),
+      },
       resolved: {
         TEXT: t('CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.resolved.TEXT'),
       },

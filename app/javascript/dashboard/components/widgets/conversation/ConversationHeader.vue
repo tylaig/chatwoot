@@ -80,6 +80,10 @@ const currentContact = computed(() =>
 const isSnoozed = computed(
   () => currentChat.value.status === wootConstants.STATUS_TYPE.SNOOZED
 );
+const isAwaitingResolution = computed(
+  () =>
+    currentChat.value.status === wootConstants.STATUS_TYPE.AWAITING_RESOLUTION
+);
 
 const snoozedDisplayText = computed(() => {
   const { snoozed_until: snoozedUntil } = currentChat.value;
@@ -241,6 +245,13 @@ const copyConversationId = async () => {
           </span>
           <span v-if="isSnoozed" class="font-medium text-n-amber-10">
             {{ snoozedDisplayText }}
+          </span>
+          <span v-if="isAwaitingResolution">•</span>
+          <span
+            v-if="isAwaitingResolution"
+            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40"
+          >
+            {{ t('CONVERSATION.HEADER.AWAITING_RESOLUTION_BADGE') }}
           </span>
         </div>
       </div>

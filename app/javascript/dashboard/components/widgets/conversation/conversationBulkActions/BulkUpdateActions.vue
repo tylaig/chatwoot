@@ -50,6 +50,13 @@ const updateMenuItems = computed(() => {
     });
   }
 
+  items.push({
+    action: 'update',
+    value: 'awaiting_resolution',
+    label: t('CONVERSATION.RESOLVE_DROPDOWN.MARK_AWAITING_RESOLUTION'),
+    icon: 'i-lucide-hourglass',
+  });
+
   if (props.showSnooze) {
     items.push({
       action: 'update',

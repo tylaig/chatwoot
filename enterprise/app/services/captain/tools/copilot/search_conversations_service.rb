@@ -6,7 +6,7 @@ class Captain::Tools::Copilot::SearchConversationsService < Captain::Tools::Base
   end
   description 'Search conversations based on parameters'
 
-  param :status, type: :string, desc: 'Status of the conversation (open, resolved, pending, snoozed). Leave empty to search all statuses.'
+  param :status, type: :string, desc: 'Status of the conversation (open, resolved, pending, snoozed, awaiting_resolution). Leave empty to search all statuses.'
   param :contact_id, type: :number, desc: 'Contact id'
   param :priority, type: :string, desc: 'Priority of conversation (low, medium, high, urgent). Leave empty to search all priorities.'
   param :labels, type: :string, desc: 'Labels available'

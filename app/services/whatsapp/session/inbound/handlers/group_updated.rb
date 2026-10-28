@@ -119,7 +119,7 @@ class Whatsapp::Session::Inbound::Handlers::GroupUpdated < Whatsapp::Session::In
     # end a thread it can still use.
     # Snoozed as well: the snooze job reopens on its own schedule, and a thread reopened
     # for a group this inbox has left can no longer send anything.
-    @group_contact_inbox.conversations.where(status: %i[open pending snoozed])
+    @group_contact_inbox.conversations.where(status: %i[open pending snoozed awaiting_resolution])
                         .find_each { |thread| thread.update!(status: :resolved) }
   end
 
