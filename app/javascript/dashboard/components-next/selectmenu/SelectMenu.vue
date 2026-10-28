@@ -55,7 +55,7 @@ const handleSelect = value => {
       :class="[
         { 'dark:!bg-n-alpha-2 !bg-n-slate-9/20': isOpen },
         modelValue === 'awaiting_resolution'
-          ? '!bg-amber-500/20 !text-amber-800 dark:!text-amber-300 border border-amber-500/40'
+          ? '!bg-n-amber-3 !text-n-amber-11 border border-n-amber-7'
           : '',
       ]"
       :label="labelValue"
@@ -85,7 +85,7 @@ const handleSelect = value => {
         :class="[
           { '!bg-n-alpha-2': option.value === modelValue },
           option.value === 'awaiting_resolution'
-            ? '!bg-amber-500/15 hover:!bg-amber-500/25 !text-amber-800 dark:!text-amber-300 font-medium'
+            ? '!bg-n-amber-3 hover:!bg-n-amber-4 !text-n-amber-11 font-medium'
             : '',
         ]"
         @click="handleSelect(option.value)"

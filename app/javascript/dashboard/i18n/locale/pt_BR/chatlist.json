@@ -11,7 +11,7 @@
     "TAB_HEADING": "Conversas",
     "MENTION_HEADING": "Menções",
     "UNATTENDED_HEADING": "Não Atendidas",
-    "AWAITING_RESOLUTION_HEADING": "Em Espera – Aguardando Resolução",
+    "AWAITING_RESOLUTION_HEADING": "Em Espera",
     "SEARCH": {
       "INPUT": "Pesquisar pessoas, conversas, respostas salvas .."
     },
@@ -35,7 +35,8 @@
         "TEXT": "Adiadas"
       },
       "awaiting_resolution": {
-        "TEXT": "Em Espera – Aguardando Resolução"
+        "TEXT": "Em Espera",
+        "SHORT_TEXT": "Aguardando Resolução"
       },
       "all": {
         "TEXT": "Todas"

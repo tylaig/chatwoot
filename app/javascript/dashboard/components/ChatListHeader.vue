@@ -116,7 +116,11 @@ const toggleConversationLayout = () => {
         "
       >
         <span>{{
-          $t(`CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.${activeStatus}.TEXT`)
+          isAwaitingResolutionView
+            ? $t(
+                'CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.awaiting_resolution.SHORT_TEXT'
+              )
+            : $t(`CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.${activeStatus}.TEXT`)
         }}</span>
         <span v-if="allCount > 0 && !isListLoading">{{
           formattedAllCount

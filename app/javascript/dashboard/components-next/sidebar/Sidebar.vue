@@ -475,8 +475,8 @@ const menuItems = computed(() => {
                 class: [
                   'flex items-center gap-2 w-full min-w-0 rounded-md px-1.5 py-0.5 -mx-1.5 transition-colors',
                   leafProps.active
-                    ? 'bg-amber-500/20 dark:bg-amber-500/25 text-amber-800 dark:text-amber-300 font-semibold ring-1 ring-amber-500/40'
-                    : 'bg-amber-500/10 hover:bg-amber-500/20 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-medium',
+                    ? 'bg-n-amber-4 text-n-amber-11 font-semibold ring-1 ring-n-amber-8'
+                    : 'bg-n-amber-3 hover:bg-n-amber-4 text-n-amber-11 font-medium border border-n-amber-6/60',
                 ],
               },
               [
@@ -484,7 +484,7 @@ const menuItems = computed(() => {
                   'span',
                   {
                     class:
-                      'size-4 grid place-content-center rounded-full text-amber-600 dark:text-amber-400 shrink-0',
+                      'size-4 grid place-content-center rounded-full text-n-amber-11 shrink-0',
                   },
                   [h('span', { class: 'i-lucide-hourglass size-3.5' })]
                 ),
@@ -498,7 +498,7 @@ const menuItems = computed(() => {
                       'span',
                       {
                         class:
-                          'inline-grid h-5 min-w-5 place-items-center rounded-full bg-amber-500/25 dark:bg-amber-500/30 border border-amber-500/40 px-1 text-xxs font-bold leading-3 text-amber-800 dark:text-amber-200 flex-shrink-0',
+                          'inline-grid h-5 min-w-5 place-items-center rounded-full bg-n-amber-5 border border-n-amber-8 px-1 text-xxs font-bold leading-3 text-n-amber-12 flex-shrink-0',
                       },
                       Number(leafProps.badgeCount) > 99
                         ? '99+'

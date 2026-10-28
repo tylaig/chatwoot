@@ -250,7 +250,7 @@ const copyConversationId = async () => {
           <span v-if="isAwaitingResolution">•</span>
           <span
             v-if="isAwaitingResolution"
-            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40"
+            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-n-amber-3 text-n-amber-11 border border-n-amber-7"
           >
             {{ t('CONVERSATION.HEADER.AWAITING_RESOLUTION_BADGE') }}
           </span>

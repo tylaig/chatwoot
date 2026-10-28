@@ -11,7 +11,7 @@
     "TAB_HEADING": "Conversations",
     "MENTION_HEADING": "Mentions",
     "UNATTENDED_HEADING": "Unattended",
-    "AWAITING_RESOLUTION_HEADING": "On Hold – Awaiting Resolution",
+    "AWAITING_RESOLUTION_HEADING": "On Hold",
     "SEARCH": {
       "INPUT": "Search for People, Chats, Saved Replies .."
     },
@@ -35,7 +35,8 @@
         "TEXT": "Snoozed"
       },
       "awaiting_resolution": {
-        "TEXT": "On Hold – Awaiting Resolution"
+        "TEXT": "On Hold",
+        "SHORT_TEXT": "Awaiting Resolution"
       },
       "all": {
         "TEXT": "All"
