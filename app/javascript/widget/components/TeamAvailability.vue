@@ -23,24 +23,81 @@ const startConversation = () => {
   }
 };
 
+const getInboxSchedule = () => {
+  const ch = window.chatwootWebChannel || {};
+  const tz = ch.timezone || 'America/Sao_Paulo';
+  let currentHour = 12;
+  let dayOfWeek = 1;
+  try {
+    const now = new Date();
+    const tzStr = now.toLocaleString('en-US', { timeZone: tz });
+    const tzDate = new Date(tzStr);
+    currentHour = tzDate.getHours();
+    dayOfWeek = tzDate.getDay();
+  } catch (e) {
+    const now = new Date();
+    currentHour = now.getHours();
+    dayOfWeek = now.getDay();
+  }
+
+  let openHour = 11;
+  let closeHour = 22;
+  let closedToday = false;
+
+  if (ch.workingHoursEnabled && Array.isArray(ch.workingHours)) {
+    const todaySlot = ch.workingHours.find(
+      s => Number(s.day_of_week ?? s.dayOfWeek) === dayOfWeek
+    );
+    if (todaySlot) {
+      closedToday = Boolean(todaySlot.closed_all_day ?? todaySlot.closedAllDay);
+      if (todaySlot.open_all_day || todaySlot.openAllDay) {
+        openHour = 0;
+        closeHour = 24;
+      } else {
+        openHour = Number(todaySlot.open_hour ?? todaySlot.openHour ?? 11);
+        closeHour = Number(todaySlot.close_hour ?? todaySlot.closeHour ?? 22);
+      }
+    }
+  }
+
+  return { currentHour, openHour, closeHour, closedToday };
+};
+
+const botCardTitle = computed(() => {
+  const botName = window.chatwootWebChannel?.hasAConnectedAgentBot;
+  if (botName && String(botName).trim()) {
+    return `${String(botName).trim()} • Atendimento Rápido`;
+  }
+  return null;
+});
+
 const isHumanOnline = computed(() => {
   try {
     const params = new URLSearchParams(window.location.search);
     const forcedStatus = params.get('cw_team_status');
     if (forcedStatus === 'online') return true;
-    if (forcedStatus === 'offline') return false;
-
-    const now = new Date();
-    const brStr = now.toLocaleString('en-US', {
-      timeZone: 'America/Sao_Paulo',
-    });
-    const brDate = new Date(brStr);
-    const hour = brDate.getHours();
-    return hour >= 11 && hour < 22;
+    if (forcedStatus === 'offline' || forcedStatus === 'offline_today') {
+      return false;
+    }
   } catch (e) {
-    const localHour = new Date().getHours();
-    return localHour >= 11 && localHour < 22;
+    // ignore
   }
+  const { currentHour, openHour, closeHour, closedToday } = getInboxSchedule();
+  if (closedToday) return false;
+  return currentHour >= openHour && currentHour < closeHour;
+});
+
+const isOfflineBeforeOpeningToday = computed(() => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const forcedStatus = params.get('cw_team_status');
+    if (forcedStatus === 'offline_today') return true;
+  } catch (e) {
+    // ignore
+  }
+  const { currentHour, openHour, closedToday } = getInboxSchedule();
+  if (closedToday) return false;
+  return currentHour < openHour;
 });
 
 const styles = {
@@ -198,7 +255,9 @@ const styles = {
             {{
               isHumanOnline
                 ? $t('TEAM_AVAILABILITY.HUMAN_ONLINE_SUBTITLE')
-                : $t('TEAM_AVAILABILITY.HUMAN_OFFLINE_SUBTITLE')
+                : isOfflineBeforeOpeningToday
+                  ? $t('TEAM_AVAILABILITY.HUMAN_OFFLINE_TODAY_SUBTITLE')
+                  : $t('TEAM_AVAILABILITY.HUMAN_OFFLINE_SUBTITLE')
             }}
           </span>
         </div>
@@ -222,7 +281,7 @@ const styles = {
               class="text-[14px] font-bold leading-[1.3] dark:text-n-slate-12"
               :style="styles.leoTitle"
             >
-              {{ $t('TEAM_AVAILABILITY.BOT_CARD_TITLE') }}
+              {{ botCardTitle || $t('TEAM_AVAILABILITY.BOT_CARD_TITLE') }}
             </span>
             <span
               class="text-[10.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0"

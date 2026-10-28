@@ -18,6 +18,12 @@ class Shopify::MultiStoreOrderFinderService
     hooks = resolve_hooks
     return [] if hooks.empty?
 
+    cache_key = build_orders_cache_key(hooks)
+    if cache_key.present?
+      cached = Rails.cache.read(cache_key)
+      return cached if cached.is_a?(Array)
+    end
+
     threads = hooks.map do |hook|
       Thread.new do
         Rails.application.executor.wrap do
@@ -29,8 +35,15 @@ class Shopify::MultiStoreOrderFinderService
       end
     end
 
-    orders = threads.flat_map(&:value)
-    sort_orders(orders)
+    orders = sort_orders(threads.flat_map(&:value))
+    Rails.cache.write(cache_key, orders, expires_in: 60.seconds) if cache_key.present? && orders.any?
+    orders
+  end
+
+  def build_orders_cache_key(hooks)
+    hook_ids = hooks.map(&:id).sort.join('-')
+    contact_part = @contact ? "#{@contact.id}:#{@contact.email}:#{@contact.phone_number}" : 'none'
+    "shopify:orders:v2:acc=#{@account.id}:hooks=#{hook_ids}:contact=#{contact_part}:q=#{@query}:inb=#{@inbox_id}:per=#{@period}"
   end
 
   def perform_customers
@@ -511,7 +524,7 @@ class Shopify::MultiStoreOrderFinderService
     search_terms = build_customer_search_terms
     if search_terms.any?
       customers = search_customers(hook, search_terms)
-      customers.first(3).each do |customer|
+      customers.first(10).each do |customer|
         raw_orders.concat(fetch_orders_by_customer(hook, customer['id']))
       end
     end

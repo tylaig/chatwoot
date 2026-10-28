@@ -14,7 +14,13 @@ const props = defineProps({
 
 const emit = defineEmits(['selectRating']);
 
-const starRatings = [1, 2, 3, 4, 5];
+const starRatings = [
+  { value: 1, label: 'Péssimo' },
+  { value: 2, label: 'Ruim' },
+  { value: 3, label: 'Regular' },
+  { value: 4, label: 'Bom' },
+  { value: 5, label: 'Excelente' },
+];
 const hoveredRating = ref(0);
 
 const onHoverRating = value => {
@@ -27,42 +33,67 @@ const selectRating = value => {
   emit('selectRating', value);
 };
 
-const getStarClass = value => {
-  const isStarActive =
-    (hoveredRating.value > 0 &&
-      !props.isDisabled &&
-      hoveredRating.value >= value) ||
-    props.selectedRating >= value;
+const isStarHighlighted = value => {
+  if (props.selectedRating) {
+    return props.selectedRating >= value;
+  }
+  if (hoveredRating.value > 0 && !props.isDisabled) {
+    return hoveredRating.value >= value;
+  }
+  return true;
+};
 
-  // A cor sai de --survey-brand quando a pagina define a variavel (so a survey define), e
-  // cai no token do design system em qualquer outro lugar. Sem prop nova, e o widget que
-  // compartilha este componente nao muda.
-  const starTypeClass = isStarActive
-    ? 'i-ri-star-fill text-[color:var(--survey-brand,rgb(var(--amber-9)))]'
-    : 'i-ri-star-line text-n-slate-10';
-
-  return starTypeClass;
+const isBadgeSelected = value => {
+  return (
+    props.selectedRating === value ||
+    (hoveredRating.value === value && !props.isDisabled)
+  );
 };
 </script>
 
 <template>
-  <div class="flex justify-center py-5 px-4 gap-3">
+  <div
+    class="flex justify-between items-start py-4 px-2.5 sm:px-4 gap-1.5 w-full box-border"
+  >
     <button
-      v-for="value in starRatings"
-      :key="value"
+      v-for="item in starRatings"
+      :key="item.value"
       type="button"
-      class="rounded-full p-1 transition-all duration-200 focus:enabled:scale-[1.2] focus-within:enabled:scale-[1.2] hover:enabled:scale-[1.2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--survey-brand,rgb(var(--slate-9)))] flex items-center flex-shrink-0"
-      :class="{ 'cursor-not-allowed opacity-50': isDisabled }"
+      class="group flex flex-col items-center flex-1 min-w-0 p-1 rounded-xl bg-transparent border-0 transition-transform duration-200 focus:enabled:scale-105 hover:enabled:scale-105 focus:outline-none cursor-pointer select-none"
+      :class="{ 'cursor-not-allowed opacity-60': isDisabled }"
       :disabled="isDisabled"
-      :aria-label="'Star ' + value"
-      @click="selectRating(value)"
-      @mouseenter="onHoverRating(value)"
+      :aria-label="`${item.value} - ${item.label}`"
+      @click="selectRating(item.value)"
+      @mouseenter="onHoverRating(item.value)"
       @mouseleave="onHoverRating(0)"
     >
       <span
-        :class="getStarClass(value)"
-        class="transition-all duration-500 text-2xl"
+        class="i-ri-star-fill text-[28px] sm:text-[32px] leading-none transition-all duration-200 drop-shadow-[0_2px_4px_rgba(245,158,11,0.28)]"
+        :class="
+          isStarHighlighted(item.value)
+            ? 'text-[#fbbf24] scale-100'
+            : 'text-slate-300 dark:text-n-slate-8 scale-95 opacity-60'
+        "
       />
+      <div
+        class="mt-2 w-full py-1 px-1 rounded-xl flex flex-col items-center justify-center transition-colors duration-200 border border-solid"
+        :class="
+          isBadgeSelected(item.value)
+            ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700'
+            : 'bg-[#f1f5f9] dark:bg-n-solid-2 border-transparent group-hover:bg-slate-200/70'
+        "
+      >
+        <span
+          class="text-[12px] font-extrabold leading-tight text-slate-900 dark:text-n-slate-12"
+        >
+          {{ item.value }}
+        </span>
+        <span
+          class="text-[10px] font-medium leading-tight text-slate-500 dark:text-n-slate-11 truncate max-w-full"
+        >
+          {{ item.label }}
+        </span>
+      </div>
     </button>
   </div>
 </template>

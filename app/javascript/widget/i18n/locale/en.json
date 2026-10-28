@@ -41,7 +41,8 @@
     "BOT_CARD_ONLINE_FOOTER_HINT": "Active team",
     "BOT_CARD_OFFLINE_FOOTER_HINT": "Instant reply",
     "BOT_CARD_ONLINE_SUBTITLE": "Online • Support team available now",
-    "BOT_CARD_OFFLINE_SUBTITLE": "Online • Support team returns at 11 AM"
+    "BOT_CARD_OFFLINE_SUBTITLE": "Online • Support team returns at 11 AM",
+    "HUMAN_OFFLINE_TODAY_SUBTITLE": "Returns today starting at 11 AM (Brasília Time)"
   },
   "REPLY_TIME": {
     "IN_A_FEW_MINUTES": "Typically replies in a few minutes",
@@ -52,7 +53,8 @@
     "BACK_AT_TIME": "We will be back online at {time}",
     "BACK_ON_DAY": "We will be back online on {day}",
     "BACK_TOMORROW": "We will be back online tomorrow",
-    "BACK_IN_SOME_TIME": "We will be back online in some time"
+    "BACK_IN_SOME_TIME": "We will be back online in some time",
+    "BACK_TODAY_AT_TIME": "We will be back online today at {time}"
   },
   "DAY_NAMES": {
     "SUNDAY": "Sunday",
@@ -139,7 +141,15 @@
     "LOW_RATING_TITLE": "We are sorry your experience wasn't ideal. Tell us what happened so we can improve:",
     "GOOGLE_REVIEW_CTA": "⭐ Leave a review on Google",
     "LOW_RATING_PLACEHOLDER": "Write your private feedback for our team...",
-    "PLACEHOLDER": "Tell us more..."
+    "PLACEHOLDER": "Tell us more...",
+    "STAR_SUBTITLE": "Tap the stars below:",
+    "RATINGS": {
+      "1": "Terrible",
+      "2": "Bad",
+      "3": "Fair",
+      "4": "Good",
+      "5": "Excellent"
+    }
   },
   "EMAIL_TRANSCRIPT": {
     "BUTTON_TEXT": "Request a conversation transcript",
@@ -179,5 +189,12 @@
   },
   "FOOTER_REPLY_TO": {
     "REPLY_TO": "Replying to:"
+  },
+  "END_CHAT_MODAL": {
+    "BUTTON_LABEL": "End chat",
+    "TITLE": "Do you want to end the chat?",
+    "SUBTITLE": "Choose one of the options below.",
+    "CONFIRM_RESOLVE": "I already solved my issue, end chat",
+    "KEEP_WAITING": "I want to keep waiting for support"
   }
 }

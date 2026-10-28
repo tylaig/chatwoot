@@ -41,7 +41,8 @@
     "BOT_CARD_ONLINE_FOOTER_HINT": "Equipe ativa",
     "BOT_CARD_OFFLINE_FOOTER_HINT": "Resposta imediata",
     "BOT_CARD_ONLINE_SUBTITLE": "Online • Equipe de suporte disponível agora",
-    "BOT_CARD_OFFLINE_SUBTITLE": "Online • Equipe de suporte retorna às 11h"
+    "BOT_CARD_OFFLINE_SUBTITLE": "Online • Equipe de suporte retorna às 11h",
+    "HUMAN_OFFLINE_TODAY_SUBTITLE": "Retorna hoje, a partir das 11h (Horário de Brasília)"
   },
   "REPLY_TIME": {
     "IN_A_FEW_MINUTES": "Normalmente respondemos em poucos minutos",
@@ -52,7 +53,8 @@
     "BACK_AT_TIME": "We will be back online at {time}",
     "BACK_ON_DAY": "We will be back online on {day}",
     "BACK_TOMORROW": "We will be back online tomorrow",
-    "BACK_IN_SOME_TIME": "We will be back online in some time"
+    "BACK_IN_SOME_TIME": "We will be back online in some time",
+    "BACK_TODAY_AT_TIME": "Online • Equipe de suporte retorna hoje às {time}"
   },
   "DAY_NAMES": {
     "SUNDAY": "Domingo",
@@ -64,7 +66,7 @@
     "SATURDAY": "Sábado"
   },
   "START_CONVERSATION": "Iniciar Conversa",
-  "END_CONVERSATION": "Terminar Conversa",
+  "END_CONVERSATION": "Encerrar atendimento",
   "CONTINUE_CONVERSATION": "Continuar conversa",
   "YOU": "Você",
   "START_NEW_CONVERSATION": "Iniciar uma nova conversa",
@@ -73,7 +75,7 @@
     "VIEW_MESSAGES_BUTTON": "Ver novas mensagens",
     "CLOSE_MESSAGES_BUTTON": "FECHAR",
     "COMPANY_FROM": "de",
-    "BOT": "Bot"
+    "BOT": "Atendimento"
   },
   "BUBBLE": {
     "LABEL": "Fale connosco"
@@ -135,7 +137,15 @@
   "CSAT": {
     "TITLE": "Avalie a sua conversa",
     "SUBMITTED_TITLE": "Obrigado pela sua avaliação",
-    "PLACEHOLDER": "Conte-nos mais..."
+    "PLACEHOLDER": "Conte-nos mais...",
+    "STAR_SUBTITLE": "Toque nas estrelas abaixo:",
+    "RATINGS": {
+      "1": "Péssimo",
+      "2": "Ruim",
+      "3": "Regular",
+      "4": "Bom",
+      "5": "Excelente"
+    }
   },
   "EMAIL_TRANSCRIPT": {
     "BUTTON_TEXT": "Pedir a transcrição da conversa",
@@ -175,5 +185,12 @@
   },
   "FOOTER_REPLY_TO": {
     "REPLY_TO": "Em resposta a:"
+  },
+  "END_CHAT_MODAL": {
+    "BUTTON_LABEL": "Encerrar atendimento",
+    "TITLE": "Deseja encerrar o chat?",
+    "SUBTITLE": "Escolha uma das opções abaixo.",
+    "CONFIRM_RESOLVE": "Já resolvi meu problema, encerrar chat",
+    "KEEP_WAITING": "Quero continuar aguardando atendimento"
   }
 }

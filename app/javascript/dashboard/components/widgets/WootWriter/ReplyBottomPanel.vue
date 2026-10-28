@@ -143,6 +143,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    conversationStatus: {
+      type: String,
+      default: '',
+    },
   },
   emits: [
     'toggleInsertArticle',
@@ -151,6 +155,8 @@ export default {
     'toggleQuotedReply',
     'scheduleMessage',
     'requestContactInfoTemplate',
+    'resolveConversation',
+    'markPendingConversation',
   ],
   setup(props) {
     const { setSignatureFlagForInbox, fetchSignatureFlagFromUISettings } =
@@ -285,6 +291,13 @@ export default {
         ? this.$t('CONVERSATION.REPLYBOX.QUOTED_REPLY.DISABLE_TOOLTIP')
         : this.$t('CONVERSATION.REPLYBOX.QUOTED_REPLY.ENABLE_TOOLTIP');
     },
+    shouldShowBottomResolveButton() {
+      return (
+        !this.isNote &&
+        this.isSendDisabled &&
+        this.conversationStatus === 'open'
+      );
+    },
   },
   mounted() {
     ActiveStorage.start();
@@ -298,6 +311,12 @@ export default {
     },
     openScheduleModal() {
       this.$emit('scheduleMessage');
+    },
+    emitResolveConversation() {
+      this.$emit('resolveConversation');
+    },
+    emitMarkPendingConversation() {
+      this.$emit('markPendingConversation');
     },
   },
 };
@@ -429,7 +448,50 @@ export default {
       />
     </div>
     <div class="right-wrap">
-      <div v-if="showScheduleOptions && !isNote" class="flex">
+      <div
+        v-if="shouldShowBottomResolveButton"
+        class="flex rounded-lg outline outline-1 outline-emerald-600/70"
+      >
+        <NextButton
+          :label="$t('CONVERSATION.HEADER.RESOLVE_ACTION')"
+          icon="i-lucide-circle-check"
+          type="button"
+          sm
+          teal
+          faded
+          class="flex-shrink-0 !rounded-r-none !outline-0 font-semibold"
+          @click="emitResolveConversation"
+        />
+        <DropdownContainer>
+          <template #trigger="{ toggle, isOpen }">
+            <NextButton
+              type="button"
+              sm
+              teal
+              faded
+              icon="i-lucide-chevron-down"
+              class="flex-shrink-0 !rounded-l-none !outline-0 !border-l border-l-emerald-600/30 !px-1.5"
+              :class="{ 'bg-n-teal-9/25': isOpen }"
+              @click="toggle"
+            />
+          </template>
+          <DropdownBody class="bottom-11 -right-2 min-w-48 z-50" strong>
+            <DropdownSection>
+              <DropdownItem
+                icon="i-lucide-circle-check"
+                :label="$t('CONVERSATION.HEADER.RESOLVE_ACTION')"
+                :click="emitResolveConversation"
+              />
+              <DropdownItem
+                icon="i-lucide-circle-dot-dashed"
+                :label="$t('CONVERSATION.RESOLVE_DROPDOWN.MARK_PENDING')"
+                :click="emitMarkPendingConversation"
+              />
+            </DropdownSection>
+          </DropdownBody>
+        </DropdownContainer>
+      </div>
+      <div v-else-if="showScheduleOptions && !isNote" class="flex">
         <NextButton
           :label="sendButtonText"
           icon="i-lucide-corner-down-left"

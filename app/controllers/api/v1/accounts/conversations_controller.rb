@@ -224,6 +224,11 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   end
 
   def update_last_seen
+    throttle_key = "uls:v1:u=#{Current.user&.id}:c=#{@conversation.id}:la=#{@conversation.last_activity_at.to_i}"
+    return head :ok if Rails.cache.read(throttle_key).present?
+
+    Rails.cache.write(throttle_key, 1, expires_in: 15.seconds)
+
     # High-traffic accounts generate excessive DB writes when agents frequently switch between conversations.
     # Throttle last_seen updates to once per hour when there are no unread messages to reduce DB load.
     # Always update immediately if there are unread messages to maintain accurate read/unread state.

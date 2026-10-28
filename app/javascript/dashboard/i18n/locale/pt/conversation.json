@@ -126,7 +126,7 @@
       "TRANSCRIPT_SHOW_LESS": "Show less"
     },
     "HEADER": {
-      "RESOLVE_ACTION": "Resolver",
+      "RESOLVE_ACTION": "Encerrar atendimento",
       "REOPEN_ACTION": "Reabrir",
       "OPEN_ACTION": "Abertas",
       "MORE_ACTIONS": "Mais ações",
@@ -223,7 +223,7 @@
     },
     "CARD_CONTEXT_MENU": {
       "PENDING": "Marcar como pendente",
-      "RESOLVED": "Marcar como resolvida",
+      "RESOLVED": "Encerrar atendimento",
       "MARK_AS_UNREAD": "Marcar como não lida",
       "MARK_AS_READ": "Marcar como lida",
       "REOPEN": "Reabrir conversa",

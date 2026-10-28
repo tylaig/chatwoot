@@ -32,6 +32,8 @@ class Api::V1::Accounts::Captain::TasksController < Api::V1::Accounts::BaseContr
   end
 
   def label_suggestion
+    return render json: { message: nil }, status: :ok unless Current.account&.feature_enabled?('captain_label_suggestion_active')
+
     result = Captain::LabelSuggestionService.new(
       account: Current.account,
       conversation_display_id: params[:conversation_display_id]
