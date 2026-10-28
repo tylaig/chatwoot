@@ -15,7 +15,18 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
+  customerRequestSummary: {
+    type: String,
+    default: '',
+  },
 });
+
+const summaryText = computed(
+  () =>
+    props.customerRequestSummary ||
+    props.conversationAttributes?.customer_request_summary ||
+    ''
+);
 
 const referer = computed(() => props.conversationAttributes.referer);
 
@@ -99,7 +110,25 @@ const staticElements = computed(() =>
 </script>
 
 <template>
-  <div class="conversation--details">
+  <div class="conversation--details flex flex-col gap-2">
+    <div
+      v-if="summaryText"
+      class="rounded-xl border border-n-strong/70 bg-n-solid-2 p-3 shadow-sm"
+    >
+      <div class="flex items-center gap-1.5 mb-1.5">
+        <span class="i-lucide-mail text-sm text-n-amber-11 shrink-0" />
+        <span
+          class="text-[11px] font-semibold uppercase tracking-wider text-n-slate-11"
+        >
+          {{ $t('CONVERSATION_SIDEBAR.CUSTOMER_REQUEST_SUMMARY.TITLE') }}
+        </span>
+      </div>
+      <p
+        class="text-xs leading-relaxed text-n-slate-12 whitespace-pre-line break-words m-0"
+      >
+        {{ summaryText }}
+      </p>
+    </div>
     <CustomAttributes
       :static-elements="staticElements"
       attribute-class="conversation--attribute"

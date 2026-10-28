@@ -126,7 +126,7 @@ class Api::V1::AccountsController < Api::BaseController
 
   def permitted_settings_attributes
     [:auto_resolve_after, :auto_resolve_message, :auto_resolve_ignore_waiting, :audio_transcriptions, :auto_resolve_label,
-     :hide_inboxes_for_agents, :brand_name, :brand_url, :brand_color]
+     :hide_inboxes_for_agents, :brand_name, :brand_url, :brand_color, { conversation_sidebar_visible_items: [] }]
   end
 
   def check_signup_enabled

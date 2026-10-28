@@ -200,6 +200,10 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
       inbox_id: inbox.id,
       content: reason
     )
+    if reason.present?
+      attrs = (@conversation.additional_attributes || {}).merge('customer_request_summary' => reason.to_s.strip)
+      @conversation.update_columns(additional_attributes: attrs, updated_at: Time.current)
+    end
     @response['action_source'] = 'v2_false_promise_guard'
     @response['action_reason'] = 'unexecuted_handoff_promise'
     process_v1_handoff

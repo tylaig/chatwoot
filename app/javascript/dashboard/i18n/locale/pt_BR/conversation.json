@@ -470,7 +470,11 @@
       "MACROS": "Macros",
       "LINEAR_ISSUES": "Problemas do Linear vinculados",
       "SHOPIFY_ORDERS": "Pedidos do Shopify",
-      "SHARED_FILES": "Anexos"
+      "SHARED_FILES": "Anexos",
+      "SCHEDULED_MESSAGES": "Mensagens agendadas"
+    },
+    "CUSTOMER_REQUEST_SUMMARY": {
+      "TITLE": "Solicitação do cliente"
     },
     "SHARED_FILES": {
       "EMPTY": "Nenhum anexo ainda",

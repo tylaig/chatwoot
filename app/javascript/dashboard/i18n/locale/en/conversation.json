@@ -483,7 +483,11 @@
       "MACROS": "Macros",
       "LINEAR_ISSUES": "Linked Linear Issues",
       "SHOPIFY_ORDERS": "Shopify Orders",
-      "SHARED_FILES": "Attachments"
+      "SHARED_FILES": "Attachments",
+      "SCHEDULED_MESSAGES": "Scheduled Messages"
+    },
+    "CUSTOMER_REQUEST_SUMMARY": {
+      "TITLE": "Customer Request"
     },
     "SHARED_FILES": {
       "EMPTY": "No attachments yet",

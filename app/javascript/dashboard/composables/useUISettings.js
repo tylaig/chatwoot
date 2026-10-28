@@ -173,7 +173,7 @@ export function useUISettings() {
     contactSidebarItemsOrder: useContactSidebarItemsOrder(uiSettings),
     isContactSidebarItemOpen: key => {
       if (
-        key === 'is_shopify_orders_open' &&
+        (key === 'is_shopify_orders_open' || key === 'is_conv_details_open') &&
         uiSettings.value[key] === undefined
       ) {
         return true;

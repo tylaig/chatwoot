@@ -63,7 +63,7 @@ class Account < ApplicationRecord # rubocop:disable Metrics/ClassLength
 
   store_accessor :settings, :auto_resolve_after, :auto_resolve_message, :auto_resolve_ignore_waiting
 
-  store_accessor :settings, :audio_transcriptions, :auto_resolve_label, :hide_inboxes_for_agents
+  store_accessor :settings, :audio_transcriptions, :auto_resolve_label, :hide_inboxes_for_agents, :conversation_sidebar_visible_items
   store_accessor :settings, :captain_models, :captain_features
   store_accessor :settings, :reporting_timezone
   store_accessor :settings, :keep_pending_on_bot_failure
