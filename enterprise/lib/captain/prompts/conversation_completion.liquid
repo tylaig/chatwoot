@@ -19,14 +19,15 @@ Choose this when the conversation can be safely closed right now because:
 
 2. "awaiting_customer_reply" (`"complete": false, "status": "awaiting_customer_reply"`):
 Choose this when the conversation should be SNOOZED (adiada) temporarily awaiting the customer's reply before closing for inactivity:
-- In the latest message, Assistente IA / Captain asked the customer for required information to proceed (e.g., purchase email, order number, screenshot/photo of the error, console model PS4/PS5, verification code, or confirmation) and the customer has not replied yet.
+- In the latest message, Assistente IA / Captain asked the customer a question or requested required information to proceed (e.g., purchase email, order number, screenshot/photo of the error, console model PS4/PS5, verification code, or confirmation whether they want human transfer) and the customer has NOT provided it yet.
+- NEVER choose "awaiting_customer_reply" if the customer already requested or accepted human transfer and Assistente IA / Captain already stated that the request was registered/forwarded to the human support team and told the customer to wait in the queue.
 - When marked as "awaiting_customer_reply", the system places the conversation in "snoozed" (Adiada) waiting for the customer. If the customer replies later with the email/data, Captain automatically resumes the conversation; if the customer remains silent past the snooze period, the system automatically closes it for inactivity.
 
 3. "needs_human" (`"complete": false, "status": "needs_human"`):
 Choose this ONLY when the conversation requires human agent intervention right now:
 - The latest message in the conversation is from the Customer and the assistant has NOT replied to it yet.
-- In the latest exchange, Assistente IA / Captain explicitly stated it is transferring/handing off to a human agent/team right now, or that only the human team can perform the requested action (e.g., refund, cancellation, manual verification after the 1-hour delivery deadline has already passed and the customer already provided their purchase email).
-- The customer explicitly asked to speak to a human/attendant and has not been answered.
+- In the latest exchange, Assistente IA / Captain explicitly stated it is transferring/handing off to a human agent/team right now, or confirmed that the customer's case/email is already registered in the queue for the human team ("Solicitei atendimento humano", "Seu chamado já está registrado com nossa equipe humana", "Um atendente responderá por aqui"), or that only the human team can perform the requested action (e.g., refund, cancellation, manual verification after the 1-hour delivery deadline has already passed and the customer already provided their purchase email).
+- The customer explicitly asked to speak to a human/attendant (or accepted the assistant's offer to transfer) and has already provided their purchase email (if requested).
 
 IMPORTANT: All explanations in "reason" MUST be written in Brazilian Portuguese (Português do Brasil). NEVER write the reason in English or any other language, as the human support team reads these notes directly in Portuguese.
 Exemplos:

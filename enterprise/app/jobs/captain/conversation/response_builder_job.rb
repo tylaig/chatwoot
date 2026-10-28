@@ -6,6 +6,16 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
   include Captain::Conversation::ResponseLifecycleLogging
 
   MAX_MESSAGE_LENGTH = 10_000
+  V2_UNEXECUTED_HANDOFF_PROMISE_REGEX = %r{
+    \b(?:
+      j[áa]\s+solicitei\s+(?:o\s+)?atendimento|
+      solicitei\s+(?:o\s+)?atendimento\s+(?:humano|com\s+a\s+nossa\s+equipe)|
+      (?:seu\s+)?(?:chamado|atendimento|caso|pedido\s+de\s+(?:devolu[çc][ãa]o|reembolso|cancelamento))\b[^\n]{0,80}\bj[áa]\s+(?:est[áa]|ficou)\s+(?:registrado|na\s+fila)|
+      j[áa]\s+(?:registrei|deixei|encaminhei)\b[^\n]{0,80}\b(?:equipe\s+humana|nossa\s+equipe|fila(?:\s+de\s+atendimento)?)|
+      deixei\s+o\s+seu\s+(?:caso|chamado|atendimento)\s+registrado\s+para\s+a\s+nossa\s+equipe|
+      encaminhei\s+o\s+seu\s+(?:caso|chamado|atendimento)\s+para\s+a\s+nossa\s+equipe
+    )
+  }xi
   retry_on ActiveStorage::FileNotFoundError, attempts: 3, wait: 2.seconds
   retry_on Faraday::BadRequestError, attempts: 3, wait: 2.seconds
 
@@ -76,6 +86,8 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
 
     if v2_handoff_tool_fired?
       process_v2_handoff_response
+    elsif v2_unexecuted_handoff_promise?
+      process_v2_unexecuted_handoff_promise
     elsif v1_handoff_requested?
       process_v1_handoff_request
     elsif conversation_pending_or_resolved_by_tool?
@@ -158,6 +170,42 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
 
   def v2_handoff_tool_fired? = @response['handoff_tool_called']
   def v2_handoff_tool_completed? = @v2_handoff_tool_completed == true
+
+  def v2_unexecuted_handoff_promise?
+    return false unless captain_v2_enabled?
+    return false if v2_handoff_tool_fired? || v2_generation_errored?
+    return false unless conversation_pending?
+
+    text = @response['response'].to_s
+    return false if text.blank?
+
+    V2_UNEXECUTED_HANDOFF_PROMISE_REGEX.match?(text)
+  end
+
+  def process_v2_unexecuted_handoff_promise
+    return unless conversation_pending?
+    return if newer_customer_message_arrived?
+
+    Rails.logger.warn(
+      "[CAPTAIN][ResponseBuilderJob] V2 unexecuted handoff promise detected for account=#{account.id} " \
+      "conversation=#{@conversation.display_id}; enforcing handoff"
+    )
+    reason = @response['reasoning'].presence ||
+             'Transferência automática acionada: o assistente confirmou encaminhamento humano na resposta.'
+    @conversation.messages.create!(
+      message_type: :outgoing,
+      private: true,
+      sender: @assistant,
+      account_id: account.id,
+      inbox_id: inbox.id,
+      content: reason
+    )
+    @response['action_source'] = 'v2_false_promise_guard'
+    @response['action_reason'] = 'unexecuted_handoff_promise'
+    process_v1_handoff
+    record_v2_failure_handoff(source: Captain::ConversationEvents::Sources::TOOL)
+    capture_assistant_session(result_message: @handoff_message, credits_consumed: 0.0)
+  end
 
   def process_v1_handoff
     I18n.with_locale(@assistant.account.locale) do
