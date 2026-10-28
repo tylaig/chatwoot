@@ -25,6 +25,7 @@ module AccountSettingsSchema
         'brand_name': { 'type': %w[string null], 'maxLength': 255 },
         'brand_url': { 'type': %w[string null], 'maxLength': 2000 },
         'brand_color': { 'type': %w[string null], 'pattern': '^(#(\\h{3}|\\h{6}))?$' },
+        'elite_plan_tier': { 'type': %w[string null], 'enum': ['starter', 'pro', 'business', 'elite_whitelabel', nil] },
         'conversation_required_attributes': {
           'type': %w[array null],
           'items': { 'type': 'string' }

@@ -981,6 +981,8 @@ Rails.application.routes.draw do
 
       resource :settings, only: [:show] do
         get :refresh, on: :collection
+        post :update_license, on: :collection
+        post :apply_account_tier, on: :collection
       end
 
       # resources that doesn't appear in primary navigation in super admin

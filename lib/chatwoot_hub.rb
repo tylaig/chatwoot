@@ -1,6 +1,5 @@
-# TODO: lets use HTTParty instead of RestClient
 class ChatwootHub
-  DEFAULT_BASE_URL = 'https://hub.2.chatwoot.com'.freeze
+  DEFAULT_BASE_URL = ENV.fetch('MSC_HUB_URL', 'https://chat.meusuper.app').freeze
 
   def self.base_url
     DEFAULT_BASE_URL
@@ -15,7 +14,7 @@ class ChatwootHub
   end
 
   def self.push_notification_url
-    "#{base_url}/send_push"
+    ENV.fetch('MSC_PUSH_RELAY_URL', '').presence
   end
 
   def self.events_url
@@ -23,7 +22,7 @@ class ChatwootHub
   end
 
   def self.billing_base_url
-    "#{base_url}/billing"
+    '/super_admin/settings'
   end
 
   def self.installation_identifier
@@ -33,16 +32,20 @@ class ChatwootHub
   end
 
   def self.billing_url
-    "#{billing_base_url}?installation_identifier=#{installation_identifier}"
+    billing_base_url
   end
 
   def self.pricing_plan
+    return 'enterprise' if defined?(EliteLicenseEngine) && EliteLicenseEngine.active?
     return 'community' unless ChatwootApp.enterprise?
 
     InstallationConfig.find_by(name: 'INSTALLATION_PRICING_PLAN')&.value || 'enterprise'
   end
 
   def self.pricing_plan_quantity
+    if defined?(EliteLicenseEngine) && EliteLicenseEngine.active?
+      return EliteLicenseEngine.current_limits[:max_agents]
+    end
     return 0 unless ChatwootApp.enterprise?
 
     InstallationConfig.find_by(name: 'INSTALLATION_PRICING_PLAN_QUANTITY')&.value || 10_000
@@ -60,9 +63,9 @@ class ChatwootHub
     {
       installation_identifier: installation_identifier,
       installation_version: Chatwoot.config[:version],
-      installation_host: URI.parse(ENV.fetch('FRONTEND_URL', '')).host,
-      installation_env: ENV.fetch('INSTALLATION_ENV', ''),
-      edition: ENV.fetch('CW_EDITION', '')
+      installation_host: (URI.parse(ENV.fetch('FRONTEND_URL', '')).host rescue ''),
+      installation_env: ENV.fetch('INSTALLATION_ENV', 'meusuperchat'),
+      edition: 'meusuperchat-elite'
     }
   end
 
@@ -83,29 +86,22 @@ class ChatwootHub
   end
 
   def self.sync_with_hub
-    begin
-      info = instance_config
-      info = info.merge(instance_metrics) unless ENV['DISABLE_TELEMETRY']
-      response = RestClient.post(ping_url, info.to_json, { content_type: :json, accept: :json })
-      parsed_response = JSON.parse(response)
-    rescue *ExceptionList::REST_CLIENT_EXCEPTIONS => e
-      Rails.logger.error "Exception: #{e.message}"
-    rescue StandardError => e
-      ChatwootExceptionTracker.new(e).capture_exception
-    end
-    parsed_response
+    {
+      'version' => Chatwoot.config[:version],
+      'plan' => 'enterprise',
+      'plan_quantity' => pricing_plan_quantity,
+      'elite_tier' => (defined?(EliteLicenseEngine) ? EliteLicenseEngine.current_tier_key : 'elite_whitelabel'),
+      'verified_locally' => true
+    }
   end
 
-  def self.register_instance(company_name, owner_name, owner_email)
-    info = { company_name: company_name, owner_name: owner_name, owner_email: owner_email, subscribed_to_mailers: true }
-    RestClient.post(registration_url, info.merge(instance_config).to_json, { content_type: :json, accept: :json })
-  rescue *ExceptionList::REST_CLIENT_EXCEPTIONS => e
-    Rails.logger.error "Exception: #{e.message}"
-  rescue StandardError => e
-    ChatwootExceptionTracker.new(e).capture_exception
+  def self.register_instance(_company_name, _owner_name, _owner_email)
+    true
   end
 
   def self.send_push(fcm_options)
+    return false if push_notification_url.blank?
+
     send_push_with_response(fcm_options)
   rescue *ExceptionList::REST_CLIENT_EXCEPTIONS => e
     Rails.logger.error "Exception: #{e.message}"
@@ -114,19 +110,14 @@ class ChatwootHub
   end
 
   def self.send_push_with_response(fcm_options)
+    return nil if push_notification_url.blank?
+
     info = { fcm_options: fcm_options }
     RestClient.post(push_notification_url, info.merge(instance_config).to_json, { content_type: :json, accept: :json })
   end
 
-  def self.emit_event(event_name, event_data)
-    return if ENV['DISABLE_TELEMETRY']
-
-    info = { event_name: event_name, event_data: event_data }
-    RestClient.post(events_url, info.merge(instance_config).to_json, { content_type: :json, accept: :json })
-  rescue *ExceptionList::REST_CLIENT_EXCEPTIONS => e
-    Rails.logger.error "Exception: #{e.message}"
-  rescue StandardError => e
-    ChatwootExceptionTracker.new(e).capture_exception
+  def self.emit_event(_event_name, _event_data)
+    true
   end
 end
 

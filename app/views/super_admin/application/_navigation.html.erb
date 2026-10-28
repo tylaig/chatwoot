@@ -34,6 +34,7 @@
     <div class="msc-sa-section">Governança</div>
     <ul class="msc-sa-nav">
       <%= render partial: "nav_item", locals: { icon: 'icon-grid-line', url: super_admin_root_path, label: 'Visão Geral' } %>
+      <%= render partial: "nav_item", locals: { icon: 'icon-lock-line', url: super_admin_settings_path, label: 'Licenças Elite Label' } %>
       <% Administrate::Namespace.new(namespace).resources.each do |resource| %>
         <% next if hidden_resources.include?(resource.resource) %>
         <%= render partial: "nav_item", locals: {

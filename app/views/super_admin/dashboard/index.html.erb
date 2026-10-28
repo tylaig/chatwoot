@@ -108,11 +108,41 @@
         <li class="msc-list__item"><span>PostgreSQL</span><span class="msc-badge <%= pg_ok ? 'msc-badge--ok' : 'msc-badge--err' %>"><%= pg_ok ? 'Operacional' : 'Indisponível' %></span></li>
         <li class="msc-list__item"><span>Redis</span><span class="msc-badge <%= redis_ok ? 'msc-badge--ok' : 'msc-badge--err' %>"><%= redis_ok ? 'Operacional' : 'Indisponível' %></span></li>
         <li class="msc-list__item"><span>Versão</span><span class="msc-mono">v<%= Chatwoot.config[:version] %></span></li>
-        <li class="msc-list__item"><span>Edição</span><span class="msc-badge msc-badge--ok"><%= ChatwootApp.enterprise? ? 'Enterprise' : 'Community' %></span></li>
+        <li class="msc-list__item"><span>Licença Elite</span><span class="msc-badge msc-badge--ok"><%= EliteLicenseEngine.current_tier[:badge] %></span></li>
       </ul>
       <div class="form-actions" style="margin-top:14px !important;">
         <%= link_to 'Filas Sidekiq', sidekiq_web_path, class: 'msc-btn-ghost' %>
-        <%= link_to 'Configurações', super_admin_settings_path, class: 'msc-btn-ghost' %>
+        <%= link_to 'Licenças Elite Label', super_admin_settings_path, class: 'msc-btn-ghost' %>
+      </div>
+    </div>
+
+    <% elite_info = EliteLicenseEngine.status_summary %>
+    <div class="msc-card" style="grid-column:1/-1;" data-testid="msc-elite-license-overview">
+      <div class="msc-row" style="flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 class="msc-card__title">Painel de Licenças Elite Label · Motor SaaS + White-Label</h2>
+          <p class="msc-card__desc">
+            Chave Ativa: <code class="msc-mono"><%= elite_info[:license_key] %></code> ·
+            Titular: <strong><%= elite_info[:license_holder] %></strong> ·
+            Tier Master: <span class="msc-badge msc-badge--ok"><%= elite_info[:tier_name] %></span>
+          </p>
+        </div>
+        <%= link_to 'Gerenciar Licenças & Planos SaaS →', super_admin_settings_path, class: 'button' %>
+      </div>
+      <div class="msc-grid msc-grid--stats" style="margin-top:14px;">
+        <% EliteLicenseEngine.tiers.each do |_k, t| %>
+          <% is_current = (t[:key] == elite_info[:tier_key]) %>
+          <div class="msc-card <%= 'msc-card--accent' if is_current %>" style="padding:14px;">
+            <div class="msc-row">
+              <span class="msc-stat__label"><%= t[:name] %></span>
+              <span class="msc-badge <%= is_current ? 'msc-badge--ok' : 'msc-badge--off' %>"><%= is_current ? 'Ativo' : t[:badge] %></span>
+            </div>
+            <div style="font-size:15px;font-weight:700;margin-top:6px;"><%= t[:price_label] %></div>
+            <div class="msc-stat__hint" style="margin-top:4px;">
+              Até <%= fmt.(t[:max_agents]) %> agentes · <%= fmt.(t[:max_inboxes]) %> canais · <%= t[:whitelabel_enabled] ? 'White-Label liberado' : 'SaaS Padrão' %>
+            </div>
+          </div>
+        <% end %>
       </div>
     </div>
   </div>

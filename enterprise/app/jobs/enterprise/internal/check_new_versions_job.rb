@@ -1,24 +1,18 @@
 module Enterprise::Internal::CheckNewVersionsJob
   def perform
     super
-    update_plan_info
+    sync_elite_license_plan
     reconcile_premium_config_and_features
   end
 
   private
 
-  def update_plan_info
-    return if @instance_info.blank?
+  def sync_elite_license_plan
+    return unless defined?(EliteLicenseEngine)
 
-    current_plan = InstallationConfig.find_by(name: 'INSTALLATION_PRICING_PLAN')&.value
-    plan_to_set = current_plan == 'enterprise' ? 'enterprise' : @instance_info['plan']
-    plan_qty = current_plan == 'enterprise' ? 10_000 : @instance_info['plan_quantity']
-
-    update_installation_config(key: 'INSTALLATION_PRICING_PLAN', value: plan_to_set)
-    update_installation_config(key: 'INSTALLATION_PRICING_PLAN_QUANTITY', value: plan_qty)
-    update_installation_config(key: 'CHATWOOT_SUPPORT_WEBSITE_TOKEN', value: @instance_info['chatwoot_support_website_token'])
-    update_installation_config(key: 'CHATWOOT_SUPPORT_IDENTIFIER_HASH', value: @instance_info['chatwoot_support_identifier_hash'])
-    update_installation_config(key: 'CHATWOOT_SUPPORT_SCRIPT_URL', value: @instance_info['chatwoot_support_script_url'])
+    seats = EliteLicenseEngine.current_limits[:max_agents]
+    update_installation_config(key: 'INSTALLATION_PRICING_PLAN', value: 'enterprise')
+    update_installation_config(key: 'INSTALLATION_PRICING_PLAN_QUANTITY', value: seats)
   end
 
   def update_installation_config(key:, value:)

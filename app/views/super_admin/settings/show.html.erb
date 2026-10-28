@@ -1,69 +1,181 @@
-<% content_for(:title) { "Configurações" } %>
+<% content_for(:title) { "Licenças Elite Label & Configurações" } %>
+<%
+  elite = EliteLicenseEngine.status_summary
+  tiers = EliteLicenseEngine.tiers
+  accounts = Account.order(id: :asc).limit(50)
+  fmt = ->(n) { number_with_delimiter(n.to_i, delimiter: '.') }
+%>
 <header class="main-content__header" role="banner">
   <div>
-    <p class="msc-sa-eyebrow">Super Admin · Instância</p>
-    <h1 class="main-content__page-title" id="page-title">Configurações da Instância</h1>
-    <p class="msc-sa-subtitle">Licenciamento, identificação da instalação e módulos disponíveis no Meu Super Chat.</p>
+    <p class="msc-sa-eyebrow">Super Admin · Governança SaaS & White-Label</p>
+    <h1 class="main-content__page-title" id="page-title">Licenças Elite Label & Configurações</h1>
+    <p class="msc-sa-subtitle">Motor de licenciamento independente (Zero Cloud Dependency) para operação SaaS Multi-Tenant e White-Label Enterprise.</p>
   </div>
   <div class="msc-sa-header-actions">
-    <%= link_to 'Configurações gerais', super_admin_app_config_path(config: 'general'), class: 'button' %>
+    <%= link_to 'Sincronizar Licença', refresh_super_admin_settings_path, class: 'msc-btn-ghost' %>
+    <%= link_to 'Configurações Gerais', super_admin_app_config_path(config: 'general'), class: 'button' %>
   </div>
 </header>
 
 <section class="main-content__body">
-  <% if Redis::Alfred.get(Redis::Alfred::CHATWOOT_INSTALLATION_CONFIG_RESET_WARNING) %>
-    <div class="msc-alert msc-alert--err" role="alert">
-      <strong>Atenção:</strong> foram detectadas alterações em recursos premium sem licença válida. Para mantê-las ativas, regularize o plano junto ao suporte do Meu Super Chat
-      (<a href="mailto:contato@meusuper.app" style="color:#FCA5A5;text-decoration:underline;">contato@meusuper.app</a>).
-    </div>
-  <% end %>
-
   <%= javascript_include_tag "secretField" %>
 
-  <div class="msc-grid msc-grid--wide">
+  <!-- Card Principal: Status da Licença Master Elite Label -->
+  <div class="msc-grid msc-grid--wide" data-testid="elite-license-panel">
+    <div class="msc-card msc-card--accent">
+      <div class="msc-row">
+        <h2 class="msc-card__title">Licença Master Ativa</h2>
+        <span class="msc-badge msc-badge--ok"><%= elite[:badge] %></span>
+      </div>
+      <p class="msc-card__desc" style="font-size:13.5px;margin-top:6px;">
+        <%= SuperAdmin::FeaturesHelper.plan_details.html_safe %>
+      </p>
+      <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;">
+        <span class="msc-badge msc-badge--ok">Verificação Local HMAC</span>
+        <span class="msc-badge <%= elite[:whitelabel_enabled] ? 'msc-badge--ok' : 'msc-badge--warn' %>">
+          <%= elite[:whitelabel_enabled] ? 'White-Label Total Liberado' : 'Modo SaaS Padrão' %>
+        </span>
+        <span class="msc-badge <%= elite[:captain_ai_enabled] ? 'msc-badge--ok' : 'msc-badge--off' %>">
+          <%= elite[:captain_ai_enabled] ? 'Captain IA V2 Ativo' : 'Sem Captain IA' %>
+        </span>
+      </div>
+    </div>
+
     <div class="msc-card">
-      <h2 class="msc-card__title">Identificador da instalação</h2>
-      <p class="msc-card__desc">Chave única desta instância. Mantenha em sigilo.</p>
-      <div data-secret-text="<%= ChatwootHub.installation_identifier %>" class="cell-data__secret-field msc-secret">
+      <h2 class="msc-card__title">Chave de Licença Elite Label</h2>
+      <p class="msc-card__desc">Assinatura criptográfica da instalação para auditoria e ativação White-Label.</p>
+      <div data-secret-text="<%= elite[:license_key] %>" class="cell-data__secret-field msc-secret">
         <span data-secret-masked="true" class="select-none msc-mono"></span>
-        <button type="button" onclick="toggleSecretField(event)" data-secret-toggler class="msc-icon-btn" aria-label="Mostrar/ocultar identificador">
+        <button type="button" onclick="toggleSecretField(event)" data-secret-toggler class="msc-icon-btn" aria-label="Mostrar/ocultar chave">
           <svg width="18" height="18" class="fill-current"><use xlink:href="#eye-show" /></svg>
         </button>
-        <button type="button" onclick="copySecretField(event)" data-secret-copier class="msc-icon-btn" aria-label="Copiar identificador">
+        <button type="button" onclick="copySecretField(event)" data-secret-copier class="msc-icon-btn" aria-label="Copiar chave">
           <svg width="18" height="18" class="fill-current"><use xlink:href="#icon-copy" /></svg>
         </button>
       </div>
+      <p class="msc-card__desc" style="margin-top:8px;font-size:12px;">
+        ID da Instância: <code class="msc-mono"><%= ChatwootHub.installation_identifier[0..12] %>…</code>
+      </p>
     </div>
 
-    <% if ChatwootApp.enterprise? %>
-      <div class="msc-card msc-card--accent">
-        <div class="msc-row">
-          <h2 class="msc-card__title">Plano atual</h2>
-          <a href="<%= refresh_super_admin_settings_path %>" class="msc-link">
-            <svg width="14" height="14" style="vertical-align:-2px;fill:currentColor;"><use xlink:href="#icon-refresh-line" /></svg> Atualizar
-          </a>
-        </div>
-        <p class="msc-card__desc" style="font-size:13.5px;"><%= SuperAdmin::FeaturesHelper.plan_details.html_safe %></p>
-        <% if ChatwootHub.pricing_plan != 'community' && User.count > ChatwootHub.pricing_plan_quantity.to_i && ChatwootHub.pricing_plan_quantity.to_i.positive? %>
-          <div class="msc-alert msc-alert--warn" style="margin:12px 0 0;">Existem <%= User.count %> usuários cadastrados — acima do número de licenças contratadas.</div>
-        <% end %>
-      </div>
-    <% end %>
-
     <div class="msc-card">
-      <h2 class="msc-card__title">Precisa de ajuda?</h2>
-      <p class="msc-card__desc">Fale com o time do Meu Super Chat para suporte técnico, licenciamento e onboarding.</p>
-      <div class="form-actions" style="margin-top:14px !important;">
-        <a href="https://chat.meusuper.app/lp#faq" target="_blank" rel="noopener noreferrer" class="msc-btn-ghost">Central de ajuda ↗</a>
-        <a href="mailto:contato@meusuper.app" class="msc-btn-ghost">contato@meusuper.app</a>
-      </div>
+      <h2 class="msc-card__title">Emissor de Licença Master</h2>
+      <p class="msc-card__desc">Altere o tier global da instância ou regenere a chave para um parceiro White-Label.</p>
+      <%= form_with url: update_license_super_admin_settings_path, method: :post, local: true, style: "margin-top:10px;display:flex;flex-direction:column;gap:10px;" do %>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Tier da Instância</label>
+            <select name="tier" style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:inherit;font-size:13px;">
+              <% tiers.each do |k, t| %>
+                <option value="<%= k %>" <%= 'selected' if k == elite[:tier_key] %> style="color:#0f172a;"><%= t[:name] %> (<%= t[:price_label] %>)</option>
+              <% end %>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Titular / Parceiro</label>
+            <input type="text" name="holder" value="<%= elite[:license_holder] %>" style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:inherit;font-size:13px;" />
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+          <label style="font-size:12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" name="sync_all_accounts" value="1" />
+            Sincronizar recursos em todas as contas
+          </label>
+          <button type="submit" class="button" style="padding:7px 14px;font-size:12.5px;">Ativar Licença</button>
+        </div>
+      <% end %>
     </div>
   </div>
 
+  <!-- Catálogo dos 4 Tiers do EliteLicenseEngine -->
+  <div class="msc-row" style="margin:28px 0 14px;">
+    <div>
+      <h2 class="msc-card__title" style="font-size:16px !important;">Planos SaaS & White-Label (EliteLicenseEngine)</h2>
+      <p class="msc-card__desc">4 pacotes pré-configurados de limites, canais, IA e módulos da barra lateral.</p>
+    </div>
+  </div>
+
+  <div class="msc-grid msc-grid--stats" data-testid="elite-license-tiers">
+    <% tiers.each do |k, t| %>
+      <% active_tier = (k == elite[:tier_key]) %>
+      <div class="msc-card <%= 'msc-card--accent' if active_tier %>">
+        <div class="msc-row">
+          <span class="msc-stat__label"><%= t[:name] %></span>
+          <span class="msc-badge <%= active_tier ? 'msc-badge--ok' : 'msc-badge--off' %>"><%= active_tier ? 'Tier Ativo' : t[:badge] %></span>
+        </div>
+        <div class="msc-stat__value" style="font-size:20px;margin-top:6px;"><%= t[:price_label] %></div>
+        <p class="msc-card__desc" style="margin-top:6px;min-height:38px;"><%= t[:description] %></p>
+        <ul class="msc-list" style="margin-top:10px;font-size:12.5px;">
+          <li class="msc-list__item"><span>Limite de Agentes</span><strong><%= fmt.(t[:max_agents]) %></strong></li>
+          <li class="msc-list__item"><span>Caixas de Entrada</span><strong><%= fmt.(t[:max_inboxes]) %></strong></li>
+          <li class="msc-list__item"><span>Captain IA V2</span><span class="msc-badge <%= t[:captain_ai_enabled] ? 'msc-badge--ok' : 'msc-badge--off' %>"><%= t[:captain_ai_enabled] ? 'Incluso' : 'Opcional' %></span></li>
+          <li class="msc-list__item"><span>White-Label / Marca</span><span class="msc-badge <%= t[:whitelabel_enabled] ? 'msc-badge--ok' : 'msc-badge--off' %>"><%= t[:whitelabel_enabled] ? 'Liberado' : 'Padrão' %></span></li>
+        </ul>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Provisionamento de Plano SaaS por Conta -->
+  <div class="msc-row" style="margin:28px 0 14px;">
+    <div>
+      <h2 class="msc-card__title" style="font-size:16px !important;">Provisionamento de Planos por Conta (Multi-Tenant SaaS)</h2>
+      <p class="msc-card__desc">Aplique qualquer um dos 4 tiers diretamente em uma conta para configurar limites, features e módulos da barra lateral.</p>
+    </div>
+  </div>
+
+  <div class="msc-table-scroll" data-testid="elite-account-tiers">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">Conta</th>
+          <th scope="col">Tier Atual</th>
+          <th scope="col">Limites (Agentes / Canais)</th>
+          <th scope="col">Módulos Sidebar</th>
+          <th scope="col">Alterar Plano SaaS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% accounts.each do |acc| %>
+          <% acc_tier_key = EliteLicenseEngine.account_tier_key(acc) %>
+          <% acc_tier = EliteLicenseEngine.account_tier(acc) %>
+          <% acc_agents = acc.limits&.dig('agents') || acc_tier[:max_agents] %>
+          <% acc_inboxes = acc.limits&.dig('inboxes') || acc_tier[:max_inboxes] %>
+          <% acc_sidebar_count = Array(acc.settings&.dig('conversation_sidebar_visible_items')).presence&.size || acc_tier[:sidebar_items].size %>
+          <tr>
+            <td class="msc-mono">#<%= acc.id %></td>
+            <td>
+              <strong><%= link_to acc.name, super_admin_account_path(acc), class: 'msc-link' %></strong>
+            </td>
+            <td>
+              <span class="msc-badge <%= acc_tier_key == 'elite_whitelabel' ? 'msc-badge--ok' : 'msc-badge--warn' %>">
+                <%= acc_tier[:name] %>
+              </span>
+            </td>
+            <td class="msc-mono"><%= fmt.(acc_agents) %> agentes · <%= fmt.(acc_inboxes) %> inboxes</td>
+            <td><%= acc_sidebar_count %> módulos ativos</td>
+            <td>
+              <%= form_with url: apply_account_tier_super_admin_settings_path, method: :post, local: true, style: "display:inline-flex;align-items:center;gap:8px;" do %>
+                <input type="hidden" name="account_id" value="<%= acc.id %>" />
+                <select name="tier" style="padding:5px 8px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:inherit;font-size:12.5px;">
+                  <% tiers.each do |k, t| %>
+                    <option value="<%= k %>" <%= 'selected' if k == acc_tier_key %> style="color:#0f172a;"><%= t[:name] %></option>
+                  <% end %>
+                </select>
+                <button type="submit" class="msc-btn-ghost" style="padding:5px 10px;font-size:12px;cursor:pointer;">Aplicar</button>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Catálogo de Recursos & Módulos da Instância -->
   <div class="msc-row" style="margin:30px 0 14px;">
     <div>
-      <h2 class="msc-card__title" style="font-size:16px !important;">Recursos & módulos</h2>
-      <p class="msc-card__desc">Canais, integrações e recursos enterprise disponíveis nesta instalação.</p>
+      <h2 class="msc-card__title" style="font-size:16px !important;">Recursos & Módulos da Instância</h2>
+      <p class="msc-card__desc">Canais, integrações e motores enterprise desbloqueados pelo EliteLicenseEngine.</p>
     </div>
   </div>
 
@@ -76,16 +188,16 @@
         </div>
         <div class="msc-feature__name">
           <%= attrs[:name] %>
-          <% if attrs[:enterprise] %><span class="msc-badge msc-badge--warn" style="padding:1px 8px;font-size:10px;">ENTERPRISE</span><% end %>
+          <% if attrs[:enterprise] %><span class="msc-badge msc-badge--warn" style="padding:1px 8px;font-size:10px;">ELITE</span><% end %>
         </div>
         <p class="msc-feature__desc"><%= attrs[:description] %></p>
         <div class="msc-feature__foot">
           <% if attrs[:config_key].present? && attrs[:enabled] %>
             <%= link_to 'Configurar →', super_admin_app_config_path(config: attrs[:config_key]), class: 'msc-link' %>
           <% elsif !attrs[:enabled] %>
-            <span class="msc-muted" style="font-size:12px;">Disponível na edição Enterprise</span>
+            <span class="msc-muted" style="font-size:12px;">Disponível no tier Business/Elite</span>
           <% else %>
-            <span class="msc-muted" style="font-size:12px;">Sem configuração adicional</span>
+            <span class="msc-muted" style="font-size:12px;">Habilitado pelo EliteLicenseEngine</span>
           <% end %>
         </div>
       </div>

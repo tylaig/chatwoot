@@ -20,6 +20,10 @@ const SIDEBAR_MODULES = [
     labelKey: 'CONVERSATION_SIDEBAR.ACCORDION.SHOPIFY_ORDERS',
   },
   {
+    key: 'calendar_appointments',
+    labelKey: 'CONVERSATION_SIDEBAR.ACCORDION.CALENDAR_APPOINTMENTS',
+  },
+  {
     key: 'scheduled_messages',
     labelKey: 'CONVERSATION_SIDEBAR.ACCORDION.SCHEDULED_MESSAGES',
   },
