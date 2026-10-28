@@ -1,33 +1,33 @@
 class SuperAdmin::InstanceStatusesController < SuperAdmin::ApplicationController
   def show
     @metrics = {}
-    chatwoot_version
+    msc_version
     sha
     postgres_status
     redis_metrics
-    chatwoot_edition
+    msc_edition
     instance_meta
     baileys_api_version
   end
 
-  def chatwoot_edition
-    @metrics['Chatwoot edition'] = if ChatwootApp.enterprise?
-                                     'Enterprise'
-                                   elsif ChatwootApp.custom?
-                                     'Custom'
-                                   else
-                                     'Community'
-                                   end
+  def msc_edition
+    @metrics['Edição Meu Super Chat'] = if ChatwootApp.enterprise?
+                                          'Enterprise'
+                                        elsif ChatwootApp.custom?
+                                          'Custom'
+                                        else
+                                          'Community'
+                                        end
   end
 
   def instance_meta
     migrations_paths = ActiveRecord::Migrator.migrations_paths
     migrations_context = ActiveRecord::MigrationContext.new(migrations_paths)
-    @metrics['Database Migrations'] = migrations_context.needs_migration? ? 'pending' : 'completed'
+    @metrics['Migrações do Banco de Dados'] = migrations_context.needs_migration? ? 'pendente' : 'concluídas'
   end
 
-  def chatwoot_version
-    @metrics['Chatwoot version'] = Chatwoot.config[:version]
+  def msc_version
+    @metrics['Versão Meu Super Chat'] = Chatwoot.config[:version]
   end
 
   def sha
@@ -35,34 +35,30 @@ class SuperAdmin::InstanceStatusesController < SuperAdmin::ApplicationController
   end
 
   def postgres_status
-    @metrics['Postgres alive'] = if ActiveRecord::Base.connection.active?
-                                   'true'
-                                 else
-                                   'false'
-                                 end
+    @metrics['PostgreSQL Ativo'] = ActiveRecord::Base.connection.active? ? 'true' : 'false'
   end
 
   def redis_metrics
     r = Redis.new(Redis::Config.app)
     if r.ping == 'PONG'
       redis_server = r.info
-      @metrics['Redis alive'] = 'true'
-      @metrics['Redis version'] = redis_server['redis_version']
-      @metrics['Redis number of connected clients'] = redis_server['connected_clients']
-      @metrics["Redis 'maxclients' setting"] = redis_server['maxclients']
-      @metrics['Redis memory used'] = redis_server['used_memory_human']
-      @metrics['Redis memory peak'] = redis_server['used_memory_peak_human']
-      @metrics['Redis total memory available'] = redis_server['total_system_memory_human']
-      @metrics["Redis 'maxmemory' setting"] = redis_server['maxmemory']
-      @metrics["Redis 'maxmemory_policy' setting"] = redis_server['maxmemory_policy']
+      @metrics['Redis Ativo'] = 'true'
+      @metrics['Versão do Redis'] = redis_server['redis_version']
+      @metrics['Clientes Redis Conectados'] = redis_server['connected_clients']
+      @metrics["Limite 'maxclients' do Redis"] = redis_server['maxclients']
+      @metrics['Memória Redis em Uso'] = redis_server['used_memory_human']
+      @metrics['Pico de Memória Redis'] = redis_server['used_memory_peak_human']
+      @metrics['Memória Total do Servidor'] = redis_server['total_system_memory_human']
+      @metrics["Configuração 'maxmemory' do Redis"] = redis_server['maxmemory']
+      @metrics["Política 'maxmemory_policy' do Redis"] = redis_server['maxmemory_policy']
     end
   rescue Redis::CannotConnectError
-    @metrics['Redis alive'] = false
+    @metrics['Redis Ativo'] = 'false'
   end
 
   def baileys_api_version
-    @metrics['Baileys API version'] = Whatsapp::Providers::WhatsappBaileysService.status[:packageInfo][:version]
-  rescue Whatsapp::Session::Errors::ProviderUnavailable => e
-    @metrics['Baileys API version'] = e.message
+    @metrics['Versão Baileys API'] = Whatsapp::Providers::WhatsappBaileysService.status[:packageInfo][:version]
+  rescue StandardError => e
+    @metrics['Versão Baileys API'] = e.message.to_s.gsub(/Chatwoot/i, 'Meu Super Chat')
   end
 end

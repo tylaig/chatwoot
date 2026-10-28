@@ -1,0 +1,11 @@
+<% content_for(:title) { "Editar · #{page.page_title}" } %>
+<header class="main-content__header" role="banner">
+  <div>
+    <p class="msc-sa-eyebrow">Editar · <%= msc_resource_label(page.resource_name) %></p>
+    <h1 class="main-content__page-title" id="page-title"><%= content_for(:title) %></h1>
+  </div>
+  <div class="msc-sa-header-actions">
+    <%= link_to("Ver detalhes", [namespace, page.resource], class: "msc-btn-ghost") if accessible_action?(page.resource, :show) %>
+  </div>
+</header>
+<section class="main-content__body"><%= render "form", page: page %></section>

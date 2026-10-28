@@ -1,7 +1,14 @@
-<li class="px-4 mb-1">
-  <% text_class_name = current_page?(url) ? 'text-woot-500 bg-slate-25' : 'text-slate-800' %>
-  <%= link_to(url, class: text_class_name + " -ml-1 focus:outline-none cursor-pointer flex items-center px-2 py-1.5 text-slate-800 cursor-pointer hover:text-woot-500 hover:bg-slate-25 rounded-lg") do %>
-    <svg width="16" height="16"><use xlink:href="#<%= icon %>" /></svg>
-    <span class="ml-2 text-sm"><%= label %></span>
+<%
+  active = begin
+    current_page?(url) || (url.to_s == super_admin_root_path && request.path.in?(['/super_admin', '/super_admin/', '/super_admin/dashboard'])) ||
+      (url.to_s.start_with?('/super_admin/') && url.to_s.length > '/super_admin/'.length && request.path.start_with?(url.to_s))
+  rescue StandardError
+    false
+  end
+%>
+<li>
+  <%= link_to(url, class: "msc-sa-nav__link#{' is-active' if active}", 'aria-current': (active ? 'page' : nil)) do %>
+    <svg aria-hidden="true"><use xlink:href="#<%= icon %>" /></svg>
+    <span><%= label %></span>
   <% end %>
 </li>

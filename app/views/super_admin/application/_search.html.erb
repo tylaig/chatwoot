@@ -1,24 +1,12 @@
-<form class="search" role="search">
+<form class="search" role="search" action="" method="get">
   <label class="search__label" for="search">
-    <svg class="search__eyeglass-icon" role="img">
-      <title>
-        <%= t("administrate.search.label", resource: resource_name) %>
-      </title>
-      <use xlink:href="#icon-eyeglass" />
-    </svg>
+    <svg class="search__eyeglass-icon" role="img" aria-hidden="true"><use xlink:href="#icon-eyeglass" /></svg>
+    <span class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Buscar <%= resource_name %></span>
   </label>
-
-  <input class="search__input"
-         id="search"
-         type="search"
-         name="search"
-         placeholder="<%= t("administrate.search.label", resource: resource_name) %>"
-         value="<%= search_term %>">
-
-  <%= link_to clear_search_params, class: "search__clear-link" do %>
-    <svg class="search__clear-icon" role="img">
-      <title><%= t("administrate.search.clear") %></title>
-      <use xlink:href="#icon-cancel" />
-    </svg>
+  <input class="search__input" id="search" type="search" name="search" placeholder="Buscar <%= resource_name.to_s.downcase %>…" value="<%= search_term %>" autocomplete="off">
+  <% if search_term.present? %>
+    <%= link_to clear_search_params, class: "search__clear-link", 'aria-label': 'Limpar busca' do %>
+      <svg class="search__clear-icon" role="img" aria-hidden="true"><use xlink:href="#icon-cancel" /></svg>
+    <% end %>
   <% end %>
-</form> 
+</form>

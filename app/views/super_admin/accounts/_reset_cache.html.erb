@@ -1,9 +1,9 @@
 <section class="main-content__body">
- <hr/>
-  <%= form_for([:reset_cache, namespace, page.resource], method: :post, html: { class: "form" }) do |f| %>
-    <div class="form-actions">
-      <p class="pb-3">This will clear the IndexedDB cache keys from redis. <br>The next load will fetch the data from backend.</p>
-      <%= f.submit 'Reset Frontend Cache' %>
-    </div>
-  <% end %>
+  <div class="msc-card">
+    <h2 class="msc-card__title">Cache do frontend</h2>
+    <p class="msc-card__desc">Remove as chaves de cache IndexedDB do Redis. O próximo carregamento buscará os dados diretamente do backend.</p>
+    <%= form_for([:reset_cache, namespace, page.resource], method: :post, html: { class: "form" }) do |f| %>
+      <div class="form-actions" style="margin-top:14px !important;"><%= f.submit 'Limpar cache do frontend', class: 'msc-btn-ghost' %></div>
+    <% end %>
+  </div>
 </section>
