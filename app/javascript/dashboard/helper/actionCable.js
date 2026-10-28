@@ -229,6 +229,7 @@ class ActionCableConnector extends BaseActionCableConnector {
   onStatusChange = data => {
     this.app.$store.dispatch('updateConversation', data);
     this.fetchConversationStats();
+    this.throttledFetchConversationUnreadCounts();
   };
 
   onConversationUpdated = data => {

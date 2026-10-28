@@ -252,6 +252,9 @@ const participatingUnreadCount = useMapGetter(
 const unattendedUnreadCount = useMapGetter(
   'conversationUnreadCounts/getUnattendedUnreadCount'
 );
+const awaitingResolutionCount = useMapGetter(
+  'conversationUnreadCounts/getAwaitingResolutionCount'
+);
 const getFolderUnreadCount = useMapGetter(
   'conversationUnreadCounts/getFolderUnreadCount'
 );
@@ -457,6 +460,53 @@ const menuItems = computed(() => {
             ? unattendedUnreadCount.value
             : 0,
           to: accountScopedRoute('conversation_unattended'),
+        },
+        {
+          name: 'AwaitingResolution',
+          activeOn: ['conversation_through_awaiting_resolution'],
+          label: t('SIDEBAR.AWAITING_RESOLUTION_CONVERSATIONS'),
+          icon: 'i-lucide-hourglass',
+          badgeCount: awaitingResolutionCount.value,
+          to: accountScopedRoute('conversation_awaiting_resolution'),
+          component: leafProps =>
+            h(
+              'div',
+              {
+                class: [
+                  'flex items-center gap-2 w-full min-w-0 rounded-md px-1.5 py-0.5 -mx-1.5 transition-colors',
+                  leafProps.active
+                    ? 'bg-amber-500/20 dark:bg-amber-500/25 text-amber-800 dark:text-amber-300 font-semibold ring-1 ring-amber-500/40'
+                    : 'bg-amber-500/10 hover:bg-amber-500/20 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-medium',
+                ],
+              },
+              [
+                h(
+                  'span',
+                  {
+                    class:
+                      'size-4 grid place-content-center rounded-full text-amber-600 dark:text-amber-400 shrink-0',
+                  },
+                  [h('span', { class: 'i-lucide-hourglass size-3.5' })]
+                ),
+                h(
+                  'div',
+                  { class: 'flex-1 truncate min-w-0 text-sm' },
+                  leafProps.label
+                ),
+                Number(leafProps.badgeCount) > 0
+                  ? h(
+                      'span',
+                      {
+                        class:
+                          'inline-grid h-5 min-w-5 place-items-center rounded-full bg-amber-500/25 dark:bg-amber-500/30 border border-amber-500/40 px-1 text-xxs font-bold leading-3 text-amber-800 dark:text-amber-200 flex-shrink-0',
+                      },
+                      Number(leafProps.badgeCount) > 99
+                        ? '99+'
+                        : String(leafProps.badgeCount)
+                    )
+                  : null,
+              ]
+            ),
         },
         {
           name: 'Folders',

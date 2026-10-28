@@ -11,6 +11,7 @@
     "TAB_HEADING": "Conversations",
     "MENTION_HEADING": "Mentions",
     "UNATTENDED_HEADING": "Unattended",
+    "AWAITING_RESOLUTION_HEADING": "On Hold – Awaiting Resolution",
     "SEARCH": {
       "INPUT": "Search for People, Chats, Saved Replies .."
     },

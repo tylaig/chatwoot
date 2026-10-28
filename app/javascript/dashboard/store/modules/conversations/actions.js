@@ -544,6 +544,7 @@ const actions = {
         status: updatedStatus,
         snoozedUntil: updatedSnoozedUntil,
       });
+      dispatch('conversationUnreadCounts/get', null, { root: true });
     } catch (error) {
       // Reopening self-assigns the agent, so a protected inbox can refuse the
       // whole request. Swallowing that left the caller announcing a status

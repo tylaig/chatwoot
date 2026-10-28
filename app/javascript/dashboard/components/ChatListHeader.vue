@@ -15,6 +15,7 @@ const props = defineProps({
   hasActiveFolders: { type: Boolean, required: true },
   canManageActiveFolder: { type: Boolean, default: true },
   activeStatus: { type: String, required: true },
+  isAwaitingResolutionView: { type: Boolean, default: false },
   isOnExpandedLayout: { type: Boolean, required: true },
   conversationStats: { type: Object, required: true },
   isListLoading: { type: Boolean, required: true },
@@ -107,7 +108,12 @@ const toggleConversationLayout = () => {
       </span>
       <span
         v-if="!hasAppliedFiltersOrActiveFolders"
-        class="px-2.5 py-0.5 my-0.5 mx-1.5 rounded-full capitalize bg-emerald-500 text-white dark:bg-emerald-500/20 dark:text-emerald-300 dark:border dark:border-emerald-500/35 text-xs font-semibold shrink-0 inline-flex items-center gap-1 shadow-2xs"
+        class="px-2.5 py-0.5 my-0.5 mx-1.5 rounded-full capitalize text-xs font-semibold shrink-0 inline-flex items-center gap-1 shadow-2xs"
+        :class="
+          activeStatus === 'awaiting_resolution'
+            ? 'bg-n-amber-3 text-n-amber-11 border border-n-amber-7'
+            : 'bg-emerald-500 text-white dark:bg-emerald-500/20 dark:text-emerald-300 dark:border dark:border-emerald-500/35'
+        "
       >
         <span>{{
           $t(`CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.${activeStatus}.TEXT`)
@@ -199,7 +205,9 @@ const toggleConversationLayout = () => {
       <ConversationBasicFilter
         v-if="!isContactScoped"
         :is-on-expanded-layout="isOnExpandedLayout"
-        :show-status-filter="!hasAppliedFiltersOrActiveFolders"
+        :show-status-filter="
+          !hasAppliedFiltersOrActiveFolders && !isAwaitingResolutionView
+        "
         @change-filter="onBasicFilterChange"
       />
       <SwitchLayout

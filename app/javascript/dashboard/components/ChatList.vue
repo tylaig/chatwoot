@@ -202,6 +202,13 @@ const hasAppliedFiltersOrActiveFolders = computed(() => {
   return hasAppliedFilters.value || hasActiveFolders.value;
 });
 
+const isAwaitingResolutionView = computed(() => {
+  return (
+    props.conversationType ===
+    wootConstants.CONVERSATION_TYPE.AWAITING_RESOLUTION
+  );
+});
+
 const currentUserDetails = computed(() => {
   const { id, name } = currentUser.value;
   return { id, name };
@@ -334,6 +341,12 @@ const pageTitle = computed(() => {
   }
   if (props.conversationType === wootConstants.CONVERSATION_TYPE.UNATTENDED) {
     return t('CHAT_LIST.UNATTENDED_HEADING');
+  }
+  if (
+    props.conversationType ===
+    wootConstants.CONVERSATION_TYPE.AWAITING_RESOLUTION
+  ) {
+    return t('CHAT_LIST.AWAITING_RESOLUTION_HEADING');
   }
   if (hasActiveFolders.value) {
     return activeFolder.value.name;
@@ -1075,7 +1088,10 @@ watch(appliedFilters, () => resetBulkActions());
       :has-applied-filters="hasAppliedFilters"
       :has-active-folders="hasActiveFolders"
       :can-manage-active-folder="canManageActiveFolder"
-      :active-status="activeStatus"
+      :active-status="
+        isAwaitingResolutionView ? 'awaiting_resolution' : activeStatus
+      "
+      :is-awaiting-resolution-view="isAwaitingResolutionView"
       :is-on-expanded-layout="isOnExpandedLayout"
       :conversation-stats="conversationStats"
       :is-list-loading="chatListLoading && !conversationList.length"

@@ -30,6 +30,14 @@ export const isOnUnattendedView = ({ route: { name: routeName } }) => {
   return UNATTENDED_ROUTES.includes(routeName);
 };
 
+export const isOnAwaitingResolutionView = ({ route: { name: routeName } }) => {
+  const AWAITING_RESOLUTION_ROUTES = [
+    'conversation_awaiting_resolution',
+    'conversation_through_awaiting_resolution',
+  ];
+  return AWAITING_RESOLUTION_ROUTES.includes(routeName);
+};
+
 export const isOnParticipatingView = ({ route: { name: routeName } }) => {
   const PARTICIPATING_ROUTES = [
     'conversation_participating',

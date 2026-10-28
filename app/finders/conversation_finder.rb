@@ -152,6 +152,8 @@ class ConversationFinder
       @conversations = @conversations.where(id: participant_conversation_ids)
     when 'unattended'
       @conversations = @conversations.unattended
+    when 'awaiting_resolution'
+      @conversations = @conversations.awaiting_resolution
     end
     @conversations
   end
@@ -167,7 +169,7 @@ class ConversationFinder
   end
 
   def filter_by_status
-    return if params[:status] == 'all'
+    return if params[:status] == 'all' || params[:conversation_type] == 'awaiting_resolution'
 
     @conversations = @conversations.where(status: params[:status] || DEFAULT_STATUS)
   end
