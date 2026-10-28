@@ -6,7 +6,7 @@ class Enterprise::Api::V1::AccountsController < Api::BaseController
   before_action :fetch_account
   before_action :validate_token_api_access, if: :authenticate_by_access_token?
   before_action :check_authorization
-  before_action :check_cloud_env, only: [:limits, :toggle_deletion, :topup_options]
+  before_action :check_cloud_env, only: [:toggle_deletion, :topup_options]
   before_action :ensure_shopify_billing_available, only: SHOPIFY_BILLING_ACTIONS
   before_action :ensure_stripe_billing_action, only: STRIPE_ONLY_BILLING_ACTIONS
 
@@ -140,9 +140,11 @@ class Enterprise::Api::V1::AccountsController < Api::BaseController
   end
 
   def default_limits
+    inboxes_limit = @account[:limits]&.dig('inboxes').presence
+    conversations_limit = @account[:limits]&.dig('conversations').presence
     {
-      'conversation' => {},
-      'non_web_inboxes' => {},
+      'conversation' => conversations_limit ? { 'allowed' => conversations_limit.to_i, 'consumed' => conversations_this_month(@account) } : {},
+      'non_web_inboxes' => inboxes_limit ? { 'allowed' => inboxes_limit.to_i, 'consumed' => non_web_inboxes(@account) } : {},
       'agents' => {
         'allowed' => @account.usage_limits[:agents],
         'consumed' => agents(@account)

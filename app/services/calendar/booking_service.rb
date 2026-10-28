@@ -87,8 +87,8 @@ class Calendar::BookingService
     end
 
     if appointment.meeting_url.blank? && location_type == 'google_meet'
-      base_url = ENV.fetch('FRONTEND_URL', 'https://chat.meusuper.app').sub(%r{/+$}, '')
-      appointment.update_columns(meeting_url: "#{base_url}/reuniao/#{appointment.uid}")
+      base_url = ENV.fetch('MEET_URL', 'https://meet.meusuper.app').sub(%r{/+$}, '')
+      appointment.update_columns(meeting_url: "#{base_url}/#{appointment.uid}")
     end
 
     appointment.reload

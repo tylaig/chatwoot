@@ -2767,5 +2767,2409 @@
       }
 
     </style>
+  <!-- BEGIN MSC REPORTS REFACTOR V1 -->
+    <style id="msc-reports-refactor-v1-styles">
+      /* ==========================================================================
+         MEU SUPER CHAT — EXECUTIVE BI & REPORTS SUITE (ALL 9 SUBPAGES)
+         Dark Mode: Obsidian + Emerald (#04080E / #0A131F / #10B981 / #34D399)
+         Light Mode: Clean Emerald (#F8FAFC / #FFFFFF / #059669 / #10B981)
+         ========================================================================== */
+
+      /* 1. Outer Canvas & Container Width / Zero Horizontal Overflow */
+      body.msc-reports-page,
+      body.msc-reports-page #app,
+      body.msc-reports-page main {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+      }
+
+      body.msc-reports-page main > div.overflow-auto {
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+        box-sizing: border-box !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl {
+        max-width: 1180px !important;
+        width: 100% !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding-bottom: 3.5rem !important;
+        box-sizing: border-box !important;
+      }
+
+      /* 2. Executive Quick-Nav Bar (#msc-reports-quicknav) */
+      #msc-reports-quicknav {
+        max-width: 1180px;
+        width: 100%;
+        margin: 1.15rem auto 0 auto;
+        padding: 0.5rem 0.65rem;
+        border-radius: 14px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        position: sticky;
+        top: 0.65rem;
+        z-index: 35;
+        transition: all 0.2s ease;
+      }
+
+      body.dark.msc-reports-page #msc-reports-quicknav,
+      html.dark body.msc-reports-page #msc-reports-quicknav {
+        background: rgba(8, 16, 26, 0.88) !important;
+        backdrop-filter: blur(18px) saturate(150%) !important;
+        -webkit-backdrop-filter: blur(18px) saturate(150%) !important;
+        border: 1px solid rgba(16, 185, 129, 0.22) !important;
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+      }
+
+      body:not(.dark).msc-reports-page #msc-reports-quicknav,
+      html:not(.dark) body:not(.dark).msc-reports-page #msc-reports-quicknav {
+        background: rgba(255, 255, 255, 0.92) !important;
+        backdrop-filter: blur(16px) saturate(140%) !important;
+        -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+        border: 1px solid rgba(16, 185, 129, 0.24) !important;
+        box-shadow: 0 8px 24px -8px rgba(6, 78, 59, 0.08), 0 2px 6px rgba(15, 23, 42, 0.03) !important;
+      }
+
+      .msc-rnav-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.35rem 0.7rem;
+        border-radius: 9px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        flex-shrink: 0;
+        user-select: none;
+      }
+
+      body.dark.msc-reports-page .msc-rnav-brand {
+        background: rgba(16, 185, 129, 0.12);
+        color: #34D399;
+        border: 1px solid rgba(16, 185, 129, 0.24);
+      }
+
+      body:not(.dark).msc-reports-page .msc-rnav-brand {
+        background: #ECFDF5;
+        color: #047857;
+        border: 1px solid #A7F3D0;
+      }
+
+      .msc-rnav-pulse {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #10B981;
+        box-shadow: 0 0 8px #10B981;
+        flex-shrink: 0;
+      }
+
+      .msc-rnav-track {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        -webkit-overflow-scrolling: touch;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .msc-rnav-track::-webkit-scrollbar {
+        display: none;
+      }
+
+      .msc-rnav-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.42rem;
+        padding: 0.42rem 0.78rem;
+        min-height: 34px;
+        border-radius: 10px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        line-height: 1.2;
+        white-space: nowrap;
+        flex-shrink: 0;
+        text-decoration: none !important;
+        border: 1px solid transparent;
+        transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+        cursor: pointer;
+      }
+
+      .msc-rnav-pill svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        opacity: 0.8;
+        transition: transform 0.16s ease, opacity 0.16s ease;
+      }
+
+      body.dark.msc-reports-page .msc-rnav-pill {
+        color: #94A3B8;
+        background: transparent;
+      }
+
+      body.dark.msc-reports-page .msc-rnav-pill:hover {
+        color: #F8FAFC;
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+
+      body.dark.msc-reports-page .msc-rnav-pill.is-active {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.24) 0%, rgba(5, 150, 105, 0.14) 100%) !important;
+        color: #ECFDF5 !important;
+        font-weight: 600 !important;
+        border-color: rgba(16, 185, 129, 0.52) !important;
+        box-shadow: 0 4px 14px -3px rgba(16, 185, 129, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+      }
+
+      body.dark.msc-reports-page .msc-rnav-pill.is-active svg {
+        color: #34D399 !important;
+        opacity: 1;
+      }
+
+      body:not(.dark).msc-reports-page .msc-rnav-pill {
+        color: #475569;
+        background: transparent;
+      }
+
+      body:not(.dark).msc-reports-page .msc-rnav-pill:hover {
+        color: #0F172A;
+        background: #F1F5F9;
+        border-color: #E2E8F0;
+      }
+
+      body:not(.dark).msc-reports-page .msc-rnav-pill.is-active {
+        background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%) !important;
+        color: #065F46 !important;
+        font-weight: 600 !important;
+        border-color: #34D399 !important;
+        box-shadow: 0 3px 10px -2px rgba(16, 185, 129, 0.18) !important;
+      }
+
+      body:not(.dark).msc-reports-page .msc-rnav-pill.is-active svg {
+        color: #059669 !important;
+        opacity: 1;
+      }
+
+      /* 3. Report Header & Download CTA Button */
+      body.msc-reports-page main .max-w-5xl > section:first-of-type {
+        padding-top: 1.25rem !important;
+        padding-bottom: 1.15rem !important;
+        margin-bottom: 0.35rem !important;
+        border-bottom: 1px solid rgba(16, 185, 129, 0.14) !important;
+      }
+
+      body:not(.dark).msc-reports-page main .max-w-5xl > section:first-of-type {
+        border-bottom-color: #E2E8F0 !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl > section:first-of-type > div.flex.justify-between {
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        gap: 0.85rem !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl > section:first-of-type .text-heading-1 {
+        font-size: 1.5rem !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.02em !important;
+        line-height: 1.25 !important;
+      }
+
+      body.dark.msc-reports-page main .max-w-5xl > section:first-of-type .text-heading-1 {
+        color: #F8FAFC !important;
+      }
+
+      body:not(.dark).msc-reports-page main .max-w-5xl > section:first-of-type .text-heading-1 {
+        color: #0F172A !important;
+      }
+
+      /* Primary Export/Download Buttons */
+      body.msc-reports-page main .max-w-5xl > section:first-of-type button {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+        border: 1px solid rgba(52, 211, 153, 0.4) !important;
+        border-radius: 10px !important;
+        height: 38px !important;
+        padding: 0 1rem !important;
+        box-shadow: 0 4px 14px -2px rgba(16, 185, 129, 0.38) !important;
+        transition: all 0.18s ease !important;
+        max-width: 100% !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl > section:first-of-type button:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 18px -2px rgba(16, 185, 129, 0.5) !important;
+        filter: brightness(1.06) !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl > section:first-of-type button span {
+        color: #FFFFFF !important;
+      }
+
+      /* 4. Filter Bar, Date Range Picker & Switches */
+      body.msc-reports-page main .max-w-5xl button:has(.i-lucide-calendar-range),
+      body.msc-reports-page main .max-w-5xl button:has(.i-lucide-filter) {
+        height: 38px !important;
+        border-radius: 10px !important;
+        padding: 0 0.85rem !important;
+        font-weight: 500 !important;
+        transition: all 0.16s ease !important;
+        max-width: 100% !important;
+      }
+
+      body.dark.msc-reports-page main .max-w-5xl button:has(.i-lucide-calendar-range),
+      body.dark.msc-reports-page main .max-w-5xl button:has(.i-lucide-filter) {
+        background: rgba(11, 22, 34, 0.88) !important;
+        border: 1px solid rgba(16, 185, 129, 0.24) !important;
+        color: #F1F5F9 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28) !important;
+      }
+
+      body.dark.msc-reports-page main .max-w-5xl button:has(.i-lucide-calendar-range):hover,
+      body.dark.msc-reports-page main .max-w-5xl button:has(.i-lucide-filter):hover {
+        border-color: rgba(16, 185, 129, 0.48) !important;
+        background: rgba(16, 185, 129, 0.10) !important;
+      }
+
+      body:not(.dark).msc-reports-page main .max-w-5xl button:has(.i-lucide-calendar-range),
+      body:not(.dark).msc-reports-page main .max-w-5xl button:has(.i-lucide-filter) {
+        background: #FFFFFF !important;
+        border: 1px solid #CBD5E1 !important;
+        color: #0F172A !important;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+      }
+
+      body:not(.dark).msc-reports-page main .max-w-5xl button:has(.i-lucide-calendar-range):hover,
+      body:not(.dark).msc-reports-page main .max-w-5xl button:has(.i-lucide-filter):hover {
+        border-color: #10B981 !important;
+        background: #F0FDF4 !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl .i-lucide-calendar-range,
+      body.msc-reports-page main .max-w-5xl .i-lucide-filter {
+        color: #10B981 !important;
+      }
+
+      /* 5. Executive Surface Cards & Glass Containers */
+      body.msc-reports-page main .max-w-5xl .rounded-xl.bg-n-solid-2 {
+        border-radius: 16px !important;
+        outline: none !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        box-sizing: border-box !important;
+      }
+
+      /* Fix CSAT & SLA KPI strip gap/min-width overflow on Tablet & Mobile */
+      body.msc-reports-page main .max-w-5xl [class*="sm:gap-14"] {
+        gap: 1.15rem !important;
+        flex-wrap: wrap !important;
+        justify-content: space-between !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl [class*="min-w-[10rem]"] {
+        min-width: 0 !important;
+        flex: 1 1 110px !important;
+      }
+
+      @media (max-width: 639px) {
+        body.msc-reports-page main .max-w-5xl [class*="sm:gap-14"] {
+          gap: 0.65rem !important;
+          padding-top: 0.9rem !important;
+          padding-bottom: 0.9rem !important;
+        }
+        body.msc-reports-page main .max-w-5xl [class*="min-w-[10rem]"] {
+          flex: 0 0 auto !important;
+          width: 100% !important;
+          flex-direction: row !important;
+          justify-content: space-between !important;
+          align-items: center !important;
+        }
+        body.msc-reports-page main .max-w-5xl [class*="sm:gap-14"] > .bg-n-strong {
+          height: 1px !important;
+          width: 100% !important;
+          flex: 0 0 1px !important;
+        }
+      }
+
+      body.msc-reports-page .cw-viz-percentage__description,
+      body.msc-reports-page .cw-viz-heatmap__description {
+        overflow: hidden !important;
+        max-width: 1px !important;
+        white-space: normal !important;
+      }
+
+      body.dark.msc-reports-page main .max-w-5xl .rounded-xl.bg-n-solid-2 {
+        background: linear-gradient(180deg, rgba(10, 19, 30, 0.92) 0%, rgba(7, 14, 22, 0.96) 100%) !important;
+        border: 1px solid rgba(16, 185, 129, 0.18) !important;
+        box-shadow: 0 14px 34px -12px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+      }
+
+      body.dark.msc-reports-page main .max-w-5xl .rounded-xl.bg-n-solid-2:hover {
+        border-color: rgba(16, 185, 129, 0.30) !important;
+      }
+
+      body:not(.dark).msc-reports-page main .max-w-5xl .rounded-xl.bg-n-solid-2 {
+        background: #FFFFFF !important;
+        border: 1px solid rgba(16, 185, 129, 0.22) !important;
+        box-shadow: 0 10px 28px -10px rgba(6, 78, 59, 0.07), 0 2px 6px rgba(15, 23, 42, 0.03) !important;
+      }
+
+      body:not(.dark).msc-reports-page main .max-w-5xl .rounded-xl.bg-n-solid-2:hover {
+        border-color: rgba(16, 185, 129, 0.38) !important;
+      }
+
+      /* 6. Overview Real-Time Cards (MetricCard.vue) & Fix Grid Header Overflow */
+      body.msc-reports-page main .max-w-5xl .card-header {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 0.65rem !important;
+        margin-bottom: 1.15rem !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl .card-header h5 {
+        font-size: 1.05rem !important;
+        font-weight: 600 !important;
+        letter-spacing: -0.01em !important;
+      }
+
+      /* Real-time badge ("Em tempo real") */
+      body.msc-reports-page main .max-w-5xl .card-header .bg-n-teal-3 {
+        border-radius: 999px !important;
+        padding: 0.2rem 0.6rem !important;
+        font-weight: 600 !important;
+      }
+
+      body.dark.msc-reports-page main .max-w-5xl .card-header .bg-n-teal-3 {
+        background: rgba(16, 185, 129, 0.14) !important;
+        border: 1px solid rgba(16, 185, 129, 0.32) !important;
+      }
+
+      body.dark.msc-reports-page main .max-w-5xl .card-header .text-n-teal-11 {
+        color: #34D399 !important;
+      }
+
+      body:not(.dark).msc-reports-page main .max-w-5xl .card-header .bg-n-teal-3 {
+        background: #ECFDF5 !important;
+        border: 1px solid #A7F3D0 !important;
+      }
+
+      body:not(.dark).msc-reports-page main .max-w-5xl .card-header .text-n-teal-11 {
+        color: #047857 !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl .card-header .bg-n-teal-9 {
+        background-color: #10B981 !important;
+        box-shadow: 0 0 6px #10B981 !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl .card-header > div {
+        flex-wrap: wrap !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+      }
+
+      /* Overview KPI metric sub-tiles (only for KPI cards with h3/p, not table cards) */
+      body.msc-reports-page main .max-w-5xl .card-body:has(> div > h3) {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(115px, 1fr)) !important;
+        gap: 0.75rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      /* Overview Live Table cards (AgentLiveReport & TeamLiveReport) */
+      body.msc-reports-page main .max-w-5xl .card-body:not(:has(> div > h3)) {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow-x: hidden !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl .card-body:not(:has(> div > h3)) > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl .card-body:not(:has(> div > h3)) .justify-between {
+        flex-wrap: wrap !important;
+        max-width: 100% !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl div:has(> .conversation-metric) {
+        align-items: stretch !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl div:has(> .conversation-metric) > div {
+        display: flex !important;
+        flex-direction: column !important;
+      }
+
+      @media (min-width: 1025px) {
+        body.msc-reports-page main .max-w-5xl div:has(> .conversation-metric) > div:last-child .card-body:has(> div > h3) {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+        body.msc-reports-page main .max-w-5xl div:has(> .conversation-metric) > div:first-child .card-body:has(> div > h3) {
+          grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        }
+      }
+
+      @media (max-width: 1024px) {
+        .msc-rnav-brand {
+          display: none !important;
+        }
+        body.msc-reports-page main .max-w-5xl [class*="md:w-[65%]"],
+        body.msc-reports-page main .max-w-5xl [class*="md:w-[35%]"] {
+          width: 100% !important;
+          max-width: 100% !important;
+          flex: 1 1 100% !important;
+        }
+        body.msc-reports-page main .max-w-5xl div:has(> .conversation-metric) {
+          flex-direction: column !important;
+        }
+      }
+
+      body.msc-reports-page main .max-w-5xl .card-body:has(> div > h3) > div {
+        padding: 0.75rem 0.9rem !important;
+        border-radius: 12px !important;
+        transition: transform 0.16s ease !important;
+      }
+
+      body.dark.msc-reports-page main .max-w-5xl .card-body:has(> div > h3) > div {
+        background: rgba(15, 28, 42, 0.65) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+      }
+
+      body:not(.dark).msc-reports-page main .max-w-5xl .card-body:has(> div > h3) > div {
+        background: #F8FAFC !important;
+        border: 1px solid #E2E8F0 !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl .card-body:has(> div > h3) > div h3 {
+        font-size: 0.78rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.03em !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl .card-body:has(> div > h3) > div p.text-3xl {
+        font-size: 1.85rem !important;
+        font-weight: 700 !important;
+        font-variant-numeric: tabular-nums !important;
+        letter-spacing: -0.02em !important;
+        margin-top: 0.35rem !important;
+      }
+
+      /* 7. Heatmap Visualization (Overview) — Emerald Scale & Contained Scroll */
+      body.msc-reports-page .cw-viz-heatmap {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+      }
+
+      body.msc-reports-page .cw-viz-heatmap__grid {
+        --cw-viz-heatmap-row-label-width: 118px !important;
+        --cw-viz-heatmap-cell-height: 36px !important;
+      }
+
+      body.msc-reports-page .cw-viz-heatmap__row-label strong {
+        white-space: nowrap !important;
+        font-size: 0.78rem !important;
+        line-height: 1.15 !important;
+      }
+
+      body.msc-reports-page .cw-viz-heatmap__row-label span {
+        white-space: nowrap !important;
+        font-size: 0.7rem !important;
+        line-height: 1.15 !important;
+      }
+
+      body.msc-reports-page .cw-viz-heatmap__scroll {
+        overflow-x: auto !important;
+        max-width: 100% !important;
+        padding-bottom: 0.35rem !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+
+      body.msc-reports-page .cw-viz-heatmap__cell {
+        border-radius: 6px !important;
+        transition: transform 0.12s ease, box-shadow 0.12s ease !important;
+      }
+
+      body.msc-reports-page .cw-viz-heatmap__cell:hover {
+        transform: scale(1.08) !important;
+        z-index: 5 !important;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.45) !important;
+      }
+
+      body.dark.msc-reports-page .cw-viz-heatmap__cell--level-0 {
+        background-color: rgba(15, 26, 38, 0.72) !important;
+        border: 1px solid rgba(255, 255, 255, 0.04) !important;
+      }
+      body:not(.dark).msc-reports-page .cw-viz-heatmap__cell--level-0 {
+        background-color: #F1F5F9 !important;
+        border: 1px solid #E2E8F0 !important;
+      }
+
+      body.msc-reports-page .cw-viz-heatmap__cell--level-1 {
+        background-color: rgba(16, 185, 129, 0.24) !important;
+      }
+      body.msc-reports-page .cw-viz-heatmap__cell--level-2 {
+        background-color: rgba(16, 185, 129, 0.40) !important;
+      }
+      body.msc-reports-page .cw-viz-heatmap__cell--level-3 {
+        background-color: rgba(16, 185, 129, 0.56) !important;
+      }
+      body.msc-reports-page .cw-viz-heatmap__cell--level-4 {
+        background-color: rgba(16, 185, 129, 0.72) !important;
+      }
+      body.msc-reports-page .cw-viz-heatmap__cell--level-5 {
+        background-color: #10B981 !important;
+      }
+      body.msc-reports-page .cw-viz-heatmap__cell--level-6 {
+        background-color: #059669 !important;
+        box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.5) !important;
+      }
+
+      /* 8. Conversation & Bot Chart Grid + BarCharts (.cw-viz-bar) */
+      body.msc-reports-page main .max-w-5xl .grid[class*="md:grid-cols-2"].bg-n-solid-2 {
+        gap: 1.15rem !important;
+        padding: 1.25rem !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl .grid[class*="md:grid-cols-2"].bg-n-solid-2 > div {
+        border-radius: 14px !important;
+        padding: 1.1rem 1rem !important;
+        margin-bottom: 0 !important;
+        min-width: 0 !important;
+      }
+
+      body.dark.msc-reports-page main .max-w-5xl .grid[class*="md:grid-cols-2"].bg-n-solid-2 > div {
+        background: rgba(14, 25, 38, 0.65) !important;
+        border: 1px solid rgba(16, 185, 129, 0.14) !important;
+      }
+
+      body:not(.dark).msc-reports-page main .max-w-5xl .grid[class*="md:grid-cols-2"].bg-n-solid-2 > div {
+        background: #F8FAFC !important;
+        border: 1px solid #E2E8F0 !important;
+      }
+
+      /* Bot top KPI strip */
+      body.msc-reports-page [data-test-id="reportMetricContainer"] {
+        min-width: 140px !important;
+        padding: 0.75rem 1rem !important;
+        border-radius: 12px !important;
+      }
+
+      body.msc-reports-page [data-test-id="reportMetricValue"] {
+        font-size: 1.75rem !important;
+        font-weight: 700 !important;
+        font-variant-numeric: tabular-nums !important;
+        color: #10B981 !important;
+      }
+
+      /* BarChart Emerald Bars */
+      body.msc-reports-page .cw-viz-bar__bar {
+        fill: #10B981 !important;
+        transition: fill 0.18s ease, filter 0.18s ease !important;
+      }
+
+      body.msc-reports-page .cw-viz-bar__bar-group:hover .cw-viz-bar__bar {
+        fill: #34D399 !important;
+        filter: drop-shadow(0 4px 10px rgba(16, 185, 129, 0.35)) !important;
+      }
+
+      /* 9. SummaryDistribution (Agents, Inboxes, Teams, Labels Overview) */
+      body.msc-reports-page .bg-n-blue-9 {
+        background: linear-gradient(90deg, #10B981 0%, #34D399 100%) !important;
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.3) !important;
+      }
+
+      body.dark.msc-reports-page .text-n-blue-11 {
+        color: #34D399 !important;
+        font-weight: 600 !important;
+      }
+
+      body:not(.dark).msc-reports-page .text-n-blue-11 {
+        color: #047857 !important;
+        font-weight: 600 !important;
+      }
+
+      /* 10. CSAT Percentage Bar & Legend */
+      body.msc-reports-page .cw-viz-percentage__bar {
+        height: 18px !important;
+        border-radius: 999px !important;
+        overflow: hidden !important;
+        padding: 2px !important;
+      }
+
+      body.msc-reports-page .cw-viz-percentage__legend {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 0.65rem !important;
+        margin-top: 0.9rem !important;
+      }
+
+      body.msc-reports-page .cw-viz-percentage__legend > li {
+        padding: 0.35rem 0.7rem !important;
+        border-radius: 8px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.4rem !important;
+      }
+
+      body.dark.msc-reports-page .cw-viz-percentage__legend > li {
+        background: rgba(15, 26, 38, 0.75) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+      }
+
+      body:not(.dark).msc-reports-page .cw-viz-percentage__legend > li {
+        background: #F8FAFC !important;
+        border: 1px solid #E2E8F0 !important;
+      }
+
+      /* 11. Tables (SummaryReports, CSAT, SLA) */
+      body.msc-reports-page main table {
+        width: 100% !important;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+      }
+
+      body.msc-reports-page main table thead th {
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.04em !important;
+        padding-top: 0.85rem !important;
+        padding-bottom: 0.85rem !important;
+      }
+
+      body.dark.msc-reports-page main table thead,
+      body.dark.msc-reports-page main table thead th {
+        background: rgba(16, 185, 129, 0.08) !important;
+        color: #A7F3D0 !important;
+        border-bottom: 1px solid rgba(16, 185, 129, 0.18) !important;
+      }
+
+      body:not(.dark).msc-reports-page main table thead,
+      body:not(.dark).msc-reports-page main table thead th {
+        background: #F0FDF4 !important;
+        color: #065F46 !important;
+        border-bottom: 1px solid #A7F3D0 !important;
+      }
+
+      body.dark.msc-reports-page main table tbody tr:hover td {
+        background: rgba(16, 185, 129, 0.06) !important;
+      }
+
+      body:not(.dark).msc-reports-page main table tbody tr:hover td {
+        background: #F8FAFC !important;
+      }
+
+      body.msc-reports-page main table tbody td {
+        font-variant-numeric: tabular-nums !important;
+      }
+
+      /* SLA Grid Table Responsive Scroll & Polish */
+      body.msc-reports-page main .max-w-5xl .min-w-full.rounded-xl.bg-n-solid-2 {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+
+      body.msc-reports-page main .max-w-5xl .min-w-full.rounded-xl.bg-n-solid-2 .grid-cols-12 {
+        min-width: 640px !important;
+      }
+
+      body.dark.msc-reports-page main .max-w-5xl .min-w-full.rounded-xl.bg-n-solid-2 > .grid-cols-12.bg-n-slate-2 {
+        background: rgba(16, 185, 129, 0.10) !important;
+        border: 1px solid rgba(16, 185, 129, 0.20) !important;
+      }
+
+      body:not(.dark).msc-reports-page main .max-w-5xl .min-w-full.rounded-xl.bg-n-solid-2 > .grid-cols-12.bg-n-slate-2 {
+        background: #F0FDF4 !important;
+        border: 1px solid #A7F3D0 !important;
+      }
+
+      /* 12. Mobile & Tablet Responsive Refinements */
+      @media (max-width: 767px) {
+        body.msc-reports-page main > div.overflow-auto {
+          padding-left: 0.85rem !important;
+          padding-right: 0.85rem !important;
+        }
+
+        #msc-reports-quicknav {
+          margin-top: 0.75rem !important;
+          padding: 0.4rem 0.5rem !important;
+          gap: 0.4rem !important;
+          top: 0.35rem !important;
+        }
+
+        .msc-rnav-brand {
+          display: none !important;
+        }
+
+        .msc-rnav-pill {
+          min-height: 36px !important;
+          padding: 0.4rem 0.7rem !important;
+          font-size: 0.78rem !important;
+        }
+
+        body.msc-reports-page main .max-w-5xl > section:first-of-type .text-heading-1 {
+          font-size: 1.25rem !important;
+        }
+
+        body.msc-reports-page main .max-w-5xl .card-body:has(> div > h3) {
+          display: grid !important;
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          gap: 0.6rem !important;
+        }
+
+        body.msc-reports-page main .max-w-5xl .card-body:has(> div > h3) > div p.text-3xl {
+          font-size: 1.5rem !important;
+        }
+
+        body.msc-reports-page main .max-w-5xl .rounded-xl.bg-n-solid-2 {
+          padding-left: 1rem !important;
+          padding-right: 1rem !important;
+        }
+      }
+    </style>
+
+    <script id="msc-reports-refactor-v1-script">
+      (function() {
+        var REPORT_TABS = [
+          {
+            key: 'overview',
+            label: 'Visão Geral',
+            href: '/reports/overview',
+            match: ['/reports/overview'],
+            icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>'
+          },
+          {
+            key: 'conversation',
+            label: 'Conversas',
+            href: '/reports/conversation',
+            match: ['/reports/conversation'],
+            icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+          },
+          {
+            key: 'csat',
+            label: 'CSAT',
+            href: '/reports/csat',
+            match: ['/reports/csat'],
+            icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'
+          },
+          {
+            key: 'agents',
+            label: 'Agentes',
+            href: '/reports/agents_overview',
+            match: ['/reports/agents_overview', '/reports/agent'],
+            icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+          },
+          {
+            key: 'inboxes',
+            label: 'Caixas de Entrada',
+            href: '/reports/inboxes_overview',
+            match: ['/reports/inboxes_overview', '/reports/inboxes'],
+            icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>'
+          },
+          {
+            key: 'teams',
+            label: 'Times',
+            href: '/reports/teams_overview',
+            match: ['/reports/teams_overview', '/reports/teams'],
+            icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'
+          },
+          {
+            key: 'labels',
+            label: 'Etiquetas',
+            href: '/reports/labels_overview',
+            match: ['/reports/labels_overview', '/reports/label'],
+            icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>'
+          },
+          {
+            key: 'sla',
+            label: 'SLA',
+            href: '/reports/sla',
+            match: ['/reports/sla'],
+            icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+          },
+          {
+            key: 'bot',
+            label: 'Bot / IA',
+            href: '/reports/bot',
+            match: ['/reports/bot'],
+            icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>'
+          }
+        ];
+
+        function syncBodyDarkClass() {
+          if (!document.body) return;
+          var isDark = document.documentElement.classList.contains('dark');
+          if (isDark && !document.body.classList.contains('dark')) {
+            document.body.classList.add('dark');
+            document.body.classList.remove('light');
+          } else if (!isDark && document.body.classList.contains('dark')) {
+            document.body.classList.remove('dark');
+            document.body.classList.add('light');
+          }
+        }
+
+        function getAccountIdFromPath(path) {
+          var m = path.match(/^\/app\/accounts\/(\d+)\/reports(?:\/|$)/);
+          return m ? m[1] : null;
+        }
+
+        function navigateToReport(fullHref, e) {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          var sidebarLink = document.querySelector('aside a[href="' + fullHref + '"]');
+          if (sidebarLink) {
+            sidebarLink.click();
+            setTimeout(syncReportsPage, 60);
+            return;
+          }
+          window.location.assign(fullHref);
+        }
+
+        function syncReportsPage() {
+          syncBodyDarkClass();
+          var path = window.location.pathname || '';
+          var accId = getAccountIdFromPath(path);
+
+          if (!accId) {
+            document.body.classList.remove('msc-reports-page');
+            var oldNav = document.getElementById('msc-reports-quicknav');
+            if (oldNav) oldNav.remove();
+            return;
+          }
+
+          document.body.classList.add('msc-reports-page');
+
+          var container = document.querySelector('main .max-w-5xl');
+          if (!container || !container.parentElement) return;
+
+          var parentWrap = container.parentElement;
+          var nav = document.getElementById('msc-reports-quicknav');
+
+          if (!nav) {
+            nav = document.createElement('nav');
+            nav.id = 'msc-reports-quicknav';
+            nav.setAttribute('aria-label', 'Navegação Executiva de Relatórios');
+
+            var brand = document.createElement('div');
+            brand.className = 'msc-rnav-brand';
+            brand.innerHTML = '<span class="msc-rnav-pulse"></span><span>BI & Analytics</span>';
+            nav.appendChild(brand);
+
+            var track = document.createElement('div');
+            track.className = 'msc-rnav-track';
+
+            REPORT_TABS.forEach(function(tab) {
+              var a = document.createElement('a');
+              a.className = 'msc-rnav-pill';
+              a.setAttribute('data-report-key', tab.key);
+              a.href = '/app/accounts/' + accId + tab.href;
+              a.innerHTML = tab.icon + '<span>' + tab.label + '</span>';
+              a.addEventListener('click', function(ev) {
+                navigateToReport('/app/accounts/' + accId + tab.href, ev);
+              });
+              track.appendChild(a);
+            });
+
+            nav.appendChild(track);
+            parentWrap.insertBefore(nav, container);
+          }
+
+          // Update active tab state
+          var pills = nav.querySelectorAll('.msc-rnav-pill');
+          var trackEl = nav.querySelector('.msc-rnav-track');
+          pills.forEach(function(pill) {
+            var key = pill.getAttribute('data-report-key');
+            var tabDef = REPORT_TABS.find(function(t) { return t.key === key; });
+            if (!tabDef) return;
+            var fullTarget = '/app/accounts/' + accId + tabDef.href;
+            if (pill.getAttribute('href') !== fullTarget) {
+              pill.setAttribute('href', fullTarget);
+            }
+            var isActive = tabDef.match.some(function(suffix) {
+              return path.endsWith(suffix) || path.indexOf(suffix + '/') !== -1;
+            });
+            if (isActive) {
+              if (!pill.classList.contains('is-active')) {
+                pill.classList.add('is-active');
+                if (trackEl && trackEl.scrollWidth > trackEl.clientWidth) {
+                  var targetScroll = pill.offsetLeft - (trackEl.clientWidth / 2) + (pill.clientWidth / 2);
+                  trackEl.scrollLeft = Math.max(0, targetScroll);
+                }
+              }
+            } else {
+              pill.classList.remove('is-active');
+            }
+          });
+        }
+
+        // Observe html class changes (dark/light toggle)
+        var htmlObs = new MutationObserver(function() {
+          syncBodyDarkClass();
+        });
+        htmlObs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+        // Observe DOM & route transitions
+        var bodyObs = new MutationObserver(function() {
+          syncReportsPage();
+        });
+        if (document.body) {
+          bodyObs.observe(document.body, { childList: true, subtree: true });
+        } else {
+          document.addEventListener('DOMContentLoaded', function() {
+            bodyObs.observe(document.body, { childList: true, subtree: true });
+            syncReportsPage();
+          });
+        }
+
+        window.addEventListener('popstate', syncReportsPage);
+        syncReportsPage();
+      })();
+    </script>
+    <!-- END MSC REPORTS REFACTOR V1 -->
+<!-- MSC INBOX & SEARCH REFACTOR V1 -->
+    <style id="msc-inbox-search-refactor-v1">
+      /* ==========================================================================
+         MEU SUPER CHAT — CENTRAL DE NOTIFICAÇÕES (/inbox-view) & BUSCA GLOBAL (/search)
+         Dual-Theme: Dark Obsidian (#04090D / #081218 / #10B981) & Light Clean Emerald
+         ========================================================================== */
+
+      /* ---------- 1. CENTRAL DE NOTIFICAÇÕES (/inbox-view) ---------- */
+      body.msc-inbox-view-page main > section > div:first-child {
+        background: #FFFFFF !important;
+        border-right: 1px solid rgba(16, 185, 129, 0.16) !important;
+      }
+      body.dark.msc-inbox-view-page main > section > div:first-child {
+        background: #071018 !important;
+        border-right: 1px solid #132631 !important;
+      }
+
+      /* Inbox List Header */
+      body.msc-inbox-view-page main > section > div:first-child > div:first-child {
+        height: 58px !important;
+        padding: 0 14px !important;
+        border-bottom: 1px solid rgba(16, 185, 129, 0.14) !important;
+        background: linear-gradient(180deg, rgba(16, 185, 129, 0.05), transparent) !important;
+      }
+      body.dark.msc-inbox-view-page main > section > div:first-child > div:first-child {
+        border-bottom: 1px solid #132631 !important;
+        background: linear-gradient(180deg, rgba(16, 185, 129, 0.08), rgba(7, 16, 24, 0)) !important;
+      }
+      body.msc-inbox-view-page main > section > div:first-child h1 {
+        font-size: 17px !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.02em !important;
+      }
+
+      /* Summary Strip under Inbox Header */
+      #msc-inbox-summary-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 8px 12px;
+        margin: 8px 10px 4px;
+        border-radius: 11px;
+        background: rgba(16, 185, 129, 0.08);
+        border: 1px solid rgba(16, 185, 129, 0.22);
+        font-size: 11.5px;
+        font-weight: 600;
+        color: #059669;
+      }
+      body.dark #msc-inbox-summary-strip {
+        background: rgba(16, 185, 129, 0.10);
+        border-color: rgba(16, 185, 129, 0.28);
+        color: #34D399;
+      }
+      #msc-inbox-summary-strip .msc-is-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #10B981;
+        box-shadow: 0 0 8px #10B981;
+        display: inline-block;
+        margin-right: 6px;
+      }
+
+      /* Notification Cards (.inbox-card) */
+      body.msc-inbox-view-page .inbox-card {
+        margin: 4px 4px !important;
+        padding: 12px 13px !important;
+        border-radius: 14px !important;
+        border: 1px solid rgba(15, 23, 42, 0.07) !important;
+        background: #FFFFFF !important;
+        transition: all 0.18s ease !important;
+      }
+      body.dark.msc-inbox-view-page .inbox-card {
+        background: #0A151F !important;
+        border: 1px solid #132631 !important;
+      }
+      body.msc-inbox-view-page .inbox-card:hover,
+      body.msc-inbox-view-page .inbox-card.active {
+        border-color: rgba(16, 185, 129, 0.45) !important;
+        background: rgba(16, 185, 129, 0.06) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px -12px rgba(16, 185, 129, 0.28) !important;
+      }
+      body.dark.msc-inbox-view-page .inbox-card:hover,
+      body.dark.msc-inbox-view-page .inbox-card.active {
+        background: #0E1E2B !important;
+        border-color: rgba(16, 185, 129, 0.50) !important;
+        box-shadow: 0 12px 26px -12px rgba(16, 185, 129, 0.35) !important;
+      }
+
+      /* Unread Dot & Type Label in Emerald */
+      body.msc-inbox-view-page .inbox-card .bg-n-iris-10 {
+        background-color: #10B981 !important;
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.75) !important;
+      }
+      body.msc-inbox-view-page .inbox-card .text-n-blue-11 {
+        color: #059669 !important;
+        font-weight: 700 !important;
+      }
+      body.dark.msc-inbox-view-page .inbox-card .text-n-blue-11 {
+        color: #34D399 !important;
+      }
+
+      /* Empty State Right Pane Enhancement (pure CSS safe + non-destructive card) */
+      body.msc-inbox-view-page main > section > div:nth-child(2) > div {
+        max-width: 440px;
+        padding: 30px 26px !important;
+        border-radius: 22px !important;
+        background: #FFFFFF !important;
+        border: 1px solid rgba(16, 185, 129, 0.22) !important;
+        box-shadow: 0 20px 50px -20px rgba(15, 23, 42, 0.10) !important;
+      }
+      body.dark.msc-inbox-view-page main > section > div:nth-child(2) > div {
+        background: linear-gradient(180deg, #09141E 0%, #060E15 100%) !important;
+        border: 1px solid #152C39 !important;
+        box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.65) !important;
+      }
+      body.msc-inbox-view-page main > section > div:nth-child(2) svg {
+        color: #10B981 !important;
+        width: 44px !important;
+        height: 44px !important;
+      }
+
+      /* ---------- 2. BUSCA GLOBAL OMNICHANNEL (/search) ---------- */
+      #msc-search-hero {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+        padding: 14px 18px;
+        border-radius: 16px;
+        background: #FFFFFF;
+        border: 1px solid rgba(16, 185, 129, 0.20);
+        box-shadow: 0 10px 28px -18px rgba(15, 23, 42, 0.10);
+      }
+      body.dark #msc-search-hero {
+        background: linear-gradient(90deg, rgba(16, 185, 129, 0.10) 0%, rgba(8, 18, 24, 0.92) 60%);
+        border: 1px solid #152C39;
+        box-shadow: 0 14px 32px -18px rgba(0, 0, 0, 0.55);
+      }
+      #msc-search-hero .msc-sh-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      #msc-search-hero .msc-sh-badge {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        background: rgba(16, 185, 129, 0.14);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        color: #10B981;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      #msc-search-hero h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #0F172A;
+      }
+      body.dark #msc-search-hero h2 {
+        color: #F8FAFC;
+      }
+      #msc-search-hero p {
+        margin: 2px 0 0;
+        font-size: 12px;
+        color: #64748B;
+      }
+      body.dark #msc-search-hero p {
+        color: #94A3B8;
+      }
+      #msc-search-hero .msc-sh-kbd {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 8px;
+        background: rgba(16, 185, 129, 0.10);
+        border: 1px solid rgba(16, 185, 129, 0.28);
+        color: #059669;
+      }
+      body.dark #msc-search-hero .msc-sh-kbd {
+        color: #34D399;
+      }
+
+      /* Search Box Container */
+      body.msc-search-page main .max-w-5xl .border-n-brand {
+        border-radius: 16px !important;
+        border: 1px solid rgba(16, 185, 129, 0.42) !important;
+        background: #FFFFFF !important;
+        box-shadow: 0 14px 34px -16px rgba(16, 185, 129, 0.18) !important;
+      }
+      body.dark.msc-search-page main .max-w-5xl .border-n-brand {
+        background: #08131C !important;
+        border: 1px solid rgba(16, 185, 129, 0.45) !important;
+        box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(16, 185, 129, 0.12) !important;
+      }
+      body.msc-search-page main .text-n-blue-11 {
+        color: #059669 !important;
+      }
+      body.dark.msc-search-page main .text-n-blue-11 {
+        color: #34D399 !important;
+      }
+
+      /* Search Tabs Track — Prevent button truncation on Tablet & Mobile */
+      body.msc-search-page main .max-w-5xl .mt-7.mb-4 {
+        overflow-x: auto !important;
+        scrollbar-width: none !important;
+        max-width: 100% !important;
+      }
+      body.msc-search-page main .max-w-5xl .mt-7.mb-4::-webkit-scrollbar {
+        display: none;
+      }
+      body.msc-search-page main .max-w-5xl .mt-7.mb-4 > div {
+        max-width: none !important;
+        width: max-content !important;
+        height: auto !important;
+        min-height: 40px !important;
+        padding: 4px !important;
+        border-radius: 12px !important;
+        background: #F1F5F9 !important;
+        border: 1px solid rgba(15, 23, 42, 0.08) !important;
+      }
+      body.dark.msc-search-page main .max-w-5xl .mt-7.mb-4 > div {
+        background: #08121A !important;
+        border: 1px solid #132631 !important;
+      }
+      body.msc-search-page main .max-w-5xl .mt-7.mb-4 > div > button {
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        padding: 6px 12px !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+      }
+      /* Hide fixed-width sliding indicator when buttons expand naturally */
+      body.msc-search-page main .max-w-5xl .mt-7.mb-4 > div > .pointer-events-none {
+        display: none !important;
+      }
+      body.msc-search-page main .max-w-5xl .mt-7.mb-4 > div > button.text-n-blue-11 {
+        background: rgba(16, 185, 129, 0.14) !important;
+        border: 1px solid rgba(16, 185, 129, 0.35) !important;
+        border-radius: 9px !important;
+      }
+
+      /* Search Result Cards */
+      body.msc-search-page main [class*="group/cardLayout"] {
+        border-radius: 14px !important;
+        background: #FFFFFF !important;
+        outline: 1px solid rgba(15, 23, 42, 0.08) !important;
+        transition: all 0.18s ease !important;
+      }
+      body.dark.msc-search-page main [class*="group/cardLayout"] {
+        background: #09141E !important;
+        outline: 1px solid #142834 !important;
+      }
+      body.msc-search-page main [class*="group/cardLayout"]:hover {
+        outline-color: rgba(16, 185, 129, 0.55) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 12px 26px -14px rgba(16, 185, 129, 0.30) !important;
+      }
+      /* Fix card header flex overlap on mobile */
+      body.msc-search-page main [class*="group/cardLayout"] > div > div:first-child {
+        flex-wrap: wrap !important;
+        height: auto !important;
+        min-height: 28px !important;
+        row-gap: 4px !important;
+      }
+
+      /* Search Keyword Highlight Pill */
+      body.msc-search-page main .searchkey--highlight {
+        background: rgba(16, 185, 129, 0.18) !important;
+        color: #047857 !important;
+        padding: 1px 6px !important;
+        border-radius: 6px !important;
+        font-weight: 700 !important;
+      }
+      body.dark.msc-search-page main .searchkey--highlight {
+        background: rgba(16, 185, 129, 0.24) !important;
+        color: #6EE7B7 !important;
+        border: 1px solid rgba(16, 185, 129, 0.35) !important;
+      }
+
+      /* Mobile Containment */
+      @media (max-width: 767px) {
+        body.msc-search-page main,
+        body.msc-inbox-view-page main {
+          max-width: 100vw !important;
+          overflow-x: hidden !important;
+        }
+        #msc-search-hero .msc-sh-kbd {
+          display: none;
+        }
+      }
+    </style>
+
+    <script id="msc-inbox-search-refactor-v1-script">
+      (function() {
+        var isSyncing = false;
+        var rafPending = false;
+
+        function syncInboxAndSearch() {
+          if (isSyncing) return;
+          isSyncing = true;
+          try {
+            var path = window.location.pathname || '';
+            var isInboxView = /\/app\/accounts\/\d+\/inbox-view/.test(path);
+            var isSearch = /\/app\/accounts\/\d+\/search/.test(path);
+
+            if (document.body.classList.contains('msc-inbox-view-page') !== isInboxView) {
+              document.body.classList.toggle('msc-inbox-view-page', isInboxView);
+            }
+            if (document.body.classList.contains('msc-search-page') !== isSearch) {
+              document.body.classList.toggle('msc-search-page', isSearch);
+            }
+
+            if (isInboxView) {
+              var leftCol = document.querySelector('main > section > div:first-child');
+              if (leftCol && leftCol.children.length >= 2) {
+                var count = leftCol.querySelectorAll('.inbox-card').length;
+                var strip = document.getElementById('msc-inbox-summary-strip');
+                if (!strip) {
+                  strip = document.createElement('div');
+                  strip.id = 'msc-inbox-summary-strip';
+                  strip.innerHTML = '<span><span class="msc-is-dot"></span>Alertas em tempo real</span><span class="msc-is-count">' + count + ' ativos</span>';
+                  leftCol.insertBefore(strip, leftCol.children[1]);
+                } else {
+                  var cSpan = strip.querySelector('.msc-is-count');
+                  var expected = count + ' ativos';
+                  if (cSpan && cSpan.textContent !== expected) {
+                    cSpan.textContent = expected;
+                  }
+                }
+              }
+            } else {
+              var oldStrip = document.getElementById('msc-inbox-summary-strip');
+              if (oldStrip) oldStrip.remove();
+            }
+
+            if (isSearch) {
+              var searchWrap = document.querySelector('main .max-w-5xl > .flex.flex-col.w-full.px-4');
+              if (searchWrap && !document.getElementById('msc-search-hero')) {
+                var hero = document.createElement('div');
+                hero.id = 'msc-search-hero';
+                hero.innerHTML =
+                  '<div class="msc-sh-left">' +
+                    '<div class="msc-sh-badge">' +
+                      '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+                    '</div>' +
+                    '<div>' +
+                      '<h2>Busca Global Omnichannel</h2>' +
+                      '<p>Pesquise instantaneamente em Contatos, Conversas, Mensagens e Artigos da Central de Ajuda</p>' +
+                    '</div>' +
+                  '</div>' +
+                  '<span class="msc-sh-kbd">Atalho: / para focar</span>';
+                searchWrap.insertBefore(hero, searchWrap.firstChild);
+              }
+
+              document.querySelectorAll('main h3').forEach(function(h3) {
+                if ((h3.textContent || '').trim() === 'Messagem') {
+                  h3.textContent = 'Mensagens';
+                }
+              });
+              document.querySelectorAll('main p').forEach(function(pEl) {
+                var t = pEl.textContent || '';
+                if (t.indexOf('Nenhum contatos foi encontrado') !== -1) {
+                  pEl.textContent = t.replace('Nenhum contatos foi encontrado', 'Nenhum contato encontrado');
+                } else if (t.indexOf('Nenhum conversas foi encontrado') !== -1) {
+                  pEl.textContent = t.replace('Nenhum conversas foi encontrado', 'Nenhuma conversa encontrada');
+                } else if (t.indexOf('Nenhum artigos foi encontrado') !== -1) {
+                  pEl.textContent = t.replace('Nenhum artigos foi encontrado', 'Nenhum artigo encontrado');
+                }
+              });
+            } else {
+              var oldHero = document.getElementById('msc-search-hero');
+              if (oldHero) oldHero.remove();
+            }
+          } finally {
+            isSyncing = false;
+          }
+        }
+
+        function scheduleSync() {
+          if (rafPending || isSyncing) return;
+          rafPending = true;
+          requestAnimationFrame(function() {
+            rafPending = false;
+            syncInboxAndSearch();
+          });
+        }
+
+        var obs = new MutationObserver(scheduleSync);
+        if (document.body) {
+          obs.observe(document.body, { childList: true, subtree: true });
+        } else {
+          document.addEventListener('DOMContentLoaded', function() {
+            obs.observe(document.body, { childList: true, subtree: true });
+            syncInboxAndSearch();
+          });
+        }
+        window.addEventListener('popstate', scheduleSync);
+        syncInboxAndSearch();
+      })();
+    </script>
+    <!-- END MSC INBOX & SEARCH REFACTOR V1 -->
+<!-- MSC CAMPAIGNS REFACTOR V1 -->
+    <style id="msc-campaigns-refactor-v1">
+      /* ==========================================================================
+         MEU SUPER CHAT — MÓDULO DE CAMPANHAS (/campaigns/live_chat, /whatsapp, /sms)
+         Dual-Theme: Dark Obsidian (#04090D / #081218 / #10B981) & Light Clean Emerald
+         ========================================================================== */
+
+      /* Sticky Header Polish */
+      body.msc-campaigns-page section > header.sticky {
+        background: rgba(255, 255, 255, 0.90) !important;
+        backdrop-filter: blur(12px) !important;
+        border-bottom: 1px solid rgba(16, 185, 129, 0.16) !important;
+      }
+      body.dark.msc-campaigns-page section > header.sticky {
+        background: rgba(6, 13, 20, 0.88) !important;
+        backdrop-filter: blur(12px) !important;
+        border-bottom: 1px solid #132631 !important;
+      }
+      body.msc-campaigns-page section > header .text-heading-1 {
+        font-size: 20px !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.025em !important;
+      }
+      body.msc-campaigns-page section > header [class*="group/campaign-button"] button {
+        height: 38px !important;
+        padding: 0 16px !important;
+        border-radius: 11px !important;
+        font-weight: 700 !important;
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+        color: #03120D !important;
+        box-shadow: 0 10px 24px -10px rgba(16, 185, 129, 0.65) !important;
+      }
+      body.msc-campaigns-page section > header [class*="group/campaign-button"] button span {
+        color: #03120D !important;
+        font-weight: 700 !important;
+      }
+
+      /* Quick-Nav & Executive KPI Bar */
+      #msc-campaigns-quicknav {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+        padding: 12px 16px;
+        border-radius: 16px;
+        background: #FFFFFF;
+        border: 1px solid rgba(16, 185, 129, 0.22);
+        box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.10);
+      }
+      body.dark #msc-campaigns-quicknav {
+        background: linear-gradient(90deg, rgba(16, 185, 129, 0.10) 0%, rgba(8, 18, 26, 0.95) 65%);
+        border: 1px solid #152C39;
+        box-shadow: 0 16px 34px -18px rgba(0, 0, 0, 0.60);
+      }
+      #msc-campaigns-quicknav .msc-cq-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      #msc-campaigns-quicknav .msc-cq-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 36px;
+        padding: 6px 13px;
+        border-radius: 10px;
+        font-size: 12.5px;
+        font-weight: 700;
+        text-decoration: none;
+        color: #475569;
+        background: #F8FAFC;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        transition: all 0.16s ease;
+        cursor: pointer;
+      }
+      body.dark #msc-campaigns-quicknav .msc-cq-tab {
+        color: #94A3B8;
+        background: #071119;
+        border-color: #142733;
+      }
+      #msc-campaigns-quicknav .msc-cq-tab:hover {
+        border-color: rgba(16, 185, 129, 0.45);
+        color: #059669;
+      }
+      body.dark #msc-campaigns-quicknav .msc-cq-tab:hover {
+        color: #34D399;
+      }
+      #msc-campaigns-quicknav .msc-cq-tab.active {
+        background: rgba(16, 185, 129, 0.14);
+        border-color: rgba(16, 185, 129, 0.48);
+        color: #047857;
+        box-shadow: 0 6px 18px -10px rgba(16, 185, 129, 0.45);
+      }
+      body.dark #msc-campaigns-quicknav .msc-cq-tab.active {
+        background: rgba(16, 185, 129, 0.18);
+        border-color: rgba(16, 185, 129, 0.55);
+        color: #34D399;
+      }
+      #msc-campaigns-quicknav .msc-cq-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 700;
+        background: rgba(16, 185, 129, 0.10);
+        border: 1px solid rgba(16, 185, 129, 0.26);
+        color: #059669;
+      }
+      body.dark #msc-campaigns-quicknav .msc-cq-meta {
+        color: #6EE7B7;
+        background: rgba(16, 185, 129, 0.12);
+        border-color: rgba(16, 185, 129, 0.30);
+      }
+      #msc-campaigns-quicknav .msc-cq-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #10B981;
+        box-shadow: 0 0 8px #10B981;
+      }
+
+      /* Campaign Cards */
+      body.msc-campaigns-page main [class*="group/cardLayout"] {
+        position: relative !important;
+        border-radius: 16px !important;
+        background: #FFFFFF !important;
+        outline: 1px solid rgba(16, 185, 129, 0.18) !important;
+        box-shadow: 0 10px 26px -18px rgba(15, 23, 42, 0.12) !important;
+        transition: all 0.18s ease !important;
+        overflow: hidden !important;
+      }
+      body.dark.msc-campaigns-page main [class*="group/cardLayout"] {
+        background: linear-gradient(180deg, #0A1621 0%, #07111A 100%) !important;
+        outline: 1px solid #152B38 !important;
+        box-shadow: 0 14px 30px -18px rgba(0, 0, 0, 0.65) !important;
+      }
+      body.msc-campaigns-page main [class*="group/cardLayout"]::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: linear-gradient(180deg, #10B981 0%, #C6FF00 100%);
+      }
+      body.msc-campaigns-page main [class*="group/cardLayout"]:hover {
+        outline-color: rgba(16, 185, 129, 0.55) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 16px 34px -16px rgba(16, 185, 129, 0.28) !important;
+      }
+
+      /* Preserve natural Portuguese casing on campaign titles */
+      body.msc-campaigns-page main [class*="group/cardLayout"] .capitalize {
+        text-transform: none !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.015em !important;
+      }
+
+      /* Status Badges inside Campaign Cards */
+      body.msc-campaigns-page main [class*="group/cardLayout"] .text-n-teal-11 {
+        background: rgba(16, 185, 129, 0.14) !important;
+        color: #047857 !important;
+        border: 1px solid rgba(16, 185, 129, 0.35) !important;
+        border-radius: 999px !important;
+        padding: 2px 10px !important;
+        font-weight: 700 !important;
+      }
+      body.dark.msc-campaigns-page main [class*="group/cardLayout"] .text-n-teal-11 {
+        background: rgba(16, 185, 129, 0.18) !important;
+        color: #34D399 !important;
+        border-color: rgba(16, 185, 129, 0.42) !important;
+      }
+      body.msc-campaigns-page main [class*="group/cardLayout"] span.rounded-md.bg-n-alpha-2:not(.text-n-teal-11) {
+        background: rgba(56, 189, 248, 0.12) !important;
+        color: #0369A1 !important;
+        border: 1px solid rgba(56, 189, 248, 0.30) !important;
+        border-radius: 999px !important;
+        padding: 2px 10px !important;
+        font-weight: 700 !important;
+      }
+      body.dark.msc-campaigns-page main [class*="group/cardLayout"] span.rounded-md.bg-n-alpha-2:not(.text-n-teal-11) {
+        background: rgba(56, 189, 248, 0.15) !important;
+        color: #7DD3FC !important;
+        border-color: rgba(56, 189, 248, 0.35) !important;
+      }
+
+      /* SMS Empty State Overlay Card Polish */
+      body.msc-campaigns-page main section.pt-14 > div:last-child {
+        padding: 22px 26px !important;
+        border-radius: 20px !important;
+        background: rgba(255, 255, 255, 0.94) !important;
+        border: 1px solid rgba(16, 185, 129, 0.28) !important;
+        backdrop-filter: blur(10px) !important;
+        box-shadow: 0 20px 45px -20px rgba(15, 23, 42, 0.18) !important;
+      }
+      body.dark.msc-campaigns-page main section.pt-14 > div:last-child {
+        background: rgba(7, 17, 26, 0.92) !important;
+        border: 1px solid rgba(16, 185, 129, 0.34) !important;
+        box-shadow: 0 24px 55px -20px rgba(0, 0, 0, 0.78) !important;
+      }
+
+      /* Responsive Mobile & Tablet Layout */
+      @media (max-width: 767px) {
+        body.msc-campaigns-page section > header.sticky {
+          padding-left: 14px !important;
+          padding-right: 14px !important;
+        }
+        body.msc-campaigns-page section > header .h-20 {
+          height: auto !important;
+          min-height: 64px !important;
+          padding: 10px 0 !important;
+          flex-wrap: wrap !important;
+        }
+        body.msc-campaigns-page section > header .text-heading-1 {
+          font-size: 17px !important;
+        }
+        body.msc-campaigns-page section > main {
+          padding-left: 14px !important;
+          padding-right: 14px !important;
+        }
+        #msc-campaigns-quicknav {
+          padding: 10px 12px;
+        }
+        #msc-campaigns-quicknav .msc-cq-tabs {
+          width: 100%;
+          overflow-x: auto;
+          flex-wrap: nowrap;
+          scrollbar-width: none;
+        }
+        #msc-campaigns-quicknav .msc-cq-tabs::-webkit-scrollbar {
+          display: none;
+        }
+        #msc-campaigns-quicknav .msc-cq-tab {
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        body.msc-campaigns-page main [class*="group/cardLayout"] > div {
+          flex-direction: column !important;
+          align-items: stretch !important;
+          padding: 16px !important;
+          gap: 12px !important;
+        }
+        body.msc-campaigns-page main [class*="group/cardLayout"] > div > div:first-child > div:first-child {
+          flex-wrap: wrap !important;
+          width: 100% !important;
+          row-gap: 6px !important;
+        }
+        body.msc-campaigns-page main [class*="group/cardLayout"] > div > div:first-child > div:last-child {
+          flex-wrap: wrap !important;
+          height: auto !important;
+          row-gap: 4px !important;
+        }
+        body.msc-campaigns-page main [class*="group/cardLayout"] > div > div:last-child {
+          width: 100% !important;
+          justify-content: flex-end !important;
+          padding-top: 8px !important;
+          border-top: 1px solid rgba(148, 163, 184, 0.14) !important;
+        }
+      }
+    </style>
+
+    <script id="msc-campaigns-refactor-v1-script">
+      (function() {
+        var isSyncing = false;
+        var rafPending = false;
+
+        function syncCampaignsPage() {
+          if (isSyncing) return;
+          isSyncing = true;
+          try {
+            var path = window.location.pathname || '';
+            var m = path.match(/^\/app\/accounts\/(\d+)\/campaigns\/(live_chat|whatsapp|sms)/);
+            var isCampaigns = !!m;
+
+            if (document.body.classList.contains('msc-campaigns-page') !== isCampaigns) {
+              document.body.classList.toggle('msc-campaigns-page', isCampaigns);
+            }
+
+            if (!isCampaigns) {
+              var oldNav = document.getElementById('msc-campaigns-quicknav');
+              if (oldNav) oldNav.remove();
+              return;
+            }
+
+            var accId = m[1];
+            var currentTab = m[2];
+            var container = document.querySelector('main > .w-full.max-w-5xl.mx-auto');
+
+            if (container) {
+              var activeCards = container.querySelectorAll(':scope > .flex.flex-col.gap-4 > [class*="group/cardLayout"]').length;
+              var nav = document.getElementById('msc-campaigns-quicknav');
+              if (!nav) {
+                nav = document.createElement('div');
+                nav.id = 'msc-campaigns-quicknav';
+                container.insertBefore(nav, container.firstChild);
+              }
+
+              var expectedKey = accId + ':' + currentTab + ':' + activeCards;
+              if (nav.getAttribute('data-state') !== expectedKey) {
+                nav.setAttribute('data-state', expectedKey);
+                var countLabel = currentTab === 'sms'
+                  ? 'Canal SMS pronto para integração'
+                  : (activeCards + (activeCards === 1 ? ' campanha configurada' : ' campanhas configuradas'));
+
+                nav.innerHTML =
+                  '<div class="msc-cq-tabs">' +
+                    '<a class="msc-cq-tab ' + (currentTab === 'live_chat' ? 'active' : '') + '" data-nav="/app/accounts/' + accId + '/campaigns/live_chat" href="/app/accounts/' + accId + '/campaigns/live_chat">Chat ao Vivo</a>' +
+                    '<a class="msc-cq-tab ' + (currentTab === 'whatsapp' ? 'active' : '') + '" data-nav="/app/accounts/' + accId + '/campaigns/whatsapp" href="/app/accounts/' + accId + '/campaigns/whatsapp">WhatsApp Oficial</a>' +
+                    '<a class="msc-cq-tab ' + (currentTab === 'sms' ? 'active' : '') + '" data-nav="/app/accounts/' + accId + '/campaigns/sms" href="/app/accounts/' + accId + '/campaigns/sms">SMS Corporativo</a>' +
+                  '</div>' +
+                  '<div class="msc-cq-meta"><span class="msc-cq-dot"></span><span>' + countLabel + '</span></div>';
+
+                nav.querySelectorAll('a[data-nav]').forEach(function(a) {
+                  a.addEventListener('click', function(ev) {
+                    ev.preventDefault();
+                    var target = a.getAttribute('data-nav');
+                    if (target && window.location.pathname !== target) {
+                      window.history.pushState({}, '', target);
+                      window.dispatchEvent(new PopStateEvent('popstate'));
+                    }
+                  });
+                });
+              }
+
+              // Fix literal translation "ativado out 22" -> "em out 22"
+              container.querySelectorAll('span.whitespace-nowrap').forEach(function(sp) {
+                if ((sp.textContent || '').trim() === 'ativado') {
+                  sp.textContent = 'em';
+                }
+              });
+
+              // Localize & sanitize SMS empty-state preview background cards (remove chwt.app & English dummy text)
+              if (currentTab === 'sms') {
+                container.querySelectorAll('.pointer-events-none [class*="group/cardLayout"]').forEach(function(card, idx) {
+                  if (card.getAttribute('data-msc-localized') === '1') return;
+                  card.setAttribute('data-msc-localized', '1');
+                  var titleEl = card.querySelector('.capitalize');
+                  var msgEl = card.querySelector('p');
+                  if (idx === 0) {
+                    if (titleEl) titleEl.textContent = 'Confirmação Executiva • Sessão Diagnóstico 360';
+                    if (msgEl) msgEl.textContent = 'Olá! Seu horário com a equipe Meu Super Chat está confirmado. Acesse os detalhes em: https://agenda.meusuper.app';
+                  } else if (idx === 1) {
+                    if (titleEl) titleEl.textContent = 'Boas-vindas VIP • Onboarding Omnichannel';
+                    if (msgEl) msgEl.textContent = 'Bem-vindo ao Meu Super Chat! Seu ambiente Enterprise já está liberado e pronto para operação.';
+                  } else {
+                    if (titleEl) titleEl.textContent = 'Aviso de Renovação & Suporte Prioritário';
+                    if (msgEl) msgEl.textContent = 'Fale com nossa equipe a qualquer momento pelo canal oficial do Meu Super Chat.';
+                  }
+                  card.querySelectorAll('span').forEach(function(s) {
+                    if ((s.textContent || '').trim() === 'PaperLayer Mobile') {
+                      s.textContent = 'SMS Oficial • Meu Super Chat';
+                    }
+                  });
+                });
+              }
+            }
+          } finally {
+            isSyncing = false;
+          }
+        }
+
+        function scheduleSync() {
+          if (rafPending || isSyncing) return;
+          rafPending = true;
+          requestAnimationFrame(function() {
+            rafPending = false;
+            syncCampaignsPage();
+          });
+        }
+
+        var obs = new MutationObserver(scheduleSync);
+        if (document.body) {
+          obs.observe(document.body, { childList: true, subtree: true });
+        } else {
+          document.addEventListener('DOMContentLoaded', function() {
+            obs.observe(document.body, { childList: true, subtree: true });
+            syncCampaignsPage();
+          });
+        }
+        window.addEventListener('popstate', scheduleSync);
+        syncCampaignsPage();
+      })();
+    </script>
+    <!-- END MSC CAMPAIGNS REFACTOR V1 -->
+<!-- MSC HELPCENTER INTERNAL REFACTOR V1 -->
+    <style id="msc-helpcenter-internal-v1">
+      /* ==========================================================================
+         MEU SUPER CHAT — CENTRAL DE AJUDA INTERNA (/app/accounts/:id/portals/*)
+         Dual-Theme: Dark Obsidian (#04090D / #081218 / #10B981) & Light Clean Emerald
+         ========================================================================== */
+
+      #msc-hc-internal-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 0 16px 0;
+        padding: 12px 16px;
+        border-radius: 16px;
+        background: #FFFFFF;
+        border: 1px solid rgba(16, 185, 129, 0.22);
+        box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.10);
+      }
+      body.dark #msc-hc-internal-bar {
+        background: linear-gradient(90deg, rgba(16, 185, 129, 0.10) 0%, rgba(8, 18, 26, 0.95) 65%);
+        border: 1px solid #152C39;
+        box-shadow: 0 16px 34px -18px rgba(0, 0, 0, 0.60);
+      }
+      #msc-hc-internal-bar .msc-hci-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      #msc-hc-internal-bar .msc-hci-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 36px;
+        padding: 6px 13px;
+        border-radius: 10px;
+        font-size: 12.5px;
+        font-weight: 700;
+        text-decoration: none;
+        color: #475569;
+        background: #F8FAFC;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        transition: all 0.16s ease;
+        cursor: pointer;
+      }
+      body.dark #msc-hc-internal-bar .msc-hci-tab {
+        color: #94A3B8;
+        background: #071119;
+        border-color: #142733;
+      }
+      #msc-hc-internal-bar .msc-hci-tab.active {
+        background: rgba(16, 185, 129, 0.14);
+        border-color: rgba(16, 185, 129, 0.48);
+        color: #047857;
+      }
+      body.dark #msc-hc-internal-bar .msc-hci-tab.active {
+        background: rgba(16, 185, 129, 0.18);
+        border-color: rgba(16, 185, 129, 0.55);
+        color: #34D399;
+      }
+      #msc-hc-internal-bar .msc-hci-public-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 36px;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 12.5px;
+        font-weight: 700;
+        text-decoration: none;
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        color: #03120D !important;
+        box-shadow: 0 8px 20px -10px rgba(16, 185, 129, 0.65);
+      }
+
+      /* Article & Category Cards inside Internal Portal Management */
+      body.msc-portals-page main [class*="group/cardLayout"],
+      body.msc-portals-page main .bg-n-solid-2.rounded-xl {
+        position: relative !important;
+        border-radius: 16px !important;
+        background: #FFFFFF !important;
+        outline: 1px solid rgba(16, 185, 129, 0.18) !important;
+        box-shadow: 0 10px 26px -18px rgba(15, 23, 42, 0.12) !important;
+        transition: all 0.18s ease !important;
+        overflow: hidden !important;
+      }
+      body.dark.msc-portals-page main [class*="group/cardLayout"],
+      body.dark.msc-portals-page main .bg-n-solid-2.rounded-xl {
+        background: linear-gradient(180deg, #0A1621 0%, #07111A 100%) !important;
+        outline: 1px solid #152B38 !important;
+        box-shadow: 0 14px 30px -18px rgba(0, 0, 0, 0.65) !important;
+      }
+
+      @media (max-width: 767px) {
+        #msc-hc-internal-bar {
+          padding: 10px 12px;
+        }
+        #msc-hc-internal-bar .msc-hci-tabs {
+          width: 100%;
+          overflow-x: auto;
+          flex-wrap: nowrap;
+        }
+        #msc-hc-internal-bar .msc-hci-tab {
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        body.msc-portals-page main [class*="group/cardLayout"] > div.px-10 {
+          padding-left: 16px !important;
+          padding-right: 16px !important;
+          padding-top: 16px !important;
+          padding-bottom: 16px !important;
+        }
+        body.msc-portals-page main [class*="group/cardLayout"] > div > div:last-child {
+          flex-wrap: wrap !important;
+          row-gap: 6px !important;
+        }
+        body.msc-portals-page main [class*="group/cardLayout"] > div > div:last-child > div:first-child {
+          flex-wrap: wrap !important;
+          row-gap: 6px !important;
+          column-gap: 10px !important;
+        }
+        body.msc-portals-page section > header > div > div:nth-child(2),
+        body.msc-portals-page section > header > div > div:nth-child(2) > div {
+          flex-wrap: wrap !important;
+          gap: 8px !important;
+        }
+        body.msc-portals-page section > header input.w-48 {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+        body.msc-portals-page section > main [class*="grid-cols-[200px,1fr]"] {
+          grid-template-columns: minmax(0, 1fr) !important;
+          gap: 4px !important;
+        }
+        body.msc-portals-page section > main [class*="grid-cols-[200px,1fr]"] > label {
+          padding-top: 2px !important;
+          padding-bottom: 2px !important;
+        }
+        body.msc-portals-page section > main {
+          padding-bottom: 88px !important;
+        }
+      }
+    </style>
+
+    <script id="msc-helpcenter-internal-v1-script">
+      (function() {
+        var isSyncing = false;
+        var rafPending = false;
+
+        function syncPortalsInternal() {
+          if (isSyncing) return;
+          isSyncing = true;
+          try {
+            var path = window.location.pathname || '';
+            var m = path.match(/^\/app\/accounts\/(\d+)\/portals\/([^\/]+)(?:\/([^\/]+)\/(articles|categories)|\/(locales|settings))?/);
+            var isPortals = !!m;
+
+            if (document.body.classList.contains('msc-portals-page') !== isPortals) {
+              document.body.classList.toggle('msc-portals-page', isPortals);
+            }
+
+            if (!isPortals) {
+              var oldBar = document.getElementById('msc-hc-internal-bar');
+              if (oldBar) oldBar.remove();
+              return;
+            }
+
+            var accId = m[1];
+            var portalSlug = (m[2] && !/^portals_/.test(m[2])) ? m[2] : 'central-de-ajuda';
+            var locale = m[3] || 'pt_BR';
+            var section = m[4] || m[5] || 'articles';
+
+            var container = document.querySelector('section > main > .w-full.max-w-5xl.mx-auto, section > main > div');
+            if (container) {
+              var bar = document.getElementById('msc-hc-internal-bar');
+              if (!bar) {
+                bar = document.createElement('div');
+                bar.id = 'msc-hc-internal-bar';
+                container.insertBefore(bar, container.firstChild);
+              }
+              var stateKey = accId + ':' + portalSlug + ':' + locale + ':' + section;
+              if (bar.getAttribute('data-state') !== stateKey) {
+                bar.setAttribute('data-state', stateKey);
+                bar.innerHTML =
+                  '<div class="msc-hci-tabs">' +
+                    '<a class="msc-hci-tab ' + (section === 'articles' ? 'active' : '') + '" data-nav="/app/accounts/' + accId + '/portals/' + portalSlug + '/' + locale + '/articles" href="/app/accounts/' + accId + '/portals/' + portalSlug + '/' + locale + '/articles">Artigos Publicados</a>' +
+                    '<a class="msc-hci-tab ' + (section === 'categories' ? 'active' : '') + '" data-nav="/app/accounts/' + accId + '/portals/' + portalSlug + '/' + locale + '/categories" href="/app/accounts/' + accId + '/portals/' + portalSlug + '/' + locale + '/categories">Categorias</a>' +
+                    '<a class="msc-hci-tab ' + (section === 'locales' ? 'active' : '') + '" data-nav="/app/accounts/' + accId + '/portals/' + portalSlug + '/locales" href="/app/accounts/' + accId + '/portals/' + portalSlug + '/locales">Localidades</a>' +
+                    '<a class="msc-hci-tab ' + (section === 'settings' ? 'active' : '') + '" data-nav="/app/accounts/' + accId + '/portals/' + portalSlug + '/settings" href="/app/accounts/' + accId + '/portals/' + portalSlug + '/settings">Configurações</a>' +
+                  '</div>' +
+                  '<a class="msc-hci-public-btn" href="/hc/' + portalSlug + '/' + locale + '" target="_blank" rel="noopener noreferrer">' +
+                    '<span>Abrir Portal Público (/hc/' + portalSlug + ') ↗</span>' +
+                  '</a>';
+
+                bar.querySelectorAll('a[data-nav]').forEach(function(a) {
+                  a.addEventListener('click', function(ev) {
+                    ev.preventDefault();
+                    var target = a.getAttribute('data-nav');
+                    if (target && window.location.pathname !== target) {
+                      window.history.pushState({}, '', target);
+                      window.dispatchEvent(new PopStateEvent('popstate'));
+                    }
+                  });
+                });
+              }
+
+              // Fix "Visualização 295 de 295 visualizações" -> "295 visualizações"
+              container.querySelectorAll('span').forEach(function(sp) {
+                var txt = (sp.textContent || '').trim();
+                var vm = txt.match(/^Visualização\s+(\d+)\s+de\s+\d+\s+visualizações$/i);
+                if (vm) {
+                  sp.textContent = vm[1] + ' visualizações';
+                } else if (txt === 'Portuguese (Brazil)') {
+                  sp.textContent = 'Português (Brasil)';
+                } else if (/^artigos?\s+(\d+)$/i.test(txt)) {
+                  var num = txt.match(/\d+/)[0];
+                  sp.textContent = num + (num === '1' ? ' artigo' : ' artigos');
+                }
+              });
+            }
+          } finally {
+            isSyncing = false;
+          }
+        }
+
+        function scheduleSync() {
+          if (rafPending || isSyncing) return;
+          rafPending = true;
+          requestAnimationFrame(function() {
+            rafPending = false;
+            syncPortalsInternal();
+          });
+        }
+
+        var obs = new MutationObserver(scheduleSync);
+        if (document.body) {
+          obs.observe(document.body, { childList: true, subtree: true });
+        } else {
+          document.addEventListener('DOMContentLoaded', function() {
+            obs.observe(document.body, { childList: true, subtree: true });
+            syncPortalsInternal();
+          });
+        }
+        window.addEventListener('popstate', scheduleSync);
+        syncPortalsInternal();
+      })();
+    </script>
+    <!-- END MSC HELPCENTER INTERNAL REFACTOR V1 -->
+                          <!-- BEGIN MSC CAPTAIN REFACTOR V1 -->
+    <style id="msc-captain-refactor-v1">
+      body.msc-captain-page #msc-captain-quicknav {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 0 0 18px 0;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(10, 17, 26, 0.94), rgba(15, 25, 38, 0.92));
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        box-shadow: 0 12px 30px -16px rgba(0, 0, 0, 0.65);
+      }
+      html:not(.dark) body.msc-captain-page #msc-captain-quicknav,
+      body.msc-captain-page:not(.dark) #msc-captain-quicknav {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.95));
+        border-color: rgba(16, 185, 129, 0.30);
+        box-shadow: 0 10px 24px -14px rgba(15, 23, 42, 0.08);
+      }
+      body.msc-captain-page .msc-cap-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        max-width: 100%;
+      }
+      body.msc-captain-page .msc-cap-tabs::-webkit-scrollbar {
+        display: none;
+      }
+      body.msc-captain-page .msc-cap-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 12px;
+        border-radius: 10px;
+        font-size: 12.5px;
+        font-weight: 700;
+        text-decoration: none !important;
+        white-space: nowrap;
+        color: #94A3B8;
+        background: rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        transition: all 0.16s ease;
+        cursor: pointer;
+      }
+      html:not(.dark) body.msc-captain-page .msc-cap-tab,
+      body.msc-captain-page:not(.dark) .msc-cap-tab {
+        color: #475569;
+        background: #F8FAFC;
+        border-color: rgba(15, 23, 42, 0.10);
+      }
+      body.msc-captain-page .msc-cap-tab:hover {
+        color: #10B981;
+        border-color: rgba(16, 185, 129, 0.38);
+      }
+      body.msc-captain-page .msc-cap-tab.active {
+        color: #10B981;
+        background: rgba(16, 185, 129, 0.14);
+        border-color: rgba(16, 185, 129, 0.45);
+        box-shadow: 0 0 14px rgba(16, 185, 129, 0.18);
+      }
+      body.msc-captain-page .msc-cap-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #10B981;
+        background: rgba(16, 185, 129, 0.10);
+        border: 1px solid rgba(16, 185, 129, 0.30);
+        white-space: nowrap;
+      }
+      body.msc-captain-page .msc-cap-badge-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #C6FF00;
+        box-shadow: 0 0 8px #C6FF00;
+      }
+
+      /* Card & panel refinements inside Assistente IA */
+      body.msc-captain-page section > main [class*="group/cardLayout"],
+      body.msc-captain-page section > main .bg-n-solid-2 {
+        border-radius: 16px !important;
+        border: 1px solid rgba(148, 163, 184, 0.16) !important;
+        transition: border-color 0.16s ease, box-shadow 0.16s ease !important;
+      }
+      body.msc-captain-page section > main [class*="group/cardLayout"]:hover {
+        border-color: rgba(16, 185, 129, 0.38) !important;
+      }
+
+      /* Hide English onboarding sample box when real Scenarios exist, style other dashed boxes */
+      body.msc-captain-page.msc-captain-scenarios-view section > main .border-dashed {
+        display: none !important;
+      }
+      body.msc-captain-page section > main [class*="border-dashed"] {
+        border-color: rgba(16, 185, 129, 0.32) !important;
+        background: rgba(16, 185, 129, 0.04) !important;
+        border-radius: 16px !important;
+      }
+
+      /* Recolor legacy purple Captain SVG illustrations to Emerald */
+      body.msc-captain-page svg [fill="#A855F7"],
+      body.msc-captain-page svg [fill="#9333EA"],
+      body.msc-captain-page svg [fill="#C084FC"],
+      body.msc-captain-page svg [fill="#8B5CF6"] {
+        fill: #10B981 !important;
+      }
+      body.msc-captain-page svg [stroke="#A855F7"],
+      body.msc-captain-page svg [stroke="#9333EA"],
+      body.msc-captain-page svg [stroke="#C084FC"],
+      body.msc-captain-page svg [stroke="#8B5CF6"] {
+        stroke: #10B981 !important;
+      }
+
+      /* Mobile & Tablet Responsive Fixes for Captain pages */
+      @media (max-width: 1024px) {
+        body.msc-captain-page section > header {
+          padding-left: 14px !important;
+          padding-right: 14px !important;
+        }
+        body.msc-captain-page section > header > div > div,
+        body.msc-captain-page section > header > div > div > div {
+          flex-wrap: wrap !important;
+          height: auto !important;
+          min-height: 44px !important;
+          padding-top: 4px !important;
+          padding-bottom: 4px !important;
+          gap: 8px !important;
+        }
+        body.msc-captain-page section > main {
+          padding-left: 14px !important;
+          padding-right: 14px !important;
+          padding-bottom: 88px !important;
+          overflow-x: hidden !important;
+        }
+        body.msc-captain-page section > main [class*="group/cardLayout"] > div {
+          padding: 16px !important;
+        }
+        body.msc-captain-page section > main [class*="group/cardLayout"] > div > div:last-child {
+          flex-wrap: wrap !important;
+          gap: 8px !important;
+        }
+        body.msc-captain-page section > main [class*="group/cardLayout"] a[href*="/hc/"] {
+          min-width: 0 !important;
+          max-width: 100% !important;
+          flex: 1 1 100% !important;
+        }
+        /* Wrap horizontal sub-nav in Captain Settings on mobile so scrollWidth <= 375 */
+        body.msc-captain-page section > main nav.overflow-x-auto {
+          flex-wrap: wrap !important;
+          overflow-x: visible !important;
+          gap: 6px !important;
+        }
+        body.msc-captain-page section > main nav.overflow-x-auto > button {
+          font-size: 12px !important;
+          padding: 6px 10px !important;
+          min-height: 34px !important;
+        }
+        body.msc-captain-page section > main .flex.items-end.justify-between.w-full.gap-4 {
+          flex-wrap: wrap !important;
+          gap: 12px !important;
+        }
+      }
+    </style>
+
+    <script id="msc-captain-refactor-v1-script">
+      (function() {
+        var isSyncing = false;
+        var rafPending = false;
+
+        var EXACT_TRANSLATIONS = {
+          'Test setup': 'Configuração do Teste',
+          'Changes here apply only to this playground session unless you explicitly save an item.': 'As alterações feitas aqui valem apenas para esta sessão de teste, a menos que você salve o item.',
+          'Knowledge': 'Conhecimento',
+          'Scenarios': 'Cenários',
+          'Guidelines': 'Diretrizes',
+          'Guardrails': 'Proteções',
+          'Knowledge available to Assistente IA': 'Base de Conhecimento ativa no Assistente IA',
+          'Saved sources are summarized here and managed outside the playground.': 'As fontes salvas estão resumidas aqui e são gerenciadas nas abas Documentos e FAQs.',
+          'Documents': 'Documentos',
+          'Temporary knowledge': 'Conhecimento temporário da sessão',
+          'This text is attached only to playground requests unless you add it as a document.': 'Este texto é anexado apenas aos testes desta sessão, a menos que você o salve como documento.',
+          'Session only': 'Apenas nesta sessão',
+          'Reference text': 'Texto de referência',
+          'Add document permanently': 'Salvar como documento permanente',
+          'Include in this test': 'Incluir neste teste',
+          'Reset test setup': 'Restaurar configuração de teste',
+          'Add a temporary scenario': 'Adicionar cenário temporário',
+          'Try a new behavior without changing the assistant configuration.': 'Teste um novo fluxo de atendimento sem alterar a configuração oficial do assistente.',
+          'Add to test (↵)': 'Adicionar ao teste (↵)',
+          'Add a temporary guideline': 'Adicionar diretriz temporária',
+          'Test a response preference before adding it to the assistant.': 'Teste uma preferência de tom ou formatação antes de salvar no assistente.',
+          'Add a temporary guardrail': 'Adicionar proteção temporária',
+          'Test a safety boundary before adding it to the assistant.': 'Teste um limite de segurança antes de adicioná-lo ao assistente.',
+          'Prospective Buyer': 'Qualificação de Novo Cliente (Exemplo)',
+          'Handle customers who are showing interest in purchasing a license': 'Qualifica leads interessados em contratar planos ou agendar demonstração comercial.',
+          'If someone is interested in purchasing a license, ask them for following:': 'Quando o cliente demonstrar interesse comercial, faça as seguintes perguntas:',
+          'How many licenses are they willing to purchase?': 'Quantos especialistas utilizarão a plataforma no atendimento?',
+          'Are they migrating from another platform?': 'Estão migrando de outra ferramenta ou iniciando a operação agora?',
+          'Block queries that share or request sensitive personal information (e.g. phone numbers, passwords).': 'Bloquear solicitações que peçam ou exponham senhas, tokens ou dados sensíveis.',
+          'Reject queries that include offensive, discriminatory, or threatening language.': 'Recusar interações com linguagem ofensiva, discriminatória ou inadequada.',
+          'Deflect when the assistant is asked for legal or medical diagnosis or treatment.': 'Encaminhar ao especialista humano quando solicitado parecer jurídico, médico ou financeiro.'
+        };
+
+        var PLACEHOLDER_TRANSLATIONS = {
+          'Paste or write new knowledge for this test': 'Cole ou digite um texto de referência para testar o assistente...',
+          'Give your scenario a title': 'Dê um título ao cenário (ex: Triagem VIP)...',
+          'Describe when this scenario should trigger': 'Descreva quando este cenário deve ser acionado...',
+          'Write instructions for the assistant...': 'Escreva o passo a passo que o assistente deve seguir...'
+        };
+
+        function translateCaptainDOM(root) {
+          if (!root) return;
+          var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+          var node;
+          while ((node = walker.nextNode())) {
+            var raw = node.nodeValue;
+            if (!raw) continue;
+            var trimmed = raw.trim();
+            if (!trimmed) continue;
+
+            if (EXACT_TRANSLATIONS[trimmed]) {
+              node.nodeValue = raw.replace(trimmed, EXACT_TRANSLATIONS[trimmed]);
+            } else if (/^Existing scenarios \((\d+)\)$/.test(trimmed)) {
+              var n1 = trimmed.match(/\d+/)[0];
+              node.nodeValue = raw.replace(trimmed, 'Cenários ativos (' + n1 + ')');
+            } else if (/^Existing guidelines \((\d+)\)$/.test(trimmed)) {
+              var n2 = trimmed.match(/\d+/)[0];
+              node.nodeValue = raw.replace(trimmed, 'Diretrizes ativas (' + n2 + ')');
+            } else if (/^Existing guardrails \((\d+)\)$/.test(trimmed)) {
+              var n3 = trimmed.match(/\d+/)[0];
+              node.nodeValue = raw.replace(trimmed, 'Proteções ativas (' + n3 + ')');
+            } else if (trimmed.indexOf('última atualização em há') !== -1) {
+              node.nodeValue = raw.replace('última atualização em há', 'atualizado há');
+            }
+          }
+
+          root.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(function(el) {
+            var ph = el.getAttribute('placeholder');
+            if (ph && PLACEHOLDER_TRANSLATIONS[ph]) {
+              el.setAttribute('placeholder', PLACEHOLDER_TRANSLATIONS[ph]);
+            }
+          });
+        }
+
+        function syncCaptainModule() {
+          if (isSyncing) return;
+          isSyncing = true;
+          try {
+            var path = window.location.pathname || '';
+
+            // Auto-redirect legacy /captain/assistants empty list to active Assistant #1 overview
+            var mLegacy = path.match(/^\/app\/accounts\/(\d+)\/captain\/assistants\/?$/);
+            if (mLegacy) {
+              var targetOverview = '/app/accounts/' + mLegacy[1] + '/captain/1/overview';
+              window.history.replaceState({}, '', targetOverview);
+              window.dispatchEvent(new PopStateEvent('popstate'));
+              return;
+            }
+
+            var m = path.match(/^\/app\/accounts\/(\d+)\/captain\/(?:(\d+)\/)?([^\/]+)/);
+            var isCaptain = !!m;
+
+            if (document.body.classList.contains('msc-captain-page') !== isCaptain) {
+              document.body.classList.toggle('msc-captain-page', isCaptain);
+            }
+
+            if (!isCaptain) {
+              var oldNav = document.getElementById('msc-captain-quicknav');
+              if (oldNav) oldNav.remove();
+              return;
+            }
+
+            var accId = m[1];
+            var assistantId = m[2] || '1';
+            var rawSection = m[3] || 'overview';
+            var section = 'overview';
+            if (rawSection.indexOf('faq') !== -1 || rawSection.indexOf('response') !== -1) section = 'faqs';
+            else if (rawSection.indexOf('document') !== -1) section = 'documents';
+            else if (rawSection.indexOf('scenario') !== -1) section = 'scenarios';
+            else if (rawSection.indexOf('playground') !== -1) section = 'playground';
+            else if (rawSection.indexOf('inbox') !== -1) section = 'inboxes';
+            else if (rawSection.indexOf('tool') !== -1) section = 'tools';
+            else if (rawSection.indexOf('setting') !== -1) section = 'settings';
+
+            document.body.classList.toggle('msc-captain-scenarios-view', section === 'scenarios');
+            var container = document.querySelector('section > main > div');
+            if (container) {
+              var bar = document.getElementById('msc-captain-quicknav');
+              if (!bar) {
+                bar = document.createElement('div');
+                bar.id = 'msc-captain-quicknav';
+                container.insertBefore(bar, container.firstChild);
+              }
+              var stateKey = accId + ':' + assistantId + ':' + section;
+              if (bar.getAttribute('data-state') !== stateKey) {
+                bar.setAttribute('data-state', stateKey);
+                var tabs = [
+                  { id: 'overview', label: 'Visão Geral', href: '/app/accounts/' + accId + '/captain/' + assistantId + '/overview' },
+                  { id: 'faqs', label: 'FAQs (7)', href: '/app/accounts/' + accId + '/captain/' + assistantId + '/faqs' },
+                  { id: 'documents', label: 'Documentos (6)', href: '/app/accounts/' + accId + '/captain/' + assistantId + '/documents' },
+                  { id: 'scenarios', label: 'Cenários (4)', href: '/app/accounts/' + accId + '/captain/' + assistantId + '/scenarios' },
+                  { id: 'playground', label: 'Playground', href: '/app/accounts/' + accId + '/captain/' + assistantId + '/playground' },
+                  { id: 'inboxes', label: 'Canais (3)', href: '/app/accounts/' + accId + '/captain/' + assistantId + '/inboxes' },
+                  { id: 'tools', label: 'Ferramentas API (3)', href: '/app/accounts/' + accId + '/captain/' + assistantId + '/tools' },
+                  { id: 'settings', label: 'Configurações', href: '/app/accounts/' + accId + '/captain/' + assistantId + '/settings' }
+                ];
+                var tabsHtml = tabs.map(function(t) {
+                  return '<a class="msc-cap-tab ' + (t.id === section ? 'active' : '') + '" data-nav="' + t.href + '" href="' + t.href + '">' + t.label + '</a>';
+                }).join('');
+
+                bar.innerHTML =
+                  '<div class="msc-cap-tabs">' + tabsHtml + '</div>' +
+                  '<div class="msc-cap-badge"><span class="msc-cap-badge-dot"></span><span>Gateway IA • gpt-5.6-sol Ativo</span></div>';
+
+                bar.querySelectorAll('a[data-nav]').forEach(function(a) {
+                  a.addEventListener('click', function(ev) {
+                    ev.preventDefault();
+                    var target = a.getAttribute('data-nav');
+                    if (target && window.location.pathname !== target) {
+                      window.history.pushState({}, '', target);
+                      window.dispatchEvent(new PopStateEvent('popstate'));
+                    }
+                  });
+                });
+              }
+
+              translateCaptainDOM(container);
+            }
+          } finally {
+            isSyncing = false;
+          }
+        }
+
+        function scheduleSync() {
+          if (rafPending || isSyncing) return;
+          rafPending = true;
+          requestAnimationFrame(function() {
+            rafPending = false;
+            syncCaptainModule();
+          });
+        }
+
+        var obs = new MutationObserver(scheduleSync);
+        if (document.body) {
+          obs.observe(document.body, { childList: true, subtree: true });
+        } else {
+          document.addEventListener('DOMContentLoaded', function() {
+            obs.observe(document.body, { childList: true, subtree: true });
+            syncCaptainModule();
+          });
+        }
+        window.addEventListener('popstate', scheduleSync);
+        syncCaptainModule();
+      })();
+    </script>
+    <!-- END MSC CAPTAIN REFACTOR V1 -->
   </body>
 </html>

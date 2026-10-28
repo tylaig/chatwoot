@@ -6,66 +6,66 @@
 #######################################################
 
 - id: add_contact_note
-  title: 'Add Contact Note'
-  description: 'Add a note to a contact profile'
-  icon: 'note-add'
+  title: "Adicionar Nota ao Contato"
+  description: "Registra uma observação permanente na ficha do contato no CRM"
+  icon: "note-add"
 
 - id: add_private_note
-  title: 'Add Private Note'
-  description: 'Add a private note to a conversation (internal only)'
-  icon: 'eye-off'
+  title: "Adicionar Nota Privada"
+  description: "Adiciona uma nota interna privada na conversa para a equipe"
+  icon: "eye-off"
 
 - id: update_priority
-  title: 'Update Priority'
-  description: 'Update conversation priority level'
-  icon: 'exclamation-triangle'
+  title: "Atualizar Prioridade"
+  description: "Altera o nível de prioridade da conversa (baixa, média, alta, urgente)"
+  icon: "exclamation-triangle"
 
 - id: add_label_to_conversation
-  title: 'Add Label to Conversation'
-  description: 'Add a label to a conversation'
-  icon: 'tag'
+  title: "Adicionar Etiqueta à Conversa"
+  description: "Classifica a conversa com uma etiqueta oficial do funil"
+  icon: "tag"
 
 - id: faq_lookup
-  title: 'FAQ Lookup'
-  description: 'Search FAQ responses using semantic similarity'
-  icon: 'search'
+  title: "Consultar Base de FAQs"
+  description: "Pesquisa respostas aprovadas usando similaridade semântica"
+  icon: "search"
 
 - id: shopify_order_lookup
-  title: 'Shopify Order Lookup'
-  description: 'Lookup customer orders across connected Shopify stores by email, phone, or order number'
-  icon: 'shopping-bag'
+  title: "Consultar Pedido Shopify"
+  description: "Localiza pedidos do cliente nas lojas Shopify conectadas por e-mail, telefone ou número"
+  icon: "shopping-bag"
 
 - id: calendar_check_availability
-  title: 'Consultar Disponibilidade de Agenda'
-  description: 'Consulta horários livres dos profissionais (sincronizados com Google Agenda)'
-  icon: 'calendar'
+  title: "Consultar Disponibilidade de Agenda"
+  description: "Consulta horários livres dos profissionais (sincronizados com Google Agenda)"
+  icon: "calendar"
 
 - id: calendar_create_appointment
-  title: 'Criar Agendamento na Agenda'
-  description: 'Reserva um horário na agenda do profissional, cria evento no Google Agenda e gera link do Meet'
-  icon: 'calendar-add'
+  title: "Criar Agendamento na Agenda"
+  description: "Reserva um horário na agenda do profissional, cria evento no Google Agenda e gera link do Meet"
+  icon: "calendar-add"
 
 - id: calendar_list_appointments
-  title: 'Listar Agendamentos & Links Públicos'
-  description: 'Lista compromissos futuros do contato e retorna os links públicos de agendamento'
-  icon: 'calendar-clock'
+  title: "Listar Agendamentos & Links Públicos"
+  description: "Lista compromissos futuros do contato e retorna os links públicos de agendamento"
+  icon: "calendar-clock"
 
 - id: calendar_reschedule_or_cancel
-  title: 'Reagendar ou Cancelar Compromisso'
-  description: 'Reagenda para novo horário ou cancela um agendamento existente no Google Agenda'
-  icon: 'calendar-sync'
+  title: "Reagendar ou Cancelar Compromisso"
+  description: "Reagenda para novo horário ou cancela um agendamento existente no Google Agenda"
+  icon: "calendar-sync"
 
 - id: resolve_conversation
-  title: 'Resolve Conversation'
-  description: 'Resolve a conversation when the issue has been addressed'
-  icon: 'checkmark'
+  title: "Resolver Conversa"
+  description: "Marca a conversa como resolvida quando a solicitação foi concluída"
+  icon: "checkmark"
 
 - id: request_rating
-  title: 'Request Rating (CSAT)'
-  description: 'Send an interactive CSAT star rating card in the conversation'
-  icon: 'star'
+  title: "Solicitar Avaliação (CSAT)"
+  description: "Envia o cartão interativo de avaliação de satisfação CSAT na conversa"
+  icon: "star"
 
 - id: handoff
-  title: 'Handoff to Human'
-  description: 'Hand off the conversation to a human agent'
-  icon: 'user-switch'
+  title: "Transferir para Especialista Humano"
+  description: "Transfere imediatamente a conversa para um agente humano da equipe"
+  icon: "user-switch"

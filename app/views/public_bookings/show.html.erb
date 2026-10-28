@@ -129,6 +129,8 @@
   <script>
     (function(){
       const slug = <%= raw @slug.to_json %>;
+      const companySlug = <%= raw (@company_slug.presence || "").to_json %>;
+      const apiQs = extra => { const p = new URLSearchParams(extra || {}); if (companySlug) p.set("company_slug", companySlug); const s = p.toString(); return s ? "?" + s : ""; };
       const root = document.getElementById('booking-root');
       const MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
       const WEEKDAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -160,7 +162,7 @@
 
       async function loadProfile(){
         try{
-          const response=await fetch('/public/api/v1/bookings/'+encodeURIComponent(slug));
+          const response=await fetch('/public/api/v1/bookings/'+encodeURIComponent(slug)+apiQs());
           if(!response.ok) throw new Error('not found');
           const data=await response.json();
           state.accountName=data.account_name || 'Meu Super Chat'; state.schedules=data.schedules||[]; state.appointmentTypes=data.appointment_types||[];
@@ -173,7 +175,7 @@
         state.availabilityByDate={};
         const today=new Date(); today.setHours(0,0,0,0);
         const start=new Date(Math.max(state.currentMonth.getTime(),today.getTime()));
-        const qs=new URLSearchParams({date:iso(start),days:'35'}); if(state.selectedScheduleId) qs.set('schedule_id',state.selectedScheduleId); if(state.selectedTypeId) qs.set('appointment_type_id',state.selectedTypeId);
+        const qs=new URLSearchParams({date:iso(start),days:'35'}); if(companySlug) qs.set('company_slug',companySlug); if(state.selectedScheduleId) qs.set('schedule_id',state.selectedScheduleId); if(state.selectedTypeId) qs.set('appointment_type_id',state.selectedTypeId);
         try{const response=await fetch('/public/api/v1/bookings/'+encodeURIComponent(slug)+'/slots?'+qs.toString()); const data=await response.json(); (data.availability||[]).forEach(entry=>{state.availabilityByDate[entry.date]=entry.slots||[];});}catch(e){}
         const dates=Object.keys(state.availabilityByDate).filter(d=>(state.availabilityByDate[d]||[]).length).sort();
         if(!state.selectedDate || !(state.availabilityByDate[state.selectedDate]||[]).length) state.selectedDate=dates[0]||null;
@@ -184,7 +186,7 @@
       function chooseSlot(slot){state.selectedSlot=slot;state.step='select_slot';render();}
       function chooseType(id){state.selectedTypeId=id;state.selectedSlot=null;loadSlots();}
       function continueToForm(){if(!state.selectedSlot)return;state.step='fill_form';render();window.scrollTo({top:0,behavior:'smooth'});}
-      async function submitBooking(event){event.preventDefault(); if(!state.form.name.trim()||!state.form.email.trim()){state.errorMsg='Preencha nome e e-mail para continuar.';render();return;} state.submitting=true;state.errorMsg='';render(); try{const payload={calendar_schedule_id:state.selectedSlot.calendar_schedule_id||state.selectedScheduleId,appointment_type_id:state.selectedTypeId,starts_at:state.selectedSlot.starts_at,customer_name:state.form.name.trim(),customer_email:state.form.email.trim(),customer_phone:state.form.phone.trim(),notes:state.form.notes.trim(),guest_emails:state.form.guest_emails}; const response=await fetch('/public/api/v1/bookings/'+encodeURIComponent(slug)+'/book',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await response.json();if(!response.ok)throw new Error(data.error||'Não foi possível concluir o agendamento.');state.confirmedAppointment=data.appointment;state.step='confirmed';}catch(e){state.errorMsg=e.message||'Erro de conexão ao confirmar agendamento.';}finally{state.submitting=false;render();}}
+      async function submitBooking(event){event.preventDefault(); if(!state.form.name.trim()||!state.form.email.trim()){state.errorMsg='Preencha nome e e-mail para continuar.';render();return;} state.submitting=true;state.errorMsg='';render(); try{const payload={company_slug:companySlug||undefined,calendar_schedule_id:state.selectedSlot.calendar_schedule_id||state.selectedScheduleId,appointment_type_id:state.selectedTypeId,starts_at:state.selectedSlot.starts_at,customer_name:state.form.name.trim(),customer_email:state.form.email.trim(),customer_phone:state.form.phone.trim(),notes:state.form.notes.trim(),guest_emails:state.form.guest_emails}; const response=await fetch('/public/api/v1/bookings/'+encodeURIComponent(slug)+'/book',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await response.json();if(!response.ok)throw new Error(data.error||'Não foi possível concluir o agendamento.');state.confirmedAppointment=data.appointment;state.step='confirmed';}catch(e){state.errorMsg=e.message||'Erro de conexão ao confirmar agendamento.';}finally{state.submitting=false;render();}}
 
       function baseInfo(s,srv,formMode){
         const duration=getDuration(); const color=s.color||'#10B981';

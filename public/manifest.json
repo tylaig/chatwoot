@@ -1,0 +1,29 @@
+{
+  "name": "Meu Super Chat",
+  "short_name": "Meu Super Chat",
+  "description": "Plataforma Executiva Omnichannel, IA 24/7, CRM Kanban, Agenda & Vídeo",
+  "id": "/",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060B11",
+  "theme_color": "#10B981",
+  "icons": [
+    {
+      "src": "/favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

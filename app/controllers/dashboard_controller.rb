@@ -48,6 +48,15 @@ class DashboardController < ActionController::Base
   def handle_root_redirect
     return false unless request.path == '/'
 
+    host = request.host.to_s.downcase
+    if host.start_with?('meet.')
+      redirect_to '/msc-demo', status: :found
+      return true
+    elsif host.start_with?('agenda.')
+      redirect_to '/samuel-vicente', status: :found
+      return true
+    end
+
     user = resolve_cookie_authenticated_user
     if user
       account_id = user.account_users.order(active_at: :desc).pick(:account_id) || user.accounts.pick(:id) || 1
@@ -97,7 +106,7 @@ class DashboardController < ActionController::Base
 
   def render_hc_if_custom_domain
     domain = request.host
-    return if domain == URI.parse(ENV.fetch('FRONTEND_URL', '')).host
+    return if domain == URI.parse(ENV.fetch('FRONTEND_URL', '')).host || domain.to_s.end_with?('.meusuper.app')
 
     @portal = Portal.find_by(custom_domain: domain)
     return unless @portal

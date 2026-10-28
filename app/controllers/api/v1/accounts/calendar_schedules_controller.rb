@@ -15,7 +15,7 @@ class Api::V1::Accounts::CalendarSchedulesController < Api::V1::Accounts::BaseCo
                                 .count
 
     team_slug = schedules.first&.team_booking_slug || Current.account.name.to_s.parameterize.presence || "conta-#{Current.account.id}"
-    base_url = ENV.fetch('FRONTEND_URL', 'https://chat.meusuper.app').sub(%r{/+$}, '')
+    base_url = ENV.fetch('AGENDA_URL', 'https://agenda.meusuper.app').sub(%r{/+$}, '')
 
     render json: {
       schedules: schedules.map { |s| s.as_api_json(today_count: counts_by_schedule[s.id] || 0) },
@@ -23,7 +23,7 @@ class Api::V1::Accounts::CalendarSchedulesController < Api::V1::Accounts::BaseCo
       google_oauth_configured: Calendar::GoogleCalendarService.oauth_configured?(Current.account),
       google_oauth_redirect_uri: Calendar::GoogleCalendarService.redirect_uri,
       integration_hooks_count: Current.account.hooks.where(app_id: 'google_calendar', status: :enabled).count,
-      team_public_url: "#{base_url}/agendar/#{team_slug}"
+      team_public_url: "#{base_url}/#{team_slug}"
     }
   end
 

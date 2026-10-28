@@ -36,17 +36,58 @@ Rails.application.routes.draw do
       resources :responses, only: [:show]
     end
     resource :slack_uploads, only: [:show]
+    # Dedicated Meet Domain (meet.meusuper.app) clean routes
+    constraints(lambda { |req| req.host.to_s.downcase.start_with?('meet.') }) do
+      get '/', to: 'public_bookings#show_meeting', defaults: { uid: 'sala-executiva' }
+      get '/sala/:uid', to: 'public_bookings#show_meeting'
+      get '/reuniao/:uid', to: 'public_bookings#show_meeting'
+      get '/:company_slug/:uid', to: 'public_bookings#show_meeting', constraints: {
+        company_slug: /(?!public$|api$|assets$|vite$|meet$|brand-assets$|rails$|health$|robots$|favicon$|apple-touch$|super_admin$|auth$|app$|callbacks$|sala$|reuniao$)[a-zA-Z0-9_-]+/,
+        uid: /[a-zA-Z0-9_-]+/
+      }
+      get '/:uid', to: 'public_bookings#show_meeting', constraints: {
+        uid: /(?!public$|api$|assets$|vite$|meet$|brand-assets$|rails$|health$|robots$|favicon$|apple-touch$|super_admin$|auth$|app$|callbacks$)[a-zA-Z0-9_-]+/
+      }
+    end
+
+    # Dedicated Agenda Domain (agenda.meusuper.app) clean routes
+    constraints(lambda { |req| req.host.to_s.downcase.start_with?('agenda.') }) do
+      get '/', to: 'public_bookings#show'
+      get '/equipe/:slug', to: 'public_bookings#show'
+      get '/sala/:uid', to: redirect { |params, _req| "https://meet.meusuper.app/#{params[:uid]}" }
+      get '/:company_slug/:slug', to: 'public_bookings#show', constraints: {
+        company_slug: /(?!public$|api$|assets$|vite$|meet$|brand-assets$|rails$|health$|robots$|favicon$|apple-touch$|super_admin$|auth$|app$|callbacks$|agendar$|reuniao$|equipe$|sala$)[a-zA-Z0-9_-]+/,
+        slug: /[a-zA-Z0-9_-]+/
+      }
+      get '/:slug', to: 'public_bookings#show', constraints: {
+        slug: /(?!public$|api$|assets$|vite$|meet$|brand-assets$|rails$|health$|robots$|favicon$|apple-touch$|super_admin$|auth$|app$|callbacks$|agendar$|reuniao$)[a-zA-Z0-9_-]+/
+      }
+    end
+
+    get '/sala/:uid', to: 'public_bookings#show_meeting'
     get '/agendar/sala/:uid', to: 'public_bookings#show_meeting', as: 'public_booking_meeting_room'
     get '/reuniao/:uid', to: 'public_bookings#show_meeting', as: 'public_meeting_room'
-    get '/agendar', to: redirect('/agendar/samuel-vicente')
-    get '/agendar/:slug', to: 'public_bookings#show', as: 'public_booking_page'
+    get '/agendar', to: 'public_bookings#show'
     get '/agendar/equipe/:slug', to: 'public_bookings#show', as: 'public_team_booking_page'
+    get '/agendar/:company_slug/:slug', to: 'public_bookings#show', as: 'public_scoped_booking_page', constraints: {
+      company_slug: /(?!sala$|equipe$)[a-zA-Z0-9_-]+/
+    }
+    get '/agendar/:slug', to: 'public_bookings#show', as: 'public_booking_page'
   end
 
   get '/callbacks/google_calendar', to: 'google_calendar_callbacks#show'
-  get '/public/api/v1/bookings/:slug', to: 'public_bookings#profile'
+  get '/public/api/v1/bookings/:company_slug/:slug/slots', to: 'public_bookings#slots'
+  post '/public/api/v1/bookings/:company_slug/:slug/book', to: 'public_bookings#book'
   get '/public/api/v1/bookings/:slug/slots', to: 'public_bookings#slots'
   post '/public/api/v1/bookings/:slug/book', to: 'public_bookings#book'
+  get '/public/api/v1/bookings/:company_slug/:slug', to: 'public_bookings#profile', constraints: {
+    slug: /(?!slots$|book$)[a-zA-Z0-9_-]+/
+  }
+  get '/public/api/v1/bookings/:slug', to: 'public_bookings#profile'
+  post '/public/api/v1/meetings/:uid/token', to: 'public_bookings#meeting_token'
+  get '/public/api/v1/meetings/:uid/state', to: 'public_bookings#meeting_state'
+  post '/public/api/v1/meetings/:uid/notes', to: 'public_bookings#meeting_notes'
+  post '/public/api/v1/meetings/:uid/chat', to: 'public_bookings#meeting_chat'
 
   get '/health', to: 'health#show'
   get '/robots.txt', to: 'robots#show', format: false
@@ -903,6 +944,7 @@ Rails.application.routes.draw do
     get 'super_admin/logout', to: 'super_admin/devise/sessions#destroy'
     namespace :super_admin do
       root to: 'dashboard#index'
+      get 'dashboard', to: 'dashboard#index'
 
       resource :app_config, only: [:show, :create]
       resource :push_diagnostics, only: [:show, :create] do

@@ -35,12 +35,26 @@ class CalendarSchedule < ApplicationRecord
   end
 
   def public_booking_url
-    base = ENV.fetch('FRONTEND_URL', 'https://chat.meusuper.app').sub(%r{/+$}, '')
-    "#{base}/agendar/#{slug}"
+    base = ENV.fetch('AGENDA_URL', 'https://agenda.meusuper.app').sub(%r{/+$}, '')
+    if account_id == 1 && !CalendarSchedule.where.not(account_id: account_id).exists?(slug: slug)
+      "#{base}/#{slug}"
+    else
+      "#{base}/#{team_booking_slug}/#{slug}"
+    end
+  end
+
+  def direct_booking_url
+    base = ENV.fetch('AGENDA_URL', 'https://agenda.meusuper.app').sub(%r{/+$}, '')
+    "#{base}/#{slug}"
+  end
+
+  def scoped_booking_url
+    base = ENV.fetch('AGENDA_URL', 'https://agenda.meusuper.app').sub(%r{/+$}, '')
+    "#{base}/#{team_booking_slug}/#{slug}"
   end
 
   def team_booking_slug
-    settings['team_slug'].presence || account.name.to_s.parameterize.presence || "conta-#{account_id}"
+    (settings || {})['team_slug'].presence || account&.name.to_s.parameterize.presence || "conta-#{account_id}"
   end
 
   def as_api_json(today_count: nil)
@@ -68,6 +82,8 @@ class CalendarSchedule < ApplicationRecord
       max_days_ahead: max_days_ahead,
       settings: settings || {},
       public_booking_url: public_booking_url,
+      scoped_booking_url: scoped_booking_url,
+      team_slug: team_booking_slug,
       today_appointments_count: today_count || calendar_appointments.where(
         status: 'confirmed',
         starts_at: Time.current.in_time_zone(timezone).all_day

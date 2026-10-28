@@ -1,39 +1,555 @@
+<%
+  brand_name = (@global_config && (@global_config["BRAND_NAME"].presence || @global_config["INSTALLATION_NAME"].presence)) || "Meu Super Chat"
+  brand_name = "Meu Super Chat" if brand_name =~ /chatwoot|fazer/i
+  conv_display_id = @conversation&.display_id
+  inbox_name = @conversation&.inbox&.name
+  assignee_name = @conversation&.assignee&.available_name || @conversation&.assignee&.name
+  contact_name = @conversation&.contact&.name
+%>
 <!DOCTYPE html>
-<html lang="<%= @conversation&.account&.locale&.tr('_', '-') || 'en' %>">
+<html lang="<%= @conversation&.account&.locale&.tr("_", "-") || "pt-BR" %>" class="dark">
   <head>
-    <%# The account's name only when the account actually set one. Falling back to BRAND_NAME
-        would rename the tab of every unbranded survey -- and of an unknown uuid -- from the
-        installation's own title to its public brand, which are allowed to differ. %>
-    <title><%= @global_config['BRAND_FROM_ACCOUNT'] ? @global_config['BRAND_NAME'] : @global_config['INSTALLATION_NAME'] %></title>
+    <meta charset="utf-8" />
+    <title>Avaliação de Atendimento • <%= brand_name %></title>
     <%= csrf_meta_tags %>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-    <%# Rendered server side so the brand is painted on the first frame. Reaching this through
-        window.globalConfig would show the Chatwoot blue and then swap it, on a page the
-        customer opens exactly once.
-
-        It carries BRAND_COLOR_STRONG, not the brand colour as configured: every use on this
-        page is something that has to be *seen* against the white card -- a focus ring, the
-        selected rating, a button carrying white text -- and a pale brand (#FFF is a valid one)
-        would render each of them invisible. BrandColor.on_light darkens to 4.5:1 against
-        white, and contrast is symmetric, so the same value serves both readings. Exposing the
-        faithful colour as a second token would only offer a wrong choice at the call site.
-
-        The value comes out of BrandColor, which returns either its default or a validated hex,
-        so nothing account-controlled lands in CSS. %>
-    <style>
+    <link rel="icon" type="image/svg+xml" href="/brand-assets/logo_thumbnail.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+    <script>
+      (function() {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var qTheme = params.get("theme");
+          var saved = localStorage.getItem("msc_csat_theme") || localStorage.getItem("color_scheme");
+          var theme = qTheme || saved || "dark";
+          if (theme === "light") {
+            document.documentElement.classList.remove("dark");
+          } else {
+            document.documentElement.classList.add("dark");
+          }
+        } catch (e) {
+          document.documentElement.classList.add("dark");
+        }
+      })();
+      window.globalConfig = <%= raw(@global_config.merge("BRAND_NAME" => brand_name, "INSTALLATION_NAME" => brand_name).to_json) %>;
+    </script>
+    <style id="msc-csat-refactor-styles">
       :root {
+        --survey-brand: #059669;
+        --msc-bg: #F8FAFC;
+        --msc-surface: #FFFFFF;
+        --msc-elevated: #F1F5F9;
+        --msc-border: #E2E8F0;
+        --msc-border-strong: rgba(16, 185, 129, 0.32);
+        --msc-text: #0F172A;
+        --msc-text-2: #334155;
+        --msc-muted: #64748B;
+        --msc-emerald: #10B981;
+        --msc-emerald-dark: #059669;
+        --msc-emerald-light: #34D399;
+        --msc-lime: #C6FF00;
         color-scheme: light;
-        --survey-brand: <%= @global_config['BRAND_COLOR_STRONG'] %>;
+      }
+      html.dark {
+        --survey-brand: #10B981;
+        --msc-bg: #04090D;
+        --msc-surface: #081218;
+        --msc-elevated: #0A151D;
+        --msc-border: #132631;
+        --msc-border-strong: rgba(16, 185, 129, 0.38);
+        --msc-text: #F8FAFC;
+        --msc-text-2: #CBD5E1;
+        --msc-muted: #94A3B8;
+        color-scheme: dark;
+      }
+
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
+
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        min-height: 100dvh !important;
+        overflow-x: hidden !important;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        background: var(--msc-bg) !important;
+        color: var(--msc-text) !important;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      html.dark body {
+        background:
+          radial-gradient(900px 460px at 15% -5%, rgba(16, 185, 129, 0.14), transparent 60%),
+          radial-gradient(800px 420px at 88% 105%, rgba(198, 255, 0, 0.06), transparent 60%),
+          #04090D !important;
+      }
+
+      html:not(.dark) body {
+        background:
+          radial-gradient(900px 460px at 15% -5%, rgba(16, 185, 129, 0.10), transparent 60%),
+          radial-gradient(800px 420px at 88% 105%, rgba(5, 150, 105, 0.06), transparent 60%),
+          #F8FAFC !important;
+      }
+
+      /* Topbar Executive Header */
+      .msc-csat-shell {
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: hidden;
+      }
+
+      .msc-csat-topbar {
+        width: 100%;
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 20px 20px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .msc-csat-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        min-width: 0;
+      }
+
+      .msc-csat-logo {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 8px 22px -6px rgba(16, 185, 129, 0.35);
+      }
+
+      .msc-csat-logo img {
+        width: 25px;
+        height: 25px;
+      }
+
+      .msc-csat-brand-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .msc-csat-brand-text strong {
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--msc-text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .msc-csat-brand-text span {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--msc-emerald);
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+
+      .msc-csat-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+
+      .msc-csat-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 11px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.32);
+        color: var(--msc-emerald);
+      }
+
+      .msc-csat-badge-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: var(--msc-emerald);
+        box-shadow: 0 0 8px var(--msc-emerald);
+      }
+
+      .msc-csat-theme-btn {
+        min-width: 44px;
+        min-height: 44px;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        border: 1px solid var(--msc-border);
+        background: var(--msc-surface);
+        color: var(--msc-text-2);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.18s ease;
+      }
+
+      .msc-csat-theme-btn:hover {
+        border-color: var(--msc-emerald);
+        color: var(--msc-emerald);
+        transform: translateY(-1px);
+      }
+
+      /* Context Bar for Ticket Metadata */
+      .msc-csat-meta-wrap {
+        width: 100%;
+        max-width: 580px;
+        margin: 8px auto 0;
+        padding: 0 16px;
+      }
+
+      .msc-csat-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px 14px;
+        padding: 12px 16px;
+        border-radius: 14px;
+        background: var(--msc-surface);
+        border: 1px solid var(--msc-border);
+        font-size: 12px;
+        color: var(--msc-muted);
+      }
+
+      .msc-csat-meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .msc-csat-meta-item strong {
+        color: var(--msc-text);
+        font-weight: 600;
+      }
+
+      .msc-csat-mono {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11.5px;
+        color: var(--msc-emerald);
+        font-weight: 600;
+      }
+
+      /* Override Vue Survey App Wrapper & Card */
+      #app.woot-survey-wrap {
+        min-height: 0 !important;
+        flex: 1 1 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px !important;
+        width: 100% !important;
+      }
+
+      #app.woot-survey-wrap > div {
+        min-height: 0 !important;
+        background: transparent !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 548px !important;
+        margin: 0 auto !important;
+      }
+
+      #app.woot-survey-wrap > div > div {
+        min-height: 0 !important;
+        width: 100% !important;
+        max-width: 548px !important;
+        border-radius: 22px !important;
+        background: var(--msc-surface) !important;
+        border: 1px solid var(--msc-border) !important;
+        box-shadow:
+          0 24px 60px -18px rgba(0, 0, 0, 0.45),
+          0 0 0 1px rgba(16, 185, 129, 0.10) !important;
+        overflow: hidden !important;
+      }
+
+      html:not(.dark) #app.woot-survey-wrap > div > div {
+        box-shadow:
+          0 20px 50px -20px rgba(15, 23, 42, 0.12),
+          0 0 0 1px rgba(16, 185, 129, 0.14) !important;
+      }
+
+      /* Top Emerald + Volt Lime Accent Strip */
+      #app.woot-survey-wrap > div > div > div:first-child {
+        height: 5px !important;
+        background: linear-gradient(90deg, #059669 0%, #10B981 65%, #C6FF00 100%) !important;
+      }
+
+      /* Card Body Typography */
+      #app.woot-survey-wrap .prose,
+      #app.woot-survey-wrap .prose p,
+      #app.woot-survey-wrap .text-n-slate-12 {
+        color: var(--msc-text) !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.02em !important;
+      }
+
+      #app.woot-survey-wrap #survey-rating-label,
+      #app.woot-survey-wrap .text-n-slate-10 {
+        color: var(--msc-emerald) !important;
+        font-size: 11.5px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.08em !important;
+        text-transform: uppercase !important;
+        margin-bottom: 14px !important;
+      }
+
+      /* Rating Emoji Buttons Grid */
+      #app.woot-survey-wrap [role="group"] > div {
+        display: grid !important;
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+        padding-bottom: 4px !important;
+      }
+
+      #app.woot-survey-wrap [role="group"] button {
+        width: 100% !important;
+        height: 68px !important;
+        min-height: 56px !important;
+        border-radius: 16px !important;
+        background: var(--msc-elevated) !important;
+        border: 1px solid var(--msc-border) !important;
+        opacity: 0.85 !important;
+        filter: saturate(0.85) !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+
+      #app.woot-survey-wrap [role="group"] button:hover:not(:disabled) {
+        opacity: 1 !important;
+        filter: saturate(1.1) !important;
+        border-color: var(--msc-emerald) !important;
+        background: rgba(16, 185, 129, 0.12) !important;
+        transform: translateY(-3px) scale(1.04) !important;
+        box-shadow: 0 12px 24px -8px rgba(16, 185, 129, 0.35) !important;
+      }
+
+      #app.woot-survey-wrap [role="group"] button[aria-pressed="true"] {
+        opacity: 1 !important;
+        filter: saturate(1.15) !important;
+        border: 2px solid var(--msc-emerald) !important;
+        background: rgba(16, 185, 129, 0.16) !important;
+        box-shadow: 0 12px 28px -8px rgba(16, 185, 129, 0.42) !important;
+        transform: scale(1.05) !important;
+      }
+
+      /* Status Alert ("Obrigado por enviar a classificação") */
+      #app.woot-survey-wrap [role="status"] {
+        padding: 12px 16px !important;
+        border-radius: 14px !important;
+        background: rgba(16, 185, 129, 0.12) !important;
+        border: 1px solid rgba(16, 185, 129, 0.32) !important;
+        margin-bottom: 18px !important;
+        gap: 10px !important;
+      }
+
+      #app.woot-survey-wrap [role="status"] p {
+        margin: 0 !important;
+        color: var(--msc-text) !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+      }
+
+      /* Feedback Section & Textarea */
+      #app.woot-survey-wrap .border-t {
+        border-top-color: var(--msc-border) !important;
+      }
+
+      #app.woot-survey-wrap label[for="survey-feedback"] {
+        color: var(--msc-text-2) !important;
+        font-size: 14.5px !important;
+        font-weight: 600 !important;
+      }
+
+      #app.woot-survey-wrap textarea#survey-feedback {
+        background: var(--msc-elevated) !important;
+        border: 1px solid var(--msc-border) !important;
+        color: var(--msc-text) !important;
+        border-radius: 14px !important;
+        padding: 14px 16px !important;
+        font-size: 14px !important;
+        min-height: 104px !important;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease !important;
+      }
+
+      #app.woot-survey-wrap textarea#survey-feedback::placeholder {
+        color: var(--msc-muted) !important;
+      }
+
+      #app.woot-survey-wrap textarea#survey-feedback:focus {
+        border-color: var(--msc-emerald) !important;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.20) !important;
+      }
+
+      /* Submit Button */
+      #app.woot-survey-wrap button[style*="background-color"] {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+        color: #03140D !important;
+        font-weight: 800 !important;
+        border-radius: 13px !important;
+        min-height: 48px !important;
+        box-shadow: 0 12px 26px -6px rgba(16, 185, 129, 0.45) !important;
+        border: none !important;
+      }
+
+      #app.woot-survey-wrap button[style*="background-color"]:hover:not(:disabled) {
+        filter: brightness(1.07) !important;
+        transform: translateY(-1px) !important;
+      }
+
+      /* Hide third-party branding inside survey footer */
+      #app.woot-survey-wrap > div > div > div:last-child {
+        display: none !important;
+      }
+
+      /* Executive Footer */
+      .msc-csat-footer {
+        width: 100%;
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 12px 20px 22px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--msc-muted);
+      }
+
+      .msc-csat-footer a {
+        color: var(--msc-emerald);
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .msc-csat-footer a:hover {
+        text-decoration: underline;
+      }
+
+      @media (max-width: 480px) {
+        .msc-csat-topbar {
+          padding: 14px 14px 6px;
+        }
+        .msc-csat-badge span:last-child {
+          display: none;
+        }
+        #app.woot-survey-wrap {
+          padding: 12px 14px !important;
+        }
+        #app.woot-survey-wrap [role="group"] > div {
+          gap: 7px !important;
+        }
+        #app.woot-survey-wrap [role="group"] button {
+          height: 58px !important;
+          font-size: 28px !important;
+        }
+        .msc-csat-footer {
+          flex-direction: column;
+          text-align: center;
+          justify-content: center;
+        }
       }
     </style>
-    <script>
-      window.globalConfig = <%= raw @global_config.to_json %>
-    </script>
     <%= vite_client_tag %>
-    <%= vite_javascript_tag 'survey' %>
+    <%= vite_javascript_tag "survey" %>
   </head>
   <body>
-    <div id="app"></div>
-    <%= yield %>
+    <div class="msc-csat-shell">
+      <header class="msc-csat-topbar" role="banner">
+        <a href="https://chat.meusuper.app" class="msc-csat-brand">
+          <span class="msc-csat-logo">
+            <img src="/brand-assets/logo_thumbnail.svg" alt="<%= brand_name %>" />
+          </span>
+          <span class="msc-csat-brand-text">
+            <strong><%= brand_name %></strong>
+            <span>Pesquisa Oficial de Satisfação (CSAT)</span>
+          </span>
+        </a>
+        <div class="msc-csat-actions">
+          <div class="msc-csat-badge" title="Atendimento Verificado">
+            <span class="msc-csat-badge-dot"></span>
+            <span>Verificado</span>
+          </div>
+          <button type="button" id="msc-csat-theme-toggle" class="msc-csat-theme-btn" aria-label="Alternar tema claro/escuro" title="Alternar tema">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <% if @conversation.present? %>
+        <div class="msc-csat-meta-wrap">
+          <div class="msc-csat-meta" aria-label="Detalhes do atendimento">
+            <span class="msc-csat-meta-item">
+              Protocolo: <span class="msc-csat-mono">#<%= conv_display_id %></span>
+            </span>
+            <% if inbox_name.present? %>
+              <span class="msc-csat-meta-item">
+                Canal: <strong><%= inbox_name %></strong>
+              </span>
+            <% end %>
+            <% if assignee_name.present? %>
+              <span class="msc-csat-meta-item">
+                Especialista: <strong><%= assignee_name %></strong>
+              </span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <div id="app"></div>
+      <%= yield %>
+
+      <footer class="msc-csat-footer">
+        <span>© <%= Time.current.year %> <strong><%= brand_name %></strong> • Qualidade & Governança de Atendimento</span>
+        <a href="https://wa.me/55131998710945" target="_blank" rel="noopener noreferrer">Suporte Oficial WhatsApp →</a>
+      </footer>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        var btn = document.getElementById("msc-csat-theme-toggle");
+        if (btn) {
+          btn.addEventListener("click", function() {
+            var isDark = document.documentElement.classList.toggle("dark");
+            try {
+              localStorage.setItem("msc_csat_theme", isDark ? "dark" : "light");
+            } catch (e) {}
+          });
+        }
+      });
+    </script>
   </body>
 </html>

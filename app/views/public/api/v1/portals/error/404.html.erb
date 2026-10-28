@@ -1,12 +1,19 @@
-<div class="max-w-6xl h-full w-full flex-grow flex flex-col items-center justify-center mx-auto py-16 px-4 relative">
-    <div class="text-center mb-12">
-        <span class="text-8xl">🔍</span>
+<div class="max-w-4xl h-full w-full flex-grow flex flex-col items-center justify-center mx-auto py-16 px-6 relative">
+  <div class="w-full rounded-2xl border border-emerald-500/25 bg-slate-900/60 dark:bg-slate-900/80 p-10 text-center shadow-xl">
+    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-5" style="background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.35); color: #10B981;">
+      <span>●</span>
+      <span>Central de Ajuda • Meu Super Chat</span>
     </div>
-    <h1 class="text-6xl text-center font-semibold text-slate-800 dark:text-slate-100 leading-relaxed"><%= I18n.t('public_portal.404.title') %></h1>
-    <p class="text-center text-slate-700 dark:text-slate-300 my-1"><%= I18n.t('public_portal.404.description') %></p>
-    <div class="text-center my-8">
-        <a href="<%= generate_home_link(@portal.slug, @portal.config['default_locale'] || params[:locale], @theme_from_params, @is_plain_layout_enabled) %>" class="text-woot-500 font-semibold underline">
-            <%= I18n.t('public_portal.404.back_to_home') %>
-        </a>
+    <div class="text-6xl font-black mb-4" style="background: linear-gradient(135deg, #10B981, #C6FF00); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">404</div>
+    <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 mb-3"><%= I18n.t('public_portal.404.title') %></h1>
+    <p class="text-slate-600 dark:text-slate-300 max-w-xl mx-auto mb-8"><%= I18n.t('public_portal.404.description') %></p>
+    <div class="flex flex-wrap items-center justify-center gap-3">
+      <a href="<%= generate_home_link(@portal.slug, @portal.config['default_locale'] || params[:locale], @theme_from_params, @is_plain_layout_enabled) %>" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-bold text-sm transition-all" style="background: linear-gradient(135deg, #10B981, #059669); color: #04130D; text-decoration: none;">
+        ← <%= I18n.t('public_portal.404.back_to_home') %>
+      </a>
+      <a href="https://wa.me/55131998710945" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-bold text-sm border border-emerald-500/30 text-emerald-600 dark:text-emerald-400" style="text-decoration: none;">
+        Suporte Oficial WhatsApp
+      </a>
     </div>
+  </div>
 </div>
