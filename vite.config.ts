@@ -34,6 +34,7 @@ export default defineConfig({
   plugins: [ruby(), vue(vueOptions), yaml()],
   build: {
     sourcemap: false,
+    reportCompressedSize: false,
   },
   css: {
     preprocessorOptions: {
