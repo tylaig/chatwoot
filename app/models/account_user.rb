@@ -80,7 +80,19 @@ class AccountUser < ApplicationRecord
 
   def update_presence_in_redis
     OnlineStatusTracker.set_status(account.id, user.id, availability)
-    enqueue_auto_assignment_for_online_agent if online?
+    if online?
+      enqueue_auto_assignment_for_online_agent
+    else
+      redistribute_open_waiting_conversations_for_unavailable_agent
+    end
+  end
+
+  def redistribute_open_waiting_conversations_for_unavailable_agent
+    account.conversations
+           .open
+           .where(assignee_id: user_id)
+           .where.not(waiting_since: nil)
+           .find_each(&:redistribute_if_assignee_unavailable!)
   end
 
   def enqueue_auto_assignment_for_online_agent

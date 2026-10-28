@@ -90,7 +90,7 @@ module ReopenTeamAssigneeHandler
     @reopen_team_check_assignee_id = nil
     @reopen_team_unassignment = nil
     owner_id, persisted_status, persisted_team_id = self.class.lock.where(id: id).pick(:assignee_id, :status, :team_id)
-    return unless owner_id == judged_id && %w[resolved snoozed].include?(persisted_status)
+    return unless owner_id == judged_id && %w[resolved snoozed awaiting_resolution].include?(persisted_status)
 
     # The legacy auto-assignment later in this save picks from this instance's team, which has
     # to be the one the assignee was judged against.
@@ -109,7 +109,7 @@ module ReopenTeamAssigneeHandler
     return if assignee_id.blank?
 
     owner_id, persisted_status, persisted_team_id = self.class.lock.where(id: id).pick(:assignee_id, :status, :team_id)
-    return unless owner_id == judged_id && %w[resolved snoozed].include?(persisted_status)
+    return unless owner_id == judged_id && %w[resolved snoozed awaiting_resolution].include?(persisted_status)
 
     self.team_id = persisted_team_id
     clear_attribute_changes([:team_id])
