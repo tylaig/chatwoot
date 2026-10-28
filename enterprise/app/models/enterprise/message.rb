@@ -32,10 +32,14 @@ module Enterprise::Message
   def reopen_conversation
     return if conversation.muted?
     return unless incoming?
-    return if conversation.awaiting_resolution?
 
     conversation.check_assignee_team_on_reopen
     conversation.check_assignee_online_on_reopen
+
+    if conversation.awaiting_resolution?
+      conversation.open!
+      return
+    end
 
     if conversation.snoozed?
       reopen_snoozed_conversation
@@ -63,7 +67,12 @@ module Enterprise::Message
     return super if assistant.blank? || conversation.inbox.external_bot_active?
     return conversation.open! unless assistant.engages?(conversation.contact, conversation)
 
-    super
+    if conversation.assignee_id.present? &&
+       (conversation.inbox.unassign_on_reopen_when_offline? || conversation.inbox.unassign_on_reopen_when_busy?)
+      conversation.open!
+    else
+      super
+    end
   end
 
   def mark_pending_conversation_as_open_for_human_response # rubocop:disable Metrics/CyclomaticComplexity

@@ -314,7 +314,7 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
       expected_content = I18n.t(
         'conversations.activity.captain.open_with_reason',
         user_name: captain_assistant.name,
-        reason: 'pending clarification from customer'
+        reason: 'necessita atendimento humano'
       )
       expect(Conversations::ActivityMessageJob)
         .to have_been_enqueued.with(

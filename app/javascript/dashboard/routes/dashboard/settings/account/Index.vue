@@ -16,6 +16,7 @@ import BuildInfo from './components/BuildInfo.vue';
 import AccountDelete from './components/AccountDelete.vue';
 import AudioTranscription from './components/AudioTranscription.vue';
 import HideInboxesForAgents from './components/HideInboxesForAgents.vue';
+import SidebarModulesConfig from './components/SidebarModulesConfig.vue';
 import EmailBranding from './components/EmailBranding.vue';
 import SectionLayout from './components/SectionLayout.vue';
 
@@ -28,6 +29,7 @@ export default {
     AccountDelete,
     AudioTranscription,
     HideInboxesForAgents,
+    SidebarModulesConfig,
     EmailBranding,
     SectionLayout,
     WithLabel,
@@ -258,6 +260,7 @@ export default {
       <woot-loading-state v-if="uiFlags.isFetchingItem" />
     </div>
     <HideInboxesForAgents />
+    <SidebarModulesConfig />
     <AudioTranscription v-if="showAudioTranscriptionConfig" />
     <EmailBranding v-if="showEmailBranding" />
     <AccountId />

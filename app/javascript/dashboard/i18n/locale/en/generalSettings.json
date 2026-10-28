@@ -112,6 +112,14 @@
           "ERROR": "Failed to update global inbox setting"
         }
       },
+      "SIDEBAR_MODULES": {
+        "TITLE": "Conversation Sidebar Modules",
+        "NOTE": "Choose which sections are displayed in the right-hand conversation sidebar for agents in this account.",
+        "API": {
+          "SUCCESS": "Sidebar modules updated successfully",
+          "ERROR": "Failed to update sidebar modules"
+        }
+      },
       "AUTO_RESOLVE_DURATION": {
         "LABEL": "Inactivity duration for resolution",
         "HELP": "Duration after a conversation should auto resolve if there is no activity",

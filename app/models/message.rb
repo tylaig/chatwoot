@@ -669,12 +669,11 @@ class Message < ApplicationRecord
     return if conversation.muted?
     return unless incoming?
     return if reaction?
-    return if conversation.awaiting_resolution?
-    return unless conversation.snoozed? || conversation.resolved?
+    return unless conversation.snoozed? || conversation.resolved? || conversation.awaiting_resolution?
 
     conversation.check_assignee_team_on_reopen
     conversation.check_assignee_online_on_reopen
-    conversation.snoozed? ? conversation.open! : reopen_resolved_conversation
+    conversation.snoozed? || conversation.awaiting_resolution? ? conversation.open! : reopen_resolved_conversation
   end
 
   def redistribute_open_conversation_from_unavailable_assignee

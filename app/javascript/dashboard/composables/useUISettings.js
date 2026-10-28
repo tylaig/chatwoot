@@ -175,7 +175,8 @@ export function useUISettings() {
     isContactSidebarItemOpen: key => {
       if (
         (key === 'is_shopify_orders_open' ||
-          key === 'is_calendar_appointments_open') &&
+          key === 'is_calendar_appointments_open' ||
+          key === 'is_conv_details_open') &&
         uiSettings.value[key] === undefined
       ) {
         return true;

@@ -29,6 +29,10 @@ module AccountSettingsSchema
           'type': %w[array null],
           'items': { 'type': 'string' }
         },
+        'conversation_sidebar_visible_items': {
+          'type': %w[array null],
+          'items': { 'type': 'string' }
+        },
         'captain_models': {
           'type': %w[object null],
           'properties': CAPTAIN_MODEL_PROPERTIES,

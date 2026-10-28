@@ -54,6 +54,7 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
         message_type: :outgoing, private: true, sender: @assistant,
         account: conversation.account, inbox: conversation.inbox, content: reason
       )
+      persist_customer_request_summary(conversation, reason)
 
       conversation.bot_handoff!(dispatch_event: false)
       :completed
@@ -82,11 +83,19 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
       message_type: :outgoing, private: true, sender: @assistant,
       account: conversation.account, inbox: conversation.inbox, content: reason
     )
+    persist_customer_request_summary(conversation, reason)
     record_handoff_note(tool_context, note) if reason.present?
     conversation.bot_handoff!
     emit_tool_handoff_event(conversation, reason_category)
     send_out_of_office_message_if_applicable(conversation)
     :completed
+  end
+
+  def persist_customer_request_summary(conversation, reason)
+    return if reason.blank?
+
+    attrs = (conversation.additional_attributes || {}).merge('customer_request_summary' => reason.to_s.strip)
+    conversation.update_columns(additional_attributes: attrs, updated_at: Time.current)
   end
 
   def emit_tool_handoff_event(conversation, reason_category)

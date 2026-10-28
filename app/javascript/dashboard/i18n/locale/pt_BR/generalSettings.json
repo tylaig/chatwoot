@@ -112,6 +112,14 @@
           "ERROR": "Falha ao atualizar configuração de caixa de entrada global"
         }
       },
+      "SIDEBAR_MODULES": {
+        "TITLE": "Módulos da Barra Lateral da Conversa",
+        "NOTE": "Escolha quais seções aparecem na barra lateral direita do atendimento para todos os atendentes desta conta.",
+        "API": {
+          "SUCCESS": "Módulos da barra lateral atualizados com sucesso",
+          "ERROR": "Falha ao atualizar módulos da barra lateral"
+        }
+      },
       "AUTO_RESOLVE_DURATION": {
         "LABEL": "Tempo de inatividade para resolução",
         "HELP": "Tempo de inatividade após o qual a conversa deve ser encerrada automaticamente",

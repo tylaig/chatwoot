@@ -63,7 +63,37 @@ const isShopifyFeatureEnabled = computed(
   () => shopifyIntegration.value.enabled
 );
 
-const { isCloudFeatureEnabled } = useAccount();
+const { isCloudFeatureEnabled, currentAccount } = useAccount();
+
+const visibleSidebarItems = computed(() => {
+  const configured =
+    currentAccount.value?.settings?.conversation_sidebar_visible_items;
+  if (!Array.isArray(configured)) return conversationSidebarItems.value;
+  return conversationSidebarItems.value.filter(item =>
+    configured.includes(item.name)
+  );
+});
+
+const customerRequestSummary = computed(() => {
+  const fromAttr =
+    conversationAdditionalAttributes.value?.customer_request_summary ||
+    currentChat.value?.additional_attributes?.customer_request_summary;
+  if (fromAttr) return String(fromAttr).trim();
+
+  const messages = currentChat.value?.messages || [];
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const msg = messages[i];
+    const isAssistantNote =
+      msg?.private &&
+      (msg?.sender_type === 'Captain::Assistant' ||
+        msg?.sender?.type === 'captain_assistant' ||
+        msg?.sender?.type === 'agent_bot');
+    if (isAssistantNote && msg?.content?.trim()) {
+      return msg.content.trim();
+    }
+  }
+  return '';
+});
 
 const isLinearFeatureEnabled = computed(() =>
   isCloudFeatureEnabled(FEATURE_FLAGS.LINEAR)
@@ -198,7 +228,7 @@ onMounted(() => {
     <ContactInfo v-else :contact="contact" :channel-type="channelType" />
     <div class="px-3 pt-1 pb-8 list-group">
       <Draggable
-        :list="conversationSidebarItems"
+        :list="visibleSidebarItems"
         animation="200"
         ghost-class="ghost"
         handle=".drag-handle"
@@ -278,6 +308,7 @@ onMounted(() => {
               <ConversationInfo
                 :conversation-attributes="conversationAdditionalAttributes"
                 :contact-attributes="contactAdditionalAttributes"
+                :customer-request-summary="customerRequestSummary"
               />
             </AccordionItem>
           </div>
