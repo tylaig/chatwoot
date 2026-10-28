@@ -50,6 +50,7 @@
     <div class="msc-sa-sidebar__theme"><span>Tema da interface</span><%= render "super_admin/application/theme_toggle" %></div>
     <div class="msc-sa-section">Infraestrutura</div>
     <ul class="msc-sa-nav">
+      <%= render partial: "nav_item", locals: { icon: 'icon-refresh-line', url: "#{super_admin_instance_status_path}?open_updater=1", label: 'Atualizações (Deploy)' } %>
       <%= render partial: "nav_item", locals: { icon: 'icon-mist-fill', url: sidekiq_web_path, label: 'Filas Sidekiq' } %>
       <%= render partial: "nav_item", locals: { icon: 'icon-health-book-line', url: super_admin_instance_status_path, label: 'Saúde da Instância' } %>
       <%= render partial: "nav_item", locals: { icon: 'icon-send-plane-line', url: super_admin_push_diagnostics_path, label: 'Diagnóstico de Push' } %>

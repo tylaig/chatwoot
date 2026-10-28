@@ -113,7 +113,7 @@ export default {
     >
       <button
         type="button"
-        class="end-chat-pill-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-150 cursor-pointer select-none whitespace-nowrap bg-white dark:bg-n-solid-2 hover:bg-emerald-50/70"
+        class="end-chat-pill-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-150 cursor-pointer select-none whitespace-nowrap border-0 outline-none"
         :title="$t('END_CHAT_MODAL.BUTTON_LABEL')"
         @click.stop="toggleEndChatModal"
       >
@@ -254,12 +254,13 @@ export default {
 <style scoped lang="scss">
 .actions {
   .end-chat-pill-btn {
-    border: 1.5px solid #22c55e;
+    background-color: rgba(34, 197, 94, 0.14);
+    border: none;
+    outline: none;
     color: #15803d;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 
     &:hover {
-      border-color: #16a34a;
+      background-color: rgba(34, 197, 94, 0.22);
       color: #166534;
     }
   }

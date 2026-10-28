@@ -450,7 +450,7 @@ export default {
     <div class="right-wrap">
       <div
         v-if="shouldShowBottomResolveButton"
-        class="flex rounded-lg outline outline-1 outline-emerald-600/70"
+        class="flex rounded-lg !outline-0 !border-0"
       >
         <NextButton
           :label="$t('CONVERSATION.HEADER.RESOLVE_ACTION')"
@@ -459,7 +459,7 @@ export default {
           sm
           teal
           faded
-          class="flex-shrink-0 !rounded-r-none !outline-0 font-semibold"
+          class="flex-shrink-0 !rounded-r-none !outline-0 !border-0 font-semibold"
           @click="emitResolveConversation"
         />
         <DropdownContainer>
@@ -470,7 +470,7 @@ export default {
               teal
               faded
               icon="i-lucide-chevron-down"
-              class="flex-shrink-0 !rounded-l-none !outline-0 !border-l border-l-emerald-600/30 !px-1.5"
+              class="flex-shrink-0 !rounded-l-none !outline-0 !border-0 !border-l border-l-n-teal-9/30 !px-1.5"
               :class="{ 'bg-n-teal-9/25': isOpen }"
               @click="toggle"
             />

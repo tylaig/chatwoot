@@ -1,10 +1,13 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import Auth from 'dashboard/api/auth';
 import { useMapGetter } from 'dashboard/composables/store';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useI18n } from 'vue-i18n';
 import Avatar from 'next/avatar/Avatar.vue';
 import SidebarProfileMenuStatus from './SidebarProfileMenuStatus.vue';
+import SystemUpdateModal from './SystemUpdateModal.vue';
+import SystemUpdatesAPI from 'dashboard/api/systemUpdates';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 import {
@@ -26,6 +29,7 @@ defineOptions({
 });
 
 const { t } = useI18n();
+const { isAdmin } = useAdmin();
 
 const currentUser = useMapGetter('getCurrentUser');
 const currentUserAvailability = useMapGetter('getCurrentUserAvailability');
@@ -34,6 +38,29 @@ const globalConfig = useMapGetter('globalConfig/get');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
+
+const systemUpdateModalRef = ref(null);
+const pendingUpdatesCount = ref(0);
+const pendingBadgeLabel = computed(() => `${pendingUpdatesCount.value} ↑`);
+const pendingBadgeTitle = 'Nova atualização disponível';
+
+const canManageSystemUpdates = computed(() => {
+  return currentUser.value?.type === 'SuperAdmin' || isAdmin.value;
+});
+
+const openSystemUpdateModal = () => {
+  systemUpdateModalRef.value?.open();
+};
+
+onMounted(async () => {
+  if (!canManageSystemUpdates.value) return;
+  try {
+    const { data } = await SystemUpdatesAPI.check(false);
+    pendingUpdatesCount.value = data?.has_updates ? data.ahead_by || 1 : 0;
+  } catch (e) {
+    // ignore background check error
+  }
+});
 
 const showChatSupport = computed(() => {
   return (
@@ -104,6 +131,16 @@ const menuItems = computed(() => {
       target: '_blank',
     },
     {
+      show: canManageSystemUpdates.value,
+      showOnCustomBrandedInstance: true,
+      label:
+        pendingUpdatesCount.value > 0
+          ? `Atualizações do Sistema (${pendingUpdatesCount.value} nova${pendingUpdatesCount.value > 1 ? 's' : ''})`
+          : 'Atualizações do Sistema',
+      icon: 'i-lucide-rocket',
+      click: openSystemUpdateModal,
+    },
+    {
       show: currentUser.value.type === 'SuperAdmin',
       showOnCustomBrandedInstance: true,
       label: t('SIDEBAR_ITEMS.SUPER_ADMIN_CONSOLE'),
@@ -150,7 +187,7 @@ const allowedMenuItems = computed(() => {
           :status="currentUserAvailability"
           class="flex-shrink-0"
         />
-        <div v-if="!isCollapsed" class="min-w-0">
+        <div v-if="!isCollapsed" class="min-w-0 flex-1">
           <div class="text-sm font-medium leading-4 truncate text-n-slate-12">
             {{ currentUser.available_name }}
           </div>
@@ -158,6 +195,16 @@ const allowedMenuItems = computed(() => {
             {{ currentUser.email }}
           </div>
         </div>
+        <span
+          v-if="
+            canManageSystemUpdates && pendingUpdatesCount > 0 && !isCollapsed
+          "
+          class="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-n-teal-9 text-white shrink-0"
+          :title="pendingBadgeTitle"
+          @click.stop="openSystemUpdateModal"
+        >
+          {{ pendingBadgeLabel }}
+        </span>
       </button>
     </template>
     <DropdownBody class="bottom-12 z-50 mb-2 w-80 ltr:left-0 rtl:right-0">
@@ -172,4 +219,5 @@ const allowedMenuItems = computed(() => {
       </template>
     </DropdownBody>
   </DropdownContainer>
+  <SystemUpdateModal v-if="canManageSystemUpdates" ref="systemUpdateModalRef" />
 </template>

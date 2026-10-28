@@ -767,6 +767,12 @@ Rails.application.routes.draw do
             end
           end
           resource :year_in_review, only: [:show]
+          resource :system_updates, only: [] do
+            collection do
+              get :check
+              post :apply
+            end
+          end
           resources :live_reports, only: [] do
             collection do
               get :conversation_metrics
@@ -968,7 +974,10 @@ Rails.application.routes.draw do
       end
       resources :platform_apps, only: [:index, :new, :create, :show, :edit, :update, :destroy]
       resources :platform_banners
-      resource :instance_status, only: [:show]
+      resource :instance_status, only: [:show] do
+        get :check_updates
+        post :apply_update
+      end
 
       resource :settings, only: [:show] do
         get :refresh, on: :collection
