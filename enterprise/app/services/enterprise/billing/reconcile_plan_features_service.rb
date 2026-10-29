@@ -41,6 +41,11 @@ class Enterprise::Billing::ReconcilePlanFeaturesService
   def perform
     return if shopify_billing? && !shopify_lifecycle_cleanup && !Shopify::FeatureGate.enabled?(account: account)
 
+    if elite_tier_managed?
+      EliteLicenseEngine.apply_tier_to_account!(account, elite_tier_key, custom_limits: elite_custom_limits, sync_sidebar: false)
+      return
+    end
+
     account.disable_features(*managed_plan_features)
     account.disable_features('captain_integration_v2') if default_plan?
     account.enable_features(*current_plan_features)
@@ -111,5 +116,30 @@ class Enterprise::Billing::ReconcilePlanFeaturesService
 
   def captain_v2_enabled_by_default?
     !shopify_billing? && !default_plan?
+  end
+
+  def elite_tier_managed?
+    return false unless defined?(EliteLicenseEngine)
+    return false if shopify_billing?
+
+    plan_name = account.custom_attributes['plan_name'].to_s
+    return true if EliteLicenseEngine::TIERS.key?(plan_name.downcase)
+
+    # Only delegate to EliteLicenseEngine when no Chatwoot Cloud catalog plan matches
+    cloud_plan_names = cloud_plans.filter_map { |p| p['name'] }
+    return false if cloud_plan_names.any? { |name| name.casecmp?(plan_name) }
+
+    account.settings&.dig('elite_plan_tier').present? || EliteLicenseEngine.resolve_billing_tier_key(plan_name).present?
+  end
+
+  def elite_tier_key
+    EliteLicenseEngine.resolve_billing_tier_key(account.custom_attributes['plan_name']) ||
+      account.settings&.dig('elite_plan_tier') ||
+      'starter'
+  end
+
+  def elite_custom_limits
+    qty = account.custom_attributes['subscribed_quantity'].to_i
+    qty.positive? ? { agents: qty } : {}
   end
 end

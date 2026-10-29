@@ -22,14 +22,17 @@ class Api::V1::AccountsController < Api::BaseController
   end
 
   def create
-    @user, @account = AccountBuilder.new(
+    builder_params = {
       account_name: account_params[:account_name],
       user_full_name: account_params[:user_full_name],
       email: account_params[:email],
       user_password: account_params[:password],
       locale: account_params[:locale],
       user: current_user
-    ).perform
+    }
+    builder_params[:plan_tier] = account_params[:plan_tier] if account_params[:plan_tier].present?
+
+    @user, @account = AccountBuilder.new(builder_params).perform
     enqueue_branding_enrichment
     if @user
       # Authenticated users (dashboard "add account") and api_only signups
@@ -113,7 +116,7 @@ class Api::V1::AccountsController < Api::BaseController
   end
 
   def account_params
-    params.permit(:account_name, :email, :name, :password, :locale, :domain, :support_email, :user_full_name, :brand_logo_email)
+    params.permit(:account_name, :email, :name, :password, :locale, :domain, :support_email, :user_full_name, :brand_logo_email, :plan_tier)
   end
 
   def custom_attributes_params

@@ -12,10 +12,12 @@ class Enterprise::Billing::HandleStripeEventService
     @event = event
 
     case @event.type
-    when 'customer.subscription.updated'
+    when 'customer.subscription.created', 'customer.subscription.updated'
       process_subscription_updated
     when 'customer.subscription.deleted'
       process_subscription_deleted
+    when 'checkout.session.completed'
+      process_checkout_session_completed
     else
       Rails.logger.debug { "Unhandled event type: #{event.type}" }
     end
@@ -25,6 +27,9 @@ class Enterprise::Billing::HandleStripeEventService
 
   def process_subscription_updated
     plan = find_plan(subscription['plan']['product']) if subscription['plan'].present?
+    if plan.blank? && defined?(EliteLicenseEngine)
+      return process_elite_stripe_subscription_updated
+    end
 
     # skipping self hosted plan events
     return if plan.blank? || !stripe_billed_account?
@@ -34,6 +39,77 @@ class Enterprise::Billing::HandleStripeEventService
     Enterprise::Billing::ReconcilePlanFeaturesService.new(account: account).perform
     sync_subscription_credits(plan, previous_usage)
     track_marketing_plan_activation(previous_plan_name, plan['name']) if plan_changed?
+  end
+
+  def process_elite_stripe_subscription_updated
+    target_account = resolve_elite_stripe_account(subscription)
+    return if target_account.blank?
+
+    metadata = extract_stripe_hash(subscription, 'metadata')
+    plan_hash = extract_stripe_hash(subscription, 'plan')
+    raw_tier = metadata['plan_tier'] || metadata['tier'] || plan_hash['nickname'] || plan_hash['name'] || plan_hash['product']
+    tier_key = EliteLicenseEngine.resolve_billing_tier_key(raw_tier) || EliteLicenseEngine.account_tier_key(target_account)
+    qty = subscription['quantity'].to_i
+    custom_limits = qty.positive? ? { agents: qty } : {}
+
+    target_account.update!(
+      custom_attributes: (target_account.custom_attributes || {}).merge(
+        'stripe_customer_id' => subscription.respond_to?(:customer) ? subscription.customer : subscription['customer'],
+        'stripe_subscription_id' => subscription['id'],
+        'stripe_price_id' => plan_hash['id'],
+        'stripe_product_id' => plan_hash['product'],
+        'subscription_status' => subscription['status'] || 'active',
+        'subscription_ends_on' => subscription_ends_on(subscription),
+        'subscription_cancels_on' => subscription_cancels_on(subscription)
+      ).compact
+    )
+
+    EliteLicenseEngine.apply_tier_to_account!(target_account, tier_key, custom_limits: custom_limits, sync_sidebar: false)
+  end
+
+  def process_checkout_session_completed
+    return unless defined?(EliteLicenseEngine)
+
+    session_obj = @event.data.object
+    metadata = extract_stripe_hash(session_obj, 'metadata')
+    acct_id = metadata['account_id'] || (session_obj.respond_to?(:client_reference_id) ? session_obj.client_reference_id : session_obj['client_reference_id'])
+    cust_id = session_obj.respond_to?(:customer) ? session_obj.customer : session_obj['customer']
+
+    target_account = (Account.find_by(id: acct_id) if acct_id.present?) ||
+                     (Account.where("custom_attributes->>'stripe_customer_id' = ?", cust_id.to_s).first if cust_id.present?)
+    return if target_account.blank?
+
+    raw_tier = metadata['plan_tier'] || metadata['tier'] || metadata['target_id']
+    tier_key = EliteLicenseEngine.resolve_billing_tier_key(raw_tier)
+    qty = metadata['seats'].to_i
+    custom_limits = qty.positive? ? { agents: qty } : {}
+
+    target_account.update!(
+      custom_attributes: (target_account.custom_attributes || {}).merge(
+        'stripe_customer_id' => cust_id,
+        'stripe_checkout_session_id' => session_obj['id'],
+        'subscription_status' => 'active'
+      ).compact
+    )
+
+    EliteLicenseEngine.apply_tier_to_account!(target_account, tier_key, custom_limits: custom_limits, sync_sidebar: false) if tier_key.present?
+  end
+
+  def resolve_elite_stripe_account(sub)
+    return account if account.present?
+
+    metadata = extract_stripe_hash(sub, 'metadata')
+    acct_id = metadata['account_id']
+    Account.find_by(id: acct_id) if acct_id.present?
+  end
+
+  def extract_stripe_hash(obj, key)
+    val = obj[key] rescue nil
+    return {} if val.blank?
+
+    val.respond_to?(:to_hash) ? val.to_hash.with_indifferent_access : JSON.parse(val.to_json).with_indifferent_access
+  rescue StandardError
+    {}
   end
 
   def sync_subscription_credits(plan, previous_usage)

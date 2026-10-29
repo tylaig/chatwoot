@@ -67,12 +67,19 @@ class EliteLicenseEngine
   CODE_TO_TIER = {
     'STARTER' => 'starter',
     'START' => 'starter',
+    'HACKER' => 'starter',
     'PRO' => 'pro',
+    'STARTUPS' => 'pro',
+    'SCALE' => 'business',
     'BUSINESS' => 'business',
     'BUSIN' => 'business',
     'ELITE' => 'elite_whitelabel',
-    'ELITE_WHITELABEL' => 'elite_whitelabel'
+    'ELITE_WHITELABEL' => 'elite_whitelabel',
+    'ENTERPRISE' => 'elite_whitelabel',
+    'WHITE_LABEL' => 'elite_whitelabel'
   }.freeze
+
+  SELF_SERVICE_TIERS = %w[starter pro business].freeze
 
   TIERS = {
     'starter' => {
@@ -347,6 +354,33 @@ class EliteLicenseEngine
     return str.downcase if TIERS.key?(str.downcase)
 
     CODE_TO_TIER[str.upcase] || 'elite_whitelabel'
+  end
+
+  def self.resolve_self_service_tier(tier_or_code)
+    return 'starter' if tier_or_code.blank?
+
+    str = tier_or_code.to_s.strip
+    candidate = TIERS.key?(str.downcase) ? str.downcase : CODE_TO_TIER[str.upcase]
+    SELF_SERVICE_TIERS.include?(candidate) ? candidate : 'starter'
+  end
+
+  def self.resolve_billing_tier_key(plan_or_tier)
+    return nil if plan_or_tier.blank?
+
+    str = plan_or_tier.to_s.strip
+    return str.downcase if TIERS.key?(str.downcase)
+    return CODE_TO_TIER[str.upcase] if CODE_TO_TIER.key?(str.upcase)
+
+    down = str.downcase
+    if down.include?('elite') || down.include?('white') || down.include?('enterprise')
+      'elite_whitelabel'
+    elsif down.include?('business') || down.include?('scale')
+      'business'
+    elsif down.include?('pro') || down.include?('growth') || down.include?('startup')
+      'pro'
+    elsif down.include?('starter') || down.include?('start') || down.include?('hacker')
+      'starter'
+    end
   end
 
   def self.inspect_license_key(key, tier: nil, holder: nil, seats: nil, expires_at: nil)

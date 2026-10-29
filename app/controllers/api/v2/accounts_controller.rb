@@ -14,12 +14,17 @@ class Api::V2::AccountsController < Api::BaseController
               with: :render_error_response
 
   def create
-    @user, @account = AccountBuilder.new(
+    builder_params = {
       email: account_params[:email],
       user_password: account_params[:password],
       locale: account_params[:locale],
       user: current_user
-    ).perform
+    }
+    builder_params[:account_name] = account_params[:account_name] if account_params[:account_name].present?
+    builder_params[:user_full_name] = account_params[:user_full_name] if account_params[:user_full_name].present?
+    builder_params[:plan_tier] = account_params[:plan_tier] if account_params[:plan_tier].present?
+
+    @user, @account = AccountBuilder.new(builder_params).perform
 
     fetch_account_and_user_info
     update_account_info if @account.present?
@@ -54,7 +59,7 @@ class Api::V2::AccountsController < Api::BaseController
   end
 
   def account_params
-    params.permit(:account_name, :email, :name, :password, :locale, :domain, :support_email, :user_full_name)
+    params.permit(:account_name, :email, :name, :password, :locale, :domain, :support_email, :user_full_name, :plan_tier)
   end
 
   def check_signup_enabled

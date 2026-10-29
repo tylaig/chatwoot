@@ -162,7 +162,7 @@ class Rack::Attack
 
   ## Prevent Brute-Force Signup Attacks ###
   throttle('accounts/ip', limit: 5, period: 30.minutes) do |req|
-    req.ip if req.path_without_extensions == '/api/v1/accounts' && req.post?
+    req.ip if %w[/api/v1/accounts /public/api/v1/saas_signups].include?(req.path_without_extensions) && req.post?
   end
 
   ##-----------------------------------------------##

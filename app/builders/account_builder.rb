@@ -2,7 +2,7 @@
 
 class AccountBuilder
   include CustomExceptions::Account
-  pattr_initialize [:account_name, :email!, :confirmed, :user, :user_full_name, :user_password, :super_admin, :locale]
+  pattr_initialize [:account_name, :email!, :confirmed, :user, :user_full_name, :user_password, :super_admin, :locale, :plan_tier]
 
   def perform
     if @user.nil?
@@ -12,6 +12,7 @@ class AccountBuilder
     ActiveRecord::Base.transaction do
       @account = create_account
       @user = create_and_link_user
+      apply_initial_plan_tier
     end
     [@user, @account]
   rescue StandardError => e
@@ -77,5 +78,12 @@ class AccountBuilder
     @user.type = 'SuperAdmin' if @super_admin
     @user.confirm if @confirmed
     @user.save!
+  end
+
+  def apply_initial_plan_tier
+    return if @plan_tier.blank? || !defined?(EliteLicenseEngine)
+
+    resolved_tier = EliteLicenseEngine.resolve_self_service_tier(@plan_tier)
+    EliteLicenseEngine.apply_tier_to_account!(@account, resolved_tier)
   end
 end

@@ -856,6 +856,7 @@ Rails.application.routes.draw do
         end
 
         resources :csat_survey, only: [:show, :update]
+        resources :saas_signups, only: [:create]
       end
     end
   end
@@ -901,6 +902,7 @@ Rails.application.routes.draw do
   post 'webhooks/tiktok', to: 'webhooks/tiktok#events'
   post 'webhooks/resend/inbound', to: 'webhooks/resend#inbound'
   post 'webhooks/shopify', to: 'webhooks/shopify#events'
+  post 'webhooks/asaas', to: 'webhooks/asaas#process_payload'
   post 'webhooks/trigger/:token', to: 'public/api/v1/webhook_dispatches#trigger'
 
   namespace :twitter do
