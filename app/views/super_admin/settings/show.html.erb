@@ -21,6 +21,12 @@
 
 <style>
   /* Obsidian Dark & Emerald #10B981 Glassmorphism Tokens */
+  .msc-sa-content, .msc-sa-content * { box-sizing: border-box; }
+  .msc-sa-content { width: 100%; max-width: 1600px; margin: 0 auto; padding: 12px 16px; overflow-x: hidden; }
+  .msc-bento-row > *, .msc-quota-grid > *, .msc-tier-grid > *, .msc-wl-form-grid > *, .msc-wl-assets-grid > *, .msc-wl-top-inputs > *, .msc-table-container {
+    min-width: 0;
+    max-width: 100%;
+  }
   .msc-studio-hero {
     background: #0B1319;
     border: 1px solid #16262E;
@@ -387,7 +393,7 @@
   }
 </style>
 
-<div class="msc-sa-content" style="max-width: 1600px; margin: 0 auto; padding: 12px 0;">
+<div class="msc-sa-content">
 
   <!-- [ISS-01] Top Hero Bar Consolidada -->
   <header class="msc-studio-hero" role="banner" data-testid="elite-hero-bar">
