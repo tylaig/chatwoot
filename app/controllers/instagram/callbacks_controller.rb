@@ -101,7 +101,9 @@ class Instagram::CallbacksController < ApplicationController
 
   def find_or_create_inbox
     user_details = fetch_instagram_user_details(@long_lived_token_response['access_token'])
-    channel_instagram = find_channel_by_instagram_id(user_details['user_id'].to_s)
+    ig_id = user_details['user_id'].to_s
+    ensure_instagram_not_claimed_by_other_tenant!(ig_id, user_details['username'])
+    channel_instagram = find_channel_by_instagram_id(ig_id)
     channel_exists = channel_instagram.present?
 
     if channel_instagram
@@ -127,6 +129,17 @@ class Instagram::CallbacksController < ApplicationController
 
   def find_channel_by_instagram_id(instagram_id)
     Channel::Instagram.find_by(instagram_id: instagram_id, account: account)
+  end
+
+  def ensure_instagram_not_claimed_by_other_tenant!(instagram_id, username = nil)
+    return if instagram_id.blank?
+
+    conflict_ig = Channel::Instagram.where(instagram_id: instagram_id).where.not(account_id: account.id).first
+    conflict_fb = Channel::FacebookPage.where(instagram_id: instagram_id).where.not(account_id: account.id).first
+    return unless conflict_ig || conflict_fb
+
+    handle = username.present? ? "@#{username}" : instagram_id
+    raise StandardError, "A conta do Instagram #{handle} já está conectada em outra organização deste SaaS."
   end
 
   def update_channel(channel_instagram, user_details)

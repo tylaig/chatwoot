@@ -97,6 +97,7 @@ class Messages::Instagram::BaseMessageBuilder < Messages::Messenger::MessageBuil
     # There is chance for echo events to be sent for the same message.
     # Therefore, we need to check if the message already exists before creating it.
     return if message_already_exists?
+    return unless acquire_instagram_message_lock
 
     return if message_content.blank? && all_unsupported_files?
 
@@ -106,6 +107,10 @@ class Messages::Instagram::BaseMessageBuilder < Messages::Messenger::MessageBuil
     attachments.each do |attachment|
       process_attachment(attachment)
     end
+  rescue ActiveRecord::RecordNotUnique
+    Rails.logger.info("[Instagram::BaseMessageBuilder] Duplicate message source_id skipped: #{message_identifier}")
+  ensure
+    release_instagram_message_lock
   end
 
   def save_story_id
@@ -179,7 +184,23 @@ class Messages::Instagram::BaseMessageBuilder < Messages::Messenger::MessageBuil
   def find_message_by_source_id(source_id)
     return unless source_id
 
-    @message = Message.find_by(source_id: source_id)
+    @message = @inbox.messages.find_by(source_id: source_id)
+  end
+
+  def acquire_instagram_message_lock
+    return true if message_identifier.blank?
+
+    @ig_lock_key = format(::Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: "ig_#{@inbox.id}_#{message_identifier}")
+    @ig_lock_acquired = ::Redis::Alfred.set(@ig_lock_key, true, nx: true, ex: 120)
+    return false unless @ig_lock_acquired
+
+    !message_already_exists?
+  end
+
+  def release_instagram_message_lock
+    return unless @ig_lock_acquired && @ig_lock_key.present?
+
+    ::Redis::Alfred.delete(@ig_lock_key)
   end
 
   def all_unsupported_files?

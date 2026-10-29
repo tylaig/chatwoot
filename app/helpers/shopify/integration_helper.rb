@@ -15,9 +15,11 @@ module Shopify::IntegrationHelper
   end
 
   def token_payload(account_id)
+    now = Time.current.to_i
     {
       sub: account_id,
-      iat: Time.current.to_i
+      iat: now,
+      exp: now + 15.minutes.to_i
     }
   end
 
@@ -48,7 +50,8 @@ module Shopify::IntegrationHelper
       true,
       {
         algorithm: 'HS256',
-        verify_expiration: true
+        verify_expiration: true,
+        exp_leeway: 30
       }
     ).first['sub']
   rescue StandardError => e

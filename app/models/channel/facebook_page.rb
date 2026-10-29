@@ -29,7 +29,9 @@ class Channel::FacebookPage < ApplicationRecord
 
   self.table_name = 'channel_facebook_pages'
 
-  validates :page_id, uniqueness: { scope: :account_id }
+  validates :page_id, uniqueness: true, presence: true
+  validates :instagram_id, uniqueness: true, allow_nil: true, allow_blank: true
+  validate :ensure_instagram_id_not_taken_by_direct_channel
 
   after_create_commit :subscribe
   before_destroy :unsubscribe
@@ -64,5 +66,14 @@ class Channel::FacebookPage < ApplicationRecord
   rescue StandardError => e
     Rails.logger.debug { "Rescued: #{e.inspect}" }
     true
+  end
+
+  private
+
+  def ensure_instagram_id_not_taken_by_direct_channel
+    return if instagram_id.blank?
+    return unless Channel::Instagram.where(instagram_id: instagram_id).where.not(account_id: account_id).exists?
+
+    errors.add(:instagram_id, 'já está vinculado a outra conta no sistema via Login Direto do Instagram')
   end
 end

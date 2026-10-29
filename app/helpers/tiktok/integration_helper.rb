@@ -37,7 +37,8 @@ module Tiktok::IntegrationHelper
   end
 
   def token_payload(account_id, return_to = nil)
-    payload = { sub: account_id, iat: Time.current.to_i }
+    now = Time.current.to_i
+    payload = { sub: account_id, iat: now, exp: now + 15.minutes.to_i }
     payload[:return_to] = return_to if return_to.present?
     payload
   end
@@ -45,7 +46,8 @@ module Tiktok::IntegrationHelper
   def decode_token(token, secret)
     JWT.decode(token, secret, true, {
                  algorithm: 'HS256',
-                 verify_expiration: true
+                 verify_expiration: true,
+                 exp_leeway: 30
                }).first
   rescue StandardError => e
     Rails.logger.error("Unexpected error verifying Tiktok token: #{e.message}")

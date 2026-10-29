@@ -26,6 +26,7 @@ class OauthCallbackController < ApplicationController
   end
 
   def find_or_create_inbox
+    ensure_email_not_claimed_by_other_tenant!(users_data['email'])
     channel_email = find_channel_by_email
     # we need this value to know where to redirect on sucessful processing of the callback
     channel_exists = channel_email.present?
@@ -42,6 +43,15 @@ class OauthCallbackController < ApplicationController
 
   def find_channel_by_email
     Channel::Email.find_by(email: users_data['email'], account: account)
+  end
+
+  def ensure_email_not_claimed_by_other_tenant!(email_addr)
+    return if email_addr.blank?
+
+    conflict = Channel::Email.where('LOWER(email) = ?', email_addr.to_s.downcase).where.not(account_id: account.id).first
+    return unless conflict
+
+    raise StandardError, "O e-mail #{email_addr} já está conectado em outra organização deste SaaS."
   end
 
   def update_channel(channel_email)

@@ -27,6 +27,7 @@ class Channel::Instagram < ApplicationRecord
 
   validates :access_token, presence: true
   validates :instagram_id, uniqueness: true, presence: true
+  validate :ensure_instagram_id_not_taken_by_facebook_page
 
   after_create_commit :subscribe
   before_destroy :unsubscribe
@@ -106,6 +107,13 @@ class Channel::Instagram < ApplicationRecord
   end
 
   private
+
+  def ensure_instagram_id_not_taken_by_facebook_page
+    return if instagram_id.blank?
+    return unless Channel::FacebookPage.where(instagram_id: instagram_id).where.not(account_id: account_id).exists?
+
+    errors.add(:instagram_id, 'já está vinculado a uma Página do Facebook em outra organização deste SaaS')
+  end
 
   def base_uri
     "https://graph.instagram.com/#{GlobalConfigService.load('INSTAGRAM_API_VERSION', 'v22.0')}"

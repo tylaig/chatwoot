@@ -7,6 +7,11 @@ class Api::V1::Accounts::CallbacksController < Api::V1::Accounts::BaseController
     page_id = params[:page_id]
     inbox_name = params[:inbox_name]
 
+    if Channel::FacebookPage.where(page_id: page_id).where.not(account_id: Current.account.id).exists?
+      render json: { error: 'Esta Página do Facebook já está conectada em outra organização deste SaaS.' }, status: :unprocessable_entity
+      return
+    end
+
     ActiveRecord::Base.transaction do
       facebook_channel = Current.account.facebook_pages.create!(
         page_id: page_id, user_access_token: user_access_token,
@@ -94,7 +99,7 @@ class Api::V1::Accounts::CallbacksController < Api::V1::Accounts::BaseController
     return [] if data.empty?
 
     data.inject([]) do |result, page_detail|
-      page_detail[:exists] = Current.account.facebook_pages.exists?(page_id: page_detail['id'])
+      page_detail[:exists] = Channel::FacebookPage.exists?(page_id: page_detail['id'])
       result << page_detail
     end
   end

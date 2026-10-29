@@ -45,11 +45,34 @@ class Messages::Facebook::MessageBuilder < Messages::Messenger::MessageBuilder
   end
 
   def build_message
+    return if response.identifier.present? && @inbox.messages.exists?(source_id: response.identifier)
+    return unless acquire_facebook_message_lock
+
     @message = conversation.messages.create!(message_params)
 
     @attachments.each do |attachment|
       process_attachment(attachment)
     end
+  rescue ActiveRecord::RecordNotUnique
+    Rails.logger.info("[Messages::Facebook::MessageBuilder] Duplicate message source_id skipped: #{response.identifier}")
+  ensure
+    release_facebook_message_lock
+  end
+
+  def acquire_facebook_message_lock
+    return true if response.identifier.blank?
+
+    @fb_lock_key = format(::Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: "fb_#{@inbox.id}_#{response.identifier}")
+    @fb_lock_acquired = ::Redis::Alfred.set(@fb_lock_key, true, nx: true, ex: 120)
+    return false unless @fb_lock_acquired
+
+    !@inbox.messages.exists?(source_id: response.identifier)
+  end
+
+  def release_facebook_message_lock
+    return unless @fb_lock_acquired && @fb_lock_key.present?
+
+    ::Redis::Alfred.delete(@fb_lock_key)
   end
 
   def conversation

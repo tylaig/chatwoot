@@ -78,6 +78,7 @@ class Tiktok::CallbacksController < ApplicationController
 
   def find_or_create_inbox
     business_details = tiktok_client.business_account_details
+    ensure_tiktok_not_claimed_by_other_tenant!(short_term_access_token[:business_id], business_details[:username])
     channel_tiktok = find_channel
     channel_exists = channel_tiktok.present?
 
@@ -119,6 +120,16 @@ class Tiktok::CallbacksController < ApplicationController
 
   def find_channel
     Channel::Tiktok.find_by(business_id: short_term_access_token[:business_id], account: account)
+  end
+
+  def ensure_tiktok_not_claimed_by_other_tenant!(business_id, username = nil)
+    return if business_id.blank?
+
+    conflict = Channel::Tiktok.where(business_id: business_id).where.not(account_id: account.id).first
+    return unless conflict
+
+    handle = username.present? ? "@#{username}" : business_id
+    raise StandardError, "A conta TikTok Business #{handle} já está conectada em outra organização deste SaaS."
   end
 
   def update_channel(channel_tiktok, business_details)

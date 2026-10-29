@@ -4,12 +4,14 @@ class Tiktok::MessageService
   pattr_initialize [:channel!, :content!, :outgoing_echo]
 
   def perform
-    if outgoing_message?
-      message = find_message(tt_conversation_id, tt_message_id)
-      return if message.present?
-    end
+    return if find_message(tt_conversation_id, tt_message_id).present?
+    return unless acquire_tiktok_message_lock
 
     create_message
+  rescue ActiveRecord::RecordNotUnique
+    Rails.logger.info("[Tiktok::MessageService] Duplicate message source_id skipped: #{tt_message_id}")
+  ensure
+    release_tiktok_message_lock
   end
 
   private
@@ -175,5 +177,21 @@ class Tiktok::MessageService
 
   def outgoing_message?
     !incoming_message?
+  end
+
+  def acquire_tiktok_message_lock
+    return true if tt_message_id.blank?
+
+    @tt_lock_key = format(::Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: "tt_#{channel.inbox.id}_#{tt_message_id}")
+    @tt_lock_acquired = ::Redis::Alfred.set(@tt_lock_key, true, nx: true, ex: 120)
+    return false unless @tt_lock_acquired
+
+    find_message(tt_conversation_id, tt_message_id).blank?
+  end
+
+  def release_tiktok_message_lock
+    return unless @tt_lock_acquired && @tt_lock_key.present?
+
+    ::Redis::Alfred.delete(@tt_lock_key)
   end
 end

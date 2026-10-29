@@ -71,7 +71,9 @@ module Tiktok::MessagingHelpers
   end
 
   def find_message(tt_conversation_id, tt_message_id)
-    message = Message.find_by(source_id: tt_message_id)
+    return if tt_message_id.blank?
+
+    message = channel.inbox.messages.find_by(source_id: tt_message_id)
     message_conversation_id = message&.conversation&.[](:additional_attributes)&.[]('conversation_id')
     return if message_conversation_id != tt_conversation_id
 
