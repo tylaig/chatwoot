@@ -982,6 +982,9 @@ Rails.application.routes.draw do
       resource :settings, only: [:show] do
         get :refresh, on: :collection
         post :update_license, on: :collection
+        post :verify_license, on: :collection
+        post :update_branding, on: :collection
+        post :apply_preset, on: :collection
         post :apply_account_tier, on: :collection
       end
 

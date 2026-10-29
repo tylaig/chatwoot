@@ -36,9 +36,13 @@
     { label: 'Conversas', value: stats[:conversations], hint: "#{fmt.(total_30)} nos últimos 30 dias", icon: 'icon-message-line', url: nil },
   ]
 %>
+<%
+  wl_dash = defined?(EliteLicenseEngine) ? EliteLicenseEngine.whitelabel_config : {}
+  dash_brand = wl_dash['INSTALLATION_NAME'].presence || wl_dash['BRAND_NAME'].presence || 'Meu Super Chat'
+%>
 <header class="main-content__header" role="banner">
   <div>
-    <p class="msc-sa-eyebrow">Super Admin · Meu Super Chat</p>
+    <p class="msc-sa-eyebrow">Super Admin · <%= dash_brand %></p>
     <h1 class="main-content__page-title" id="page-title">Visão Geral da Plataforma</h1>
     <p class="msc-sa-subtitle">Indicadores globais de contas, usuários e volume de atendimento da instância.</p>
   </div>

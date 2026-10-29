@@ -1,25 +1,45 @@
 <%
+  wl_cfg = defined?(EliteLicenseEngine) ? EliteLicenseEngine.whitelabel_config : {}
+  inst_brand = wl_cfg['INSTALLATION_NAME'].presence || wl_cfg['BRAND_NAME'].presence || 'Meu Super Chat'
   config_name = begin
     settings_pages.to_h.values.find { |a| a['config_key'] == @config }&.dig('name')
   rescue StandardError
     nil
   end
-  config_name ||= @config.to_s.titleize
+  config_name ||= (@config == 'custom_branding' ? 'Identidade Visual White-Label' : @config.to_s.titleize)
 %>
 <% content_for(:title) { "Configurações · #{config_name}" } %>
 
 <header class="main-content__header" role="banner">
   <div>
-    <p class="msc-sa-eyebrow">Super Admin · Configurações</p>
+    <p class="msc-sa-eyebrow">Super Admin · Governança White-Label & Configurações</p>
     <h1 class="main-content__page-title" id="page-title"><%= config_name %></h1>
-    <p class="msc-sa-subtitle">Parâmetros globais aplicados a todas as contas desta instância do Meu Super Chat.</p>
+    <p class="msc-sa-subtitle">Parâmetros globais aplicados a todas as contas desta instância (<%= inst_brand %>).</p>
   </div>
   <div class="msc-sa-header-actions">
-    <%= link_to '← Todas as configurações', super_admin_settings_path, class: 'msc-btn-ghost' %>
+    <% if @config == 'custom_branding' %>
+      <%= link_to '✨ Abrir White-Label Studio Live', "#{super_admin_settings_path}#whitelabel-studio", class: 'button' %>
+    <% end %>
+    <%= link_to '← Licenças & Studio', super_admin_settings_path, class: 'msc-btn-ghost' %>
   </div>
 </header>
 
 <section class="main-content__body">
+  <% if @config == 'custom_branding' && defined?(EliteLicenseEngine) %>
+    <div class="msc-card msc-card--accent" style="margin-bottom:16px;padding:16px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#F8FAFC;display:flex;align-items:center;gap:8px;">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:#00FFA3;box-shadow:0 0 8px #00FFA3;"></span>
+          Presets Rápidos de Marca (EliteLicenseEngine)
+        </div>
+        <p style="margin:4px 0 0;font-size:12px;color:#94A3B8;">Aplique com 1 clique os presets oficiais ou personalize cada chave abaixo.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <%= button_to 'Aplicar Preset: Meu Super Chat (SaaS)', apply_preset_super_admin_settings_path(preset: 'meusuperchat'), method: :post, class: 'msc-btn-ghost', style: 'font-size:12px;padding:7px 12px;cursor:pointer;' %>
+        <%= button_to 'Aplicar Preset: Games Safari (White-Label)', apply_preset_super_admin_settings_path(preset: 'gamessafari'), method: :post, class: 'msc-btn-ghost', style: 'font-size:12px;padding:7px 12px;cursor:pointer;' %>
+      </div>
+    </div>
+  <% end %>
   <%= form_with url: super_admin_app_config_path(config: @config), method: :post, class: 'msc-card', style: 'padding:6px 22px 22px;' do |form| %>
     <% if @allowed_configs.empty? %>
       <p class="msc-muted" style="padding:16px 0;">Nenhuma configuração disponível para este módulo.</p>
@@ -56,10 +76,17 @@
               <%= form.text_field "app_config[#{key}]", value: @app_config[key], id: "app_config_#{key}" %>
             <% end %>
           <% else %>
-            <%= form.text_field "app_config[#{key}]", value: @app_config[key], id: "app_config_#{key}" %>
+            <% if key == 'BRAND_COLOR' %>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <input type="color" value="<%= @app_config[key].presence || '#10B981' %>" onchange="document.getElementById('app_config_BRAND_COLOR').value = this.value.toUpperCase()" style="width:42px;height:38px;padding:2px;border-radius:8px;border:1px solid #16262E;background:#070D12;cursor:pointer;" aria-label="Seletor de cor da marca" />
+                <%= form.text_field "app_config[#{key}]", value: @app_config[key].presence || '#10B981', id: "app_config_#{key}", class: 'msc-mono', style: 'flex:1;' %>
+              </div>
+            <% else %>
+              <%= form.text_field "app_config[#{key}]", value: @app_config[key], id: "app_config_#{key}" %>
+            <% end %>
           <% end %>
           <% if meta['description'].present? %>
-            <p style="margin:8px 0 0;font-size:12.5px;color:#94A3B8;line-height:1.5;"><%= meta['description'].to_s.gsub(/Chatwoot/i, 'Meu Super Chat') %></p>
+            <p style="margin:8px 0 0;font-size:12.5px;color:#94A3B8;line-height:1.5;"><%= meta['description'].to_s.gsub(/Chatwoot/i, inst_brand) %></p>
           <% end %>
         </div>
       </div>

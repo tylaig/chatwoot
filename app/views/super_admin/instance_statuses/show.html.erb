@@ -1,5 +1,7 @@
 <% content_for(:title) { "Saúde da Instância & Atualizações" } %>
 <%
+  wl_is = defined?(EliteLicenseEngine) ? EliteLicenseEngine.whitelabel_config : {}
+  is_brand = wl_is['INSTALLATION_NAME'].presence || wl_is['BRAND_NAME'].presence || 'Meu Super Chat'
   boolish = ->(v) { v.to_s == 'true' || v.to_s == 'concluídas' }
   badish  = ->(v) { v.to_s == 'false' || v.to_s == 'pendente' }
 %>
@@ -7,7 +9,7 @@
   <div>
     <p class="msc-sa-eyebrow">Super Admin · Infraestrutura</p>
     <h1 class="main-content__page-title" id="page-title">Saúde da Instância & Atualizações</h1>
-    <p class="msc-sa-subtitle">Métricas em tempo real de banco de dados, Redis, versão e deploy do Meu Super Chat.</p>
+    <p class="msc-sa-subtitle">Métricas em tempo real de banco de dados, Redis, versão e deploy (<%= is_brand %>).</p>
   </div>
   <div class="msc-sa-header-actions">
     <button
@@ -53,14 +55,14 @@
       <tbody>
         <% @metrics.each do |key, value| %>
           <tr>
-            <td style="color:#CBD5E1 !important;font-weight:500;"><%= key.to_s.gsub(/Chatwoot/i, 'Meu Super Chat') %></td>
+            <td style="color:#CBD5E1 !important;font-weight:500;"><%= key.to_s.gsub(/Chatwoot/i, is_brand) %></td>
             <td>
               <% if boolish.(value) %>
                 <span class="msc-badge msc-badge--ok"><%= value.to_s == 'true' ? 'Operacional' : value %></span>
               <% elsif badish.(value) %>
                 <span class="msc-badge msc-badge--err"><%= value.to_s == 'false' ? 'Indisponível' : value %></span>
               <% else %>
-                <span class="msc-mono" style="color:#F8FAFC;"><%= value.to_s.gsub(/Chatwoot/i, 'Meu Super Chat') %></span>
+                <span class="msc-mono" style="color:#F8FAFC;"><%= value.to_s.gsub(/Chatwoot/i, is_brand) %></span>
               <% end %>
             </td>
           </tr>

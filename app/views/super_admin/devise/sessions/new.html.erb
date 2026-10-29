@@ -1,11 +1,18 @@
+<%
+  wl = defined?(EliteLicenseEngine) ? EliteLicenseEngine.whitelabel_config : {}
+  brand_name = wl['INSTALLATION_NAME'].presence || wl['BRAND_NAME'].presence || 'Meu Super Chat'
+  brand_logo = wl['LOGO_THUMBNAIL'].presence || '/brand-assets/logo_thumbnail.svg'
+  brand_url = wl['BRAND_URL'].presence || 'https://chat.meusuper.app'
+  brand_host = brand_url.sub(%r{\Ahttps?://}, '').sub(%r{/\z}, '')
+%>
 <!DOCTYPE html>
 <html lang="pt-BR" class="dark" style="background:#04090D;">
   <head>
     <meta charset="utf-8">
     <meta name="robots" content="noindex">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
-    <title>Entrar • Super Admin | Meu Super Chat</title>
-    <link rel="icon" href="/brand-assets/logo_thumbnail.svg">
+    <title>Entrar • Super Admin | <%= brand_name %></title>
+    <link rel="icon" href="<%= brand_logo %>">
     <%= vite_client_tag %>
     <%= vite_javascript_tag 'superadmin' %>
     <style>
@@ -50,8 +57,8 @@
     <main class="msc-login">
       <div class="msc-login__wrap">
         <section class="msc-login__brand">
-          <div class="msc-login__logo"><img src="/brand-assets/logo_thumbnail.svg" alt="Meu Super Chat"></div>
-          <p class="msc-login__eyebrow">Meu Super Chat · Super Admin</p>
+          <div class="msc-login__logo"><img src="<%= brand_logo %>" alt="<%= brand_name %>"></div>
+          <p class="msc-login__eyebrow"><%= brand_name %> · Super Admin</p>
           <h1 class="msc-login__title">Console de Administração</h1>
           <p class="msc-login__sub">Acesso restrito a administradores da plataforma.</p>
         </section>
@@ -72,7 +79,7 @@
             <button type="submit" class="msc-submit">Entrar no console</button>
           <% end %>
         </section>
-        <p class="msc-login__foot">© <%= Time.current.year %> Meu Super Chat · <a href="https://chat.meusuper.app">chat.meusuper.app</a></p>
+        <p class="msc-login__foot">© <%= Time.current.year %> <%= brand_name %> · <a href="<%= brand_url %>"><%= brand_host %></a></p>
       </div>
     </main>
   </body>

@@ -33,15 +33,25 @@
         }
       } catch (e) {}
     </script>
+    <%
+      raw_brand_hex = (@global_config['BRAND_COLOR'].presence || '#10b981').to_s.strip
+      clean_hex = raw_brand_hex.sub(/\A#/, '')
+      clean_hex = '10b981' unless clean_hex.match?(/\A[0-9a-fA-F]{6}\z/)
+      brand_r = clean_hex[0..1].to_i(16)
+      brand_g = clean_hex[2..3].to_i(16)
+      brand_b = clean_hex[4..5].to_i(16)
+      brand_rgb = "#{brand_r} #{brand_g} #{brand_b}"
+      brand_hex_norm = "##{clean_hex.downcase}"
+    %>
     <style id="meusuperchat-dark-emerald-theme">
       :root, html, body {
-        --brand: 16 185 129 !important;
+        --brand: <%= brand_rgb %> !important;
         --b-50: 236 253 245 !important;
         --b-100: 209 250 229 !important;
         --b-200: 167 243 208 !important;
         --b-300: 110 231 183 !important;
         --b-400: 52 211 153 !important;
-        --b-500: 16 185 129 !important;
+        --b-500: <%= brand_rgb %> !important;
         --b-600: 5 150 105 !important;
         --b-700: 4 120 87 !important;
         --b-800: 6 95 70 !important;
@@ -52,8 +62,8 @@
         --w-100: #a7f3d0 !important;
         --w-200: #6ee7b7 !important;
         --w-300: #34d399 !important;
-        --w-400: #10b981 !important;
-        --w-500: #10b981 !important;
+        --w-400: <%= brand_hex_norm %> !important;
+        --w-500: <%= brand_hex_norm %> !important;
         --w-600: #059669 !important;
         --w-700: #047857 !important;
         --w-800: #065f46 !important;

@@ -1,11 +1,17 @@
+<%
+  wl = defined?(EliteLicenseEngine) ? EliteLicenseEngine.whitelabel_config : {}
+  brand_name = wl['INSTALLATION_NAME'].presence || wl['BRAND_NAME'].presence || 'Meu Super Chat'
+  brand_logo = wl['LOGO_THUMBNAIL'].presence || '/brand-assets/logo_thumbnail.svg'
+  brand_color = wl['BRAND_COLOR'].presence || '#10B981'
+%>
 <!DOCTYPE html>
-<html lang="<%= I18n.locale %>" class="dark w-full" style="background-color:#04090D;color:#F8FAFC;">
+<html lang="<%= I18n.locale %>" class="dark w-full" style="background-color:#04090D;color:#F8FAFC;--msc-brand-dynamic:<%= brand_color %>;">
 <head>
   <meta charset="utf-8">
   <meta name="robots" content="noindex">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
-  <title><%= (content_for(:title).presence || 'Painel').to_s.gsub(/Chatwoot/i, 'Meu Super Chat').squish %> • Super Admin | Meu Super Chat</title>
-  <link rel="icon" href="/brand-assets/logo_thumbnail.svg">
+  <title><%= (content_for(:title).presence || 'Painel').to_s.gsub(/Chatwoot/i, brand_name).squish %> • Super Admin | <%= brand_name %></title>
+  <link rel="icon" href="<%= brand_logo %>" id="msc-dynamic-favicon">
   <%= render "stylesheet" %>
   <%= vite_client_tag %>
   <%= vite_javascript_tag 'superadmin' %>
@@ -13,7 +19,7 @@
   <%= render "super_admin/application/obsidian_styles" %>
   <%= render "super_admin/application/obsidian_v2" %>
 </head>
-<body class="antialiased w-full dark msc-sa-body">
+<body class="antialiased w-full dark msc-sa-body" data-brand-name="<%= brand_name %>" data-brand-color="<%= brand_color %>">
   <%= render "icons" %>
 
   <header class="msc-sa-topbar" role="banner">
@@ -22,9 +28,9 @@
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
       <a href="<%= super_admin_root_path %>" class="msc-sa-brand">
-        <span class="msc-sa-sidebar__logo msc-sa-brand__logo" role="img" aria-label="Meu Super Chat"><svg aria-hidden="true"><use xlink:href="#icon-bolt-fill" /></svg></span>
+        <span class="msc-sa-sidebar__logo msc-sa-brand__logo" role="img" aria-label="<%= brand_name %>"><svg aria-hidden="true"><use xlink:href="#icon-bolt-fill" /></svg></span>
         <span class="msc-sa-brand__text">
-          <strong>Meu Super Chat</strong>
+          <strong data-wl-brand-label><%= brand_name %></strong>
           <small>Super Admin Console</small>
         </span>
       </a>
@@ -42,19 +48,20 @@
     <main class="msc-sa-main" role="main">
       <%= render "flashes" -%>
       <%= yield %>
-      <footer class="msc-sa-footer">Meu Super Chat • Console Super Admin • Ambiente seguro</footer>
+      <footer class="msc-sa-footer"><span data-wl-brand-label><%= brand_name %></span> • Console Super Admin • Ambiente seguro</footer>
     </main>
   </div>
 
   <%= render "javascript" %>
   <script>
     (function () {
+      var BRAND_NAME = <%= brand_name.to_json.html_safe %>;
       var RX = /chatwoot|fazer\.ai|chwt\.app/i;
       function clean(str) {
         return str
           .replace(/https?:\/\/(www\.)?(chwt\.app|chatwoot\.com)[^\s"')]*/gi, 'https://chat.meusuper.app/lp#faq')
-          .replace(/Chatwoot/gi, 'Meu Super Chat')
-          .replace(/fazer\.ai/gi, 'Meu Super Chat');
+          .replace(/Chatwoot/gi, BRAND_NAME)
+          .replace(/fazer\.ai/gi, BRAND_NAME);
       }
       function sanitize(root) {
         if (!root) return;

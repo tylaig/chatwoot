@@ -39,6 +39,10 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
     if errors.any?
       redirect_to super_admin_app_config_path(config: @config), alert: errors.join(', ')
     else
+      if @config == 'custom_branding' && defined?(EliteLicenseEngine)
+        EliteLicenseEngine.set_config('MSC_WHITELABEL_CUSTOMIZED', 'true', locked: false)
+      end
+      GlobalConfig.clear_cache if defined?(GlobalConfig)
       redirect_to super_admin_settings_path, flash: success_flash
     end
   end

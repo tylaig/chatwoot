@@ -16,7 +16,7 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
   end
 
   def increment_response_usage
-    return unless ChatwootApp.chatwoot_cloud?
+    return unless ChatwootApp.chatwoot_cloud? || defined?(EliteLicenseEngine)
 
     increment_custom_attribute(CAPTAIN_RESPONSES_USAGE)
   end
@@ -53,10 +53,16 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
 
   def captain_monthly_limit
     default_limits = default_captain_limits
+    tier_limits = if defined?(EliteLicenseEngine)
+                    t = EliteLicenseEngine.account_tier(self)
+                    { 'documents' => t[:captain_documents], 'responses' => t[:captain_responses] }
+                  else
+                    {}
+                  end
 
     {
-      documents: self[:limits][CAPTAIN_DOCUMENTS] || default_limits['documents'],
-      responses: self[:limits][CAPTAIN_RESPONSES] || default_limits['responses']
+      documents: self[:limits][CAPTAIN_DOCUMENTS].presence || tier_limits['documents'] || default_limits['documents'],
+      responses: self[:limits][CAPTAIN_RESPONSES].presence || tier_limits['responses'] || default_limits['responses']
     }.with_indifferent_access
   end
 
@@ -146,8 +152,10 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
   end
 
   def agent_limits
+    return self[:limits]['agents'].to_i if self[:limits]['agents'].present?
+
     subscribed_quantity = custom_attributes['subscribed_quantity'] unless shopify_billing?
-    subscribed_quantity || get_limits(:agents)
+    subscribed_quantity.presence || get_limits(:agents)
   end
 
   def get_limits(limit_name)
@@ -156,6 +164,12 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     return shopify_plan_limits.fetch(limit_name.to_s, 0) if shopify_billing?
 
     return GlobalConfig.get(config_name)[config_name] if GlobalConfig.get(config_name)[config_name].present?
+
+    if defined?(EliteLicenseEngine)
+      tier = EliteLicenseEngine.account_tier(self)
+      return tier[:max_agents] if limit_name.to_s == 'agents' && tier[:max_agents].present?
+      return tier[:max_inboxes] if limit_name.to_s == 'inboxes' && tier[:max_inboxes].present?
+    end
 
     ChatwootApp.max_limit
   end

@@ -15,13 +15,20 @@
   }
   hidden_resources = %w[platform_banners account_users access_tokens installation_configs dashboard devise/sessions app_configs instance_statuses settings push_diagnostics]
 %>
+<%
+  wl_nav = defined?(EliteLicenseEngine) ? EliteLicenseEngine.whitelabel_config : {}
+  nav_brand_name = wl_nav['INSTALLATION_NAME'].presence || wl_nav['BRAND_NAME'].presence || 'Meu Super Chat'
+  nav_words = nav_brand_name.split(/\s+/)
+  nav_lead = nav_words.size > 1 ? nav_words[0...-1].join(' ') : nav_brand_name
+  nav_accent = nav_words.size > 1 ? nav_words.last : nil
+%>
 <aside id="msc-sa-sidebar" class="msc-sa-sidebar" role="navigation" aria-label="Navegação do Super Admin">
   <div>
     <div class="msc-sa-sidebar__brand">
       <a href="<%= super_admin_root_path %>">
         <span class="msc-sa-sidebar__logo"><svg aria-hidden="true"><use xlink:href="#icon-bolt-fill" /></svg></span>
         <span class="msc-sa-sidebar__name">
-          <strong>Meu Super <em>Chat</em></strong>
+          <strong data-wl-sidebar-brand><%= nav_lead %><% if nav_accent.present? %> <em><%= nav_accent %></em><% end %></strong>
           <small>Super Admin · v<%= Chatwoot.config[:version] %></small>
         </span>
       </a>

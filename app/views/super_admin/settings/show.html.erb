@@ -1,206 +1,1035 @@
-<% content_for(:title) { "Licenças Elite Label & Configurações" } %>
+<% content_for(:title) { "Licenças Elite Label & White-Label Studio" } %>
 <%
   elite = EliteLicenseEngine.status_summary
   tiers = EliteLicenseEngine.tiers
+  wl = elite[:whitelabel] || {}
   accounts = Account.order(id: :asc).limit(50)
   fmt = ->(n) { number_with_delimiter(n.to_i, delimiter: '.') }
+
+  total_agents_limit = [elite[:max_agents].to_i, 1].max
+  used_agents = elite[:active_users].to_i
+  pct_agents = [(used_agents.to_f / total_agents_limit * 100).round(1), 100.0].min
+  avail_agents = [total_agents_limit - used_agents, 0].max
+
+  total_ai_limit = elite[:captain_responses].to_i
+  used_ai = elite[:total_captain_consumed].to_i
+  is_unlimited_ai = (total_ai_limit >= 1_000_000)
+  pct_ai = is_unlimited_ai ? [((used_ai.to_f / 50_000) * 100).round(1), 100.0].min : [(used_ai.to_f / [total_ai_limit, 1].max * 100).round(1), 100.0].min
+
+  active_brand_color = wl['BRAND_COLOR'].presence || '#10B981'
 %>
-<header class="main-content__header" role="banner">
-  <div>
-    <p class="msc-sa-eyebrow">Super Admin · Governança SaaS & White-Label</p>
-    <h1 class="main-content__page-title" id="page-title">Licenças Elite Label & Configurações</h1>
-    <p class="msc-sa-subtitle">Motor de licenciamento independente (Zero Cloud Dependency) para operação SaaS Multi-Tenant e White-Label Enterprise.</p>
-  </div>
-  <div class="msc-sa-header-actions">
-    <%= link_to 'Sincronizar Licença', refresh_super_admin_settings_path, class: 'msc-btn-ghost' %>
-    <%= link_to 'Configurações Gerais', super_admin_app_config_path(config: 'general'), class: 'button' %>
-  </div>
-</header>
 
-<section class="main-content__body">
-  <%= javascript_include_tag "secretField" %>
+<style>
+  /* Obsidian Dark & Emerald #10B981 Glassmorphism Tokens */
+  .msc-studio-hero {
+    background: #0B1319;
+    border: 1px solid #16262E;
+    border-radius: 14px;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+    position: relative;
+    overflow: hidden;
+  }
+  .msc-studio-hero::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; width: 320px; height: 100%;
+    background: radial-gradient(circle at 100% 50%, rgba(16, 185, 129, 0.08), transparent 70%);
+    pointer-events: none;
+  }
+  .msc-hero-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+  }
+  .msc-hero-crown {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #00FFA3;
+    flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(0, 255, 163, 0.25);
+  }
+  .msc-hero-crown svg { width: 26px; height: 26px; }
+  .msc-hero-badges {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    z-index: 2;
+  }
+  .msc-hero-pill {
+    padding: 8px 14px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+  .msc-hero-pill--elite {
+    background: rgba(16, 185, 129, 0.14);
+    border: 1px solid #10B981;
+    color: #00FFA3;
+    box-shadow: 0 0 18px rgba(16, 185, 129, 0.25);
+  }
+  .msc-hero-pill--hmac {
+    background: #080F14;
+    border: 1px solid #16262E;
+    color: #F8FAFC;
+  }
+  .msc-hero-pill--exp {
+    background: #080F14;
+    border: 1px solid #16262E;
+    color: #CBD5E1;
+  }
 
-  <!-- Card Principal: Status da Licença Master Elite Label -->
-  <div class="msc-grid msc-grid--wide" data-testid="elite-license-panel">
-    <div class="msc-card msc-card--accent">
-      <div class="msc-row">
-        <h2 class="msc-card__title">Licença Master Ativa</h2>
-        <span class="msc-badge msc-badge--ok"><%= elite[:badge] %></span>
+  /* Quota Meters */
+  .msc-quota-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .msc-quota-card {
+    background: rgba(11, 19, 25, 0.95);
+    border: 1px solid #16262E;
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  .msc-quota-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #00FFA3;
+    flex-shrink: 0;
+  }
+  .msc-quota-icon svg { width: 22px; height: 22px; }
+  .msc-quota-body { flex: 1; min-width: 0; }
+  .msc-quota-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .msc-quota-title { font-size: 13px; font-weight: 700; color: #F8FAFC; }
+  .msc-quota-pct { font-size: 12px; font-weight: 700; color: #00FFA3; }
+  .msc-track { width: 100%; height: 7px; background: #122128; border-radius: 999px; overflow: hidden; }
+  .msc-track-bar { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #10B981, #00FFA3); box-shadow: 0 0 10px rgba(0,255,163,0.5); }
+  .msc-quota-foot { display: flex; justify-content: space-between; font-size: 11px; color: #64748B; margin-top: 6px; }
+
+  /* Bento 12 Cols */
+  .msc-bento-row {
+    display: grid;
+    grid-template-columns: 7fr 5fr;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  /* White-Label Studio Card */
+  .msc-studio-card {
+    background: rgba(11, 19, 25, 0.95);
+    border: 1px solid #16262E;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+  .msc-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #16262E;
+    padding-bottom: 12px;
+  }
+  .msc-card-head h2 { font-size: 15px; font-weight: 700; color: #F8FAFC; margin: 0; }
+  .msc-card-head p { font-size: 12px; color: #94A3B8; margin: 2px 0 0; }
+
+  .msc-presets-wrap { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .msc-preset-btn {
+    padding: 8px 14px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #070D12;
+    border: 1px solid #16262E;
+    color: #CBD5E1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.15s ease;
+  }
+  .msc-preset-btn:hover { border-color: rgba(16, 185, 129, 0.4); color: #fff; }
+  .msc-preset-btn.active {
+    background: rgba(16, 185, 129, 0.14);
+    border-color: #10B981;
+    color: #00FFA3;
+    box-shadow: 0 0 14px rgba(16,185,129,0.2);
+  }
+
+  /* Live Preview Box */
+  .msc-live-mockup {
+    background: #070D12;
+    border: 1px solid #16262E;
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    min-height: 260px;
+  }
+  .msc-mock-top { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #16262E; padding-bottom: 8px; }
+  .msc-mock-brand { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #F8FAFC; }
+  .msc-mock-logo { width: 22px; height: 22px; border-radius: 6px; background: rgba(16, 185, 129, 0.2); display: flex; align-items: center; justify-content: center; }
+  .msc-mock-body { display: flex; gap: 10px; margin: 10px 0; flex: 1; }
+  .msc-mock-nav { width: 85px; border-right: 1px solid #16262E; display: flex; flex-direction: column; gap: 6px; padding-right: 8px; }
+  .msc-mock-nav-item { font-size: 10px; color: #64748B; padding: 4px 6px; border-radius: 5px; }
+  .msc-mock-nav-item.active { background: rgba(16, 185, 129, 0.15); color: #00FFA3; font-weight: 600; }
+  .msc-mock-chat { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 8px; }
+  .msc-mock-bubble { background: #0B1319; border: 1px solid #16262E; border-radius: 10px; padding: 8px 12px; font-size: 10.5px; color: #CBD5E1; max-width: 190px; margin-bottom: 8px; }
+  .msc-mock-input-wrap { display: flex; gap: 6px; width: 100%; border-top: 1px solid #16262E; padding-top: 8px; }
+  .msc-mock-input { flex: 1; height: 26px; border-radius: 6px; background: #0B1319; border: 1px solid #16262E; font-size: 10px; padding: 0 8px; color: #CBD5E1; }
+  .msc-mock-send { width: 26px; height: 26px; border-radius: 6px; background: #10B981; border: none; color: #04130D; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+  /* License Generator Card */
+  .msc-gen-card {
+    background: rgba(11, 19, 25, 0.95);
+    border: 1px solid #16262E;
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+  .msc-mode-pills { display: flex; background: #070D12; border: 1px solid #16262E; border-radius: 8px; padding: 2px; }
+  .msc-mode-btn { border: none; background: transparent; color: #94A3B8; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+  .msc-mode-btn.active { background: rgba(16, 185, 129, 0.2); color: #00FFA3; }
+
+  .msc-key-row {
+    background: #070D12;
+    border: 1px solid #16262E;
+    border-radius: 10px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 16px;
+  }
+  .msc-key-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #F8FAFC;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    outline: none;
+  }
+
+  .msc-gen-btn {
+    height: 42px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #10B981, #059669);
+    color: #04130D;
+    font-weight: 800;
+    font-size: 13px;
+    border: 1px solid rgba(0, 255, 163, 0.5);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 14px;
+    transition: all 0.15s ease;
+  }
+  .msc-gen-btn:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 0 26px rgba(16, 185, 129, 0.45); }
+
+  /* 4 Tiers Pricing Cards */
+  .msc-tier-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .msc-tier-card {
+    background: rgba(11, 19, 25, 0.95);
+    border: 1px solid #16262E;
+    border-radius: 14px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  }
+  .msc-tier-card--elite {
+    background: linear-gradient(160deg, #0D211D 0%, #091416 100%);
+    border: 1px solid #10B981;
+    box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.35);
+  }
+  .msc-tier-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .msc-tier-icon { width: 34px; height: 34px; border-radius: 9px; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); display: flex; align-items: center; justify-content: center; color: #00FFA3; }
+  .msc-tier-icon svg { width: 18px; height: 18px; }
+  .msc-tier-name { font-size: 13.5px; font-weight: 700; color: #F8FAFC; margin-top: 8px; }
+  .msc-tier-sub { font-size: 11.5px; color: #64748B; margin-top: 2px; min-height: 28px; }
+  .msc-tier-price { font-size: 20px; font-weight: 800; color: #F8FAFC; letter-spacing: -0.02em; margin: 8px 0; }
+  .msc-tier-price small { font-size: 11px; font-weight: 500; color: #94A3B8; }
+  .msc-tier-list { list-style: none; padding: 0; margin: 12px 0 16px; border-top: 1px solid #16262E; }
+  .msc-tier-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 11.5px; border-bottom: 1px solid rgba(22, 38, 46, 0.6); color: #94A3B8; }
+  .msc-tier-item strong { color: #F8FAFC; font-weight: 600; }
+  .msc-tier-cta {
+    width: 100%;
+    height: 34px;
+    border-radius: 8px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid #1E3340;
+    background: #0D171E;
+    color: #CBD5E1;
+    transition: all 0.15s ease;
+  }
+  .msc-tier-cta:hover { background: #13222C; border-color: rgba(16,185,129,0.5); color: #fff; }
+  .msc-tier-cta--elite {
+    background: #00FFA3;
+    border: 1px solid #00FFA3;
+    color: #04130D;
+    box-shadow: 0 0 15px rgba(0, 255, 163, 0.4);
+  }
+  .msc-tier-cta--elite:hover { background: #34D399; filter: brightness(1.08); }
+
+  /* Multi-tenant Table */
+  .msc-table-container {
+    background: rgba(11, 19, 25, 0.95);
+    border: 1px solid #16262E;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+  .msc-table-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .msc-table-filter-wrap { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .msc-search-input {
+    height: 34px;
+    border-radius: 8px;
+    background: #070D12;
+    border: 1px solid #16262E;
+    font-size: 12px;
+    padding: 0 12px;
+    color: #F8FAFC;
+    outline: none;
+    width: 240px;
+  }
+  .msc-search-input:focus { border-color: #10B981; }
+
+  /* Responsive Breakpoints */
+  @media (max-width: 1200px) {
+    .msc-tier-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 1023px) {
+    .msc-bento-row { grid-template-columns: 1fr; }
+    .msc-studio-hero { flex-direction: column; align-items: flex-start; }
+    .msc-hero-badges { width: 100%; justify-content: flex-start; }
+  }
+  @media (max-width: 767px) {
+    .msc-quota-grid { grid-template-columns: 1fr; }
+    .msc-tier-grid { grid-template-columns: 1fr; }
+    .msc-table-top { flex-direction: column; align-items: stretch; }
+    .msc-table-filter-wrap { flex-direction: column; align-items: stretch; }
+    .msc-search-input { width: 100%; }
+  }
+</style>
+
+<div class="msc-sa-content" style="max-width: 1600px; margin: 0 auto; padding: 12px 0;">
+
+  <!-- [ISS-01] Top Hero Bar Consolidada -->
+  <header class="msc-studio-hero" role="banner" data-testid="elite-hero-bar">
+    <div class="msc-hero-title-wrap">
+      <div class="msc-hero-crown">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+        </svg>
       </div>
-      <p class="msc-card__desc" style="font-size:13.5px;margin-top:6px;">
-        <%= SuperAdmin::FeaturesHelper.plan_details.html_safe %>
-      </p>
-      <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;">
-        <span class="msc-badge msc-badge--ok">Verificação Local HMAC</span>
-        <span class="msc-badge <%= elite[:whitelabel_enabled] ? 'msc-badge--ok' : 'msc-badge--warn' %>">
-          <%= elite[:whitelabel_enabled] ? 'White-Label Total Liberado' : 'Modo SaaS Padrão' %>
+      <div>
+        <p class="msc-sa-eyebrow" style="margin-bottom: 2px;">SUPER ADMIN · GOVERNANÇA SAAS & WHITE-LABEL</p>
+        <h1 class="main-content__page-title" id="page-title" style="font-size: 20px !important; margin: 0 !important; color: #F8FAFC;">
+          Licenças Elite Label & White-Label Studio
+        </h1>
+        <p class="msc-sa-subtitle" style="margin: 2px 0 0; font-size: 12.5px; color: #94A3B8;">
+          Gerencie licenças, personalize sua marca e dimensione novos tenants com autonomia total e zero lock-in de nuvem externa.
+        </p>
+      </div>
+    </div>
+
+    <!-- Badges Horizontais de Status -->
+    <div class="msc-hero-badges">
+      <div class="msc-hero-pill msc-hero-pill--elite">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 12c-2-2.5-5.5-2.5-7.5 0s-2 5.5 0 7.5 5.5 2 7.5 0c2-2.5 5.5-2.5 7.5 0s2 5.5 0 7.5-5.5 2-7.5 0z"/></svg>
+        <div>
+          <strong style="display:block; letter-spacing:0.04em;"><%= elite[:badge] %></strong>
+          <small style="opacity:0.85; font-size:10px;">Plano Ativo no Super Admin</small>
+        </div>
+      </div>
+
+      <div class="msc-hero-pill msc-hero-pill--hmac">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+        <div>
+          <strong style="display:block; color:#F8FAFC;">HMAC Verified</strong>
+          <small style="color:#64748B; font-size:10px;">Integridade de licenças</small>
+        </div>
+      </div>
+
+      <div class="msc-hero-pill msc-hero-pill--exp">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+        <div>
+          <strong style="display:block; color:#CBD5E1;"><%= elite[:expires_at] ? Date.parse(elite[:expires_at]).strftime("%d de %b de %Y") : "Vitalício (PERP)" %></strong>
+          <small style="color:#10B981; font-size:10px;"><%= elite[:expired] ? "Licença Expirada" : "Licença Permanente" %></small>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- [ISS-02] Medidores de Quota e Consumo Global -->
+  <div class="msc-quota-grid" data-testid="elite-quota-meters">
+    <div class="msc-quota-card">
+      <div class="msc-quota-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div class="msc-quota-body">
+        <div class="msc-quota-top">
+          <span class="msc-quota-title">Seats Quota (<%= fmt.(used_agents) %> / <%= fmt.(total_agents_limit) %>)</span>
+          <span class="msc-quota-pct"><%= pct_agents %>%</span>
+        </div>
+        <div class="msc-track">
+          <div class="msc-track-bar" style="width: <%= [pct_agents, 1.5].max %>%;"></div>
+        </div>
+        <div class="msc-quota-foot">
+          <span><%= fmt.(used_agents) %> assentos em uso de <%= fmt.(total_agents_limit) %></span>
+          <span><%= fmt.(avail_agents) %> disponíveis</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="msc-quota-card">
+      <div class="msc-quota-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </div>
+      <div class="msc-quota-body">
+        <div class="msc-quota-top">
+          <span class="msc-quota-title">Captain AI Responses (<%= is_unlimited_ai ? "#{fmt.(used_ai)} / Ilimitado" : "#{fmt.(used_ai)} / #{fmt.(total_ai_limit)}" %>)</span>
+          <span class="msc-quota-pct"><%= is_unlimited_ai ? "Uso Ilimitado" : "#{pct_ai}%" %></span>
+        </div>
+        <div class="msc-track">
+          <div class="msc-track-bar" style="width: <%= is_unlimited_ai ? "100%" : "#{[pct_ai, 1.5].max}%" %>;"></div>
+        </div>
+        <div class="msc-quota-foot">
+          <span><%= fmt.(used_ai) %> respostas computadas no mês atual</span>
+          <span><%= is_unlimited_ai ? "∞ Ilimitado (Zero Cloud Block)" : "#{fmt.(total_ai_limit - used_ai)} restantes" %></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- [ISS-02] Bento Grid de 12 Colunas: White-Label Studio (7 cols) + Gerador/Validador (5 cols) -->
+  <div class="msc-bento-row" id="whitelabel-studio">
+
+    <!-- Card 1: White-Label Branding Studio -->
+    <div class="msc-studio-card">
+      <div class="msc-card-head">
+        <div>
+          <h2>White-Label Branding Studio</h2>
+          <p>Personalize completamente a experiência do seu parceiro ou tenant com 1 clique.</p>
+        </div>
+        <span class="msc-badge msc-badge--ok" style="font-size: 11px;">
+          <span class="msc-dot"></span> Live Preview
         </span>
-        <span class="msc-badge <%= elite[:captain_ai_enabled] ? 'msc-badge--ok' : 'msc-badge--off' %>">
-          <%= elite[:captain_ai_enabled] ? 'Captain IA V2 Ativo' : 'Sem Captain IA' %>
-        </span>
       </div>
-    </div>
 
-    <div class="msc-card">
-      <h2 class="msc-card__title">Chave de Licença Elite Label</h2>
-      <p class="msc-card__desc">Assinatura criptográfica da instalação para auditoria e ativação White-Label.</p>
-      <div data-secret-text="<%= elite[:license_key] %>" class="cell-data__secret-field msc-secret">
-        <span data-secret-masked="true" class="select-none msc-mono"></span>
-        <button type="button" onclick="toggleSecretField(event)" data-secret-toggler class="msc-icon-btn" aria-label="Mostrar/ocultar chave">
-          <svg width="18" height="18" class="fill-current"><use xlink:href="#eye-show" /></svg>
-        </button>
-        <button type="button" onclick="copySecretField(event)" data-secret-copier class="msc-icon-btn" aria-label="Copiar chave">
-          <svg width="18" height="18" class="fill-current"><use xlink:href="#icon-copy" /></svg>
-        </button>
+      <!-- Presets de 1 Clique -->
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 6px;">
+          1. Preset de Parceiro (1 clique)
+        </label>
+        <div class="msc-presets-wrap">
+          <button type="button" class="msc-preset-btn <%= 'active' if wl['active_preset'] == 'meusuperchat' %>" onclick="applyPresetClient('meusuperchat')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            Meu Super Chat SaaS
+          </button>
+          <button type="button" class="msc-preset-btn <%= 'active' if wl['active_preset'] == 'gamessafari' %>" onclick="applyPresetClient('gamessafari')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4-3c-.83 0-1.5-.67-1.5-1.5S18.67 9 19.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+            Games Safari White-Label
+          </button>
+          <button type="button" class="msc-preset-btn <%= 'active' if wl['active_preset'] == 'custom' %>" onclick="setPresetMode('custom')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Custom Partner
+          </button>
+        </div>
       </div>
-      <p class="msc-card__desc" style="margin-top:8px;font-size:12px;">
-        ID da Instância: <code class="msc-mono"><%= ChatwootHub.installation_identifier[0..12] %>…</code>
-      </p>
-    </div>
 
-    <div class="msc-card">
-      <h2 class="msc-card__title">Emissor de Licença Master</h2>
-      <p class="msc-card__desc">Altere o tier global da instância ou regenere a chave para um parceiro White-Label.</p>
-      <%= form_with url: update_license_super_admin_settings_path, method: :post, local: true, style: "margin-top:10px;display:flex;flex-direction:column;gap:10px;" do %>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <div>
-            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Tier da Instância</label>
-            <select name="tier" style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:inherit;font-size:13px;">
-              <% tiers.each do |k, t| %>
-                <option value="<%= k %>" <%= 'selected' if k == elite[:tier_key] %> style="color:#0f172a;"><%= t[:name] %> (<%= t[:price_label] %>)</option>
-              <% end %>
-            </select>
+      <!-- Grid de Controles + Mini Preview -->
+      <div style="display: grid; grid-template-columns: 1fr 220px; gap: 16px;">
+        <%= form_with url: update_branding_super_admin_settings_path, method: :post, local: true, id: "msc-branding-form", style: "display:flex; flex-direction:column; gap:12px;" do |f| %>
+          <input type="hidden" name="branding[preset]" id="wl_preset_input" value="<%= wl['active_preset'] %>" />
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 600; color: #CBD5E1; display: block; margin-bottom: 4px;">Nome da Marca / Instalação</label>
+              <input type="text" name="branding[INSTALLATION_NAME]" id="wl_inst_name" value="<%= wl['INSTALLATION_NAME'] %>" oninput="syncLivePreview()" style="height:36px; padding:6px 10px; font-size:12.5px; border-radius:8px; border:1px solid #16262E; background:#070D12; color:#F8FAFC; width:100%;" required />
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 600; color: #CBD5E1; display: block; margin-bottom: 4px;">URL do Suporte / Widget</label>
+              <input type="text" name="branding[WIDGET_BRAND_URL]" id="wl_widget_url" value="<%= wl['WIDGET_BRAND_URL'] %>" oninput="syncLivePreview()" style="height:36px; padding:6px 10px; font-size:12.5px; border-radius:8px; border:1px solid #16262E; background:#070D12; color:#F8FAFC; width:100%;" />
+            </div>
           </div>
-          <div>
-            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Titular / Parceiro</label>
-            <input type="text" name="holder" value="<%= elite[:license_holder] %>" style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:inherit;font-size:13px;" />
+
+          <!-- Cor e Assets -->
+          <div style="display: grid; grid-template-columns: 80px 1fr 1fr 1fr; gap: 8px;">
+            <div>
+              <label style="font-size: 10px; font-weight: 600; color: #94A3B8; display: block; margin-bottom: 4px;">Cor Primária</label>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <input type="color" id="wl_color_picker" value="<%= active_brand_color %>" onchange="syncColorFromPicker(this.value)" style="width:36px; height:34px; padding:1px; border-radius:6px; border:1px solid #16262E; background:#070D12; cursor:pointer;" />
+                <input type="hidden" name="branding[BRAND_COLOR]" id="wl_brand_color" value="<%= active_brand_color %>" />
+              </div>
+            </div>
+            <div>
+              <label style="font-size: 10px; font-weight: 600; color: #94A3B8; display: block; margin-bottom: 4px;">Logo (Light)</label>
+              <input type="text" name="branding[LOGO]" id="wl_logo" value="<%= wl['LOGO'] %>" oninput="syncLivePreview()" style="height:34px; padding:4px 8px; font-size:11px; border-radius:6px; border:1px solid #16262E; background:#070D12; color:#CBD5E1; width:100%;" />
+            </div>
+            <div>
+              <label style="font-size: 10px; font-weight: 600; color: #94A3B8; display: block; margin-bottom: 4px;">Logo (Dark)</label>
+              <input type="text" name="branding[LOGO_DARK]" id="wl_logo_dark" value="<%= wl['LOGO_DARK'] %>" oninput="syncLivePreview()" style="height:34px; padding:4px 8px; font-size:11px; border-radius:6px; border:1px solid #16262E; background:#070D12; color:#CBD5E1; width:100%;" />
+            </div>
+            <div>
+              <label style="font-size: 10px; font-weight: 600; color: #94A3B8; display: block; margin-bottom: 4px;">Favicon</label>
+              <input type="text" name="branding[LOGO_THUMBNAIL]" id="wl_logo_thumb" value="<%= wl['LOGO_THUMBNAIL'] %>" oninput="syncLivePreview()" style="height:34px; padding:4px 8px; font-size:11px; border-radius:6px; border:1px solid #16262E; background:#070D12; color:#CBD5E1; width:100%;" />
+            </div>
           </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-          <label style="font-size:12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
-            <input type="checkbox" name="sync_all_accounts" value="1" />
-            Sincronizar recursos em todas as contas
-          </label>
-          <button type="submit" class="button" style="padding:7px 14px;font-size:12.5px;">Ativar Licença</button>
-        </div>
-      <% end %>
-    </div>
-  </div>
 
-  <!-- Catálogo dos 4 Tiers do EliteLicenseEngine -->
-  <div class="msc-row" style="margin:28px 0 14px;">
-    <div>
-      <h2 class="msc-card__title" style="font-size:16px !important;">Planos SaaS & White-Label (EliteLicenseEngine)</h2>
-      <p class="msc-card__desc">4 pacotes pré-configurados de limites, canais, IA e módulos da barra lateral.</p>
-    </div>
-  </div>
-
-  <div class="msc-grid msc-grid--stats" data-testid="elite-license-tiers">
-    <% tiers.each do |k, t| %>
-      <% active_tier = (k == elite[:tier_key]) %>
-      <div class="msc-card <%= 'msc-card--accent' if active_tier %>">
-        <div class="msc-row">
-          <span class="msc-stat__label"><%= t[:name] %></span>
-          <span class="msc-badge <%= active_tier ? 'msc-badge--ok' : 'msc-badge--off' %>"><%= active_tier ? 'Tier Ativo' : t[:badge] %></span>
-        </div>
-        <div class="msc-stat__value" style="font-size:20px;margin-top:6px;"><%= t[:price_label] %></div>
-        <p class="msc-card__desc" style="margin-top:6px;min-height:38px;"><%= t[:description] %></p>
-        <ul class="msc-list" style="margin-top:10px;font-size:12.5px;">
-          <li class="msc-list__item"><span>Limite de Agentes</span><strong><%= fmt.(t[:max_agents]) %></strong></li>
-          <li class="msc-list__item"><span>Caixas de Entrada</span><strong><%= fmt.(t[:max_inboxes]) %></strong></li>
-          <li class="msc-list__item"><span>Captain IA V2</span><span class="msc-badge <%= t[:captain_ai_enabled] ? 'msc-badge--ok' : 'msc-badge--off' %>"><%= t[:captain_ai_enabled] ? 'Incluso' : 'Opcional' %></span></li>
-          <li class="msc-list__item"><span>White-Label / Marca</span><span class="msc-badge <%= t[:whitelabel_enabled] ? 'msc-badge--ok' : 'msc-badge--off' %>"><%= t[:whitelabel_enabled] ? 'Liberado' : 'Padrão' %></span></li>
-        </ul>
-      </div>
-    <% end %>
-  </div>
-
-  <!-- Provisionamento de Plano SaaS por Conta -->
-  <div class="msc-row" style="margin:28px 0 14px;">
-    <div>
-      <h2 class="msc-card__title" style="font-size:16px !important;">Provisionamento de Planos por Conta (Multi-Tenant SaaS)</h2>
-      <p class="msc-card__desc">Aplique qualquer um dos 4 tiers diretamente em uma conta para configurar limites, features e módulos da barra lateral.</p>
-    </div>
-  </div>
-
-  <div class="msc-table-scroll" data-testid="elite-account-tiers">
-    <table>
-      <thead>
-        <tr>
-          <th scope="col">ID</th>
-          <th scope="col">Conta</th>
-          <th scope="col">Tier Atual</th>
-          <th scope="col">Limites (Agentes / Canais)</th>
-          <th scope="col">Módulos Sidebar</th>
-          <th scope="col">Alterar Plano SaaS</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% accounts.each do |acc| %>
-          <% acc_tier_key = EliteLicenseEngine.account_tier_key(acc) %>
-          <% acc_tier = EliteLicenseEngine.account_tier(acc) %>
-          <% acc_agents = acc.limits&.dig('agents') || acc_tier[:max_agents] %>
-          <% acc_inboxes = acc.limits&.dig('inboxes') || acc_tier[:max_inboxes] %>
-          <% acc_sidebar_count = Array(acc.settings&.dig('conversation_sidebar_visible_items')).presence&.size || acc_tier[:sidebar_items].size %>
-          <tr>
-            <td class="msc-mono">#<%= acc.id %></td>
-            <td>
-              <strong><%= link_to acc.name, super_admin_account_path(acc), class: 'msc-link' %></strong>
-            </td>
-            <td>
-              <span class="msc-badge <%= acc_tier_key == 'elite_whitelabel' ? 'msc-badge--ok' : 'msc-badge--warn' %>">
-                <%= acc_tier[:name] %>
-              </span>
-            </td>
-            <td class="msc-mono"><%= fmt.(acc_agents) %> agentes · <%= fmt.(acc_inboxes) %> inboxes</td>
-            <td><%= acc_sidebar_count %> módulos ativos</td>
-            <td>
-              <%= form_with url: apply_account_tier_super_admin_settings_path, method: :post, local: true, style: "display:inline-flex;align-items:center;gap:8px;" do %>
-                <input type="hidden" name="account_id" value="<%= acc.id %>" />
-                <select name="tier" style="padding:5px 8px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:inherit;font-size:12.5px;">
-                  <% tiers.each do |k, t| %>
-                    <option value="<%= k %>" <%= 'selected' if k == acc_tier_key %> style="color:#0f172a;"><%= t[:name] %></option>
-                  <% end %>
-                </select>
-                <button type="submit" class="msc-btn-ghost" style="padding:5px 10px;font-size:12px;cursor:pointer;">Aplicar</button>
-              <% end %>
-            </td>
-          </tr>
+          <!-- Botão de Ação -->
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
+            <label style="font-size:11.5px; color:#94A3B8; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" name="branding[apply_sidebar]" value="1" checked />
+              Ajustar módulos da sidebar da conta principal
+            </label>
+            <button type="submit" class="button" style="height:36px; padding:0 18px; font-size:12px; font-weight:700;">
+              Salvar Branding White-Label
+            </button>
+          </div>
         <% end %>
-      </tbody>
-    </table>
+
+        <!-- Live Preview do Chatwoot / Meu Super Chat -->
+        <div class="msc-live-mockup" id="msc_mockup_preview">
+          <div class="msc-mock-top">
+            <div class="msc-mock-brand">
+              <div class="msc-mock-logo" id="mock_logo_box">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              </div>
+              <span id="mock_brand_name" style="max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><%= wl['INSTALLATION_NAME'] %></span>
+            </div>
+            <span style="font-size:10px; color:#00FFA3;">●</span>
+          </div>
+
+          <div class="msc-mock-body">
+            <div class="msc-mock-nav">
+              <span class="msc-mock-nav-item active">Conversas</span>
+              <span class="msc-mock-nav-item">Contatos</span>
+              <span class="msc-mock-nav-item">Campanhas</span>
+              <span class="msc-mock-nav-item">IA Copilot</span>
+            </div>
+            <div class="msc-mock-chat">
+              <div class="msc-mock-bubble" id="mock_chat_bubble">
+                Olá! Como posso ajudar? Seu negócio em um novo nível com IA.
+              </div>
+            </div>
+          </div>
+
+          <div class="msc-mock-input-wrap">
+            <input type="text" class="msc-mock-input" placeholder="Digite uma mensagem..." readonly />
+            <button type="button" class="msc-mock-send" id="mock_send_btn">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: License Key Generator & Validator -->
+    <div class="msc-gen-card">
+      <div>
+        <div class="msc-card-head">
+          <div>
+            <h2>License Key Generator & Validator</h2>
+            <p>Gere, valide e ative chaves com segurança criptográfica HMAC-SHA256.</p>
+          </div>
+          <div class="msc-mode-pills">
+            <button type="button" class="msc-mode-btn active" id="btn_mode_gen" onclick="setLicenseMode('generate')">Gerar Chave</button>
+            <button type="button" class="msc-mode-btn" id="btn_mode_val" onclick="setLicenseMode('validate')">Validar Chave</button>
+          </div>
+        </div>
+
+        <%= form_with url: update_license_super_admin_settings_path, method: :post, local: true, id: "msc-license-form" do |f| %>
+          <input type="hidden" name="license_mode" id="license_mode_input" value="generate" />
+
+          <!-- Linha de Exibição / Input da Chave -->
+          <div style="margin-bottom: 10px;">
+            <label style="font-size: 11px; font-weight: 600; color: #CBD5E1; display: block; margin-bottom: 4px;">Chave de Licença (HMAC-SHA256)</label>
+            <div class="msc-key-row">
+              <input type="password" name="license_key" id="active_license_key_field" value="<%= elite[:license_key] %>" class="msc-key-input" readonly />
+              <button type="button" onclick="toggleKeyMask()" class="msc-icon-btn" title="Mostrar/ocultar chave" style="min-height:30px;min-width:30px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+              <button type="button" onclick="copyKeyText()" class="msc-icon-btn" title="Copiar chave" style="min-height:30px;min-width:30px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              </button>
+              <button type="button" onclick="verifyActiveKeyRemote()" class="msc-btn-ghost" style="min-height:30px; padding:4px 8px; font-size:11px; border-color:#10B981; color:#00FFA3;">
+                Verificar
+              </button>
+            </div>
+            <div id="key_verify_status" style="font-size: 11px; margin-top: -8px; margin-bottom: 10px; display: none;"></div>
+          </div>
+
+          <!-- Parâmetros da Chave -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 600; color: #CBD5E1; display: block; margin-bottom: 4px;">Assentos (Seats)</label>
+              <input type="number" name="seats" id="lic_seats" value="<%= elite[:max_agents] %>" style="height:36px; padding:6px 10px; font-size:12.5px; border-radius:8px; border:1px solid #16262E; background:#070D12; color:#F8FAFC; width:100%;" required />
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 600; color: #CBD5E1; display: block; margin-bottom: 4px;">Plano / Tier</label>
+              <select name="tier" id="lic_tier" style="height:36px; padding:6px 10px; font-size:12px; border-radius:8px; border:1px solid #16262E; background:#070D12; color:#F8FAFC; width:100%;">
+                <% tiers.each do |k, t| %>
+                  <option value="<%= k %>" <%= 'selected' if k == elite[:tier_key] %> style="background:#080F14;color:#F8FAFC;">
+                    <%= t[:name] %>
+                  </option>
+                <% end %>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 600; color: #CBD5E1; display: block; margin-bottom: 4px;">Parceiro / Holder</label>
+              <input type="text" name="holder" id="lic_holder" value="<%= elite[:license_holder] %>" style="height:36px; padding:6px 10px; font-size:12.5px; border-radius:8px; border:1px solid #16262E; background:#070D12; color:#F8FAFC; width:100%;" required />
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 600; color: #CBD5E1; display: block; margin-bottom: 4px;">Data de Expiração</label>
+              <input type="date" name="expires_at" id="lic_expires_at" value="<%= elite[:expires_at] %>" style="height:36px; padding:6px 10px; font-size:12.5px; border-radius:8px; border:1px solid #16262E; background:#070D12; color:#F8FAFC; width:100%;" />
+            </div>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <label style="font-size:11.5px; color:#94A3B8; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" name="sync_all_accounts" value="1" />
+              Sincronizar recursos e cotas em todas as contas existentes
+            </label>
+          </div>
+
+          <button type="submit" class="msc-gen-btn" id="lic_submit_btn">
+            Issue & Activate Key →
+          </button>
+        <% end %>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Catálogo de Recursos & Módulos da Instância -->
-  <div class="msc-row" style="margin:30px 0 14px;">
+  <!-- [ISS-03] Catálogo dos 4 Planos SaaS & White-Label -->
+  <div style="margin-bottom: 12px; display: flex; align-items: baseline; justify-content: space-between;">
     <div>
-      <h2 class="msc-card__title" style="font-size:16px !important;">Recursos & Módulos da Instância</h2>
-      <p class="msc-card__desc">Canais, integrações e motores enterprise desbloqueados pelo EliteLicenseEngine.</p>
+      <h2 style="font-size: 15px; font-weight: 700; color: #F8FAFC; margin: 0;">Planos e Recursos (Tiers)</h2>
+      <p style="font-size: 12px; color: #94A3B8; margin: 2px 0 0;">Defina limites de uso por plano e aplique com 1 clique em novos tenants.</p>
     </div>
   </div>
 
-  <div class="msc-grid" data-testid="msc-features">
-    <% SuperAdmin::FeaturesHelper.available_features.each do |_feature, attrs| %>
-      <div class="msc-card msc-feature <%= 'msc-feature--off' unless attrs[:enabled] %>">
-        <div class="msc-feature__head">
-          <span class="msc-feature__icon"><svg aria-hidden="true"><use xlink:href="#<%= attrs[:icon] %>" /></svg></span>
-          <span class="msc-badge <%= attrs[:enabled] ? 'msc-badge--ok' : 'msc-badge--off' %>"><%= attrs[:enabled] ? 'Ativo' : 'Bloqueado' %></span>
+  <div class="msc-tier-grid" data-testid="elite-pricing-tiers">
+    <% tiers.each do |k, t| %>
+      <% is_active = (k == elite[:tier_key]) %>
+      <% is_elite = (k == 'elite_whitelabel') %>
+      <div class="msc-tier-card <%= 'msc-tier-card--elite' if is_elite %>">
+        <div>
+          <div class="msc-tier-head">
+            <div class="msc-tier-icon">
+              <% case k %>
+              <% when 'starter' %>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              <% when 'pro' %>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              <% when 'business' %>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>
+              <% when 'elite_whitelabel' %>
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
+              <% end %>
+            </div>
+            <% if is_active %>
+              <span class="msc-badge msc-badge--ok" style="font-size: 10px;">ATIVO</span>
+            <% else %>
+              <span class="msc-badge msc-badge--off" style="font-size: 10px;"><%= t[:badge] %></span>
+            <% end %>
+          </div>
+
+          <div class="msc-tier-name"><%= t[:name] %></div>
+          <div class="msc-tier-sub"><%= t[:description] %></div>
+
+          <div class="msc-tier-price">
+            <%= t[:price_label].split('/').first %>
+            <small><%= "/#{t[:price_label].split('/').last}" if t[:price_label].include?('/') %></small>
+          </div>
+
+          <ul class="msc-tier-list">
+            <li class="msc-tier-item">
+              <span>Agentes de Atendimento</span>
+              <strong><%= t[:max_agents] >= 1000 ? "Ilimitado" : t[:max_agents] %></strong>
+            </li>
+            <li class="msc-tier-item">
+              <span>Caixas de Entrada</span>
+              <strong><%= t[:max_inboxes] >= 1000 ? "Ilimitado" : t[:max_inboxes] %></strong>
+            </li>
+            <li class="msc-tier-item">
+              <span>Captain AI (respostas/mês)</span>
+              <strong><%= t[:captain_responses] >= 1000000 ? "Ilimitado" : fmt.(t[:captain_responses]) %></strong>
+            </li>
+            <li class="msc-tier-item">
+              <span>Módulos na Sidebar</span>
+              <strong><%= is_elite ? "Todos (#{t[:sidebar_items].size})" : "#{t[:sidebar_items].size} módulos" %></strong>
+            </li>
+          </ul>
         </div>
-        <div class="msc-feature__name">
-          <%= attrs[:name] %>
-          <% if attrs[:enterprise] %><span class="msc-badge msc-badge--warn" style="padding:1px 8px;font-size:10px;">ELITE</span><% end %>
-        </div>
-        <p class="msc-feature__desc"><%= attrs[:description] %></p>
-        <div class="msc-feature__foot">
-          <% if attrs[:config_key].present? && attrs[:enabled] %>
-            <%= link_to 'Configurar →', super_admin_app_config_path(config: attrs[:config_key]), class: 'msc-link' %>
-          <% elsif !attrs[:enabled] %>
-            <span class="msc-muted" style="font-size:12px;">Disponível no tier Business/Elite</span>
+
+        <%= form_with url: update_license_super_admin_settings_path, method: :post, local: true do %>
+          <input type="hidden" name="tier" value="<%= k %>" />
+          <input type="hidden" name="holder" value="<%= elite[:license_holder] %>" />
+          <input type="hidden" name="seats" value="<%= t[:max_agents] %>" />
+          <% if is_elite %>
+            <button type="submit" class="msc-tier-cta msc-tier-cta--elite">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5z"/></svg>
+              <%= is_active ? "Tier Ativo na Instância" : "Aplicar Plano Master" %>
+            </button>
           <% else %>
-            <span class="msc-muted" style="font-size:12px;">Habilitado pelo EliteLicenseEngine</span>
+            <button type="submit" class="msc-tier-cta">
+              <%= is_active ? "Plano Ativo" : "Aplicar Plano" %>
+            </button>
           <% end %>
-        </div>
+        <% end %>
       </div>
     <% end %>
   </div>
-</section>
+
+  <!-- [ISS-04] Tabela "Multi-Tenant Account Provisioning" -->
+  <div class="msc-table-container" data-testid="elite-multitenant-table">
+    <div class="msc-table-top">
+      <div>
+        <h2 style="font-size: 15px; font-weight: 700; color: #F8FAFC; margin: 0; display:flex; align-items:center; gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>
+          Multi-Tenant Account Provisioning
+        </h2>
+        <p style="font-size: 12px; color: #94A3B8; margin: 2px 0 0;">Gerencie todas as contas, limites de cotas e consumo em tempo real.</p>
+      </div>
+
+      <div class="msc-table-filter-wrap">
+        <input type="text" id="tenant_search_input" class="msc-search-input" placeholder="Buscar tenant, domínio ou titular..." oninput="filterTenantTable()" />
+        <select id="tenant_tier_filter" onchange="filterTenantTable()" style="height:34px; border-radius:8px; background:#070D12; border:1px solid #16262E; color:#CBD5E1; font-size:12px; padding:0 8px;">
+          <option value="">Todos os planos</option>
+          <option value="elite_whitelabel">Elite Unlimited</option>
+          <option value="business">Business AI</option>
+          <option value="pro">Pro Growth</option>
+          <option value="starter">Starter SaaS</option>
+        </select>
+        <%= link_to '+ Novo Tenant', new_super_admin_account_path, class: 'button', style: 'height:34px; padding:0 14px; font-size:12px; font-weight:700;' %>
+      </div>
+    </div>
+
+    <div class="msc-table-scroll">
+      <table id="multitenant_accounts_table">
+        <thead>
+          <tr>
+            <th scope="col" style="width:40px;">#</th>
+            <th scope="col">Tenant / Marca</th>
+            <th scope="col">Domínio</th>
+            <th scope="col">Plano</th>
+            <th scope="col">Agentes (Uso / Máx)</th>
+            <th scope="col">Inboxes (Uso / Máx)</th>
+            <th scope="col">Captain AI (Uso / Máx)</th>
+            <th scope="col">Expiração</th>
+            <th scope="col">Status</th>
+            <th scope="col" style="text-align:right;">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% accounts.each do |acc| %>
+            <%
+              acc_tier_key = EliteLicenseEngine.account_tier_key(acc)
+              acc_tier = EliteLicenseEngine.account_tier(acc)
+              limits = acc.usage_limits rescue {}
+              
+              agents_max = [limits[:agents].to_i, acc_tier[:max_agents].to_i].max
+              agents_used = acc.account_users.count
+              pct_a = agents_max > 0 ? [(agents_used.to_f / agents_max * 100).round, 100].min : 0
+
+              inboxes_max = [limits[:inboxes].to_i, acc_tier[:max_inboxes].to_i].max
+              inboxes_used = acc.inboxes.count
+              pct_i = inboxes_max > 0 ? [(inboxes_used.to_f / inboxes_max * 100).round, 100].min : 0
+
+              ai_limits = limits.dig(:captain, :responses) || {}
+              ai_max = ai_limits[:total_count].to_i > 0 ? ai_limits[:total_count].to_i : acc_tier[:captain_responses]
+              ai_used = ai_limits[:consumed].to_i
+              is_inf_ai = (ai_max >= 1_000_000)
+              pct_ai_acc = is_inf_ai ? 100 : [(ai_used.to_f / [ai_max, 1].max * 100).round, 100].min
+
+              domain_host = acc.domain.presence || "app.meusuperchat.com"
+              badge_color_class = case acc_tier_key
+                                  when 'elite_whitelabel' then 'msc-badge--ok'
+                                  when 'business' then 'msc-badge--volt'
+                                  when 'pro' then 'msc-badge--warn'
+                                  else 'msc-badge--off'
+                                  end
+            %>
+            <tr data-tenant-row data-tier="<%= acc_tier_key %>" data-search="<%= "#{acc.id} #{acc.name} #{domain_host} #{acc_tier[:name]}".downcase %>">
+              <td class="msc-mono" style="color:#64748B;">#<%= acc.id %></td>
+              <td>
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <div style="width:28px; height:28px; border-radius:7px; background:rgba(16,185,129,0.15); display:flex; align-items:center; justify-content:center; color:#00FFA3; font-weight:700; font-size:12px;">
+                    <%= acc.name.to_s.first.upcase %>
+                  </div>
+                  <div>
+                    <strong style="color:#F8FAFC; font-size:13px;"><%= link_to acc.name, super_admin_account_path(acc), class: 'msc-link' %></strong>
+                    <div style="font-size:10.5px; color:#64748B;"><%= acc_tier_key == 'elite_whitelabel' ? 'Principal (Self)' : 'Cliente' %></div>
+                  </div>
+                </div>
+              </td>
+              <td class="msc-mono" style="font-size:12px; color:#94A3B8;"><%= domain_host %></td>
+              <td>
+                <span class="msc-badge <%= badge_color_class %>">
+                  <%= acc_tier[:name].split(' ').first %>
+                </span>
+              </td>
+
+              <!-- Agentes Progress -->
+              <td>
+                <div style="width: 120px;">
+                  <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:2px;">
+                    <span style="color:#F8FAFC; font-weight:600;"><%= agents_used %> / <%= agents_max >= 1000 ? "∞" : agents_max %></span>
+                    <span style="color:#94A3B8;"><%= pct_a %>%</span>
+                  </div>
+                  <div class="msc-track" style="height:4px;">
+                    <div class="msc-track-bar" style="width: <%= [pct_a, 2].max %>%;"></div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Inboxes Progress -->
+              <td>
+                <div style="width: 110px;">
+                  <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:2px;">
+                    <span style="color:#F8FAFC; font-weight:600;"><%= inboxes_used %> / <%= inboxes_max >= 1000 ? "∞" : inboxes_max %></span>
+                    <span style="color:#94A3B8;"><%= pct_i %>%</span>
+                  </div>
+                  <div class="msc-track" style="height:4px;">
+                    <div class="msc-track-bar" style="width: <%= [pct_i, 2].max %>%;"></div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Captain AI Progress -->
+              <td>
+                <div style="width: 130px;">
+                  <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:2px;">
+                    <span style="color:#F8FAFC; font-weight:600;"><%= fmt.(ai_used) %> / <%= is_inf_ai ? "∞" : fmt.(ai_max) %></span>
+                    <span style="color:#94A3B8;"><%= is_inf_ai ? "∞" : "#{pct_ai_acc}%" %></span>
+                  </div>
+                  <div class="msc-track" style="height:4px;">
+                    <div class="msc-track-bar" style="width: <%= [pct_ai_acc, 2].max %>%;"></div>
+                  </div>
+                </div>
+              </td>
+
+              <td class="msc-mono" style="font-size:11.5px; color:#94A3B8;">31/12/2030</td>
+              <td>
+                <span style="display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:#00FFA3; font-weight:600;">
+                  <span class="msc-dot"></span> Ativo
+                </span>
+              </td>
+
+              <!-- Inline Tier/Quota Config -->
+              <td style="text-align:right;">
+                <%= form_with url: apply_account_tier_super_admin_settings_path, method: :post, local: true, style: "display:inline-flex; align-items:center; gap:6px;" do %>
+                  <input type="hidden" name="account_id" value="<%= acc.id %>" />
+                  <select name="tier" style="height:28px; border-radius:6px; border:1px solid #16262E; background:#070D12; color:#CBD5E1; font-size:11px; padding:0 6px;">
+                    <% tiers.each do |k, t| %>
+                      <option value="<%= k %>" <%= 'selected' if k == acc_tier_key %> style="background:#080F14;color:#fff;"><%= t[:name].split(' ').first %></option>
+                    <% end %>
+                  </select>
+                  <button type="submit" class="msc-btn-ghost" style="min-height:28px; padding:0 10px; font-size:11px; font-weight:600;">
+                    Configurar
+                  </button>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Client-side Scripts para Live Preview, Mascaramento e Presets -->
+<script>
+  var PRESETS = <%= raw EliteLicenseEngine.whitelabel_presets.to_json %>;
+
+  function syncColorFromPicker(hex) {
+    document.getElementById('wl_brand_color').value = hex.toUpperCase();
+    var box = document.getElementById('mock_logo_box');
+    var btn = document.getElementById('mock_send_btn');
+    if (box) box.style.background = hex;
+    if (btn) btn.style.background = hex;
+  }
+
+  function syncLivePreview() {
+    var name = document.getElementById('wl_inst_name').value || 'Meu Super Chat';
+    var brandEl = document.getElementById('mock_brand_name');
+    if (brandEl) brandEl.textContent = name;
+  }
+
+  function applyPresetClient(presetKey) {
+    var preset = PRESETS[presetKey];
+    if (!preset) return;
+
+    document.getElementById('wl_preset_input').value = presetKey;
+    document.getElementById('wl_inst_name').value = preset.INSTALLATION_NAME || '';
+    document.getElementById('wl_widget_url').value = preset.WIDGET_BRAND_URL || '';
+    document.getElementById('wl_brand_color').value = preset.BRAND_COLOR || '#10B981';
+    document.getElementById('wl_color_picker').value = preset.BRAND_COLOR || '#10B981';
+    document.getElementById('wl_logo').value = preset.LOGO || '';
+    document.getElementById('wl_logo_dark').value = preset.LOGO_DARK || '';
+    document.getElementById('wl_logo_thumb').value = preset.LOGO_THUMBNAIL || '';
+
+    document.querySelectorAll('.msc-preset-btn').forEach(function(b) { b.classList.remove('active'); });
+    event.currentTarget.classList.add('active');
+
+    syncColorFromPicker(preset.BRAND_COLOR || '#10B981');
+    syncLivePreview();
+  }
+
+  function setPresetMode(mode) {
+    document.getElementById('wl_preset_input').value = mode;
+    document.querySelectorAll('.msc-preset-btn').forEach(function(b) { b.classList.remove('active'); });
+    event.currentTarget.classList.add('active');
+  }
+
+  function setLicenseMode(mode) {
+    document.getElementById('license_mode_input').value = mode;
+    var btnGen = document.getElementById('btn_mode_gen');
+    var btnVal = document.getElementById('btn_mode_val');
+    var keyField = document.getElementById('active_license_key_field');
+    var submitBtn = document.getElementById('lic_submit_btn');
+
+    if (mode === 'validate') {
+      btnVal.classList.add('active');
+      btnGen.classList.remove('active');
+      keyField.removeAttribute('readonly');
+      keyField.type = 'text';
+      keyField.placeholder = 'Cole a chave MSC-... para validar e ativar';
+      submitBtn.textContent = 'Validate & Activate Key →';
+    } else {
+      btnGen.classList.add('active');
+      btnVal.classList.remove('active');
+      keyField.setAttribute('readonly', 'true');
+      keyField.type = 'password';
+      submitBtn.textContent = 'Issue & Activate Key →';
+    }
+  }
+
+  function toggleKeyMask() {
+    var field = document.getElementById('active_license_key_field');
+    if (field) {
+      field.type = field.type === 'password' ? 'text' : 'password';
+    }
+  }
+
+  function copyKeyText() {
+    var field = document.getElementById('active_license_key_field');
+    if (!field) return;
+    navigator.clipboard.writeText(field.value).then(function() {
+      var st = document.getElementById('key_verify_status');
+      st.style.display = 'block';
+      st.style.color = '#00FFA3';
+      st.textContent = '✓ Chave copiada para a área de transferência!';
+      setTimeout(function() { st.style.display = 'none'; }, 3000);
+    });
+  }
+
+  function verifyActiveKeyRemote() {
+    var key = document.getElementById('active_license_key_field').value;
+    var holder = document.getElementById('lic_holder').value;
+    var tier = document.getElementById('lic_tier').value;
+    var seats = document.getElementById('lic_seats').value;
+    var st = document.getElementById('key_verify_status');
+
+    st.style.display = 'block';
+    st.style.color = '#CBD5E1';
+    st.textContent = 'Verificando assinatura criptográfica HMAC-SHA256...';
+
+    fetch('<%= verify_license_super_admin_settings_path %>', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+      },
+      body: JSON.stringify({ license_key: key, holder: holder, tier: tier, seats: seats })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data.valid) {
+        st.style.color = '#00FFA3';
+        st.textContent = '✓ ' + data.reason + ' (' + data.tier_key.toUpperCase() + ' · ' + data.seats + ' assentos)';
+      } else {
+        st.style.color = '#F87171';
+        st.textContent = '✗ ' + data.reason;
+      }
+    })
+    .catch(function(err) {
+      st.style.color = '#F87171';
+      st.textContent = 'Erro ao verificar chave: ' + err.message;
+    });
+  }
+
+  function filterTenantTable() {
+    var q = (document.getElementById('tenant_search_input').value || '').toLowerCase().trim();
+    var tier = document.getElementById('tenant_tier_filter').value;
+    var rows = document.querySelectorAll('#multitenant_accounts_table tbody tr[data-tenant-row]');
+
+    rows.forEach(function(row) {
+      var rowTier = row.getAttribute('data-tier') || '';
+      var rowSearch = row.getAttribute('data-search') || '';
+      var matchesSearch = !q || rowSearch.indexOf(q) !== -1;
+      var matchesTier = !tier || rowTier === tier;
+      row.style.display = (matchesSearch && matchesTier) ? '' : 'none';
+    });
+  }
+</script>

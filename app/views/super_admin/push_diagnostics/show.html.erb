@@ -1,3 +1,7 @@
+<%
+  wl_pd = defined?(EliteLicenseEngine) ? EliteLicenseEngine.whitelabel_config : {}
+  pd_brand = wl_pd['INSTALLATION_NAME'].presence || wl_pd['BRAND_NAME'].presence || 'Meu Super Chat'
+%>
 <% content_for(:title) { "Diagnóstico de Push" } %>
 
 <header class="main-content__header" role="banner">
@@ -49,11 +53,11 @@
           <div style="display:grid;gap:12px;max-width:720px;margin-bottom:16px;">
             <div>
               <%= label_tag :push_title, 'Título', style: 'display:block;margin-bottom:6px;' %>
-              <%= text_field_tag :push_title, params[:push_title].presence || Notification::PushTestService.default_title.to_s.gsub(/Chatwoot/i, 'Meu Super Chat') %>
+              <%= text_field_tag :push_title, params[:push_title].presence || Notification::PushTestService.default_title.to_s.gsub(/Chatwoot/i, pd_brand) %>
             </div>
             <div>
               <%= label_tag :push_body, 'Mensagem', style: 'display:block;margin-bottom:6px;' %>
-              <%= text_area_tag :push_body, params[:push_body].presence || Notification::PushTestService.default_body.to_s.gsub(/Chatwoot/i, 'Meu Super Chat'), rows: 2 %>
+              <%= text_area_tag :push_body, params[:push_body].presence || Notification::PushTestService.default_body.to_s.gsub(/Chatwoot/i, pd_brand), rows: 2 %>
             </div>
             <p class="msc-muted" style="font-size:12px;margin:0;">O usuário verá este texto como uma notificação real no dispositivo.</p>
           </div>
