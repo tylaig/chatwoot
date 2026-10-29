@@ -26,46 +26,35 @@ class EliteLicenseEngine
   STARTER_FEATURES = %w[
     inbound_emails
     channel_email
-    channel_web_widget
     channel_facebook
     channel_instagram
-    channel_telegram
     help_center
-    macros
-    automations
-    canned_responses
-    labels
-    custom_attributes
     team_management
-    voice_recorder
+    channel_voice
     captain_integration
     captain_integration_v2
   ].freeze
 
   PRO_FEATURES = (STARTER_FEATURES + %w[
     campaigns
-    reports
-    integrations
-    whatsapp_campaign
-    crm_sales_pipeline
+    linear_integration
+    data_import
   ]).uniq.freeze
 
   BUSINESS_FEATURES = (PRO_FEATURES + %w[
-    captain_integration
-    captain_integration_v2
     sla
     custom_roles
-    audit_logs
-    agent_capacity
-    shopify_integration
-    linear_integration
+    csat_review_notes
+    conversation_required_attributes
+    advanced_assignment
+    custom_tools
+    companies
   ]).uniq.freeze
 
   ELITE_WHITELABEL_FEATURES = (BUSINESS_FEATURES + %w[
+    audit_logs
     disable_branding
     saml
-    companies
-    channel_voice
   ]).uniq.freeze
 
   TIER_CODES = {
@@ -665,9 +654,17 @@ class EliteLicenseEngine
     account.limits = new_limits
 
     all_managed_features = ELITE_WHITELABEL_FEATURES
-    features_to_disable = all_managed_features - tier[:features]
-    account.disable_features(*features_to_disable) if features_to_disable.any?
-    account.enable_features(*tier[:features]) if tier[:features].any?
+    features_to_disable = (all_managed_features - tier[:features])
+    features_to_enable = tier[:features]
+
+    features_to_disable.each do |f|
+      setter = "feature_#{f}="
+      account.public_send(setter, false) if account.respond_to?(setter)
+    end
+    features_to_enable.each do |f|
+      setter = "feature_#{f}="
+      account.public_send(setter, true) if account.respond_to?(setter)
+    end
 
     account.save!
 
