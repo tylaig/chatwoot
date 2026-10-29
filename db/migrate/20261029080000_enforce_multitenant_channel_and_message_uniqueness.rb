@@ -53,9 +53,22 @@ class EnforceMultitenantChannelAndMessageUniqueness < ActiveRecord::Migration[7.
                 algorithm: :concurrently,
                 name: 'index_channel_facebook_pages_on_instagram_id_unique'
     end
+
+    # 4. Enforce global uniqueness on channel_whatsapp phone_number_id for whatsapp_cloud
+    execute <<~SQL.squish
+      CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS index_channel_whatsapp_on_cloud_phone_number_id_unique
+      ON channel_whatsapp ((provider_config->>'phone_number_id'))
+      WHERE provider = 'whatsapp_cloud'
+        AND (provider_config->>'phone_number_id') IS NOT NULL
+        AND (provider_config->>'phone_number_id') <> '';
+    SQL
   end
 
   def down
+    execute <<~SQL.squish
+      DROP INDEX CONCURRENTLY IF EXISTS index_channel_whatsapp_on_cloud_phone_number_id_unique;
+    SQL
+
     if index_exists?(:channel_facebook_pages, :instagram_id, name: 'index_channel_facebook_pages_on_instagram_id_unique')
       remove_index :channel_facebook_pages, name: 'index_channel_facebook_pages_on_instagram_id_unique', algorithm: :concurrently
     end

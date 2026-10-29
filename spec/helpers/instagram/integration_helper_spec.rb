@@ -14,11 +14,14 @@ RSpec.describe Instagram::IntegrationHelper do
     end
 
     it 'generates a valid JWT token with correct payload' do
-      token = generate_instagram_token(account_id)
+      token = generate_instagram_token(account_id, nil, user_id: 42)
       decoded_token = JWT.decode(token, client_secret, true, algorithm: 'HS256').first
 
       expect(decoded_token['sub']).to eq(account_id)
       expect(decoded_token['iat']).to eq(current_time.to_i)
+      expect(decoded_token['exp']).to eq(current_time.to_i + 15.minutes.to_i)
+      expect(decoded_token['jti']).to be_present
+      expect(decoded_token['user_id']).to eq(42)
     end
 
     context 'when client secret is not configured' do

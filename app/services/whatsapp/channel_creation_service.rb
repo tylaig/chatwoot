@@ -25,9 +25,13 @@ class Whatsapp::ChannelCreationService
   end
 
   def find_existing_channel
-    Channel::Whatsapp.find_by(
-      phone_number: @phone_info[:phone_number]
-    )
+    by_phone = Channel::Whatsapp.find_by(phone_number: @phone_info[:phone_number])
+    return by_phone if by_phone
+
+    return if @phone_info[:phone_number_id].blank?
+
+    Channel::Whatsapp.where(provider: 'whatsapp_cloud')
+                     .find_by("provider_config->>'phone_number_id' = ?", @phone_info[:phone_number_id].to_s)
   end
 
   def create_channel_with_inbox

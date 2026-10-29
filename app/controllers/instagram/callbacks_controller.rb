@@ -179,7 +179,7 @@ class Instagram::CallbacksController < ApplicationController
   def account_id
     return unless params[:state]
 
-    verify_instagram_token(params[:state])
+    @account_id ||= verify_instagram_token(params[:state])
   end
 
   def return_to

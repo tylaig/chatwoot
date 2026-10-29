@@ -51,6 +51,7 @@ class Channel::Whatsapp < ApplicationRecord # rubocop:disable Metrics/ClassLengt
 
   validates :provider, inclusion: { in: PROVIDERS }
   validates :phone_number, presence: true, uniqueness: true
+  validate :validate_cloud_phone_number_id_uniqueness, if: -> { provider == 'whatsapp_cloud' }
   validate :validate_provider_config
   validate :validate_app_secret, if: :app_secret_required?
 
@@ -712,6 +713,18 @@ class Channel::Whatsapp < ApplicationRecord # rubocop:disable Metrics/ClassLengt
 
   def validate_app_secret
     errors.add(:provider_config, 'App secret is required') if provider_config['app_secret'].blank?
+  end
+
+  def validate_cloud_phone_number_id_uniqueness
+    phone_number_id = provider_config.to_h['phone_number_id'].to_s.strip
+    return if phone_number_id.blank?
+
+    scope = self.class.where(provider: 'whatsapp_cloud')
+                .where("provider_config->>'phone_number_id' = ?", phone_number_id)
+    scope = scope.where.not(id: id) if persisted?
+    return unless scope.exists?
+
+    errors.add(:provider_config, 'Este Phone Number ID já está vinculado a outra caixa de entrada neste SaaS.')
   end
 
   # A check that could not reach a verdict is neither a refusal nor a broken application, so it gets a
