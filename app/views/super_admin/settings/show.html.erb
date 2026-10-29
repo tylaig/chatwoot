@@ -352,6 +352,21 @@
   .msc-search-input:focus { border-color: #10B981; }
 
   /* Responsive Breakpoints */
+  .msc-wl-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 16px;
+  }
+  .msc-wl-assets-grid {
+    display: grid;
+    grid-template-columns: 80px 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .msc-wl-top-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
   @media (max-width: 1200px) {
     .msc-tier-grid { grid-template-columns: repeat(2, 1fr); }
   }
@@ -363,6 +378,9 @@
   @media (max-width: 767px) {
     .msc-quota-grid { grid-template-columns: 1fr; }
     .msc-tier-grid { grid-template-columns: 1fr; }
+    .msc-wl-form-grid { grid-template-columns: 1fr !important; }
+    .msc-wl-assets-grid { grid-template-columns: 1fr 1fr !important; }
+    .msc-wl-top-inputs { grid-template-columns: 1fr !important; }
     .msc-table-top { flex-direction: column; align-items: stretch; }
     .msc-table-filter-wrap { flex-direction: column; align-items: stretch; }
     .msc-search-input { width: 100%; }
@@ -496,11 +514,11 @@
       </div>
 
       <!-- Grid de Controles + Mini Preview -->
-      <div style="display: grid; grid-template-columns: 1fr 220px; gap: 16px;">
+      <div class="msc-wl-form-grid">
         <%= form_with url: update_branding_super_admin_settings_path, method: :post, local: true, id: "msc-branding-form", style: "display:flex; flex-direction:column; gap:12px;" do |f| %>
           <input type="hidden" name="branding[preset]" id="wl_preset_input" value="<%= wl['active_preset'] %>" />
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="msc-wl-top-inputs">
             <div>
               <label style="font-size: 11px; font-weight: 600; color: #CBD5E1; display: block; margin-bottom: 4px;">Nome da Marca / Instalação</label>
               <input type="text" name="branding[INSTALLATION_NAME]" id="wl_inst_name" value="<%= wl['INSTALLATION_NAME'] %>" oninput="syncLivePreview()" style="height:36px; padding:6px 10px; font-size:12.5px; border-radius:8px; border:1px solid #16262E; background:#070D12; color:#F8FAFC; width:100%;" required />
@@ -512,7 +530,7 @@
           </div>
 
           <!-- Cor e Assets -->
-          <div style="display: grid; grid-template-columns: 80px 1fr 1fr 1fr; gap: 8px;">
+          <div class="msc-wl-assets-grid">
             <div>
               <label style="font-size: 10px; font-weight: 600; color: #94A3B8; display: block; margin-bottom: 4px;">Cor Primária</label>
               <div style="display:flex; align-items:center; gap:4px;">
