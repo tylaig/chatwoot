@@ -39,6 +39,7 @@ export const ALLOWED_FILE_TYPES =
   'image/*,' +
   'audio/*,' +
   'video/*,' +
+  '.heic, .heif, .avif,' +
   '.3gpp,' +
   '.xls, .xlsx, .xml, .pfx,' +
   'text/csv, text/plain, application/json, application/pdf, text/rtf,' +

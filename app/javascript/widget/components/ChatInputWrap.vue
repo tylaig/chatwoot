@@ -157,6 +157,16 @@ export default {
     <div class="relative flex items-center ltr:pl-2 rtl:pr-2">
       <ChatAttachmentButton
         v-if="showAttachment"
+        input-id="chat-file-attachment"
+        class="text-n-slate-12"
+        :on-attach="onSendAttachment"
+      />
+      <ChatAttachmentButton
+        v-if="showAttachment"
+        input-id="chat-photo-attachment"
+        icon-name="camera"
+        accept-types="image/*,.heic,.heif,.avif"
+        :enable-paste="false"
         class="text-n-slate-12"
         :on-attach="onSendAttachment"
       />

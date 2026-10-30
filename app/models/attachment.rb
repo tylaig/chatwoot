@@ -36,7 +36,7 @@ class Attachment < ApplicationRecord
     application/vnd.openxmlformats-officedocument.wordprocessingml.document
     application/x-pkcs12 application/pkcs12
   ].freeze
-  ACCEPTABLE_FILE_EXTENSIONS = %w[pfx xml].freeze
+  ACCEPTABLE_FILE_EXTENSIONS = %w[pfx xml heic heif avif].freeze
   GENERIC_FILE_CONTENT_TYPES = %w[application/octet-stream].freeze
   belongs_to :account
   belongs_to :message
@@ -229,7 +229,14 @@ class Attachment < ApplicationRecord
 
     ctype = file.blob&.content_type.to_s.downcase
     fname = file.filename.to_s.downcase
-    return unless ctype.include?('tiff') || ctype.include?('dng') || fname.end_with?('.dng', '.tif', '.tiff')
+    is_heic = ctype.include?('heic') || ctype.include?('heif') || fname.end_with?('.heic', '.heif')
+    is_raw = ctype.include?('tiff') || ctype.include?('dng') || fname.end_with?('.dng', '.tif', '.tiff')
+    return unless is_heic || is_raw
+
+    if is_heic
+      normalize_heic_image_attachment
+      return if file_type == 'image' && extension == 'jpeg'
+    end
 
     file.blob.open do |tmp|
       data = File.binread(tmp.path)
@@ -251,12 +258,37 @@ class Attachment < ApplicationRecord
       self.extension = 'jpeg'
       file.attach(
         io: StringIO.new(best_jpg),
-        filename: file.filename.to_s.sub(/\.(dng|tiff|tif)\z/i, '.jpeg'),
+        filename: file.filename.to_s.sub(/\.(dng|tiff|tif|heic|heif)\z/i, '.jpeg'),
         content_type: 'image/jpeg'
       )
     end
   rescue StandardError => e
     Rails.logger.warn("[Attachment#normalize_raw_image_attachment] Failed for attachment #{id}: #{e.message}")
+  end
+
+  def normalize_heic_image_attachment
+    file.blob.open do |tmp|
+      out_file = Tempfile.new(['cw_heic_', '.jpeg'])
+      out_path = out_file.path
+      out_file.close
+
+      begin
+        converted = system('magick', "#{tmp.path}[0]", '-auto-orient', '-quality', '90', out_path) ||
+                    system('heif-convert', '-q', '90', tmp.path, out_path)
+        if converted && File.exist?(out_path) && File.size(out_path) > 1_000
+          jpg_bytes = File.binread(out_path)
+          self.file_type = :image
+          self.extension = 'jpeg'
+          file.attach(
+            io: StringIO.new(jpg_bytes),
+            filename: file.filename.to_s.sub(/\.(heic|heif)\z/i, '.jpeg'),
+            content_type: 'image/jpeg'
+          )
+        end
+      ensure
+        File.delete(out_path) if File.exist?(out_path)
+      end
+    end
   end
 
   def should_validate_file?
