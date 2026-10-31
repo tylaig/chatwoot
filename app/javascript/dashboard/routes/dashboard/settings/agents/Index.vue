@@ -142,6 +142,28 @@ const confirmDeletion = () => {
   closeDeletePopup();
   deleteAgent(currentAgent.value.id);
 };
+
+const quickUpdateAvailability = async (agent, availability) => {
+  loading.value[agent.id] = true;
+  try {
+    await store.dispatch('agents/update', {
+      id: agent.id,
+      availability,
+      auto_offline: false,
+    });
+    if (Number(agent.id) === Number(currentUserId.value)) {
+      store.dispatch('updateAvailability', {
+        availability,
+        account_id: getters.getCurrentAccountId.value,
+      });
+    }
+    useAlert(t('AGENT_MGMT.EDIT.API.SUCCESS_MESSAGE'));
+  } catch (error) {
+    useAlert(t('AGENT_MGMT.EDIT.API.ERROR_MESSAGE'));
+  } finally {
+    loading.value[agent.id] = false;
+  }
+};
 </script>
 
 <template>
@@ -253,7 +275,23 @@ const confirmDeletion = () => {
               </div>
             </div>
           </div>
-          <div class="flex justify-end gap-3">
+          <div class="flex items-center justify-end gap-3">
+            <select
+              :value="agent.availability_status || 'offline'"
+              :disabled="loading[agent.id]"
+              class="!mb-0 !h-8 !py-1 !px-2.5 !text-xs !w-28 rounded-lg border border-n-weak bg-n-alpha-1 text-n-slate-12 font-medium cursor-pointer"
+              @change="quickUpdateAvailability(agent, $event.target.value)"
+            >
+              <option value="online">
+                🟢 {{ $t('PROFILE_SETTINGS.FORM.AVAILABILITY.STATUS.ONLINE') }}
+              </option>
+              <option value="busy">
+                🟡 {{ $t('PROFILE_SETTINGS.FORM.AVAILABILITY.STATUS.BUSY') }}
+              </option>
+              <option value="offline">
+                ⚪ {{ $t('PROFILE_SETTINGS.FORM.AVAILABILITY.STATUS.OFFLINE') }}
+              </option>
+            </select>
             <Button
               v-if="showEditAction(agent)"
               v-tooltip.top="$t('AGENT_MGMT.EDIT.BUTTON_TEXT')"
@@ -290,6 +328,7 @@ const confirmDeletion = () => {
         :type="currentAgent.role"
         :email="currentAgent.email"
         :availability="currentAgent.availability_status"
+        :auto-offline="Boolean(currentAgent.auto_offline)"
         :custom-role-id="currentAgent.custom_role_id"
         @close="hideEditPopup"
       />

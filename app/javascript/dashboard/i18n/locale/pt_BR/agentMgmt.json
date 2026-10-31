@@ -82,6 +82,10 @@
           "PLACEHOLDER": "Por favor, selecione a disponibilidade do agente",
           "ERROR": "A disponibilidade é necessária"
         },
+        "AUTO_OFFLINE": {
+          "LABEL": "Marcar offline automaticamente ao sair do painel",
+          "HELP": "Quando desativado, o atendente permanece Online mesmo trocando de aba e só fica Offline quando alterado manualmente."
+        },
         "SUBMIT": "Editar agente"
       },
       "BUTTON_TEXT": "Alterar",

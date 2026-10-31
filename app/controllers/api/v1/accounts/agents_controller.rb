@@ -24,7 +24,13 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
 
   def update
     @agent.update!(agent_params.slice(:name).compact)
-    @agent.current_account_user.update!(agent_params.slice(*account_user_attributes).compact)
+    account_user = @agent.current_account_user
+    previous_availability = account_user.availability
+    previous_auto_offline = account_user.auto_offline
+    account_user.update!(agent_params.slice(*account_user_attributes).compact)
+    if previous_availability != account_user.availability || previous_auto_offline != account_user.auto_offline
+      dispatch_presence_update(account_user)
+    end
   end
 
   def destroy
@@ -114,6 +120,27 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
 
   def delete_user_record(agent)
     DeleteObjectJob.perform_later(agent) if agent.reload.account_users.blank?
+  end
+
+  def dispatch_presence_update(account_user)
+    Rails.configuration.dispatcher.dispatch(
+      Events::Types::ACCOUNT_PRESENCE_UPDATED,
+      Time.zone.now,
+      account_id: Current.account.id,
+      user_id: @agent.id,
+      status: account_user.availability
+    )
+    ActionCable.server.broadcast(
+      "account_#{Current.account.id}",
+      {
+        event: 'presence.update',
+        data: {
+          account_id: Current.account.id,
+          users: ::OnlineStatusTracker.get_available_users(Current.account.id),
+          contacts: ::OnlineStatusTracker.get_available_contacts(Current.account.id)
+        }
+      }
+    )
   end
 end
 

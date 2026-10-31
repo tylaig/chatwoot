@@ -52,7 +52,23 @@
   "SIDEBAR": {
     "INTERNAL_CHAT": "Chat interno",
     "KANBAN": "Kanban",
-    "APPS": "Apps"
+    "APPS": "Apps",
+    "TEAM_AGENTS": "Equipo / Agentes",
+    "ONLINE_AGENTS": {
+      "TITLE": "AGENTES CONECTADOS ({count})",
+      "EMPTY": "Ningún agente conectado en este momento",
+      "SET_OFFLINE": "Marcar como desconectado",
+      "SET_ONLINE": "Marcar como en línea",
+      "MANAGE_TEAM": "Gestionar estado del equipo",
+      "OFFLINE_AGENTS": "Desconectados ({count})",
+      "STATUS_UPDATED": "Estado de {name} cambiado a {status}",
+      "STATUS_UPDATE_ERROR": "No se pudo actualizar el estado del agente",
+      "STATUS": {
+        "ONLINE": "En línea",
+        "BUSY": "Ocupado",
+        "OFFLINE": "Desconectado"
+      }
+    }
   },
   "KEYBOARD_SHORTCUTS": {
     "TITLE": {

@@ -52,7 +52,23 @@
   "SIDEBAR": {
     "INTERNAL_CHAT": "Chat Interno",
     "KANBAN": "Kanban",
-    "APPS": "Apps"
+    "APPS": "Apps",
+    "TEAM_AGENTS": "Equipe / Atendentes",
+      "ONLINE_AGENTS": {
+      "TITLE": "ATENDENTES CONECTADOS ({count})",
+      "EMPTY": "Nenhum atendente conectado no momento",
+      "SET_OFFLINE": "Marcar como Offline",
+      "SET_ONLINE": "Marcar como Online",
+      "MANAGE_TEAM": "Gerenciar status da equipe",
+      "OFFLINE_AGENTS": "Offline ({count})",
+      "STATUS_UPDATED": "Status de {name} alterado para {status}",
+      "STATUS_UPDATE_ERROR": "Não foi possível alterar o status do atendente",
+      "STATUS": {
+        "ONLINE": "Online",
+        "BUSY": "Ocupado",
+        "OFFLINE": "Offline"
+      }
+    }
   },
   "KEYBOARD_SHORTCUTS": {
     "TITLE": {

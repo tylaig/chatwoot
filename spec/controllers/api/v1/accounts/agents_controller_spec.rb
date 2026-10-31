@@ -127,7 +127,10 @@ RSpec.describe 'Agents API', type: :request do
         expect(other_agent.reload.name).to eq(params[:name])
       end
 
-      it 'modifies an agents account user attributes' do
+      it 'modifies an agents account user attributes and broadcasts presence update' do
+        allow(Rails.configuration.dispatcher).to receive(:dispatch).and_call_original
+        allow(ActionCable.server).to receive(:broadcast).and_call_original
+
         put "/api/v1/accounts/#{account.id}/agents/#{other_agent.id}",
             params: { role: 'administrator', availability: 'busy', auto_offline: false },
             headers: admin.create_new_auth_token,
@@ -139,6 +142,17 @@ RSpec.describe 'Agents API', type: :request do
         expect(response_data['availability_status']).to eq('busy')
         expect(response_data['auto_offline']).to be(false)
         expect(other_agent.account_users.first.role).to eq('administrator')
+        expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+          Events::Types::ACCOUNT_PRESENCE_UPDATED,
+          anything,
+          account_id: account.id,
+          user_id: other_agent.id,
+          status: 'busy'
+        )
+        expect(ActionCable.server).to have_received(:broadcast).with(
+          "account_#{account.id}",
+          hash_including(event: 'presence.update')
+        )
       end
     end
   end

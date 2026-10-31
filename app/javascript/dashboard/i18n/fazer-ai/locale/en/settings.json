@@ -52,7 +52,23 @@
   "SIDEBAR": {
     "INTERNAL_CHAT": "Internal Chat",
     "KANBAN": "Kanban",
-    "APPS": "Apps"
+    "APPS": "Apps",
+    "TEAM_AGENTS": "Team / Agents",
+    "ONLINE_AGENTS": {
+      "TITLE": "CONNECTED AGENTS ({count})",
+      "EMPTY": "No agents connected right now",
+      "SET_OFFLINE": "Set Offline",
+      "SET_ONLINE": "Set Online",
+      "MANAGE_TEAM": "Manage team status",
+      "OFFLINE_AGENTS": "Offline ({count})",
+      "STATUS_UPDATED": "{name}'s status changed to {status}",
+      "STATUS_UPDATE_ERROR": "Could not update agent status",
+      "STATUS": {
+        "ONLINE": "Online",
+        "BUSY": "Busy",
+        "OFFLINE": "Offline"
+      }
+    }
   },
   "KEYBOARD_SHORTCUTS": {
     "TITLE": {
