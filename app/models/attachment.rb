@@ -238,8 +238,8 @@ class Attachment < ApplicationRecord
       return if file_type == 'image' && extension == 'jpeg'
     end
 
-    file.blob.open do |tmp|
-      data = File.binread(tmp.path)
+    with_raw_attachment_tempfile do |tmp_path|
+      data = File.binread(tmp_path)
       jpegs = []
       pos = 0
       while (start_idx = data.index("\xFF\xD8\xFF".b, pos))
@@ -267,15 +267,15 @@ class Attachment < ApplicationRecord
   end
 
   def normalize_heic_image_attachment
-    file.blob.open do |tmp|
+    with_raw_attachment_tempfile do |tmp_path|
       out_file = Tempfile.new(['cw_heic_', '.jpeg'])
       out_path = out_file.path
       out_file.close
 
       begin
-        converted = system('magick', "#{tmp.path}[0]", '-auto-orient', '-quality', '90', out_path) ||
-                    system('heif-convert', '-q', '90', tmp.path, out_path)
-        if converted && File.exist?(out_path) && File.size(out_path) > 1_000
+        converted = system('magick', "#{tmp_path}[0]", '-auto-orient', '-quality', '90', out_path) ||
+                    system('heif-convert', '-q', '90', tmp_path, out_path)
+        if converted && File.exist?(out_path) && File.size(out_path) > 100
           jpg_bytes = File.binread(out_path)
           self.file_type = :image
           self.extension = 'jpeg'
@@ -288,6 +288,32 @@ class Attachment < ApplicationRecord
       ensure
         File.delete(out_path) if File.exist?(out_path)
       end
+    end
+  end
+
+  def with_raw_attachment_tempfile
+    pending_attachable = attachment_changes['file']&.attachable
+    local_io = case pending_attachable
+               when ActionDispatch::Http::UploadedFile, Rack::Test::UploadedFile, Tempfile, File
+                 pending_attachable
+               when Hash
+                 pending_attachable[:io] || pending_attachable['io']
+               end
+
+    if local_io.respond_to?(:path) && local_io.path.present? && File.exist?(local_io.path)
+      yield(local_io.path)
+    elsif local_io.respond_to?(:read)
+      local_io.rewind if local_io.respond_to?(:rewind)
+      raw_bytes = local_io.read
+      local_io.rewind if local_io.respond_to?(:rewind)
+      Tempfile.create(['cw_raw_in_', File.extname(file.filename.to_s)]) do |tmp|
+        tmp.binmode
+        tmp.write(raw_bytes)
+        tmp.flush
+        yield(tmp.path)
+      end
+    else
+      file.blob.open { |tmp| yield(tmp.path) }
     end
   end
 
