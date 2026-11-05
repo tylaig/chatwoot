@@ -45,9 +45,14 @@ const isDownloading = ref(false);
 const activeAttachment = ref({});
 const activeFileType = ref('');
 const activeImageIndex = ref(
-  props.allAttachments.findIndex(
-    attachment => attachment.message_id === props.attachment.message_id
-  ) || 0
+  Math.max(
+    0,
+    props.allAttachments.findIndex(
+      attachment =>
+        attachment.id === props.attachment.id ||
+        attachment.message_id === props.attachment.message_id
+    )
+  )
 );
 
 const imageRef = useTemplateRef('imageRef');

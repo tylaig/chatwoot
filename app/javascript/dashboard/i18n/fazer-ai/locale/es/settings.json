@@ -46,7 +46,10 @@
     },
     "MEDIA": {
       "AUDIO_UNAVAILABLE": "Este audio ya no está disponible.",
-      "VIDEO_UNAVAILABLE": "Este video ya no está disponible."
+      "VIDEO_UNAVAILABLE": "Este video ya no está disponible.",
+      "LOADING_IMAGE": "Cargando imagen...",
+      "LOADING_VIDEO": "Cargando video...",
+      "OPEN_MEDIA": "Abrir archivo"
     }
   },
   "SIDEBAR": {

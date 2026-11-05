@@ -134,16 +134,28 @@ export function useMessageContext() {
 
   const currentChatAttachments = useMapGetter('getSelectedChatAttachments');
   const filteredCurrentChatAttachments = computed(() => {
-    const attachments = currentChatAttachments.value.filter(attachment =>
-      [
-        ATTACHMENT_TYPES.IMAGE,
-        ATTACHMENT_TYPES.VIDEO,
-        ATTACHMENT_TYPES.IG_REEL,
-        ATTACHMENT_TYPES.AUDIO,
-      ].includes(attachment.file_type)
+    const allowedTypes = [
+      ATTACHMENT_TYPES.IMAGE,
+      ATTACHMENT_TYPES.VIDEO,
+      ATTACHMENT_TYPES.IG_REEL,
+      ATTACHMENT_TYPES.AUDIO,
+    ];
+    const storeAttachments = (currentChatAttachments.value || []).filter(
+      attachment =>
+        allowedTypes.includes(attachment.file_type || attachment.fileType)
+    );
+    const localAttachments = (context.attachments?.value || []).filter(
+      attachment =>
+        allowedTypes.includes(attachment.fileType || attachment.file_type)
     );
 
-    return useSnakeCase(attachments);
+    const normalizedStore = useSnakeCase(storeAttachments);
+    const existingIds = new Set(normalizedStore.map(item => item.id));
+    const missingLocal = useSnakeCase(localAttachments).filter(
+      item => !existingIds.has(item.id)
+    );
+
+    return [...normalizedStore, ...missingLocal];
   });
 
   return { ...context, filteredCurrentChatAttachments };
