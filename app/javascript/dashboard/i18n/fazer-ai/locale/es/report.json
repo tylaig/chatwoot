@@ -47,7 +47,7 @@
     "OPENED": "Abiertas"
   },
   "CSAT_REPORTS": {
-    "AI_ASSISTANT_OPTION": "🤖 Asistente IA (Leo / Sin Agente Humano)",
+    "AI_ASSISTANT_OPTION": "Asistente IA (Leo / Sin Agente Humano)",
     "AI_HANDLED_BADGE": "Asistente IA (Leo)",
     "METRIC": {
       "AVERAGE_RATING": {

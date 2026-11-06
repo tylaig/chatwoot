@@ -68,7 +68,7 @@ class Api::V1::Accounts::CsatSurveyResponsesController < Api::V1::Accounts::Base
       {
         id: is_ai ? 'ai' : key,
         is_ai: is_ai,
-        name: is_ai ? '🤖 Assistente IA (Leo)' : (user&.name || "Agente ##{key}"),
+        name: is_ai ? 'Assistente IA (Leo)' : (user&.name || "Agente ##{key}"),
         thumbnail: is_ai ? nil : user&.avatar_url,
         total_count: data[:total],
         average_rating: (data[:weighted_sum].to_f / data[:total]).round(2),

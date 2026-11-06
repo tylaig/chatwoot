@@ -36,7 +36,7 @@ const averageStarRating = computed(() => {
 const aiVsHumanValue = computed(() => {
   const ai = metrics.value?.aiResponsesCount || 0;
   const human = metrics.value?.humanResponsesCount || 0;
-  return `🤖 ${ai} / 👤 ${human}`;
+  return `${ai} IA / ${human} Hum.`;
 });
 
 const aiVsHumanParams = computed(() => {
@@ -59,7 +59,7 @@ const formatPercent = value => (value ? `${value}%` : '0%');
 <template>
   <div class="flex flex-col gap-4">
     <div
-      class="flex sm:flex-row flex-col flex-wrap w-full gap-4 sm:gap-10 shadow outline-1 outline outline-n-container rounded-xl bg-n-solid-2 px-6 py-5"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 w-full gap-4 lg:gap-6 shadow outline-1 outline outline-n-container rounded-xl bg-n-solid-2 px-6 py-5"
     >
       <CsatMetricCard
         :label="$t('CSAT_REPORTS.METRIC.TOTAL_RESPONSES.LABEL')"
@@ -68,16 +68,12 @@ const formatPercent = value => (value ? `${value}%` : '0%');
         :is-loading="isLoading"
       />
 
-      <div class="w-full sm:w-px bg-n-strong" />
-
       <CsatMetricCard
         :label="$t('CSAT_REPORTS.METRIC.AVERAGE_RATING.LABEL')"
         :tooltip="$t('CSAT_REPORTS.METRIC.AVERAGE_RATING.TOOLTIP')"
         :value="averageStarRating"
         :is-loading="isLoading"
       />
-
-      <div class="w-full sm:w-px bg-n-strong" />
 
       <CsatMetricCard
         :label="$t('CSAT_REPORTS.METRIC.SATISFACTION_SCORE.LABEL')"
@@ -86,16 +82,12 @@ const formatPercent = value => (value ? `${value}%` : '0%');
         :is-loading="isLoading"
       />
 
-      <div class="w-full sm:w-px bg-n-strong" />
-
       <CsatMetricCard
         :label="$t('CSAT_REPORTS.METRIC.RESPONSE_RATE.LABEL')"
         :tooltip="$t('CSAT_REPORTS.METRIC.RESPONSE_RATE.TOOLTIP')"
         :value="formatPercent(responseRate)"
         :is-loading="isLoading"
       />
-
-      <div class="w-full sm:w-px bg-n-strong" />
 
       <CsatMetricCard
         :label="$t('CSAT_REPORTS.METRIC.AI_VS_HUMAN.LABEL')"
