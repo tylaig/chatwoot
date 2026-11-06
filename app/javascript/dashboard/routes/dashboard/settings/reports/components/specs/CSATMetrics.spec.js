@@ -42,7 +42,8 @@ describe('CsatMetrics.vue', () => {
   });
 
   it('computes response count correctly', () => {
-    expect(wrapper.vm.responseCount).toBe('100');
+    const metricCards = wrapper.findAllComponents({ name: 'CsatMetricCard' });
+    expect(metricCards[0].props('value')).toBe('100');
   });
 
   it('renders metric cards with correct values', () => {
