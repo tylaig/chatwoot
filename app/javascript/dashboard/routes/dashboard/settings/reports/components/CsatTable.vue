@@ -61,6 +61,9 @@ const tableData = computed(() => {
     id: response.id,
     contact: response.contact,
     assignedAgent: response.assigned_agent,
+    handledByAi: response.handled_by_ai,
+    aiAgentName: response.ai_agent_name,
+    inboxName: response.inbox_name,
     rating: response.rating,
     feedbackText: response.feedback_message || '',
     conversationId: response.conversation_id,
@@ -75,6 +78,10 @@ const getRatingData = rating => {
   return CSAT_RATINGS.find(r => r.value === rating) || {};
 };
 
+const starSymbol = '★';
+const aiSymbol = '🤖';
+const formatRatingFraction = rating => `${rating}/5`;
+
 const columnHelper = createColumnHelper();
 
 const columns = computed(() => {
@@ -84,15 +91,15 @@ const columns = computed(() => {
     }),
     columnHelper.accessor('rating', {
       header: t('CSAT_REPORTS.TABLE.HEADER.RATING'),
-      size: 120,
+      size: 170,
     }),
     columnHelper.accessor('feedbackText', {
       header: t('CSAT_REPORTS.TABLE.HEADER.FEEDBACK_TEXT'),
-      size: 500,
+      size: 460,
     }),
     columnHelper.accessor('assignedAgent', {
       header: t('CSAT_REPORTS.TABLE.HEADER.HANDLED_BY'),
-      size: 160,
+      size: 200,
     }),
   ];
 
@@ -181,15 +188,33 @@ const table = useVueTable({
                 />
               </td>
               <td class="py-4 px-5">
-                <div
-                  class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg"
-                  :style="{
-                    backgroundColor: `${getRatingData(row.rating).color}20`,
-                  }"
-                >
-                  <span class="text-sm font-medium text-n-slate-12 truncate">
-                    {{ $t(getRatingData(row.rating).translationKey) }}
-                  </span>
+                <div class="flex flex-col items-start gap-1">
+                  <div class="flex items-center gap-0.5 text-sm leading-none">
+                    <span
+                      v-for="star in 5"
+                      :key="star"
+                      :class="
+                        star <= row.rating
+                          ? 'text-n-amber-9'
+                          : 'text-n-slate-6 dark:text-n-slate-7 opacity-40'
+                      "
+                    >
+                      {{ starSymbol }}
+                    </span>
+                    <span class="ml-1 text-xs font-bold text-n-slate-12">
+                      {{ formatRatingFraction(row.rating) }}
+                    </span>
+                  </div>
+                  <div
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md"
+                    :style="{
+                      backgroundColor: `${getRatingData(row.rating).color}20`,
+                    }"
+                  >
+                    <span class="text-xs font-medium text-n-slate-12 truncate">
+                      {{ $t(getRatingData(row.rating).translationKey) }}
+                    </span>
+                  </div>
                 </div>
               </td>
               <td class="py-4 px-5">
@@ -204,14 +229,34 @@ const table = useVueTable({
                 </div>
               </td>
               <td class="py-4 px-5">
-                <UserAvatarWithName
-                  v-if="row.assignedAgent"
-                  :user="row.assignedAgent"
-                  :size="28"
-                />
-                <span v-else class="text-n-slate-10 text-sm italic">
-                  {{ $t('CSAT_REPORTS.NO_AGENT') }}
-                </span>
+                <div v-if="row.assignedAgent" class="flex flex-col gap-0.5">
+                  <UserAvatarWithName :user="row.assignedAgent" :size="28" />
+                  <span
+                    v-if="row.inboxName"
+                    class="text-[11px] text-n-slate-10 pl-9 truncate"
+                  >
+                    {{ row.inboxName }}
+                  </span>
+                </div>
+                <div
+                  v-else
+                  class="inline-flex flex-col items-start gap-0.5 px-2.5 py-1 rounded-lg bg-n-violet-3/60 dark:bg-n-violet-3/30 border border-n-violet-6/40"
+                >
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-sm">{{ aiSymbol }}</span>
+                    <span class="text-xs font-semibold text-n-violet-11">
+                      {{
+                        row.aiAgentName || $t('CSAT_REPORTS.AI_HANDLED_BADGE')
+                      }}
+                    </span>
+                  </div>
+                  <span
+                    v-if="row.inboxName"
+                    class="text-[11px] text-n-slate-10 pl-5 truncate"
+                  >
+                    {{ row.inboxName }}
+                  </span>
+                </div>
               </td>
               <td v-if="showExpandableRows" class="py-4 px-5">
                 <div

@@ -45,5 +45,35 @@
     "HANDLED": "Handled",
     "ASSIGNED": "Assigned",
     "OPENED": "Opened"
+  },
+  "CSAT_REPORTS": {
+    "AI_ASSISTANT_OPTION": "🤖 AI Assistant (Leo / No Human Agent)",
+    "AI_HANDLED_BADGE": "AI Assistant (Leo)",
+    "METRIC": {
+      "AVERAGE_RATING": {
+        "LABEL": "Average star rating",
+        "TOOLTIP": "Weighted average star rating (1 to 5) across all responses in the period"
+      },
+      "AI_VS_HUMAN": {
+        "LABEL": "AI vs Humans",
+        "TOOLTIP": "Proportion of ratings from AI-handled conversations versus human agents",
+        "AI_SUB": "AI: {ai} ({aiPercent}%) · Humans: {human} ({humanPercent}%)"
+      }
+    },
+    "LEADERBOARD": {
+      "TITLE": "Agent & AI Leaderboard (Top Rated)",
+      "SUBTITLE": "Sorted by average star rating and response volume in the selected period",
+      "EMPTY": "No ratings recorded for the selected filters.",
+      "AI_TAG": "Autonomous AI",
+      "HUMAN_TAG": "Human",
+      "COLUMNS": {
+        "RANK": "#",
+        "AGENT": "Agent / AI",
+        "AVERAGE": "Average (Stars)",
+        "CSAT_SCORE": "Satisfaction (4★ & 5★)",
+        "TOTAL": "Total Ratings",
+        "DISTRIBUTION": "Distribution (1★ to 5★)"
+      }
+    }
   }
 }

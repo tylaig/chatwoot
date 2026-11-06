@@ -39,7 +39,19 @@ class CsatSurveyResponse < ApplicationRecord
   validates :conversation_id, presence: true
 
   scope :filter_by_created_at, ->(range) { where(created_at: range) if range.present? }
-  scope :filter_by_assigned_agent_id, ->(user_ids) { where(assigned_agent_id: user_ids) if user_ids.present? }
+  scope :filter_by_assigned_agent_id, lambda { |user_ids|
+    return if user_ids.blank?
+
+    ids = Array(user_ids).map(&:to_s)
+    include_ai = ids.delete('ai') || ids.delete('-1')
+    if include_ai && ids.any?
+      where(assigned_agent_id: ids).or(where(assigned_agent_id: nil))
+    elsif include_ai
+      where(assigned_agent_id: nil)
+    else
+      where(assigned_agent_id: ids)
+    end
+  }
   scope :filter_by_inbox_id, ->(inbox_id) { joins(:conversation).where(conversations: { inbox_id: inbox_id }) if inbox_id.present? }
   scope :filter_by_team_id, ->(team_id) { joins(:conversation).where(conversations: { team_id: team_id }) if team_id.present? }
   # filter by rating value

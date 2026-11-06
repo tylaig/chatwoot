@@ -10,7 +10,7 @@ export const buildFilterList = (items, type) =>
 export const buildRatingsList = t =>
   CSAT_RATINGS.map(rating => ({
     id: rating.value,
-    name: `${t(rating.translationKey)}`,
+    name: `${'⭐'.repeat(rating.value)} (${rating.value}/5) — ${t(rating.translationKey)}`,
     type: 'ratings',
   }));
 

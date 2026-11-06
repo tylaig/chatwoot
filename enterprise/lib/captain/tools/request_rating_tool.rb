@@ -8,7 +8,8 @@ class Captain::Tools::RequestRatingTool < Captain::Tools::BasePublicTool
 
     log_tool_usage('request_rating', { conversation_id: conversation.id, reason: reason })
 
-    if conversation.messages.where(content_type: :input_csat).exists?
+    last_csat = conversation.messages.where(content_type: :input_csat).order(:id).last
+    if last_csat && !conversation.messages.where('id > ?', last_csat.id).where(message_type: [:incoming, :outgoing], private: false).exists?
       return "CSAT rating survey was already sent in Conversation ##{conversation.display_id}"
     end
 

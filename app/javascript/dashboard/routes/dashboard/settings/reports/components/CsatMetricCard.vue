@@ -12,6 +12,10 @@ defineProps({
     type: [String, Number],
     required: true,
   },
+  subText: {
+    type: String,
+    default: '',
+  },
   isLoading: {
     type: Boolean,
     default: false,
@@ -20,7 +24,7 @@ defineProps({
 </script>
 
 <template>
-  <div class="flex flex-col gap-2 items-start justify-center min-w-[10rem]">
+  <div class="flex flex-col gap-1.5 items-start justify-center min-w-[9rem]">
     <span
       class="inline-flex items-center gap-1 text-sm font-medium text-n-slate-11"
     >
@@ -34,8 +38,13 @@ defineProps({
       v-if="isLoading"
       class="w-16 h-8 rounded-md bg-n-slate-3 animate-pulse"
     />
-    <span v-else class="text-2xl font-medium text-n-slate-12">
-      {{ value }}
-    </span>
+    <div v-else class="flex flex-col gap-0.5">
+      <span class="text-2xl font-semibold text-n-slate-12">
+        {{ value }}
+      </span>
+      <span v-if="subText" class="text-xs font-medium text-n-slate-10">
+        {{ subText }}
+      </span>
+    </div>
   </div>
 </template>

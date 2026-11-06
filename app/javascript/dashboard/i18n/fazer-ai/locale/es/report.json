@@ -45,5 +45,35 @@
     "HANDLED": "Atendidas",
     "ASSIGNED": "Asignadas",
     "OPENED": "Abiertas"
+  },
+  "CSAT_REPORTS": {
+    "AI_ASSISTANT_OPTION": "🤖 Asistente IA (Leo / Sin Agente Humano)",
+    "AI_HANDLED_BADGE": "Asistente IA (Leo)",
+    "METRIC": {
+      "AVERAGE_RATING": {
+        "LABEL": "Promedio de estrellas",
+        "TOOLTIP": "Promedio ponderado de estrellas (1 a 5) de todas las evaluaciones en el período"
+      },
+      "AI_VS_HUMAN": {
+        "LABEL": "IA vs Humanos",
+        "TOOLTIP": "Proporción de evaluaciones de conversaciones atendidas por IA frente a agentes humanos",
+        "AI_SUB": "IA: {ai} ({aiPercent}%) · Humanos: {human} ({humanPercent}%)"
+      }
+    },
+    "LEADERBOARD": {
+      "TITLE": "Ranking de Agentes e IA (Mejores Evaluaciones)",
+      "SUBTITLE": "Ordenado por promedio de estrellas y volumen de evaluaciones en el período seleccionado",
+      "EMPTY": "No hay evaluaciones registradas para los filtros seleccionados.",
+      "AI_TAG": "IA Autónoma",
+      "HUMAN_TAG": "Humano",
+      "COLUMNS": {
+        "RANK": "#",
+        "AGENT": "Agente / IA",
+        "AVERAGE": "Promedio (Estrellas)",
+        "CSAT_SCORE": "Satisfacción (4★ y 5★)",
+        "TOTAL": "Total de Evaluaciones",
+        "DISTRIBUTION": "Distribución (1★ a 5★)"
+      }
+    }
   }
 }

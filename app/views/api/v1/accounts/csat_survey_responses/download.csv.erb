@@ -17,8 +17,9 @@
 <% contact = csat_response.contact %>
 <% conversation = csat_response.conversation %>
 <%
+  ai_name = conversation&.ai_assignee.try(:name) || conversation&.inbox&.captain_assistant&.name || 'Assistente IA (Leo)'
   row = [
-    assigned_agent ? "#{assigned_agent.name} (#{assigned_agent.email})" : nil,
+    assigned_agent ? "#{assigned_agent.name} (#{assigned_agent.email})" : "🤖 #{ai_name}",
     csat_response.rating,
     csat_response.feedback_message.presence,
     contact&.name.presence,
