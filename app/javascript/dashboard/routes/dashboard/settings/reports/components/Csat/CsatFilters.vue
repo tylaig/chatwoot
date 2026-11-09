@@ -58,7 +58,10 @@ const appliedFilters = ref({
   rating: urlFilters.rating,
 });
 
-const agents = computed(() => store.getters['agents/getAgents']);
+const agents = computed(() => [
+  { id: 'ai', name: t('CSAT_REPORTS.AI_ASSISTANT_OPTION') },
+  ...(store.getters['agents/getAgents'] || []),
+]);
 const inboxes = computed(() => store.getters['inboxes/getInboxes']);
 const teams = computed(() => store.getters['teams/getTeams']);
 

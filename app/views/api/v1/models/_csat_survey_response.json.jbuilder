@@ -17,9 +17,18 @@ if resource.contact
   end
 end
 json.conversation_id resource.conversation.display_id
+json.inbox_name resource.conversation.inbox&.name
 if resource.assigned_agent
   json.assigned_agent do
     json.partial! 'api/v1/models/agent', formats: [:json], resource: resource.assigned_agent
   end
 end
+json.handled_by_ai resource.assigned_agent.nil?
+json.ai_agent_name(
+  if resource.assigned_agent.nil?
+    resource.conversation.ai_assignee.try(:name) ||
+      resource.conversation.inbox&.captain_assistant&.name ||
+      'Leo (IA)'
+  end
+)
 json.created_at resource.created_at.to_i

@@ -19,6 +19,7 @@ describe('CsatMetrics.vue', () => {
       }),
       'csat/getSatisfactionScore': () => 85,
       'csat/getResponseRate': () => 90,
+      'csat/getAgentLeaderboard': () => [],
       'csat/getUIFlags': () => ({ isFetchingMetrics: false }),
     };
 
@@ -46,7 +47,7 @@ describe('CsatMetrics.vue', () => {
 
   it('renders metric cards with correct values', () => {
     const metricCards = wrapper.findAllComponents({ name: 'CsatMetricCard' });
-    expect(metricCards).toHaveLength(3);
+    expect(metricCards).toHaveLength(5);
   });
 
   it('renders rating distribution component', () => {

@@ -17,6 +17,7 @@ class Api::V1::Accounts::CsatSurveyResponsesController < Api::V1::Accounts::Base
   def metrics
     @total_count = @csat_survey_responses.count
     @ratings_count = @csat_survey_responses.group(:rating).count
+    build_agent_leaderboard
   end
 
   def download
@@ -34,12 +35,47 @@ class Api::V1::Accounts::CsatSurveyResponsesController < Api::V1::Accounts::Base
   end
 
   def set_csat_survey_responses
-    base_query = Current.account.csat_survey_responses.includes([:conversation, :assigned_agent, :contact])
+    base_query = Current.account.csat_survey_responses.includes([{ conversation: [:inbox, :ai_assignee] }, :assigned_agent, :contact])
     @csat_survey_responses = filtrate(base_query).filter_by_created_at(range)
                                                  .filter_by_assigned_agent_id(params[:user_ids])
                                                  .filter_by_inbox_id(params[:inbox_id])
                                                  .filter_by_team_id(params[:team_id])
                                                  .filter_by_rating(params[:rating])
+  end
+
+  def build_agent_leaderboard
+    grouped = @csat_survey_responses.unscope(:order, :includes).group(:assigned_agent_id, :rating).count
+    agent_ids = grouped.keys.map(&:first).compact.uniq
+    users_by_id = Current.account.users.where(id: agent_ids).index_by(&:id)
+
+    stats = Hash.new { |h, k| h[k] = { ratings: { 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0 }, total: 0, weighted_sum: 0 } }
+    grouped.each do |(agent_id, rating), count|
+      key = agent_id || 'ai'
+      stats[key][:ratings][rating] = count
+      stats[key][:total] += count
+      stats[key][:weighted_sum] += (rating * count)
+    end
+
+    @ai_responses_count = stats['ai'][:total]
+    @human_responses_count = @total_count - @ai_responses_count
+
+    @agent_leaderboard = stats.map do |key, data|
+      next if data[:total].zero?
+
+      is_ai = key == 'ai'
+      user = is_ai ? nil : users_by_id[key]
+      positive = data[:ratings][4].to_i + data[:ratings][5].to_i
+      {
+        id: is_ai ? 'ai' : key,
+        is_ai: is_ai,
+        name: is_ai ? '🤖 Assistente IA (Leo)' : (user&.name || "Agente ##{key}"),
+        thumbnail: is_ai ? nil : user&.avatar_url,
+        total_count: data[:total],
+        average_rating: (data[:weighted_sum].to_f / data[:total]).round(2),
+        satisfaction_score: ((positive.to_f * 100) / data[:total]).round(1),
+        ratings_count: data[:ratings]
+      }
+    end.compact.sort_by { |row| [-row[:average_rating], -row[:total_count]] }
   end
 
   def set_current_page_surveys

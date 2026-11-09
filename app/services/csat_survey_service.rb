@@ -41,7 +41,10 @@ class CsatSurveyService
   end
 
   def csat_already_sent?
-    conversation.messages.where(content_type: :input_csat).present?
+    last_csat = conversation.messages.where(content_type: :input_csat).order(:id).last
+    return false unless last_csat
+
+    !conversation.messages.where('id > ?', last_csat.id).where(message_type: [:incoming, :outgoing], private: false).exists?
   end
 
   def within_messaging_window?

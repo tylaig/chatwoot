@@ -29,7 +29,7 @@ const chartData = computed(() => ({
   total: props.totalResponseCount,
   segments: sortedRatings.value.map(rating => ({
     id: rating.key,
-    label: t(rating.translationKey),
+    label: `${'⭐'.repeat(rating.value)} (${rating.value}★) ${t(rating.translationKey)}`,
     value: props.ratingCount[rating.value] || 0,
     color: rating.color,
   })),

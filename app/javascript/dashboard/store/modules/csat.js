@@ -20,6 +20,9 @@ export const state = {
       5: 0,
     },
     totalSentMessagesCount: 0,
+    aiResponsesCount: 0,
+    humanResponsesCount: 0,
+    agentLeaderboard: [],
   },
   uiFlags: {
     isFetching: false,
@@ -57,6 +60,9 @@ export const getters = {
   },
   getRatingCount(_state) {
     return _state.metrics.ratingsCount;
+  },
+  getAgentLeaderboard(_state) {
+    return _state.metrics.agentLeaderboard || [];
   },
 };
 
@@ -113,8 +119,11 @@ export const mutations = {
     _state,
     {
       total_count: totalResponseCount,
-      ratings_count: ratingsCount,
+      ratings_count: ratingsCount = {},
       total_sent_messages_count: totalSentMessagesCount,
+      ai_responses_count: aiResponsesCount,
+      human_responses_count: humanResponsesCount,
+      agent_leaderboard: agentLeaderboard,
     }
   ) {
     _state.metrics.totalResponseCount = totalResponseCount || 0;
@@ -126,6 +135,9 @@ export const mutations = {
       5: ratingsCount['5'] || 0,
     };
     _state.metrics.totalSentMessagesCount = totalSentMessagesCount || 0;
+    _state.metrics.aiResponsesCount = aiResponsesCount || 0;
+    _state.metrics.humanResponsesCount = humanResponsesCount || 0;
+    _state.metrics.agentLeaderboard = agentLeaderboard || [];
   },
   [types.UPDATE_CSAT_RESPONSE]: MutationHelpers.update,
 };
