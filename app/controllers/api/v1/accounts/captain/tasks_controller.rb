@@ -32,7 +32,7 @@ class Api::V1::Accounts::Captain::TasksController < Api::V1::Accounts::BaseContr
   end
 
   def label_suggestion
-    return render json: { message: nil }, status: :ok unless Current.account&.feature_enabled?('captain_label_suggestion_active')
+    return render json: { message: nil }, status: :ok unless label_suggestion_enabled?
 
     result = Captain::LabelSuggestionService.new(
       account: Current.account,
@@ -69,6 +69,13 @@ class Api::V1::Accounts::Captain::TasksController < Api::V1::Accounts::BaseContr
 
   def check_authorization
     authorize(:'captain/tasks')
+  end
+
+  def label_suggestion_enabled?
+    return false unless Current.account
+
+    Current.account.captain_label_suggestion_enabled? ||
+      Current.account.hooks.find_by(app_id: 'openai', status: 'enabled')&.settings&.dig('label_suggestion') == true
   end
 end
 
