@@ -20,6 +20,22 @@ export default {
       type: Function,
       default: () => {},
     },
+    iconName: {
+      type: String,
+      default: 'attach',
+    },
+    acceptTypes: {
+      type: String,
+      default: '',
+    },
+    inputId: {
+      type: String,
+      default: 'chat-file-upload',
+    },
+    enablePaste: {
+      type: Boolean,
+      default: true,
+    },
   },
   setup() {
     const { canHandleAttachments } = useAttachments();
@@ -38,14 +54,18 @@ export default {
       );
     },
     allowedFileTypes() {
-      return ALLOWED_FILE_TYPES;
+      return this.acceptTypes || ALLOWED_FILE_TYPES;
     },
   },
   mounted() {
-    document.addEventListener('paste', this.handleClipboardPaste);
+    if (this.enablePaste) {
+      document.addEventListener('paste', this.handleClipboardPaste);
+    }
   },
   unmounted() {
-    document.removeEventListener('paste', this.handleClipboardPaste);
+    if (this.enablePaste) {
+      document.removeEventListener('paste', this.handleClipboardPaste);
+    }
   },
   methods: {
     handleClipboardPaste(e) {
@@ -63,8 +83,12 @@ export default {
         }
       });
     },
-    getFileType(fileType) {
-      return fileType.includes('image') ? 'image' : 'file';
+    getFileType(fileType, fileName = '') {
+      if (fileType && fileType.includes('image')) return 'image';
+      if (/\.(jpe?g|png|gif|bmp|webp|heic|heif|avif)$/i.test(fileName)) {
+        return 'image';
+      }
+      return 'file';
     },
     async onFileUpload(file) {
       if (this.globalConfig.directUploadsEnabled) {
@@ -141,7 +165,7 @@ export default {
     getLocalFileAttributes(file) {
       return {
         thumbUrl: window.URL.createObjectURL(file.file),
-        fileType: this.getFileType(file.type),
+        fileType: this.getFileType(file.type, file.name || file.file?.name),
       };
     },
   },
@@ -151,6 +175,7 @@ export default {
 <template>
   <FileUpload
     ref="upload"
+    :input-id="inputId"
     :size="4096 * 2048"
     :accept="allowedFileTypes"
     :data="{
@@ -159,8 +184,11 @@ export default {
     }"
     @input-file="onFileUpload"
   >
-    <button class="min-h-8 min-w-8 flex items-center justify-center">
-      <FluentIcon v-if="!isUploading.image" icon="attach" />
+    <button
+      type="button"
+      class="min-h-8 min-w-8 flex items-center justify-center"
+    >
+      <FluentIcon v-if="!isUploading.image" :icon="iconName" />
       <Spinner v-if="isUploading" size="small" />
     </button>
   </FileUpload>
