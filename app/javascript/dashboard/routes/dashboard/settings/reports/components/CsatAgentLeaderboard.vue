@@ -38,7 +38,7 @@ const getPercentForRating = (row, star) => {
 };
 
 const formatStarCount = (row, star) =>
-  `${star}★: ${getCountForRating(row, star)}`;
+  `${star}/5: ${getCountForRating(row, star)}`;
 
 const formatSatisfactionScore = score => `${score}%`;
 </script>
@@ -168,14 +168,13 @@ const formatSatisfactionScore = score => `${score}%`;
                   <span
                     v-for="star in 5"
                     :key="star"
+                    class="i-lucide-star size-3.5"
                     :class="
                       star <= Math.round(item.average_rating)
                         ? 'text-n-amber-9'
-                        : 'text-n-slate-6 opacity-40'
+                        : 'text-n-slate-6 opacity-35'
                     "
-                  >
-                    {{ starSymbol }}
-                  </span>
+                  />
                 </div>
               </div>
             </td>

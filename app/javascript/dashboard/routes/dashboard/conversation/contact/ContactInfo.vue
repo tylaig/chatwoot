@@ -379,14 +379,14 @@ export default {
         <SocialIcons :social-profiles="socialProfiles" />
       </div>
 
-      <!-- Balanced 4-Column Quick Action Bar matching GPT Image 2.5 -->
-      <div class="flex items-center w-full pt-0.5 gap-2">
+      <!-- Balanced Quick Action Bar with responsive wrap so buttons never overlap -->
+      <div class="flex flex-wrap items-center w-full pt-0.5 gap-1.5">
         <ComposeConversation :contact-id="String(contact.id)">
           <template #trigger>
             <button
               v-tooltip.top-end="$t('CONTACT_PANEL.NEW_MESSAGE')"
               type="button"
-              class="flex-1 h-9 px-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 hover:border-emerald-400 flex items-center justify-center gap-1.5 text-xs font-medium transition-all"
+              class="flex-1 min-w-[115px] h-9 px-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 hover:border-emerald-400 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap transition-all"
             >
               <span class="i-ph-chat-circle-dots text-sm text-emerald-400" />
               <span>{{ $t('CONTACT_PANEL.NEW_MESSAGE') }}</span>
@@ -410,7 +410,7 @@ export default {
         <button
           v-tooltip.top-end="$t('EDIT_CONTACT.BUTTON_LABEL')"
           type="button"
-          class="flex-1 h-9 px-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-slate-200 hover:bg-white/[0.08] hover:border-emerald-500/35 flex items-center justify-center gap-1.5 text-xs font-medium transition-all"
+          class="flex-1 min-w-[110px] h-9 px-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-slate-200 hover:bg-white/[0.08] hover:border-emerald-500/35 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap transition-all"
           @click="toggleEditModal"
         >
           <span class="i-ph-pencil-simple text-sm text-slate-300" />
@@ -423,7 +423,7 @@ export default {
               v-tooltip.top-end="$t('CONTACT_PANEL.MERGE_CONTACT')"
               type="button"
               :disabled="uiFlags.isMerging"
-              class="flex-1 h-9 px-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-slate-200 hover:bg-white/[0.08] hover:border-emerald-500/35 flex items-center justify-center gap-1.5 text-xs font-medium transition-all disabled:opacity-50"
+              class="flex-1 min-w-[115px] h-9 px-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-slate-200 hover:bg-white/[0.08] hover:border-emerald-500/35 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap transition-all disabled:opacity-50"
             >
               <span class="i-ph-arrows-merge text-sm text-slate-300" />
               <span>{{ $t('CONTACT_PANEL.MERGE_CONTACT') }}</span>

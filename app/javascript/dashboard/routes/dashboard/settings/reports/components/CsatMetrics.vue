@@ -22,7 +22,7 @@ const responseCount = computed(() =>
 
 const averageStarRating = computed(() => {
   const total = metrics.value?.totalResponseCount || 0;
-  if (!total) return '0.00 ★';
+  if (!total) return '0.00 / 5.0';
   const rc = ratingCount.value || {};
   const weightedSum =
     (rc[1] || 0) * 1 +
@@ -30,7 +30,7 @@ const averageStarRating = computed(() => {
     (rc[3] || 0) * 3 +
     (rc[4] || 0) * 4 +
     (rc[5] || 0) * 5;
-  return `${(weightedSum / total).toFixed(2)} ★`;
+  return `${(weightedSum / total).toFixed(2)} / 5.0`;
 });
 
 const aiVsHumanValue = computed(() => {

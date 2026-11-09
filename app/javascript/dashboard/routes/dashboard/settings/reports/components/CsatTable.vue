@@ -197,14 +197,13 @@ const table = useVueTable({
                     <span
                       v-for="star in 5"
                       :key="star"
+                      class="i-lucide-star size-3.5"
                       :class="
                         star <= row.rating
                           ? 'text-n-amber-9'
-                          : 'text-n-slate-6 dark:text-n-slate-7 opacity-40'
+                          : 'text-n-slate-6 dark:text-n-slate-7 opacity-35'
                       "
-                    >
-                      {{ starSymbol }}
-                    </span>
+                    />
                     <span class="ml-1 text-xs font-bold text-n-slate-12">
                       {{ formatRatingFraction(row.rating) }}
                     </span>
