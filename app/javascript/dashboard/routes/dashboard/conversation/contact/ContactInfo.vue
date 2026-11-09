@@ -379,74 +379,82 @@ export default {
         <SocialIcons :social-profiles="socialProfiles" />
       </div>
 
-      <!-- Balanced Quick Action Bar with responsive wrap so buttons never overlap -->
-      <div class="flex flex-wrap items-center w-full pt-0.5 gap-1.5">
-        <ComposeConversation :contact-id="String(contact.id)">
-          <template #trigger>
-            <button
-              v-tooltip.top-end="$t('CONTACT_PANEL.NEW_MESSAGE')"
-              type="button"
-              class="flex-1 min-w-[115px] h-9 px-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 hover:border-emerald-400 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap transition-all"
-            >
-              <span class="i-ph-chat-circle-dots text-sm text-emerald-400" />
-              <span>{{ $t('CONTACT_PANEL.NEW_MESSAGE') }}</span>
-            </button>
-          </template>
-        </ComposeConversation>
+      <!-- Balanced Quick Action Bar with clean 2-row layout so buttons never overlap -->
+      <div class="flex flex-col gap-1.5 w-full pt-0.5">
+        <div class="flex items-center gap-1.5 w-full">
+          <div class="flex-1 min-w-0">
+            <ComposeConversation :contact-id="String(contact.id)">
+              <template #trigger>
+                <button
+                  v-tooltip.top-end="$t('CONTACT_PANEL.NEW_MESSAGE')"
+                  type="button"
+                  class="w-full h-9 px-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 hover:border-emerald-400 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap transition-all"
+                >
+                  <span class="i-ph-chat-circle-dots text-sm text-emerald-400 shrink-0" />
+                  <span class="truncate">{{ $t('CONTACT_PANEL.NEW_MESSAGE') }}</span>
+                </button>
+              </template>
+            </ComposeConversation>
+          </div>
 
-        <ViewAllConversations :contact="contact" />
-        <VoiceCallButton
-          :phone="contact.phone_number"
-          :contact-id="contact.id"
-          :conversation-id="currentChat?.id"
-          icon="i-lucide-phone"
-          sm
-          faded
-          slate
-          :tooltip-label="$t('CONTACT_PANEL.CALL')"
-        />
-        <AgentsConversationButton :conversation="currentChat" />
+          <ViewAllConversations :contact="contact" />
+          <VoiceCallButton
+            :phone="contact.phone_number"
+            :contact-id="contact.id"
+            :conversation-id="currentChat?.id"
+            icon="i-lucide-phone"
+            sm
+            faded
+            slate
+            :tooltip-label="$t('CONTACT_PANEL.CALL')"
+          />
+          <AgentsConversationButton :conversation="currentChat" />
 
-        <button
-          v-tooltip.top-end="$t('EDIT_CONTACT.BUTTON_LABEL')"
-          type="button"
-          class="flex-1 min-w-[110px] h-9 px-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-slate-200 hover:bg-white/[0.08] hover:border-emerald-500/35 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap transition-all"
-          @click="toggleEditModal"
-        >
-          <span class="i-ph-pencil-simple text-sm text-slate-300" />
-          <span>{{ $t('EDIT_CONTACT.BUTTON_LABEL') }}</span>
-        </button>
+          <button
+            v-tooltip.top-end="$t('EDIT_CONTACT.BUTTON_LABEL')"
+            type="button"
+            class="flex-1 min-w-0 h-9 px-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-slate-200 hover:bg-white/[0.08] hover:border-emerald-500/35 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap transition-all"
+            @click="toggleEditModal"
+          >
+            <span class="i-ph-pencil-simple text-sm text-slate-300 shrink-0" />
+            <span class="truncate">{{ $t('EDIT_CONTACT.BUTTON_LABEL') }}</span>
+          </button>
+        </div>
 
-        <ContactMergeModal :primary-contact="contact">
-          <template #trigger>
-            <button
-              v-tooltip.top-end="$t('CONTACT_PANEL.MERGE_CONTACT')"
-              type="button"
-              :disabled="uiFlags.isMerging"
-              class="flex-1 min-w-[115px] h-9 px-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-slate-200 hover:bg-white/[0.08] hover:border-emerald-500/35 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap transition-all disabled:opacity-50"
-            >
-              <span class="i-ph-arrows-merge text-sm text-slate-300" />
-              <span>{{ $t('CONTACT_PANEL.MERGE_CONTACT') }}</span>
-            </button>
-          </template>
-        </ContactMergeModal>
+        <div class="flex items-center gap-1.5 w-full">
+          <div class="flex-1 min-w-0">
+            <ContactMergeModal :primary-contact="contact">
+              <template #trigger>
+                <button
+                  v-tooltip.top-end="$t('CONTACT_PANEL.MERGE_CONTACT')"
+                  type="button"
+                  :disabled="uiFlags.isMerging"
+                  class="w-full h-9 px-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-slate-200 hover:bg-white/[0.08] hover:border-emerald-500/35 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap transition-all disabled:opacity-50"
+                >
+                  <span class="i-ph-arrows-merge text-sm text-slate-300 shrink-0" />
+                  <span class="truncate">{{ $t('CONTACT_PANEL.MERGE_CONTACT') }}</span>
+                </button>
+              </template>
+            </ContactMergeModal>
+          </div>
 
-        <ContactDeleteModal
-          v-if="isAdmin"
-          :contact="contact"
-          @deleted="$emit('panelClose')"
-        >
-          <template #trigger>
-            <button
-              v-tooltip.top-end="$t('DELETE_CONTACT.BUTTON_LABEL')"
-              type="button"
-              :disabled="uiFlags.isDeleting"
-              class="w-10 h-9 rounded-xl bg-red-500/12 border border-red-500/35 text-red-400 hover:bg-red-500/22 hover:border-red-400 flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-50"
-            >
-              <span class="i-ph-trash text-sm" />
-            </button>
-          </template>
-        </ContactDeleteModal>
+          <ContactDeleteModal
+            v-if="isAdmin"
+            :contact="contact"
+            @deleted="$emit('panelClose')"
+          >
+            <template #trigger>
+              <button
+                v-tooltip.top-end="$t('DELETE_CONTACT.BUTTON_LABEL')"
+                type="button"
+                :disabled="uiFlags.isDeleting"
+                class="w-10 h-9 rounded-xl bg-red-500/12 border border-red-500/35 text-red-400 hover:bg-red-500/22 hover:border-red-400 flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-50"
+              >
+                <span class="i-ph-trash text-sm" />
+              </button>
+            </template>
+          </ContactDeleteModal>
+        </div>
       </div>
 
       <EditContact
