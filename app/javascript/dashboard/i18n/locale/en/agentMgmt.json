@@ -82,6 +82,10 @@
           "PLACEHOLDER": "Please select an availability status",
           "ERROR": "Availability is required"
         },
+        "AUTO_OFFLINE": {
+          "LABEL": "Mark offline automatically when leaving dashboard",
+          "HELP": "When disabled, the agent remains Online when switching tabs and only goes Offline when changed manually."
+        },
         "SUBMIT": "Edit Agent"
       },
       "BUTTON_TEXT": "Edit",

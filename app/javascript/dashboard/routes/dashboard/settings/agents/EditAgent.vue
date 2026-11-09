@@ -30,6 +30,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  autoOffline: {
+    type: Boolean,
+    default: false,
+  },
   provider: {
     type: String,
     default: '',
@@ -49,6 +53,7 @@ const { t } = useI18n();
 
 const agentName = ref(props.name);
 const agentAvailability = ref(props.availability);
+const agentAutoOffline = ref(props.autoOffline);
 const selectedRoleId = ref(props.customRoleId || props.type);
 const agentCredentials = ref({ email: props.email });
 
@@ -126,6 +131,7 @@ const editAgent = async () => {
       id: props.id,
       name: agentName.value,
       availability: agentAvailability.value,
+      auto_offline: agentAutoOffline.value,
     };
 
     if (selectedRole.value.name.startsWith('custom_')) {
@@ -202,6 +208,18 @@ const resetPassword = async () => {
             {{ $t('AGENT_MGMT.EDIT.FORM.AGENT_AVAILABILITY.ERROR') }}
           </span>
         </label>
+      </div>
+
+      <div class="w-full mb-4">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input v-model="agentAutoOffline" type="checkbox" />
+          <span class="text-sm font-medium text-n-slate-12">
+            {{ $t('AGENT_MGMT.EDIT.FORM.AUTO_OFFLINE.LABEL') }}
+          </span>
+        </label>
+        <p class="mt-1 text-xs text-n-slate-11">
+          {{ $t('AGENT_MGMT.EDIT.FORM.AUTO_OFFLINE.HELP') }}
+        </p>
       </div>
 
       <div class="flex flex-row justify-start w-full gap-2 px-0 py-2">
