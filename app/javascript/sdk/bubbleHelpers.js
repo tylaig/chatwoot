@@ -38,7 +38,7 @@ export const formatLauncherHoursFromConfig = () => {
       return `${prefix}, das ${openH}h às ${closeH}h`;
     }
   }
-  return 'Atendimento Online • Resposta Rápida';
+  return 'Todos os dias, das 11h às 22h';
 };
 
 export const setBubbleText = () => {

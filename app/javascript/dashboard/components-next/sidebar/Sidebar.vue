@@ -1123,6 +1123,16 @@ const menuItems = computed(() => {
     });
   }
 
+  const visibleMainModules =
+    currentAccount.value?.settings?.main_sidebar_visible_items;
+  if (Array.isArray(visibleMainModules)) {
+    const alwaysVisible = new Set(['Inbox', 'Conversation', 'Settings', 'Apps']);
+    return items.filter(
+      item =>
+        alwaysVisible.has(item.name) || visibleMainModules.includes(item.name)
+    );
+  }
+
   return items;
 });
 

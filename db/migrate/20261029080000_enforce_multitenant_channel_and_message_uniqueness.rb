@@ -4,10 +4,11 @@ class EnforceMultitenantChannelAndMessageUniqueness < ActiveRecord::Migration[7.
   disable_ddl_transaction!
 
   def up
-    # 1. Deduplicate any stray messages sharing (inbox_id, source_id) keeping the earliest id
+    # 1. Safely clear duplicate source_id on newer messages without deleting any message history
     execute <<~SQL.squish
-      DELETE FROM messages m1
-      USING messages m2
+      UPDATE messages m1
+      SET source_id = NULL
+      FROM messages m2
       WHERE m1.inbox_id = m2.inbox_id
         AND m1.source_id = m2.source_id
         AND m1.source_id IS NOT NULL
@@ -24,28 +25,37 @@ class EnforceMultitenantChannelAndMessageUniqueness < ActiveRecord::Migration[7.
                 name: 'index_messages_on_inbox_id_and_source_id_unique'
     end
 
-    # 2. Enforce global uniqueness on channel_facebook_pages.page_id across all SaaS tenants
-    execute <<~SQL.squish
-      DELETE FROM channel_facebook_pages f1
-      USING channel_facebook_pages f2
-      WHERE f1.page_id = f2.page_id
-        AND f1.id > f2.id;
+    # 2. Enforce uniqueness on channel_facebook_pages.page_id when no duplicates exist
+    dup_pages = select_value(<<~SQL.squish).to_i
+      SELECT COUNT(*) FROM (
+        SELECT page_id FROM channel_facebook_pages GROUP BY page_id HAVING COUNT(*) > 1
+      ) t
     SQL
 
-    if index_exists?(:channel_facebook_pages, :page_id, name: 'index_channel_facebook_pages_on_page_id')
-      remove_index :channel_facebook_pages, name: 'index_channel_facebook_pages_on_page_id', algorithm: :concurrently
+    if dup_pages.zero?
+      if index_exists?(:channel_facebook_pages, :page_id, name: 'index_channel_facebook_pages_on_page_id')
+        remove_index :channel_facebook_pages, name: 'index_channel_facebook_pages_on_page_id', algorithm: :concurrently
+      end
+
+      unless index_exists?(:channel_facebook_pages, :page_id, name: 'index_channel_facebook_pages_on_page_id_unique')
+        add_index :channel_facebook_pages,
+                  :page_id,
+                  unique: true,
+                  algorithm: :concurrently,
+                  name: 'index_channel_facebook_pages_on_page_id_unique'
+      end
     end
 
-    unless index_exists?(:channel_facebook_pages, :page_id, name: 'index_channel_facebook_pages_on_page_id_unique')
-      add_index :channel_facebook_pages,
-                :page_id,
-                unique: true,
-                algorithm: :concurrently,
-                name: 'index_channel_facebook_pages_on_page_id_unique'
-    end
+    # 3. Enforce uniqueness on channel_facebook_pages.instagram_id when present and no duplicates exist
+    dup_ig = select_value(<<~SQL.squish).to_i
+      SELECT COUNT(*) FROM (
+        SELECT instagram_id FROM channel_facebook_pages
+        WHERE instagram_id IS NOT NULL AND instagram_id <> ''
+        GROUP BY instagram_id HAVING COUNT(*) > 1
+      ) t
+    SQL
 
-    # 3. Enforce global uniqueness on channel_facebook_pages.instagram_id when present
-    unless index_exists?(:channel_facebook_pages, :instagram_id, name: 'index_channel_facebook_pages_on_instagram_id_unique')
+    if dup_ig.zero? && !index_exists?(:channel_facebook_pages, :instagram_id, name: 'index_channel_facebook_pages_on_instagram_id_unique')
       add_index :channel_facebook_pages,
                 :instagram_id,
                 unique: true,
