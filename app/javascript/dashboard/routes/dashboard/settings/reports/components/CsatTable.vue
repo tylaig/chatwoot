@@ -79,8 +79,12 @@ const getRatingData = rating => {
 };
 
 const starSymbol = '★';
-const aiSymbol = '🤖';
+const aiSymbol = 'IA';
 const formatRatingFraction = rating => `${rating}/5`;
+const formatRatingText = rating => {
+  const key = getRatingData(rating).translationKey;
+  return key ? t(key).replace(/^[^\p{L}\p{N}]+\s*/u, '') : '';
+};
 
 const columnHelper = createColumnHelper();
 
@@ -212,7 +216,7 @@ const table = useVueTable({
                     }"
                   >
                     <span class="text-xs font-medium text-n-slate-12 truncate">
-                      {{ $t(getRatingData(row.rating).translationKey) }}
+                      {{ formatRatingText(row.rating) }}
                     </span>
                   </div>
                 </div>
@@ -243,7 +247,11 @@ const table = useVueTable({
                   class="inline-flex flex-col items-start gap-0.5 px-2.5 py-1 rounded-lg bg-n-violet-3/60 dark:bg-n-violet-3/30 border border-n-violet-6/40"
                 >
                   <div class="flex items-center gap-1.5">
-                    <span class="text-sm">{{ aiSymbol }}</span>
+                    <span
+                      class="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-n-violet-9 text-white text-[10px] font-bold leading-none"
+                    >
+                      {{ aiSymbol }}
+                    </span>
                     <span class="text-xs font-semibold text-n-violet-11">
                       {{
                         row.aiAgentName || $t('CSAT_REPORTS.AI_HANDLED_BADGE')

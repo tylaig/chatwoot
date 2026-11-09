@@ -15,7 +15,7 @@ defineProps({
 });
 
 const starSymbol = '★';
-const aiSymbol = '🤖';
+const aiSymbol = 'IA';
 
 const ratingColors = computed(() =>
   CSAT_RATINGS.reduce((acc, item) => {
@@ -24,12 +24,7 @@ const ratingColors = computed(() =>
   }, {})
 );
 
-const getMedal = index => {
-  if (index === 0) return '🥇';
-  if (index === 1) return '🥈';
-  if (index === 2) return '🥉';
-  return `${index + 1}º`;
-};
+const getMedal = index => `${index + 1}º`;
 
 const getCountForRating = (row, star) => {
   if (!row?.ratings_count) return 0;
@@ -112,14 +107,27 @@ const formatSatisfactionScore = score => `${score}%`;
             :key="item.id"
             class="hover:bg-n-solid-3/50 transition-colors"
           >
-            <td class="py-3 px-3 font-bold text-n-slate-12">
-              {{ getMedal(idx) }}
+            <td class="py-3 px-3">
+              <span
+                class="inline-flex items-center justify-center size-6 rounded-full text-xs font-bold"
+                :class="
+                  idx === 0
+                    ? 'bg-n-amber-4 text-n-amber-11 border border-n-amber-7'
+                    : idx === 1
+                      ? 'bg-n-slate-4 text-n-slate-12 border border-n-slate-7'
+                      : idx === 2
+                        ? 'bg-n-amber-3 text-n-amber-11 border border-n-amber-6'
+                        : 'text-n-slate-11'
+                "
+              >
+                {{ getMedal(idx) }}
+              </span>
             </td>
             <td class="py-3 px-3">
               <div class="flex items-center gap-2.5">
                 <div
                   v-if="item.is_ai"
-                  class="flex items-center justify-center size-7 rounded-full bg-n-violet-3 text-sm shrink-0"
+                  class="flex items-center justify-center size-7 rounded-full bg-n-violet-9 text-white text-[10px] font-bold shrink-0"
                 >
                   {{ aiSymbol }}
                 </div>
