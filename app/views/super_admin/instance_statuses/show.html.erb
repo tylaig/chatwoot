@@ -49,6 +49,62 @@
     </button>
   </div>
 
+  <!-- Painel & Simulador ao Vivo: Motor System 1 (Jev / Ollaya / Laya) -->
+  <div class="msc-sa-card" style="margin-bottom:24px;padding:20px;border-radius:14px;border:1px solid rgba(16,185,129,0.28);background:linear-gradient(180deg,rgba(15,23,42,0.92),rgba(9,13,22,0.96));color:#f8fafc;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:15px;font-weight:800;color:#10b981;">⚡ Motor System 1 — Jev / Ollaya Engine</span>
+          <% if @jev_status && @jev_status[:online] %>
+            <span class="msc-badge msc-badge--ok">Online • v<%= @jev_status[:version] %></span>
+            <span class="msc-mono" style="font-size:11.5px;padding:3px 8px;border-radius:6px;background:rgba(6,182,212,0.14);color:#67e8f9;border:1px solid rgba(6,182,212,0.3);">
+              <%= @jev_status[:default_model] %> • 0 output tokens
+            </span>
+          <% else %>
+            <span class="msc-badge msc-badge--err">Offline</span>
+          <% end %>
+        </div>
+        <p style="margin:6px 0 0;font-size:12.5px;color:#94a3b8;">
+          Decisões tipadas não-autorregressivas em CPU: triagem omnichannel (Intenção, Urgência 0-3, Reembolso, Handoff) e Guardrail anti-alucinação do Captain AI.
+        </p>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:14px;">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label for="sa-jev-preset" style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8;">Preset de Avaliação</label>
+        <select id="sa-jev-preset" style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid rgba(148,163,184,0.25);background:#0f172a;color:#f8fafc;font-size:13px;">
+          <option value="msc_saas_triage">msc_saas_triage — Triagem (Intenção + Urgência + Reembolso + Handoff)</option>
+          <option value="captain_handoff_guard">captain_handoff_guard — Guardrail Captain AI (Promessa de Transferência)</option>
+        </select>
+
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
+          <button type="button" class="msc-btn-ghost sa-jev-sample" data-preset="msc_saas_triage" data-text="Boa tarde! Acabei de comprar o EA FC 27 mídia primária PS5, já coloquei o login na PSN e tá pedindo o código de verificação!" style="font-size:11px;padding:5px 9px;cursor:pointer;">
+            Ex 1: Código 2FA PSN
+          </button>
+          <button type="button" class="msc-btn-ghost sa-jev-sample" data-preset="msc_saas_triage" data-text="Comprei ontem, paguei no PIX e até agora nada funcionar, apareceu cadeado e ninguém responde! Quero meu dinheiro de volta agora!" style="font-size:11px;padding:5px 9px;cursor:pointer;">
+            Ex 2: Irritado / Reembolso
+          </button>
+          <button type="button" class="msc-btn-ghost sa-jev-sample" data-preset="captain_handoff_guard" data-text="Transferindo agora mesmo seu atendimento para o suporte humano te enviar o código PSN!" style="font-size:11px;padding:5px 9px;cursor:pointer;">
+            Ex 3: Guardrail Captain
+          </button>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label for="sa-jev-text" style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8;">Mensagem para Simulação em Tempo Real</label>
+        <textarea id="sa-jev-text" rows="3" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(148,163,184,0.25);background:#0f172a;color:#f8fafc;font-size:13px;resize:vertical;">Boa tarde! Acabei de comprar o EA FC 27 mídia primária PS5, já coloquei o login na PSN e tá pedindo o código de verificação!</textarea>
+        <div style="display:flex;justify-content:flex-end;">
+          <button type="button" id="sa-jev-run-btn" class="button" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-weight:700;font-size:12.5px;cursor:pointer;">
+            ⚡ Executar Decisão System 1
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="sa-jev-result-box" style="display:none;padding:14px 16px;border-radius:12px;background:rgba(2,6,23,0.85);border:1px solid rgba(16,185,129,0.25);font-size:12.5px;"></div>
+  </div>
+
   <div class="msc-table-scroll">
     <table aria-labelledby="page-title">
       <thead><tr><th scope="col">Métrica</th><th scope="col">Valor</th></tr></thead>
@@ -239,5 +295,83 @@
   if (window.location.search.indexOf('open_updater=1') !== -1) {
     openBtn.click();
   }
+})();
+
+(function() {
+  var runBtn = document.getElementById('sa-jev-run-btn');
+  var presetEl = document.getElementById('sa-jev-preset');
+  var textEl = document.getElementById('sa-jev-text');
+  var resBox = document.getElementById('sa-jev-result-box');
+  if (!runBtn || !presetEl || !textEl || !resBox) return;
+
+  document.querySelectorAll('.sa-jev-sample').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      presetEl.value = btn.getAttribute('data-preset') || 'msc_saas_triage';
+      textEl.value = btn.getAttribute('data-text') || '';
+      runBtn.click();
+    });
+  });
+
+  function pct(v) {
+    return (Number(v || 0) * 100).toFixed(1) + '%';
+  }
+
+  runBtn.addEventListener('click', function() {
+    var text = textEl.value.trim();
+    var preset = presetEl.value;
+    if (!text) return;
+
+    runBtn.disabled = true;
+    runBtn.innerText = '⏳ Avaliando...';
+    resBox.style.display = 'block';
+    resBox.innerHTML = '<span style="color:#94a3b8;">Executando forward pass em CPU (laya:multilingual)...</span>';
+
+    var csrf = document.querySelector('meta[name="csrf-token"]');
+    fetch('/super_admin/instance_status/test_jev', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-Token': csrf ? csrf.getAttribute('content') : ''
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({ text: text, preset: preset })
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        runBtn.disabled = false;
+        runBtn.innerText = '⚡ Executar Decisão System 1';
+        if (!data.ok || !data.result) {
+          resBox.innerHTML = '<span style="color:#f87171;">Erro: ' + (data.error || 'Falha na avaliação') + '</span>';
+          return;
+        }
+        var r = data.result;
+        var html = '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(148,163,184,0.15);">';
+        html += '<strong style="color:#34d399;">✅ Resultado Calibrado (' + (data.preset || preset) + ')</strong>';
+        html += '<span class="msc-mono" style="color:#67e8f9;font-size:11.5px;">Latência Engine: ' + (r.latency_ms || 0) + ' ms • Output Tokens: ' + (r.output_tokens || 0) + '</span>';
+        html += '</div>';
+
+        if (data.preset === 'captain_handoff_guard') {
+          html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;">';
+          html += '<div style="padding:10px;border-radius:8px;background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.15);"><div style="font-size:11px;color:#94a3b8;">Prometeu Transferência Humana</div><div style="font-size:16px;font-weight:800;color:#fbbf24;margin-top:4px;">' + pct(r.promised_human_transfer) + '</div></div>';
+          html += '<div style="padding:10px;border-radius:8px;background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.15);"><div style="font-size:11px;color:#94a3b8;">Pediu p/ Aguardar Atendente</div><div style="font-size:16px;font-weight:800;color:#38bdf8;margin-top:4px;">' + pct(r.asked_customer_to_wait_for_agent) + '</div></div>';
+          html += '<div style="padding:10px;border-radius:8px;background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.15);"><div style="font-size:11px;color:#94a3b8;">Ação do Guardrail V2</div><div style="font-size:14px;font-weight:800;color:' + (r.enforced ? '#f87171' : '#34d399') + ';margin-top:4px;">' + (r.enforced ? '🚨 Forçar Handoff Humano' : '✅ Resposta Normal') + '</div></div>';
+          html += '</div>';
+        } else {
+          html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;">';
+          html += '<div style="padding:10px;border-radius:8px;background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.15);"><div style="font-size:11px;color:#94a3b8;">Intenção Principal</div><div style="font-size:14px;font-weight:800;color:#34d399;margin-top:4px;">' + (r.intent_label || r.intent) + ' (' + pct(r.intent_confidence) + ')</div></div>';
+          html += '<div style="padding:10px;border-radius:8px;background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.15);"><div style="font-size:11px;color:#94a3b8;">Urgência / Frustração</div><div style="font-size:15px;font-weight:800;color:#fbbf24;margin-top:4px;">' + Number(r.urgency_score || 0).toFixed(2) + ' / 3.0</div></div>';
+          html += '<div style="padding:10px;border-radius:8px;background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.15);"><div style="font-size:11px;color:#94a3b8;">Pedido de Reembolso</div><div style="font-size:15px;font-weight:800;color:#f87171;margin-top:4px;">' + pct(r.refund_requested) + '</div></div>';
+          html += '<div style="padding:10px;border-radius:8px;background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.15);"><div style="font-size:11px;color:#94a3b8;">Handoff Humano</div><div style="font-size:15px;font-weight:800;color:#38bdf8;margin-top:4px;">' + pct(r.needs_human_handoff) + '</div></div>';
+          html += '</div>';
+        }
+        resBox.innerHTML = html;
+      })
+      .catch(function() {
+        runBtn.disabled = false;
+        runBtn.innerText = '⚡ Executar Decisão System 1';
+        resBox.innerHTML = '<span style="color:#f87171;">Erro de comunicação com o servidor.</span>';
+      });
+  });
 })();
 </script>

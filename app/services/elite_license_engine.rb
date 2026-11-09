@@ -28,6 +28,8 @@ class EliteLicenseEngine
     channel_email
     channel_facebook
     channel_instagram
+    whatsapp_embedded_signup_inbox_creation
+    whatsapp_manual_transfer
     help_center
     team_management
     channel_voice

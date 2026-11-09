@@ -8,7 +8,37 @@ class SuperAdmin::InstanceStatusesController < SuperAdmin::ApplicationController
     msc_edition
     instance_meta
     baileys_api_version
+    jev_engine_metrics
+    @jev_status = Jev::DecisionService.status
     @update_info = SystemUpdateService.check_updates
+  end
+
+  def test_jev
+    text = params[:text].to_s.strip
+    preset = params[:preset].presence || 'msc_saas_triage'
+    if text.blank?
+      return render json: { ok: false, error: 'Informe um texto para avaliar.' }, status: :unprocessable_entity
+    end
+
+    result = if preset == 'captain_handoff_guard'
+               Jev::DecisionService.check_captain_handoff_guard(text)
+             else
+               Jev::DecisionService.triage_message(text, preset: preset)
+             end
+
+    if result.present?
+      render json: { ok: true, preset: preset, result: result }
+    else
+      render json: { ok: false, error: 'Falha ao consultar o motor Jev / Ollaya.' }, status: :bad_gateway
+    end
+  end
+
+  def jev_engine_metrics
+    st = Jev::DecisionService.status
+    @metrics['Motor System 1 (Jev / Ollaya)'] = st[:online] ? 'true' : 'false'
+    @metrics['Modelo Jev Ativo'] = st[:online] ? "#{st[:default_model]} (v#{st[:version]})" : 'Indisponível'
+  rescue StandardError
+    @metrics['Motor System 1 (Jev / Ollaya)'] = 'false'
   end
 
   def check_updates

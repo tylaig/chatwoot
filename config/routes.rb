@@ -979,6 +979,7 @@ Rails.application.routes.draw do
       resource :instance_status, only: [:show] do
         get :check_updates
         post :apply_update
+        post :test_jev
       end
 
       resource :settings, only: [:show] do

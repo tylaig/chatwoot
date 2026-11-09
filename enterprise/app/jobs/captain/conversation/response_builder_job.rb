@@ -178,8 +178,21 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
 
     text = @response['response'].to_s
     return false if text.blank?
+    return true if V2_UNEXECUTED_HANDOFF_PROMISE_REGEX.match?(text)
 
-    V2_UNEXECUTED_HANDOFF_PROMISE_REGEX.match?(text)
+    if defined?(Jev::DecisionService)
+      guard = Jev::DecisionService.check_captain_handoff_guard(text)
+      if guard.present?
+        attrs = (@conversation.additional_attributes || {}).merge('jev_captain_guard' => guard)
+        @conversation.update_columns(additional_attributes: attrs, updated_at: Time.current)
+        return true if guard['enforced']
+      end
+    end
+
+    false
+  rescue StandardError => e
+    Rails.logger.warn("[CAPTAIN][JEV] Guardrail check failed: #{e.message}")
+    false
   end
 
   def process_v2_unexecuted_handoff_promise

@@ -451,6 +451,17 @@ class Message < ApplicationRecord
     execute_message_template_hooks
     update_contact_activity
     resume_waiting_workflows_on_incoming_message
+    enqueue_jev_system_one_triage
+  end
+
+  def enqueue_jev_system_one_triage
+    return unless incoming? && !private?
+    return if content.to_s.strip.length < 3
+    return unless defined?(Jev::ConversationTriageJob)
+
+    Jev::ConversationTriageJob.perform_later(conversation_id, id)
+  rescue StandardError => e
+    Rails.logger.warn("[JEV] Failed to enqueue triage job: #{e.message}")
   end
 
   def resume_waiting_workflows_on_incoming_message
