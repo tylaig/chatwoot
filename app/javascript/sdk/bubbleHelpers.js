@@ -41,6 +41,20 @@ export const formatLauncherHoursFromConfig = () => {
   return 'Todos os dias, das 11h às 22h';
 };
 
+export const resolveLauncherTitle = () => {
+  const customCardTitle = window.chatwootSettings?.launcherCardTitle;
+  if (customCardTitle) return customCardTitle;
+
+  const rawTitle = (window.chatwootSettings?.launcherTitle || '').trim();
+  if (!rawTitle) return 'PRECISA DE AJUDA?';
+  // Se o snippet legado da loja tiver título comprido (> 22 caracteres ou com horário embutido),
+  // preserva o título compacto "PRECISA DE AJUDA?" pois o horário já aparece na linha inferior do card.
+  if (rawTitle.length > 22 || /\d{1,2}[:h]/i.test(rawTitle)) {
+    return 'PRECISA DE AJUDA?';
+  }
+  return rawTitle;
+};
+
 export const setBubbleText = () => {
   const hoursEl = document.getElementById('woot-help-card-hours-sub');
   if (hoursEl) {
@@ -51,8 +65,7 @@ export const setBubbleText = () => {
 export const createBubbleIcon = ({ className, path, target }) => {
   const positionClass = `woot-elements--${window.$chatwoot.position}`;
   const bubbleClassName = `${className} ${positionClass} woot-widget--expanded woot-help-card`;
-  const launcherTitle =
-    window.chatwootSettings?.launcherTitle || 'PRECISA DE AJUDA?';
+  const launcherTitle = resolveLauncherTitle();
   const launcherSubtitle =
     window.chatwootSettings?.launcherSubtitle ||
     'Clique aqui e fale conosco!';
@@ -139,7 +152,7 @@ export const createBubbleIcon = ({ className, path, target }) => {
   const clockWrap = document.createElement('div');
   clockWrap.className = 'woot-help-card__clock';
   clockWrap.innerHTML =
-    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#65c428" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>';
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#65c428" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" fill="none" stroke="#65c428"></circle><polyline points="12 7 12 12 15 14" fill="none" stroke="#65c428"></polyline></svg>';
 
   const hoursCol = document.createElement('div');
   hoursCol.className = 'woot-help-card__hours-col';

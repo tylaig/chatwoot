@@ -355,8 +355,10 @@
 
 /* =========================================================================
    Custom Help Card Launcher (Fiel à Imagem 3 - Todas as Lojas)
+   Isolado contra resets agressivos de temas Shopify/Liquid (svg fill, flex align, overflow)
    ========================================================================= */
 .woot-widget-bubble.woot-help-card {
+  align-items: stretch !important;
   background: #0d1218 !important;
   border: 1.5px solid rgba(101, 196, 40, 0.45) !important;
   border-radius: 16px !important;
@@ -379,16 +381,27 @@
     Arial,
     sans-serif !important;
   height: auto !important;
+  justify-content: flex-start !important;
+  letter-spacing: normal !important;
+  line-height: 1.25 !important;
   min-width: 292px !important;
-  max-width: 330px !important;
+  max-width: 336px !important;
+  overflow: hidden !important;
   padding: 13px 16px 11px 16px !important;
   text-align: left !important;
+  text-transform: none !important;
   transition:
     transform 220ms ease,
     box-shadow 220ms ease,
     border-color 220ms ease,
     opacity 150ms ease !important;
   width: auto !important;
+}
+
+.woot-widget-bubble.woot-help-card *,
+.woot-widget-bubble.woot-help-card *::before,
+.woot-widget-bubble.woot-help-card *::after {
+  box-sizing: border-box !important;
 }
 
 .woot-widget-bubble.woot-help-card:hover {
@@ -408,19 +421,24 @@
   z-index: -1 !important;
 }
 
-/* Zerar regras globais legadas de div e svg dentro do woot-widget--expanded */
+/* Zerar regras globais legadas de div e svg dentro do woot-widget--expanded e temas externos */
 .woot-widget-bubble.woot-help-card div {
+  align-items: stretch !important;
   display: block;
   font-size: inherit;
   font-weight: inherit;
-  justify-content: unset;
+  justify-content: flex-start !important;
   padding-right: 0 !important;
+  text-align: left !important;
   width: auto;
 }
 
 .woot-widget-bubble.woot-help-card svg {
+  display: block !important;
+  fill: none !important;
   height: auto !important;
   margin: 0 !important;
+  max-width: none !important;
   padding: 0 !important;
   width: auto !important;
 }
@@ -428,8 +446,10 @@
 .woot-widget-bubble.woot-help-card .woot-help-card__top {
   align-items: center !important;
   display: flex !important;
+  flex-direction: row !important;
   gap: 12px !important;
-  padding-right: 18px !important;
+  justify-content: flex-start !important;
+  padding-right: 20px !important;
   position: relative !important;
   width: 100% !important;
 }
@@ -448,8 +468,14 @@
 }
 
 .woot-widget-bubble.woot-help-card .woot-help-card__icon-wrap svg {
+  fill: none !important;
   height: 23px !important;
   width: 23px !important;
+}
+
+.woot-widget-bubble.woot-help-card .woot-help-card__icon-wrap svg path {
+  fill: #ffffff !important;
+  stroke: none !important;
 }
 
 .woot-widget-bubble.woot-help-card .woot-help-card__icon-dot {
@@ -465,29 +491,45 @@
 }
 
 .woot-widget-bubble.woot-help-card .woot-help-card__text-col {
+  align-items: flex-start !important;
   display: flex !important;
-  flex: 1 !important;
+  flex: 1 1 0% !important;
   flex-direction: column !important;
   gap: 2px !important;
+  justify-content: center !important;
   min-width: 0 !important;
+  overflow: hidden !important;
+  text-align: left !important;
 }
 
 .woot-widget-bubble.woot-help-card .woot-help-card__title {
   color: #ffffff !important;
+  display: block !important;
   font-size: 14.5px !important;
   font-weight: 800 !important;
   letter-spacing: 0.02em !important;
   line-height: 1.2 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-align: left !important;
+  text-overflow: ellipsis !important;
   text-transform: uppercase !important;
   white-space: nowrap !important;
+  width: 100% !important;
 }
 
 .woot-widget-bubble.woot-help-card .woot-help-card__subtitle {
   color: #d1d5db !important;
+  display: block !important;
   font-size: 12.5px !important;
   font-weight: 400 !important;
   line-height: 1.25 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-align: left !important;
+  text-overflow: ellipsis !important;
   white-space: nowrap !important;
+  width: 100% !important;
 }
 
 .woot-widget-bubble.woot-help-card .woot-help-card__dismiss {
@@ -511,8 +553,16 @@
 }
 
 .woot-widget-bubble.woot-help-card .woot-help-card__dismiss svg {
+  fill: none !important;
   height: 14px !important;
+  stroke: currentColor !important;
   width: 14px !important;
+}
+
+.woot-widget-bubble.woot-help-card .woot-help-card__dismiss svg line,
+.woot-widget-bubble.woot-help-card .woot-help-card__dismiss svg path {
+  fill: none !important;
+  stroke: currentColor !important;
 }
 
 .woot-widget-bubble.woot-help-card .woot-help-card__divider {
@@ -525,42 +575,66 @@
 .woot-widget-bubble.woot-help-card .woot-help-card__bottom {
   align-items: center !important;
   display: flex !important;
+  flex-direction: row !important;
   gap: 9px !important;
+  justify-content: flex-start !important;
   width: 100% !important;
 }
 
 .woot-widget-bubble.woot-help-card .woot-help-card__clock {
   align-items: center !important;
+  color: #65c428 !important;
   display: flex !important;
   flex-shrink: 0 !important;
   justify-content: center !important;
 }
 
 .woot-widget-bubble.woot-help-card .woot-help-card__clock svg {
+  fill: none !important;
   height: 17px !important;
+  stroke: #65c428 !important;
   width: 17px !important;
 }
 
+.woot-widget-bubble.woot-help-card .woot-help-card__clock svg circle,
+.woot-widget-bubble.woot-help-card .woot-help-card__clock svg polyline,
+.woot-widget-bubble.woot-help-card .woot-help-card__clock svg path {
+  fill: none !important;
+  stroke: #65c428 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  stroke-width: 2 !important;
+}
+
 .woot-widget-bubble.woot-help-card .woot-help-card__hours-col {
+  align-items: flex-start !important;
   display: flex !important;
-  flex: 1 !important;
+  flex: 1 1 0% !important;
   flex-direction: column !important;
   gap: 1px !important;
+  justify-content: center !important;
   min-width: 0 !important;
+  text-align: left !important;
 }
 
 .woot-widget-bubble.woot-help-card .woot-help-card__hours-title {
   color: #f3f4f6 !important;
+  display: block !important;
   font-size: 11.5px !important;
   font-weight: 700 !important;
   line-height: 1.2 !important;
+  text-align: left !important;
+  width: 100% !important;
 }
 
 .woot-widget-bubble.woot-help-card .woot-help-card__hours-sub {
   color: #9ca3af !important;
+  display: block !important;
   font-size: 11px !important;
   font-weight: 400 !important;
   line-height: 1.2 !important;
+  text-align: left !important;
+  width: 100% !important;
 }
 
 .woot-widget-bubble.woot-help-card .woot-help-card__status-dot {

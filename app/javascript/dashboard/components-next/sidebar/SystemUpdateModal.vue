@@ -17,7 +17,7 @@ let pollTimer = null;
 const UI_TEXT = {
   modalTitle: 'Central de Atualizações do Sistema (Games Safari)',
   modalDescription:
-    'Confira as novidades, commits e diferenças de código na branch prod/gamessafari antes de aplicar.',
+    'Confira as novidades, commits e diferenças de código na branch meusuperchat antes de aplicar.',
   installedLabel: 'Instalado na VPS:',
   arrow: '→',
   availableLabel: 'Disponível:',
@@ -87,7 +87,7 @@ const filesTabLabel = computed(
 
 const noCommitsText = computed(
   () =>
-    `Nenhuma diferença pendente entre o servidor e a branch ${updateData.value?.target_branch || 'prod/gamessafari'}.`
+    `Nenhuma diferença pendente entre o servidor e a branch ${updateData.value?.target_branch || 'meusuperchat'}.`
 );
 
 const confirmButtonLabel = computed(() => {
@@ -258,7 +258,7 @@ defineExpose({ open, close });
             <span class="text-xs text-n-slate-11 mt-0.5">
               {{ UI_TEXT.branchPrefix }}
               <strong class="text-n-slate-12">
-                {{ updateData?.target_branch || 'prod/gamessafari' }}
+                {{ updateData?.target_branch || 'meusuperchat' }}
               </strong>
               {{ UI_TEXT.brtPrefix }} {{ updateData?.brasilia_time || '...' }}
             </span>
