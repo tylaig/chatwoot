@@ -229,14 +229,14 @@ defineExpose({ open, close });
       <div
         class="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-n-solid-2 border border-n-weak"
       >
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 min-w-0 flex-1">
           <div
             class="flex items-center justify-center size-10 rounded-xl bg-n-teal-9/15 text-n-teal-11 shrink-0"
           >
             <span class="i-lucide-git-compare size-5" />
           </div>
-          <div class="flex flex-col">
-            <div class="flex items-center gap-2">
+          <div class="flex flex-col min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span class="text-xs text-n-slate-11">
                 {{ UI_TEXT.installedLabel }}
               </span>
