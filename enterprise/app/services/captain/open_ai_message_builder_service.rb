@@ -13,7 +13,13 @@ class Captain::OpenAiMessageBuilderService
   def generate_content
     parts = []
     parts << text_part(@message.content) if @message.content.present?
-    parts.concat(attachment_parts(@message.attachments)) if @message.attachments.any?
+    if @message.attachments.any?
+      att_parts = attachment_parts(@message.attachments)
+      if @message.content.blank? && att_parts.any? { |p| p[:type] == 'image_url' }
+        parts << text_part('[Cliente enviou uma imagem/print anexo. Analise visualmente a imagem anexada para responder.]')
+      end
+      parts.concat(att_parts)
+    end
 
     return 'Message without content' if parts.blank?
     return parts.first[:text] if parts.one? && parts.first[:type] == 'text'

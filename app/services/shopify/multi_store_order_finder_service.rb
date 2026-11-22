@@ -521,6 +521,7 @@ class Shopify::MultiStoreOrderFinderService
       raw_orders.concat(fetch_orders_by_name(hook, normalized_order_name))
     end
 
+    customers = []
     search_terms = build_customer_search_terms
     if search_terms.any?
       customers = search_customers(hook, search_terms)
@@ -532,6 +533,13 @@ class Shopify::MultiStoreOrderFinderService
     if raw_orders.empty? && email_queries.any?
       email_queries.each do |email|
         raw_orders.concat(fetch_orders_by_email(hook, email))
+      end
+    end
+
+    if raw_orders.empty? && customers.any?
+      customers.first(10).each do |customer|
+        synth = synthesize_archived_order_from_customer(hook, customer)
+        raw_orders << synth if synth.present?
       end
     end
 
@@ -1063,6 +1071,9 @@ class Shopify::MultiStoreOrderFinderService
     terms = []
     email_queries.each { |email| terms << "email:#{email}" }
     phone_queries.each { |phone| terms << "phone:#{phone}" }
+    if @query.present? && !@query.include?('@') && !order_number_query? && phone_queries.empty? && @query.length >= 3
+      terms << @query
+    end
     terms.uniq
   end
 
@@ -1071,9 +1082,63 @@ class Shopify::MultiStoreOrderFinderService
       hook,
       'customers/search.json',
       query: terms.join(' OR '),
-      fields: 'id,email,phone,first_name,last_name'
+      fields: 'id,email,phone,first_name,last_name,orders_count,last_order_id,last_order_name,total_spent,currency,created_at,updated_at'
     )
     res['customers'] || []
+  end
+
+  def synthesize_archived_order_from_customer(hook, customer)
+    orders_count = customer['orders_count'].to_i
+    last_order_id = customer['last_order_id']
+    last_order_name = customer['last_order_name'].presence
+    return nil if orders_count <= 0 && last_order_id.blank? && last_order_name.blank?
+
+    if order_number_query? && last_order_name.present?
+      clean_q = normalized_order_name.sub(/\A#/, '').downcase
+      clean_last = last_order_name.sub(/\A#/, '').downcase
+      return nil unless clean_last.include?(clean_q)
+    end
+
+    full_name = [customer['first_name'], customer['last_name']].compact.join(' ').strip
+    store_title = hook.settings&.dig('store_name').presence || hook.reference_id
+    created_iso = customer['updated_at'].presence || customer['created_at'].presence || 65.days.ago.iso8601
+    total_spent = customer['total_spent'].presence || '0.00'
+
+    {
+      'id' => last_order_id || "cust-#{customer['id']}",
+      'name' => last_order_name || "#HIST-#{customer['id']}",
+      'email' => customer['email'],
+      'phone' => customer['phone'],
+      'customer' => {
+        'id' => customer['id'],
+        'first_name' => customer['first_name'],
+        'last_name' => customer['last_name'],
+        'name' => full_name.presence || customer['email'],
+        'orders_count' => orders_count
+      },
+      'created_at' => created_iso,
+      'updated_at' => created_iso,
+      'total_price' => total_spent,
+      'subtotal_price' => total_spent,
+      'total_discounts' => '0.00',
+      'total_tax' => '0.00',
+      'currency' => customer['currency'] || 'BRL',
+      'financial_status' => 'paid',
+      'fulfillment_status' => 'fulfilled',
+      'tags' => 'historico-shopify-60d, cliente-verificado',
+      'note' => "Pedido histórico (>60 dias) recuperado via ficha do cliente na Shopify (#{orders_count} pedido(s) no histórico, último: #{last_order_name || last_order_id}).",
+      'line_items' => [
+        {
+          'id' => last_order_id || customer['id'],
+          'title' => "Pedido Histórico (#{store_title}) — Último pedido: #{last_order_name || 'Verificado'}",
+          'variant_title' => "Histórico do Cliente (#{orders_count} compra(s) aprovada(s))",
+          'sku' => 'HIST-60D',
+          'quantity' => 1,
+          'price' => total_spent,
+          'fulfillment_status' => 'fulfilled'
+        }
+      ]
+    }
   end
 
   def fetch_orders_by_customer(hook, customer_id)

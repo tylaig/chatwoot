@@ -20,7 +20,7 @@ class AutoAssignment::RateLimiter
   private
 
   def limit
-    config&.fair_distribution_limit.present? ? config.fair_distribution_limit.to_i : 5
+    config&.fair_distribution_limit.present? ? config.fair_distribution_limit.to_i : 100
   end
 
   def window

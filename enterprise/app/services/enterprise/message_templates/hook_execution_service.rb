@@ -9,7 +9,7 @@ module Enterprise::MessageTemplates::HookExecutionService
     # otherwise the coverage denominator only ever contains conversations
     # Captain was already about to answer.
     track_captain_eligibility
-    return unless conversation.pending?
+    return unless prepare_captain_conversation
     return perform_handoff unless inbox.captain_active?
 
     Captain::Conversation::ResponseSchedulerService.new(message: message).perform
@@ -77,6 +77,34 @@ module Enterprise::MessageTemplates::HookExecutionService
 
   def captain_handling_conversation?
     conversation.pending? && captain_assistant_configured?
+  end
+
+  # A conversation can be created as open when Captain is bound after the
+  # conversation lifecycle callback runs. Promote only unassigned conversations
+  # that the assistant is allowed to handle; never steal a human-owned thread
+  # and never bypass the assistant's business-hours policy.
+  def prepare_captain_conversation
+    # Incoming messages can race with auto-resolution and arrive while the
+    # conversation is still awaiting_resolution. Treat that state like open
+    # here: only unassigned conversations are eligible, and the lock below
+    # makes the promotion idempotent without stealing human-owned threads.
+    return true if conversation.pending?
+    return false unless (conversation.open? || conversation.awaiting_resolution?) &&
+                        conversation.assignee_id.blank? && conversation.ai_assignee.blank?
+
+    assistant = inbox.captain_assistant
+    return false unless assistant&.engages?(contact, conversation)
+
+    conversation.with_lock do
+      conversation.reload
+      next false unless (conversation.open? || conversation.awaiting_resolution?) &&
+                          conversation.assignee_id.blank? && conversation.ai_assignee.blank?
+
+      conversation.ai_assignee = assistant
+      conversation.status = :pending
+      conversation.save!
+      true
+    end
   end
 
   def captain_assistant_configured?

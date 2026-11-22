@@ -454,14 +454,10 @@ class Message < ApplicationRecord
     enqueue_jev_system_one_triage
   end
 
+  # JEV is intentionally disabled. Incoming messages continue through the
+  # normal Captain/gateway path and never enqueue an external triage job.
   def enqueue_jev_system_one_triage
-    return unless incoming? && !private?
-    return if content.to_s.strip.length < 3
-    return unless defined?(Jev::ConversationTriageJob)
-
-    Jev::ConversationTriageJob.perform_later(conversation_id, id)
-  rescue StandardError => e
-    Rails.logger.warn("[JEV] Failed to enqueue triage job: #{e.message}")
+    nil
   end
 
   def resume_waiting_workflows_on_incoming_message

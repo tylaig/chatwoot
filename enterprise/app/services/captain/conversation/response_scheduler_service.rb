@@ -38,9 +38,11 @@ class Captain::Conversation::ResponseSchedulerService
   def recent_attachment_count
     maximum_wait = (MAX_ATTACHMENT_WAIT_SECONDS + 1).seconds
 
-    @conversation.messages.incoming
-                 .joins(:attachments)
-                 .where(attachments: { created_at: maximum_wait.ago.. })
-                 .count
+    count = @conversation.messages.incoming
+                         .joins(:attachments)
+                         .where(attachments: { created_at: maximum_wait.ago.. })
+                         .count
+    count += 1 if @message.content_attributes&.dig('pending_media').present? && @message.attachments.empty?
+    count
   end
 end

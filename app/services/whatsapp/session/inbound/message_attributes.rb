@@ -128,7 +128,7 @@ class Whatsapp::Session::Inbound::MessageAttributes
   # renders from.
   def pending_media
     media = Whatsapp::Session::Inbound::MessageWriter.media_in(inbound)
-    return if media.nil? || media.ref.present?
+    return if media.nil?
 
     Whatsapp::Session::Model::Content::Media.new(
       kind: media.kind, mime: media.mime, filename: media.filename, voice_note: media.voice_note

@@ -251,9 +251,15 @@ class Conversation < ApplicationRecord
   end
 
   def bot_handoff!(dispatch_event: true)
-    update!(waiting_since: Time.current) if waiting_since.blank?
+    self.waiting_since = Time.current if waiting_since.blank?
     self.ai_assignee = nil
     open!
+    if inbox&.enable_auto_assignment? && inbox&.auto_assignment_v2_enabled? && assignee_id.blank?
+      inbox_id_for_assign = inbox.id
+      ActiveRecord.after_all_transactions_commit do
+        AutoAssignment::AssignmentJob.enqueue_for_inbox(inbox_id_for_assign)
+      end
+    end
     dispatch_bot_handoff_event if dispatch_event
   end
 

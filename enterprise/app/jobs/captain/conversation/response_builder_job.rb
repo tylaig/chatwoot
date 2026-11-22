@@ -26,6 +26,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
     @responding_to_message_id = responding_to_message_id if captain_v2_enabled?
 
     return log_non_pending unless conversation_pending?
+    return process_out_of_office_before_ai if out_of_office_before_ai?
     return reopen_already_handed_off_conversation if already_handed_off_in_current_cycle?
 
     Current.executed_by = @assistant
@@ -34,6 +35,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
 
     return log_pre_generation_discard if newer_customer_message_arrived?
 
+    wait_for_pending_media_attachment!
     generate_response_with_v2
   rescue ActiveStorage::FileNotFoundError, Faraday::BadRequestError => e
     handle_error(e)
@@ -47,6 +49,25 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
   private
 
   delegate :account, :inbox, to: :@conversation
+
+  def out_of_office_before_ai?
+    return false if @conversation.campaign.present?
+    # Assistants configured with response_window=always must answer 24/7.
+    # The human out-of-office message remains available for explicit handoff.
+    return false if @assistant.config['response_window'].blank? || @assistant.config['response_window'] == 'always'
+    return false unless @inbox.working_hours_enabled?
+
+    @inbox.out_of_office?
+  end
+
+  def process_out_of_office_before_ai
+    return if handoff_message_already_sent_in_current_cycle?
+
+    message = @assistant.config['out_of_office_handoff_message'].presence ||
+              'No momento nossa equipe de atendimento humano está fora do horário (nosso expediente é diariamente das 11h às 22h), mas seu atendimento ficou registrado na fila. A equipe responderá assim que o expediente retornar. 😊'
+    create_outgoing_message(message, preserve_waiting_since: true)
+    Rails.logger.info("[CAPTAIN][ResponseBuilderJob] Outside business hours: offline response sent without AI or handoff for conversation=#{@conversation.display_id}")
+  end
 
   def generate_and_process_response
     message_history = collect_previous_messages
@@ -180,18 +201,8 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
     return false if text.blank?
     return true if V2_UNEXECUTED_HANDOFF_PROMISE_REGEX.match?(text)
 
-    if defined?(Jev::DecisionService)
-      guard = Jev::DecisionService.check_captain_handoff_guard(text)
-      if guard.present?
-        attrs = (@conversation.additional_attributes || {}).merge('jev_captain_guard' => guard)
-        @conversation.update_columns(additional_attributes: attrs, updated_at: Time.current)
-        return true if guard['enforced']
-      end
-    end
-
-    false
-  rescue StandardError => e
-    Rails.logger.warn("[CAPTAIN][JEV] Guardrail check failed: #{e.message}")
+    # JEV intentionally removed from the response path. The gateway/Captain
+    # is the sole authority for generation and handoff decisions.
     false
   end
 
@@ -370,6 +381,25 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
       "[CAPTAIN][ResponseBuilderJob] V1 handoff requested but not executed for account=#{account.id} " \
       "conversation=#{@conversation.display_id}"
     )
+  end
+
+  def wait_for_pending_media_attachment!
+    target_msg = if @responding_to_message_id.present?
+                   @conversation.messages.find_by(id: @responding_to_message_id)
+                 else
+                   @conversation.messages.incoming.reorder(id: :desc).first
+                 end
+    return if target_msg.blank?
+    return if target_msg.attachments.any?
+    return if target_msg.content_attributes&.dig('pending_media').blank?
+    return if target_msg.content_attributes&.dig('is_unsupported').present?
+
+    12.times do
+      sleep 0.5
+      break if target_msg.reload.attachments.any? || target_msg.content_attributes&.dig('is_unsupported').present?
+    end
+  rescue StandardError => e
+    Rails.logger.warn("[CAPTAIN][ResponseBuilderJob] wait_for_pending_media_attachment error: #{e.message}")
   end
 
   def newer_customer_message_arrived?

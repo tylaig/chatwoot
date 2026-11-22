@@ -33,13 +33,23 @@ module Captain::Conversation::MessageBuilder
     response_parts = Captain::Assistant::ResponseParts.from_response(@response)
     citation_urls = @assistant.trusted_citation_urls(@run_result)
     message_content = response_parts.customer_message_content(citation_urls: citation_urls)
+    message_content = Captain::Assistant::ResponseParts.strip_internal_markers(message_content)
+    if Captain::Assistant::ResponseParts.tool_call_leak?(message_content) || message_content.blank?
+      Rails.logger.error("[CAPTAIN][MessageBuilder] Blocked tool-call leak publication conversation=#{@conversation.display_id}")
+      raise ArgumentError, 'Blocked tool-call leak; refusing to publish raw tool call to customer'
+    end
     validate_message_content!(message_content)
     create_outgoing_message(message_content, agent_name: @response['agent_name'], response_parts: response_parts.to_a)
   end
 
   def create_v1_message
-    validate_message_content!(@response['response'])
-    create_outgoing_message(@response['response'], agent_name: @response['agent_name'])
+    content = Captain::Assistant::ResponseParts.strip_internal_markers(@response['response'])
+    if Captain::Assistant::ResponseParts.tool_call_leak?(content) || content.blank?
+      Rails.logger.error("[CAPTAIN][MessageBuilder] Blocked V1 tool-call leak publication conversation=#{@conversation.display_id}")
+      raise ArgumentError, 'Blocked tool-call leak; refusing to publish raw tool call to customer'
+    end
+    validate_message_content!(content)
+    create_outgoing_message(content, agent_name: @response['agent_name'])
   end
 
   def validate_message_content!(content)
@@ -47,7 +57,15 @@ module Captain::Conversation::MessageBuilder
   end
 
   def create_outgoing_message(message_content, agent_name: nil, response_parts: nil, preserve_waiting_since: false)
-    clean_content = message_content.present? ? CGI.unescapeHTML(message_content.to_s) : message_content
+    clean_content = if message_content.present?
+                      Captain::Assistant::ResponseParts.strip_internal_markers(message_content)
+                    else
+                      message_content
+                    end
+    if Captain::Assistant::ResponseParts.tool_call_leak?(clean_content)
+      Rails.logger.error("[CAPTAIN][MessageBuilder] Blocked outgoing tool-call leak conversation=#{@conversation.display_id}")
+      raise ArgumentError, 'Blocked tool-call leak; refusing to publish raw tool call to customer'
+    end
     additional_attrs = {}
     additional_attrs[:agent_name] = agent_name if agent_name.present?
     additional_attrs[Captain::Assistant::ResponseParts::MESSAGE_ATTRIBUTE_KEY] = response_parts unless response_parts.nil?

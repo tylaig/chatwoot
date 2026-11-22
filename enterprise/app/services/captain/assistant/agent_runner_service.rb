@@ -10,6 +10,9 @@ class Captain::Assistant::AgentRunnerService
 
   attr_reader :last_run_result
 
+  PRIMARY_MODEL = 'gemini-3.8-flash-high'.freeze
+  FALLBACK_MODEL = 'gpt-6-luna'.freeze
+
   REPLY_SUGGESTION_SOURCE = 'copilot_reply_suggestion'.freeze
   RunOptions = Data.define(:callbacks, :source, :responding_to_message_id, :runtime_configuration) do
     def initialize(callbacks: {}, source: nil, responding_to_message_id: nil, runtime_configuration: nil)
@@ -31,9 +34,17 @@ class Captain::Assistant::AgentRunnerService
   end
 
   def generate_response(message_history: [])
-    sync_gateway_credentials!
     message_to_process, context = run_payload(message_history)
+    @active_model = PRIMARY_MODEL
+    sync_gateway_credentials!(model: @active_model)
     @last_run_result = runner.run(message_to_process, context: context, max_turns: 10)
+    if @last_run_result.error && fallback_eligible?(@last_run_result.error)
+      Rails.logger.warn "[Captain V2] Primary model #{@active_model} failed; retrying with #{FALLBACK_MODEL}: #{@last_run_result.error.class}: #{@last_run_result.error.message}"
+      @active_model = FALLBACK_MODEL
+      @runner = nil
+      sync_gateway_credentials!(model: @active_model)
+      @last_run_result = runner.run(message_to_process, context: context, max_turns: 10)
+    end
     raise @last_run_result.error if @last_run_result.error
 
     record_turn_start(@last_run_result)
@@ -57,7 +68,12 @@ class Captain::Assistant::AgentRunnerService
 
   private
 
-  def sync_gateway_credentials!
+  def fallback_eligible?(error)
+    message = error.message.to_s.downcase
+    error.is_a?(Faraday::Error) || message.match?(/timeout|timed out|502|503|504|429|rate.?limit|connection|temporarily unavailable|server error|bad gateway/)
+  end
+
+  def sync_gateway_credentials!(model: nil)
     account = @assistant&.account || @conversation&.account
     api_key = Llm::Config.effective_api_key(account)
     api_base = Llm::Config.effective_api_base
@@ -66,7 +82,7 @@ class Captain::Assistant::AgentRunnerService
     Agents.configure do |config|
       config.openai_api_key = api_key
       config.openai_api_base = api_base
-      config.default_model = @assistant&.agent_model || LlmConstants::DEFAULT_MODEL
+      config.default_model = model || @assistant&.agent_model || LlmConstants::DEFAULT_MODEL
     end
   rescue StandardError => e
     Rails.logger.warn "[Captain V2] Failed to sync gateway credentials: #{e.message}"
@@ -103,7 +119,8 @@ class Captain::Assistant::AgentRunnerService
     text, attachments = Captain::OpenAiMessageBuilderService.extract_text_and_attachments(content)
     return text if attachments.blank?
 
-    RubyLLM::Content.new(text, attachments)
+    effective_text = text.presence || '[Cliente enviou uma imagem/print anexo. Analise visualmente a imagem anexada para responder.]'
+    RubyLLM::Content.new(effective_text, attachments)
   end
 
   def message_history_without_last_user_message(message_history)
@@ -132,6 +149,7 @@ class Captain::Assistant::AgentRunnerService
     return default_agent_graph unless @runtime_configuration
 
     assistant_agent = @assistant.agent(runtime_configuration: @runtime_configuration)
+    assistant_agent = assistant_agent.clone(model: @active_model, provider: :openai, assume_model_exists: true) if @active_model.present?
     scenario_agents = @runtime_configuration.scenarios.map do |scenario|
       scenario.agent(
         runtime_configuration: @runtime_configuration,
@@ -144,7 +162,9 @@ class Captain::Assistant::AgentRunnerService
 
   def default_agent_graph
     assistant_agent = @assistant.agent
+    assistant_agent = assistant_agent.clone(model: @active_model, provider: :openai, assume_model_exists: true) if @active_model.present?
     scenario_agents = @assistant.scenarios.enabled.map(&:agent)
+    scenario_agents = scenario_agents.map { |agent| agent.clone(model: @active_model, provider: :openai, assume_model_exists: true) } if @active_model.present?
 
     wire_agents(assistant_agent, scenario_agents)
   end
