@@ -45,8 +45,12 @@ class Captain::BaseTaskService
     instrumentation_params = build_instrumentation_params(model, messages)
     instrumentation_method = tools.any? ? :instrument_tool_session : :instrument_llm_call
 
+    candidates = fallback_models(model: model, feature: feature)
     response = send(instrumentation_method, instrumentation_params) do
-      execute_ruby_llm_request(model: model, messages: messages, schema: schema, tools: tools)
+      candidates.each_with_index do |candidate, index|
+        attempt = execute_ruby_llm_request(model: candidate, messages: messages, schema: schema, tools: tools)
+        break attempt unless retryable_fallback_response?(attempt) && index < candidates.length - 1
+      end
     end
 
     return response unless build_follow_up_context? && response[:message].present?
@@ -61,6 +65,27 @@ class Captain::BaseTaskService
     return model if model.present? && route[:source] == :default
 
     route[:model]
+  end
+
+  def fallback_models(model:, feature:)
+    return [model] if feature.blank?
+
+    Llm::FeatureRouter.candidates(feature: feature, account: account, model: model)
+  end
+
+  def retryable_fallback_response?(response)
+    return false unless response.is_a?(Hash) && response[:error].present?
+    # Once a provider has emitted output, retrying would duplicate customer
+    # content. This also protects adapters that expose streaming metadata.
+    return false if response[:message].present? || response[:content].present?
+    return false if response[:delta].present? || response[:stream_started] == true
+    return false if response[:tool_calls].present? || response[:tool_call_started] == true
+
+    status = response[:error_code].to_i
+    return true if [429, 500, 502, 503, 504].include?(status)
+
+    error = response[:error].to_s.downcase
+    error.match?(/timeout|timed out|connection|eof|502|503|504|bad gateway|service unavailable|rate limit|429|temporarily unavailable/)
   end
 
   def execute_ruby_llm_request(model:, messages:, schema: nil, tools: [])

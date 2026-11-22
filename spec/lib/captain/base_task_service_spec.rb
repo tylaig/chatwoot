@@ -199,6 +199,22 @@ RSpec.describe Captain::BaseTaskService do
       service.send(:make_api_call, feature: 'help_center_article_generation', model: 'gpt-5.2', messages: messages)
     end
 
+    it 'falls back only on an eligible failure before any output is emitted' do
+      allow(service).to receive(:fallback_models).and_return(%w[first second])
+      allow(service).to receive(:execute_ruby_llm_request).with(model: 'first', messages: messages, schema: nil, tools: [])
+        .and_return({ error: 'upstream timeout' })
+      allow(service).to receive(:execute_ruby_llm_request).with(model: 'second', messages: messages, schema: nil, tools: [])
+        .and_return({ message: 'fallback response' })
+
+      expect(service.send(:make_api_call, model: model, messages: messages)[:message]).to eq('fallback response')
+    end
+
+    it 'does not retry after a partial delta or tool call has been emitted' do
+      expect(service.send(:retryable_fallback_response?, { error: '502', delta: 'partial' })).to be(false)
+      expect(service.send(:retryable_fallback_response?, { error: '502', tool_calls: { 'call_1' => {} } })).to be(false)
+      expect(service.send(:retryable_fallback_response?, { error: '502' })).to be(true)
+    end
+
     it 'returns formatted response with tokens' do
       result = service.send(:make_api_call, model: model, messages: messages)
 

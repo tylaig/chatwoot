@@ -18,6 +18,15 @@ module Llm::FeatureRouter
       }
     end
 
+    # Returns the ordered, de-duplicated candidates for runtime failover. The
+    # resolved model is always first; the feature catalog supplies the stable
+    # fallback order and never causes a retry of the same model.
+    def candidates(feature:, account: nil, model: nil)
+      route = resolve(feature: feature, account: account)
+      selected = model.presence || route[:model]
+      [selected, *Llm::Models.models_for(feature)].compact.map(&:to_s).uniq
+    end
+
     private
 
     def model_and_source(account, feature_key)

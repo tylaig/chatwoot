@@ -135,6 +135,15 @@ RSpec.describe Llm::FeatureRouter do
       )
     end
 
+    it 'returns the selected model followed by unique feature fallbacks' do
+      account.update!(captain_models: { 'editor' => 'gpt-4.1' })
+
+      expect(described_class.candidates(feature: 'editor', account: account)).to eq(
+        ['gpt-4.1', 'gemini-3-flash', 'gpt-5.6-sol', 'gpt-6.1-sol', 'claude-sonnet-4-6',
+         'gemini-4-argon-high', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-5-mini', 'gpt-5.1', 'gpt-5.2']
+      )
+    end
+
     it 'raises for unknown features' do
       expect { described_class.resolve(feature: 'unknown_feature') }
         .to raise_error(described_class::UnknownFeatureError, 'Unknown LLM feature: unknown_feature')
