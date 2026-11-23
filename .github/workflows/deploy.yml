@@ -191,6 +191,12 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: |
           set -euo pipefail
+          test -n "$GITHUB_TOKEN"
+          # Authenticate the VPS Docker client for this protected deploy only.
+          # The token is piped over SSH stdin and is never written to logs or disk.
+          printf '%s' "$GITHUB_TOKEN" | ssh -p "$VPS_PORT" -i ~/.ssh/chatwoot_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "${VPS_USER}@${VPS_HOST}" \
+            "docker login ghcr.io -u '$GITHUB_ACTOR' --password-stdin >/dev/null"
           ssh -p "$VPS_PORT" -i ~/.ssh/chatwoot_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
             "${VPS_USER}@${VPS_HOST}" \
             "IMAGE_REF='${IMAGE_REF}' EXPECTED_DIGEST='${EXPECTED_DIGEST}' GITHUB_SHA='${GITHUB_SHA}' /opt/chatwoot-deploy/production_swarm_deploy.sh"
