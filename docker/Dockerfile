@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # pre-build stage
 FROM node:24-alpine as node
 # The WhatsApp connector Sidekiq runs unless WHATSAPP_CONNECTOR_ENABLED=false (see
@@ -69,13 +70,15 @@ RUN apk update && apk add --no-cache build-base musl ruby-full ruby-dev gcc make
 RUN bundle config set --local force_ruby_platform true
 
 # Do not install development or test gems in production
-RUN if [ "$RAILS_ENV" = "production" ]; then \
+RUN --mount=type=cache,target=/gems/cache \
+  if [ "$RAILS_ENV" = "production" ]; then \
   bundle config set without 'development test'; bundle install --jobs 2 --retry 5; \
   else bundle install --jobs 2 --retry 5; \
   fi
 
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --fetch-retries 5 --fetch-timeout 120000 --network-concurrency 8
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+  pnpm install --fetch-retries 5 --fetch-timeout 120000 --network-concurrency 8
 
 COPY . /app
 
