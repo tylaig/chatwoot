@@ -187,6 +187,8 @@ jobs:
           IMAGE_REF: ${{ needs.build-and-push.outputs.image_ref }}
           EXPECTED_DIGEST: ${{ needs.build-and-push.outputs.image_digest }}
           GITHUB_SHA: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
         run: |
           set -euo pipefail
           ssh -p "$VPS_PORT" -i ~/.ssh/chatwoot_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
@@ -255,4 +257,7 @@ jobs:
           set -euo pipefail
           bash -n scripts/deploy/production_swarm_deploy.sh
           scp -P "$VPS_PORT" -i ~/.ssh/chatwoot_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes scripts/deploy/production_swarm_deploy.sh "$VPS_USER@$VPS_HOST:/opt/chatwoot-deploy/production_swarm_deploy.sh"
+          # Authenticate the VPS Docker client for this one protected deploy.
+          # The token is sent over SSH stdin and never written to logs or disk.
+          printf '%s' "$GITHUB_TOKEN" | ssh -p "$VPS_PORT" -i ~/.ssh/chatwoot_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST" "docker login ghcr.io -u '$GITHUB_ACTOR' --password-stdin >/dev/null"
           ssh -p "$VPS_PORT" -i ~/.ssh/chatwoot_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST" "IMAGE_REF='$IMAGE_REF' EXPECTED_DIGEST='$EXPECTED_DIGEST' GITHUB_SHA='$GITHUB_SHA' /opt/chatwoot-deploy/production_swarm_deploy.sh"
