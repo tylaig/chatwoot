@@ -1,7 +1,11 @@
 require 'agents'
 require 'agents/instrumentation'
 
+require 'timeout'
+
 class Captain::Assistant::AgentRunnerService
+  # Keep one conversation from monopolizing a Sidekiq thread through repeated tool turns.
+  MAX_TURNS = 4
   include Captain::Assistant::RunnerCallbacksHelper
   include Captain::Assistant::AgentRunResponse
   include Captain::Assistant::RunnerInstrumentationHelper
@@ -33,7 +37,7 @@ class Captain::Assistant::AgentRunnerService
   def generate_response(message_history: [])
     sync_gateway_credentials!
     message_to_process, context = run_payload(message_history)
-    @last_run_result = runner.run(message_to_process, context: context, max_turns: 10)
+    @last_run_result = runner.run(message_to_process, context: context, max_turns: MAX_TURNS)
     raise @last_run_result.error if @last_run_result.error
 
     record_turn_start(@last_run_result)
@@ -103,7 +107,8 @@ class Captain::Assistant::AgentRunnerService
     text, attachments = Captain::OpenAiMessageBuilderService.extract_text_and_attachments(content)
     return text if attachments.blank?
 
-    RubyLLM::Content.new(text, attachments)
+    effective_text = text.presence || '[Cliente enviou uma imagem/print anexo. Analise visualmente a imagem anexada para responder.]'
+    RubyLLM::Content.new(effective_text, attachments)
   end
 
   def message_history_without_last_user_message(message_history)

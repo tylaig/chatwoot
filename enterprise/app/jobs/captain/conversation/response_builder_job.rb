@@ -1,4 +1,13 @@
+require 'timeout'
+
 class Captain::Conversation::ResponseBuilderJob < ApplicationJob
+  # Hard ceiling for model/tool execution. A stuck external call must release the worker.
+  MAX_GENERATION_SECONDS = 180
+  RESPONSE_LOCK_TTL = MAX_GENERATION_SECONDS + 60
+  class ResponseLockBusy < StandardError; end
+
+  retry_on ResponseLockBusy, attempts: 12, wait: 5.seconds
+
   include Captain::Conversation::V1ActionClassifier
   include Captain::Conversation::V1FalsePromiseHandler
   include Captain::Conversation::V2LifecycleEvents
@@ -24,6 +33,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
     @inbox = conversation.inbox
     @assistant = assistant
     @responding_to_message_id = responding_to_message_id if captain_v2_enabled?
+    acquire_response_lock
 
     return log_non_pending unless conversation_pending?
     return reopen_already_handed_off_conversation if already_handed_off_in_current_cycle?
@@ -34,17 +44,49 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
 
     return log_pre_generation_discard if newer_customer_message_arrived?
 
+    wait_for_pending_media_attachment!
     generate_response_with_v2
   rescue ActiveStorage::FileNotFoundError, Faraday::BadRequestError => e
     handle_error(e)
     raise e
+  rescue ResponseLockBusy
+    raise
   rescue StandardError => e
     handle_error(e)
   ensure
+    release_response_lock
     Current.executed_by = nil
   end
 
   private
+
+  def response_lock_key
+    "captain:response_builder:conversation:#{@conversation.id}"
+  end
+
+  def acquire_response_lock
+    @response_lock_acquired = Redis::Alfred.set(response_lock_key, SecureRandom.uuid, nx: true, ex: RESPONSE_LOCK_TTL)
+    return true if @response_lock_acquired
+
+    Rails.logger.info("[CAPTAIN][ResponseBuilderJob] Execution deferred because conversation=#{@conversation.display_id} is already being processed")
+    raise ResponseLockBusy, "Captain response lock is busy for conversation #{@conversation.id}"
+  rescue StandardError => e
+    # Lock infrastructure must not take Captain offline; generation remains available.
+    Rails.logger.warn("[CAPTAIN][ResponseBuilderJob] Lock acquisition failed: #{e.message}")
+    @response_lock_acquired = false
+    true
+  end
+
+  def release_response_lock
+    return unless @response_lock_acquired
+
+    Redis::Alfred.delete(response_lock_key)
+  rescue StandardError => e
+    Rails.logger.warn("[CAPTAIN][ResponseBuilderJob] Lock release failed: #{e.message}")
+  ensure
+    @response_lock_acquired = false
+  end
+
 
   delegate :account, :inbox, to: :@conversation
 
@@ -61,7 +103,9 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
   def generate_response_with_v2
     runner_service = v2_runner_service
     message_history = Captain::Conversation::MessageHistoryBuilderService.new(conversation: @conversation).perform
-    @response = runner_service.generate_response(message_history: message_history)
+    @response = Timeout.timeout(MAX_GENERATION_SECONDS, Timeout::Error) do
+      runner_service.generate_response(message_history: message_history)
+    end
     @run_result = runner_service.last_run_result
 
     @v2_handoff_tool_completed = runner_service.handoff_completed?
@@ -370,6 +414,25 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
       "[CAPTAIN][ResponseBuilderJob] V1 handoff requested but not executed for account=#{account.id} " \
       "conversation=#{@conversation.display_id}"
     )
+  end
+
+  def wait_for_pending_media_attachment!
+    target_msg = if @responding_to_message_id.present?
+                   @conversation.messages.find_by(id: @responding_to_message_id)
+                 else
+                   @conversation.messages.incoming.reorder(id: :desc).first
+                 end
+    return if target_msg.blank?
+    return if target_msg.attachments.any?
+    return if target_msg.content_attributes&.dig('pending_media').blank?
+    return if target_msg.content_attributes&.dig('is_unsupported').present?
+
+    12.times do
+      sleep 0.5
+      break if target_msg.reload.attachments.any? || target_msg.content_attributes&.dig('is_unsupported').present?
+    end
+  rescue StandardError => e
+    Rails.logger.warn("[CAPTAIN][ResponseBuilderJob] wait_for_pending_media_attachment error: #{e.message}")
   end
 
   def newer_customer_message_arrived?
