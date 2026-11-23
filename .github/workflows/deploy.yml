@@ -26,7 +26,7 @@ jobs:
   build-and-push:
     name: Build & Push Games Safari Image to GHCR
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     if: ${{ inputs.confirm_target == 'CONFIRMAR-GAMESSAFARI' }}
     outputs:
       short_sha: ${{ steps.vars.outputs.short_sha }}
@@ -77,6 +77,7 @@ jobs:
             type=gha
           cache-to: type=gha,mode=max,scope=gamessafari-prod
           provenance: false
+          outputs: type=registry
 
       - name: Export immutable image digest
         id: digest
