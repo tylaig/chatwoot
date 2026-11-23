@@ -13,6 +13,11 @@ on:
         required: false
         default: 'false'
         type: boolean
+      image_digest:
+        description: 'Digest sha256 de imagem já publicada para deploy-only'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -188,3 +193,63 @@ jobs:
             "${VPS_USER}@${VPS_HOST}" \
             "IMAGE_REF='${IMAGE_REF}' EXPECTED_DIGEST='${EXPECTED_DIGEST}' GITHUB_SHA='${GITHUB_SHA}' /opt/chatwoot-deploy/production_swarm_deploy.sh"
 
+
+  deploy-immutable-digest:
+    name: Deploy already-published immutable digest
+    needs: []
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    if: ${{ inputs.confirm_target == 'CONFIRMAR-GAMESSAFARI' && inputs.image_digest != '' }}
+    steps:
+      - name: Validate immutable digest
+        env:
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+
+      - name: Checkout deploy helper
+        uses: actions/checkout@v4
+        with:
+          ref: prod/gamessafari
+
+      - name: Validate deployment secrets
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST_FINGERPRINT: ${{ secrets.VPS_HOST_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          for name in VPS_HOST VPS_USER VPS_SSH_KEY VPS_HOST_FINGERPRINT; do test -n "${!name}" || exit 1; done
+
+      - name: Install pinned SSH identity
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT || 22 }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST_FINGERPRINT: ${{ secrets.VPS_HOST_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/chatwoot_deploy_key
+          chmod 600 ~/.ssh/chatwoot_deploy_key
+          ssh-keyscan -p "$VPS_PORT" -t ed25519,rsa "$VPS_HOST" > ~/.ssh/known_hosts.candidate 2>/dev/null
+          actual="$(ssh-keygen -lf ~/.ssh/known_hosts.candidate -E sha256 | awk '{print $2}' | sort -u | paste -sd ',' -)"
+          case ",$actual," in *,"$VPS_HOST_FINGERPRINT",") ;; *) exit 1 ;; esac
+          mv ~/.ssh/known_hosts.candidate ~/.ssh/known_hosts
+
+      - name: Upload and execute digest-locked deploy
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT || 22 }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          IMAGE_REF: ghcr.io/tylaig/chatwoot@${{ inputs.image_digest }}
+          EXPECTED_DIGEST: ${{ inputs.image_digest }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          bash -n scripts/deploy/production_swarm_deploy.sh
+          scp -P "$VPS_PORT" -i ~/.ssh/chatwoot_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes scripts/deploy/production_swarm_deploy.sh "$VPS_USER@$VPS_HOST:/opt/chatwoot-deploy/production_swarm_deploy.sh"
+          ssh -p "$VPS_PORT" -i ~/.ssh/chatwoot_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST" "IMAGE_REF='$IMAGE_REF' EXPECTED_DIGEST='$EXPECTED_DIGEST' GITHUB_SHA='$GITHUB_SHA' /opt/chatwoot-deploy/production_swarm_deploy.sh"
