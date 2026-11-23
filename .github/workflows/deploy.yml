@@ -237,7 +237,10 @@ jobs:
           chmod 600 ~/.ssh/chatwoot_deploy_key
           ssh-keyscan -p "$VPS_PORT" -t ed25519,rsa "$VPS_HOST" > ~/.ssh/known_hosts.candidate 2>/dev/null
           actual="$(ssh-keygen -lf ~/.ssh/known_hosts.candidate -E sha256 | awk '{print $2}' | sort -u | paste -sd ',' -)"
-          case ",$actual," in *,"$VPS_HOST_FINGERPRINT",") ;; *) exit 1 ;; esac
+          if [[ ",$actual," != *,"$VPS_HOST_FINGERPRINT",* ]]; then
+            echo "VPS host fingerprint mismatch" >&2
+            exit 1
+          fi
           mv ~/.ssh/known_hosts.candidate ~/.ssh/known_hosts
 
       - name: Upload and execute digest-locked deploy
