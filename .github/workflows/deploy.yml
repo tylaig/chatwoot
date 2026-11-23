@@ -253,8 +253,11 @@ jobs:
           IMAGE_REF: ghcr.io/tylaig/chatwoot@${{ inputs.image_digest }}
           EXPECTED_DIGEST: ${{ inputs.image_digest }}
           GITHUB_SHA: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_ACTOR: ${{ github.actor }}
         run: |
           set -euo pipefail
+          test -n "$GITHUB_TOKEN"
           bash -n scripts/deploy/production_swarm_deploy.sh
           scp -P "$VPS_PORT" -i ~/.ssh/chatwoot_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes scripts/deploy/production_swarm_deploy.sh "$VPS_USER@$VPS_HOST:/opt/chatwoot-deploy/production_swarm_deploy.sh"
           # Authenticate the VPS Docker client for this one protected deploy.
