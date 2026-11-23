@@ -27,6 +27,7 @@ ARG NODE_OPTIONS="--max-old-space-size=4096"
 ENV NODE_OPTIONS ${NODE_OPTIONS}
 
 ENV BUNDLE_PATH="/gems"
+ENV BUNDLE_BIN="/gems/bin"
 
 RUN apk update && apk add --no-cache \
   openssl \
@@ -67,7 +68,8 @@ COPY Gemfile Gemfile.lock ./
 # adding xz as nokogiri was failing to build libxml
 # https://github.com/chatwoot/chatwoot/issues/4045
 RUN apk update && apk add --no-cache build-base musl ruby-full ruby-dev gcc make musl-dev openssl openssl-dev g++ linux-headers xz vips
-RUN bundle config set --local force_ruby_platform true
+RUN bundle config set --local path /gems \
+  && bundle config set --local force_ruby_platform true
 
 # Do not install development or test gems in production
 RUN --mount=type=cache,id=gamessafari-bundler,target=/gems/cache \
@@ -129,6 +131,7 @@ ENV BUNDLE_FORCE_RUBY_PLATFORM ${BUNDLE_FORCE_RUBY_PLATFORM}
 ARG RAILS_ENV=production
 ENV RAILS_ENV ${RAILS_ENV}
 ENV BUNDLE_PATH="/gems"
+ENV BUNDLE_BIN="/gems/bin"
 ARG NODE_OPTIONS="--max-old-space-size=4096"
 ENV NODE_OPTIONS ${NODE_OPTIONS}
 
