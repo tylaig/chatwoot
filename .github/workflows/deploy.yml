@@ -48,8 +48,8 @@ jobs:
         run: |
           set -euo pipefail
           node --version
-          pnpm --version
-          ruby --version
+          ruby --version || true
+          command -v pnpm || echo "pnpm is installed inside the Docker build image"
           git rev-parse HEAD
           df -h
           free -h
