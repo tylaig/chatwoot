@@ -1,5 +1,7 @@
 class Captain::Tools::RequestRatingTool < Captain::Tools::BasePublicTool
-  description 'Send an interactive star rating (CSAT) survey card in the conversation so the customer can rate the support experience'
+  description 'REQUIRED before mentioning star ratings to the customer. Sends the interactive CSAT star card in the conversation. ' \
+              'Call this whenever you thank the customer, close the help request, or say that rating stars are available below. ' \
+              'Never claim that stars are "logo abaixo" without calling this tool first.'
   param :reason, type: 'string', desc: 'Brief context or reason for requesting the rating (optional)', required: false
 
   def perform(tool_context, reason: nil)
