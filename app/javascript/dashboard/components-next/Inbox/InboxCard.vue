@@ -165,15 +165,18 @@ onBeforeMount(contextMenuActions.close);
     @contextmenu="contextMenuActions.open($event)"
     @click="emit('click')"
   >
-    <div class="flex items-start gap-2">
+    <div class="flex items-center gap-2 min-w-0">
       <Avatar
         :name="assigneeMeta.name"
         :src="assigneeMeta.thumbnail"
         :size="20"
         rounded-full
-        class="mt-1"
+        class="flex-shrink-0 self-start mt-0.5"
       />
-      <p v-dompurify-html="formattedMessage" class="mb-0 line-clamp-2" />
+      <p
+        v-dompurify-html="formattedMessage"
+        class="mb-0 min-w-0 flex-1 line-clamp-2"
+      />
     </div>
     <div class="flex items-center justify-between h-6 gap-2">
       <div class="flex items-center flex-1 min-w-0 gap-1">

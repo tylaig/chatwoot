@@ -264,17 +264,17 @@ onMounted(() => {
       />
       <div
         ref="notificationList"
-        class="flex flex-col gap-0.5 w-full h-[calc(100%-56px)] pb-4 overflow-x-hidden px-2 overflow-y-auto divide-y divide-n-weak [&>*:hover]:!border-y-transparent [&>*.active]:!border-y-transparent [&>*:hover+*]:!border-t-transparent [&>*.active+*]:!border-t-transparent"
+        class="flex flex-1 min-h-0 flex-col gap-0.5 w-full pt-1 pb-4 overflow-x-hidden px-2 overflow-y-auto divide-y divide-n-weak [&>*:hover]:!border-y-transparent [&>*.active]:!border-y-transparent [&>*:hover+*]:!border-t-transparent [&>*.active+*]:!border-t-transparent"
       >
         <InboxCard
           v-for="notificationItem in notifications"
           :key="notificationItem.id"
           :inbox-item="notificationItem"
           :state-inbox="stateInbox(notificationItem.primaryActor?.inboxId)"
-          class="inbox-card rounded-none hover:rounded-lg hover:bg-n-alpha-1 dark:hover:bg-n-alpha-3"
+          class="inbox-card rounded-lg hover:bg-n-alpha-1 dark:hover:bg-n-alpha-3"
           :class="
             currentConversationId === notificationItem.primaryActor?.id
-              ? 'bg-n-alpha-1 dark:bg-n-alpha-3 !rounded-lg active'
+              ? 'bg-n-alpha-1 dark:bg-n-alpha-3 active'
               : ''
           "
           @mark-notification-as-read="markNotificationAsRead"
