@@ -1,7 +1,9 @@
 class BulkActionsJob < ApplicationJob
   include DateRangeHelper
 
-  queue_as :medium
+  # Isolated from the shared medium backlog (SLA etc.) so bulk snooze/assign
+  # keeps working when the general medium worker is scaled down.
+  queue_as :bulk_actions
   attr_accessor :records
 
   MODEL_TYPE = ['Conversation'].freeze
