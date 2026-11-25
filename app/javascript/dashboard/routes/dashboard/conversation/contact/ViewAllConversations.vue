@@ -88,6 +88,7 @@ const viewAllConversations = async () => {
     v-tooltip.top-end="$t('CONTACT_PANEL.CONVERSATIONS.VIEW_ALL')"
     :aria-label="$t('CONTACT_PANEL.CONVERSATIONS.VIEW_ALL')"
     icon="i-lucide-history"
+    class="flex-shrink-0"
     slate
     faded
     sm

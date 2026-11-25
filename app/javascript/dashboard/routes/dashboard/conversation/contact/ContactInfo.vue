@@ -379,60 +379,76 @@ export default {
         <SocialIcons :social-profiles="socialProfiles" />
       </div>
 
-      <!-- Balanced Quick Action Bar with clean 2-row layout so buttons never overlap -->
-      <div class="flex flex-col gap-1.5 w-full pt-0.5">
-        <div class="flex items-center gap-1.5 w-full">
-          <div class="flex-1 min-w-0">
+      <!-- Quick actions: labeled buttons shrink; icon buttons stay fixed so they never overlap -->
+      <div class="flex flex-col gap-1.5 w-full min-w-0 pt-0.5">
+        <div class="flex items-center gap-1.5 w-full min-w-0">
+          <div
+            class="flex-1 min-w-0 overflow-hidden [&>span]:flex [&>span]:w-full [&>span]:min-w-0 [&>span]:max-w-full"
+          >
             <ComposeConversation :contact-id="String(contact.id)">
               <template #trigger>
                 <button
                   v-tooltip.top-end="$t('CONTACT_PANEL.NEW_MESSAGE')"
                   type="button"
-                  class="w-full h-9 px-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 hover:border-emerald-400 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap transition-all"
+                  class="w-full max-w-full h-9 px-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 hover:border-emerald-400 flex items-center justify-center gap-1.5 text-xs font-medium transition-all"
                 >
-                  <span class="i-ph-chat-circle-dots text-sm text-emerald-400 shrink-0" />
-                  <span class="truncate">{{ $t('CONTACT_PANEL.NEW_MESSAGE') }}</span>
+                  <span
+                    class="i-ph-chat-circle-dots text-sm text-emerald-400 shrink-0"
+                  />
+                  <span class="truncate min-w-0">{{
+                    $t('CONTACT_PANEL.NEW_MESSAGE')
+                  }}</span>
                 </button>
               </template>
             </ComposeConversation>
           </div>
 
-          <ViewAllConversations :contact="contact" />
-          <VoiceCallButton
-            :phone="contact.phone_number"
-            :contact-id="contact.id"
-            :conversation-id="currentChat?.id"
-            icon="i-lucide-phone"
-            sm
-            faded
-            slate
-            :tooltip-label="$t('CONTACT_PANEL.CALL')"
-          />
-          <AgentsConversationButton :conversation="currentChat" />
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <ViewAllConversations :contact="contact" />
+            <VoiceCallButton
+              :phone="contact.phone_number"
+              :contact-id="contact.id"
+              :conversation-id="currentChat?.id"
+              icon="i-lucide-phone"
+              sm
+              faded
+              slate
+              :tooltip-label="$t('CONTACT_PANEL.CALL')"
+            />
+            <AgentsConversationButton :conversation="currentChat" />
+          </div>
 
           <button
             v-tooltip.top-end="$t('EDIT_CONTACT.BUTTON_LABEL')"
             type="button"
-            class="flex-1 min-w-0 h-9 px-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-slate-200 hover:bg-white/[0.08] hover:border-emerald-500/35 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap transition-all"
+            class="flex-1 min-w-0 max-w-full h-9 px-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-slate-200 hover:bg-white/[0.08] hover:border-emerald-500/35 flex items-center justify-center gap-1.5 text-xs font-medium transition-all"
             @click="toggleEditModal"
           >
             <span class="i-ph-pencil-simple text-sm text-slate-300 shrink-0" />
-            <span class="truncate">{{ $t('EDIT_CONTACT.BUTTON_LABEL') }}</span>
+            <span class="truncate min-w-0">{{
+              $t('EDIT_CONTACT.BUTTON_LABEL')
+            }}</span>
           </button>
         </div>
 
-        <div class="flex items-center gap-1.5 w-full">
-          <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-1.5 w-full min-w-0">
+          <div
+            class="flex-1 min-w-0 overflow-hidden [&>span]:flex [&>span]:w-full [&>span]:min-w-0 [&>span]:max-w-full"
+          >
             <ContactMergeModal :primary-contact="contact">
               <template #trigger>
                 <button
                   v-tooltip.top-end="$t('CONTACT_PANEL.MERGE_CONTACT')"
                   type="button"
                   :disabled="uiFlags.isMerging"
-                  class="w-full h-9 px-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-slate-200 hover:bg-white/[0.08] hover:border-emerald-500/35 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap transition-all disabled:opacity-50"
+                  class="w-full max-w-full h-9 px-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-slate-200 hover:bg-white/[0.08] hover:border-emerald-500/35 flex items-center justify-center gap-1.5 text-xs font-medium transition-all disabled:opacity-50"
                 >
-                  <span class="i-ph-arrows-merge text-sm text-slate-300 shrink-0" />
-                  <span class="truncate">{{ $t('CONTACT_PANEL.MERGE_CONTACT') }}</span>
+                  <span
+                    class="i-ph-arrows-merge text-sm text-slate-300 shrink-0"
+                  />
+                  <span class="truncate min-w-0">{{
+                    $t('CONTACT_PANEL.MERGE_CONTACT')
+                  }}</span>
                 </button>
               </template>
             </ContactMergeModal>
