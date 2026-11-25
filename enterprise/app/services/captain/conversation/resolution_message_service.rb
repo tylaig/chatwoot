@@ -9,13 +9,19 @@ class Captain::Conversation::ResolutionMessageService
       resolution_message ||= I18n.t('conversations.activity.auto_resolution_message') if use_default_message
       return if resolution_message.blank?
 
-      conversation.messages.create!(
+      message = conversation.messages.create!(
         message_type: :outgoing,
         account_id: conversation.account_id,
         inbox_id: conversation.inbox_id,
         content: resolution_message,
         sender: assistant
       )
+      Captain::Conversation::CsatPromiseFulfillmentService.new(
+        conversation: conversation,
+        content: message.content
+      ).perform
+      message
     end
   end
 end
+

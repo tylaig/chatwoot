@@ -52,7 +52,7 @@ module Captain::Conversation::MessageBuilder
     additional_attrs[:agent_name] = agent_name if agent_name.present?
     additional_attrs[Captain::Assistant::ResponseParts::MESSAGE_ATTRIBUTE_KEY] = response_parts unless response_parts.nil?
 
-    @conversation.messages.create!(
+    message = @conversation.messages.create!(
       message_type: :outgoing,
       account_id: account.id,
       inbox_id: inbox.id,
@@ -61,5 +61,15 @@ module Captain::Conversation::MessageBuilder
       additional_attributes: additional_attrs,
       preserve_waiting_since: preserve_waiting_since
     )
+    fulfill_csat_promise_if_needed!(message)
+    message
+  end
+
+  def fulfill_csat_promise_if_needed!(message)
+    Captain::Conversation::CsatPromiseFulfillmentService.new(
+      conversation: @conversation,
+      content: message.content
+    ).perform
   end
 end
+
