@@ -132,7 +132,7 @@ defineExpose({ show, hide, toggle });
 </script>
 
 <template>
-  <span ref="triggerRef" class="inline-flex" @click="toggle">
+  <span ref="triggerRef" class="inline-flex max-w-full min-w-0" @click="toggle">
     <slot :is-open="isActive" />
   </span>
 
