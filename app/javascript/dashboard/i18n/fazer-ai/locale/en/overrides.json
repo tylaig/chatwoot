@@ -1,4 +1,12 @@
 {
+  "CHAT_LIST": {
+    "AWAITING_RESOLUTION_HEADING": "On Hold",
+    "CHAT_STATUS_FILTER_ITEMS": {
+      "awaiting_resolution": {
+        "TEXT": "On Hold"
+      }
+    }
+  },
   "CONVERSATION": {
     "UNSUPPORTED_MESSAGE": "This message is unsupported. You can view this message on the app."
   },

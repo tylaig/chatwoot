@@ -2,6 +2,14 @@
   "GENERAL": {
     "BETA_DESCRIPTION": "Este recurso está em fase beta e pode mudar conforme o aprimoramos."
   },
+  "CHAT_LIST": {
+    "AWAITING_RESOLUTION_HEADING": "Em Espera",
+    "CHAT_STATUS_FILTER_ITEMS": {
+      "awaiting_resolution": {
+        "TEXT": "Em Espera"
+      }
+    }
+  },
   "CONVERSATION": {
     "UNSUPPORTED_MESSAGE": "Esta mensagem não é suportada. Você pode ver esta mensagem no aplicativo.",
     "REPLYBOX": {
