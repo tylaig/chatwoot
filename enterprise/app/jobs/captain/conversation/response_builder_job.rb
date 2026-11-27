@@ -22,7 +22,10 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
       (?:seu\s+)?(?:chamado|atendimento|caso|pedido\s+de\s+(?:devolu[çc][ãa]o|reembolso|cancelamento))\b[^\n]{0,80}\bj[áa]\s+(?:est[áa]|ficou)\s+(?:registrado|na\s+fila)|
       j[áa]\s+(?:registrei|deixei|encaminhei)\b[^\n]{0,80}\b(?:equipe\s+humana|nossa\s+equipe|fila(?:\s+de\s+atendimento)?)|
       deixei\s+o\s+seu\s+(?:caso|chamado|atendimento)\s+registrado\s+para\s+a\s+nossa\s+equipe|
-      encaminhei\s+o\s+seu\s+(?:caso|chamado|atendimento)\s+para\s+a\s+nossa\s+equipe
+      encaminhei\s+o\s+seu\s+(?:caso|chamado|atendimento)\s+para\s+a\s+nossa\s+equipe|
+      j[áa]\s+estou\s+encaminhando|
+      permane[çc]a\s+(?:nesta|com\s+a)\s+conversa|
+      basta\s+aguardar\s+que\s+um\s+(?:atendente|operador)
     )
   }xi
   retry_on ActiveStorage::FileNotFoundError, attempts: 3, wait: 2.seconds
@@ -37,6 +40,11 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
 
     return log_non_pending unless conversation_pending?
     return reopen_already_handed_off_conversation if already_handed_off_in_current_cycle?
+
+    if customer_request_handoff_intent?
+      enforce_customer_request_handoff
+      return
+    end
 
     Current.executed_by = @assistant
 
@@ -276,6 +284,11 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
       )
       create_handoff_message
       @conversation.bot_handoff!
+      Captain::Conversation::HumanHandoffLock.lock!(
+        @conversation,
+        reason: @response&.dig('action_reason'),
+        category: 'customer_request'
+      )
       report_v1_handoff_not_executed if conversation_pending?
       send_out_of_office_message_if_applicable
     end
@@ -337,6 +350,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
   end
 
   def already_handed_off_in_current_cycle?
+    return true if Captain::Conversation::HumanHandoffLock.locked?(@conversation)
     return false if @conversation.assignee_id.blank?
 
     handoff_message_already_sent_in_current_cycle?
@@ -345,9 +359,45 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
   def reopen_already_handed_off_conversation
     Rails.logger.info(
       "[CAPTAIN][ResponseBuilderJob] Reopening already handed-off conversation=#{@conversation.display_id} " \
-      "for assignee_id=#{@conversation.assignee_id} without duplicate bot handoff"
+      "assignee_id=#{@conversation.assignee_id} locked=#{Captain::Conversation::HumanHandoffLock.locked?(@conversation)} " \
+      'without duplicate bot handoff'
     )
     @conversation.open! if @conversation.pending?
+  end
+
+  def customer_request_handoff_intent?
+    Captain::Conversation::CustomerHandoffIntent.matching_message(@conversation).present?
+  end
+
+  def enforce_customer_request_handoff
+    trigger = Captain::Conversation::CustomerHandoffIntent.matching_message(@conversation)
+    return false if trigger.blank?
+
+    reason = "Cliente pediu atendimento humano/reembolso: #{trigger.content.to_s.strip[0, 240]}"
+    Rails.logger.info(
+      "[CAPTAIN][ResponseBuilderJob] Enforcing customer-request handoff for account=#{account.id} " \
+      "conversation=#{@conversation.display_id}"
+    )
+
+    Current.executed_by = @assistant
+    @conversation.messages.create!(
+      message_type: :outgoing,
+      private: true,
+      sender: @assistant,
+      account_id: account.id,
+      inbox_id: inbox.id,
+      content: reason
+    )
+    attrs = (@conversation.additional_attributes || {}).merge('customer_request_summary' => reason)
+    @conversation.update_columns(additional_attributes: attrs, updated_at: Time.current)
+    @response = {
+      'action_source' => 'customer_request_intent',
+      'action_reason' => reason
+    }
+    process_v1_handoff
+    true
+  ensure
+    Current.executed_by = nil
   end
 
   def out_of_office_handoff_message_configured?

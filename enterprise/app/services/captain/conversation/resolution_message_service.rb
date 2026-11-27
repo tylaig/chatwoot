@@ -2,6 +2,7 @@ class Captain::Conversation::ResolutionMessageService
   pattr_initialize [:conversation!, :assistant!]
 
   def perform(use_default_message: false)
+    return if Captain::Conversation::HumanHandoffLock.locked?(conversation)
     return unless assistant.send_inactivity_resolution_message?
 
     I18n.with_locale(conversation.account.locale) do

@@ -48,5 +48,17 @@ RSpec.describe Captain::Conversation::CsatPromiseFulfillmentService do
 
       expect(result).to eq(:skipped)
     end
+
+    it 'skips when the conversation is locked for human handoff' do
+      Captain::Conversation::HumanHandoffLock.lock!(conversation, reason: 'human queue', category: 'customer_request')
+
+      result = described_class.new(
+        conversation: conversation,
+        content: 'Avalie nas estrelinhas logo abaixo!'
+      ).perform
+
+      expect(result).to eq(:skipped)
+      expect(conversation.messages.where(content_type: :input_csat)).not_to exist
+    end
   end
 end

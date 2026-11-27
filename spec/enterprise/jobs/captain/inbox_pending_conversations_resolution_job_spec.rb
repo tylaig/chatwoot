@@ -488,4 +488,21 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
 
     expect(resolvable_pending_conversation.reload.status).to eq('pending')
   end
+
+  it 'does not auto-resolve conversations locked for human handoff' do
+    allow(inbox.account).to receive(:feature_enabled?).and_call_original
+    allow(inbox.account).to receive(:feature_enabled?).with('captain_tasks').and_return(false)
+    Captain::Conversation::HumanHandoffLock.lock!(
+      resolvable_pending_conversation,
+      reason: 'waiting for human',
+      category: 'customer_request'
+    )
+
+    expect do
+      described_class.perform_now(inbox)
+    end.not_to(change { resolvable_pending_conversation.reload.status })
+
+    expect(resolvable_pending_conversation.reload.status).to eq('pending')
+    expect(Captain::Conversation::HumanHandoffLock.locked?(resolvable_pending_conversation)).to be(true)
+  end
 end

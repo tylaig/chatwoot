@@ -1224,5 +1224,42 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         end.not_to(change { conversation.messages.template.count })
       end
     end
+
+    context 'when human handoff lock is sticky' do
+      before do
+        allow(account).to receive(:feature_enabled?).and_return(false)
+        allow(account).to receive(:feature_enabled?).with('captain_integration_v2').and_return(false)
+      end
+
+      it 'reopens a locked pending conversation without calling the LLM' do
+        Captain::Conversation::HumanHandoffLock.lock!(conversation, reason: 'prior handoff', category: 'customer_request')
+        expect(Captain::Llm::AssistantChatService).not_to receive(:new)
+
+        described_class.perform_now(conversation, assistant)
+
+        expect(conversation.reload.status).to eq('open')
+        expect(Captain::Conversation::HumanHandoffLock.locked?(conversation)).to be(true)
+      end
+
+      it 'forces handoff + lock when the customer asks for a human before the LLM runs' do
+        responding_to_message.update!(content: 'quero falar com um atendente agora')
+        expect(Captain::Llm::AssistantChatService).not_to receive(:new)
+
+        described_class.perform_now(conversation, assistant)
+
+        expect(conversation.reload.status).to eq('open')
+        expect(Captain::Conversation::HumanHandoffLock.locked?(conversation)).to be(true)
+        expect(conversation.messages.outgoing.where(private: false).last.content).to eq(I18n.t('conversations.captain.handoff'))
+      end
+
+      it 'locks the conversation on legacy v1 handoff' do
+        allow(mock_llm_chat_service).to receive(:generate_response).and_return({ 'response' => 'conversation_handoff' })
+
+        described_class.perform_now(conversation, assistant)
+
+        expect(conversation.reload.status).to eq('open')
+        expect(Captain::Conversation::HumanHandoffLock.locked?(conversation)).to be(true)
+      end
+    end
   end
 end

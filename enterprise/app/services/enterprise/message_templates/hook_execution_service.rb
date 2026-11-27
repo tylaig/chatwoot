@@ -9,6 +9,7 @@ module Enterprise::MessageTemplates::HookExecutionService
     # otherwise the coverage denominator only ever contains conversations
     # Captain was already about to answer.
     track_captain_eligibility
+    return keep_locked_handoff_in_human_queue if Captain::Conversation::HumanHandoffLock.locked?(conversation)
     return unless conversation.pending?
     return perform_handoff unless inbox.captain_active?
 
@@ -57,6 +58,11 @@ module Enterprise::MessageTemplates::HookExecutionService
       content: 'Transferring to another agent for further assistance.'
     )
     conversation.bot_handoff!
+    Captain::Conversation::HumanHandoffLock.lock!(
+      conversation,
+      reason: 'Captain usage limit exceeded',
+      category: 'usage_limit'
+    )
     Captain::ConversationEvents.handed_off(
       conversation: conversation,
       assistant: inbox.captain_assistant,
@@ -81,5 +87,13 @@ module Enterprise::MessageTemplates::HookExecutionService
 
   def captain_assistant_configured?
     inbox.captain_assistant.present?
+  end
+
+  # After Captain handed off, the thread can drift back to pending (especially
+  # without a human assignee). Keep it open for humans and do not schedule Leo.
+  def keep_locked_handoff_in_human_queue
+    return unless conversation.pending?
+
+    conversation.open!
   end
 end

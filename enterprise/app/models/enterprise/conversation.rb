@@ -43,7 +43,15 @@ module Enterprise::Conversation
 
   def handle_resolved_status_change
     super
+    clear_captain_human_handoff_lock_on_resolve
     update_applied_sla_completion
+  end
+
+  def clear_captain_human_handoff_lock_on_resolve
+    return unless saved_change_to_status?
+    return unless resolved?
+
+    Captain::Conversation::HumanHandoffLock.clear!(self)
   end
 
   def update_applied_sla_completion

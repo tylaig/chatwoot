@@ -43,4 +43,12 @@ RSpec.describe Captain::Conversation::ResolutionMessageService do
       described_class.new(conversation: conversation, assistant: assistant).perform
     end.not_to change(conversation.messages, :count)
   end
+
+  it 'does not create a message when the conversation is locked for human handoff' do
+    Captain::Conversation::HumanHandoffLock.lock!(conversation, reason: 'human queue', category: 'customer_request')
+
+    expect do
+      described_class.new(conversation: conversation, assistant: assistant).perform
+    end.not_to change(conversation.messages, :count)
+  end
 end

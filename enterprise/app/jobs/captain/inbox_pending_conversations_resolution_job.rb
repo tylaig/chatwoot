@@ -73,6 +73,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   def resolvable_pending_conversations(inbox)
     inbox.conversations.pending
          .where('last_activity_at < ?', inactivity_cutoff_time)
+         .where("additional_attributes ->> ? IS NULL", Captain::Conversation::HumanHandoffLock::LOCK_KEY)
          .limit(Limits::BULK_ACTIONS_LIMIT)
   end
 
@@ -166,6 +167,11 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
         conversation.bot_handoff!(dispatch_event: false)
         create_private_note(conversation, "Transferência automática: #{reason}")
         create_handoff_message(conversation)
+        Captain::Conversation::HumanHandoffLock.lock!(
+          conversation,
+          reason: reason,
+          category: 'pending_clarification'
+        )
       end
     end
     return unless handed_off

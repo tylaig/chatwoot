@@ -16,6 +16,7 @@ class Captain::Conversation::CsatPromiseFulfillmentService
 
   def perform
     return :skipped if content_to_scan.blank?
+    return :skipped if Captain::Conversation::HumanHandoffLock.locked?(conversation)
     return :skipped unless promises_csat?
     return :skipped unless conversation.inbox.csat_survey_enabled?
     return :already_sent if conversation.messages.where(content_type: :input_csat).exists?

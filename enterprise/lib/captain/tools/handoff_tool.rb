@@ -69,6 +69,7 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
     record_handoff_note(tool_context, note) if reason.present?
 
     tool_context.state[:captain_v2_handoff_tool_completed] = true
+    lock_human_handoff!(conversation, reason: reason, reason_category: reason_category)
     # Queue the event after the state change commits so notification jobs always see the open conversation.
     conversation.dispatch_bot_handoff_event
     emit_tool_handoff_event(conversation, reason_category)
@@ -86,6 +87,7 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
     persist_customer_request_summary(conversation, reason)
     record_handoff_note(tool_context, note) if reason.present?
     conversation.bot_handoff!
+    lock_human_handoff!(conversation, reason: reason, reason_category: reason_category)
     emit_tool_handoff_event(conversation, reason_category)
     send_out_of_office_message_if_applicable(conversation)
     :completed
@@ -96,6 +98,14 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
 
     attrs = (conversation.additional_attributes || {}).merge('customer_request_summary' => reason.to_s.strip)
     conversation.update_columns(additional_attributes: attrs, updated_at: Time.current)
+  end
+
+  def lock_human_handoff!(conversation, reason:, reason_category:)
+    Captain::Conversation::HumanHandoffLock.lock!(
+      conversation,
+      reason: reason,
+      category: normalize_reason_category(reason_category)
+    )
   end
 
   def emit_tool_handoff_event(conversation, reason_category)

@@ -29,6 +29,16 @@ RSpec.describe MessageTemplates::HookExecutionService do
         expect(Captain::Conversation::ResponseBuilderJob).to have_received(:perform_later).with(conversation, assistant)
       end
 
+      it 'reopens a locked handoff conversation without scheduling Captain' do
+        allow(Captain::Conversation::ResponseBuilderJob).to receive(:perform_later)
+        Captain::Conversation::HumanHandoffLock.lock!(conversation, reason: 'prior handoff', category: 'customer_request')
+
+        create(:message, conversation: conversation, message_type: :incoming, account: account)
+
+        expect(Captain::Conversation::ResponseBuilderJob).not_to have_received(:perform_later)
+        expect(conversation.reload.status).to eq('open')
+      end
+
       it 'passes the responding message id for Captain V2' do
         account.enable_features!(:captain_integration_v2)
         allow(Captain::Conversation::ResponseBuilderJob).to receive(:perform_later)
