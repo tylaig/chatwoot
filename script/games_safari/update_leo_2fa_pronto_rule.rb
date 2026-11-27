@@ -17,11 +17,14 @@ RULE
 
 updated = 0
 Captain::Assistant.find_each do |assistant|
-  description = assistant.description.to_s
-  next if description.include?(MARKER)
+  guidelines = Array(assistant.response_guidelines)
+  next if guidelines.any? { |g| g.to_s.include?(MARKER) }
 
-  separator = description.end_with?("\n") ? "\n" : "\n\n"
-  assistant.update!(description: "#{description}#{separator}#{RULE}")
+  # description has a 500-char validation; behavioral rules live in response_guidelines.
+  assistant.update_columns(
+    response_guidelines: guidelines + [RULE],
+    updated_at: Time.current
+  )
   updated += 1
   puts "updated assistant id=#{assistant.id} name=#{assistant.name}"
 end
